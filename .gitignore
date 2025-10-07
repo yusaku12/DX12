@@ -1,12 +1,3 @@
 .vs/
-DirectX12/x64/Debug/DirectX12.exe.recipe
-DirectX12/x64/Debug/vc143.idb
-DirectX12/x64/Debug/DirectX12.tlog/CL.14048.write.1.tlog
-DirectX12/x64/Debug/DirectX12.tlog/CL.command.1.tlog
-DirectX12/x64/Debug/DirectX12.tlog/Cl.items.tlog
-DirectX12/x64/Debug/DirectX12.tlog/CL.read.1.tlog
-DirectX12/x64/Debug/DirectX12.tlog/DirectX12.lastbuildstate
-DirectX12/x64/Debug/DirectX12.tlog/link.command.1.tlog
-DirectX12/x64/Debug/DirectX12.tlog/link.read.1.tlog
-DirectX12/x64/Debug/DirectX12.tlog/link.secondary.1.tlog
-DirectX12/x64/Debug/DirectX12.tlog/link.write.1.tlog
+DirectX12/
+x64/
