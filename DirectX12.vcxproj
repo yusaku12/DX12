@@ -24,14 +24,12 @@
     <ClCompile Include="External\imgui\imgui_draw.cpp" />
     <ClCompile Include="External\imgui\imgui_impl_dx12.cpp" />
     <ClCompile Include="External\imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="External\imgui\imgui_neo_internal.cpp" />
     <ClCompile Include="External\imgui\imgui_render.cpp" />
     <ClCompile Include="External\imgui\imgui_tables.cpp" />
     <ClCompile Include="External\imgui\imgui_widgets.cpp" />
     <ClCompile Include="External\imgui\imgui_widget_flamegraph.cpp" />
     <ClCompile Include="Source\dx12.cpp" />
     <ClCompile Include="Source\main.cpp" />
-    <ClCompile Include="Source\System\dialog.cpp" />
     <ClCompile Include="Source\System\logger.cpp" />
     <ClCompile Include="Source\System\window.cpp" />
   </ItemGroup>
@@ -41,15 +39,12 @@
     <ClInclude Include="External\imgui\imgui_impl_dx12.h" />
     <ClInclude Include="External\imgui\imgui_impl_win32.h" />
     <ClInclude Include="External\imgui\imgui_internal.h" />
-    <ClInclude Include="External\imgui\imgui_neo_internal.h" />
-    <ClInclude Include="External\imgui\imgui_neo_sequencer.h" />
     <ClInclude Include="External\imgui\imgui_render.h" />
     <ClInclude Include="External\imgui\imgui_widget_flamegraph.h" />
     <ClInclude Include="External\imgui\imstb_rectpack.h" />
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\dx12.h" />
-    <ClInclude Include="Source\System\dialog.h" />
     <ClInclude Include="Source\System\logger.h" />
     <ClInclude Include="Source\System\stringformat.h" />
     <ClInclude Include="Source\System\window.h" />
