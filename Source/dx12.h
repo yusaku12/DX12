@@ -76,6 +76,9 @@ public:
     //! 画面をリサイズ
     void screenResize(int width, int height);
 
+    //! sceneをimguiで表示
+    void screenImGui();
+
     //! フェンスを待つ
     void safeGPUWait();
 
@@ -115,7 +118,6 @@ private:
     const HWND m_hwnd;
     int m_width = 1280, m_height = 720;     //!< 画面の立幅、横幅
     static constexpr int BUFFER_COUNT = 3;  //!< バックバッファの数
-    Microsoft::WRL::ComPtr<IDXGIFactory6> m_dxgiFactory;
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_graphicsCommandList;
@@ -125,7 +127,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeaps;
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_backBuffers[BUFFER_COUNT];
-    Microsoft::WRL::ComPtr<ID3D12CommandList> m_commandList;
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
-    UINT64 m_fenceVall = 1;
+    UINT64 m_fenceVall = 0;
 };
