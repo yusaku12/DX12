@@ -1,5 +1,4 @@
-#include "Logger.h"
-#include <iostream>
+#include "pch.h"
 
 //! コンソール出力文字色制御コード
 static constexpr const char* ConsoleColorReset = "\x1b[0m";

@@ -1,0 +1,32 @@
+#pragma once
+
+#include <string>
+#include <string_view>
+#include <format>
+#include <utility>
+#include <mutex>
+#include <vector>
+#include <imgui.h>
+#include <iostream>
+#include <Windows.h>
+#include <tchar.h>
+#include <stdexcept>
+#include <d3d12.h>
+#include <dxgi1_6.h>
+#include <wrl.h>
+#include <memory>
+#include <DirectXMath.h>
+#include <DirectXPackedVector.h>
+#include <DirectXCollision.h>
+#include <cassert>
+#include <cmath>
+#include <cstddef>
+#include <cstring>
+#include <functional>
+#include <dxgi1_2.h>
+
+#include "System\stringformat.h"
+#include "dx12.h"
+#include "System\logger.h"
+#include "imgui_render.h"
+#include "Math\SimpleMath.h"

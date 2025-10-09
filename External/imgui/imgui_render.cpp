@@ -1,5 +1,4 @@
-#include "imgui_render.h"
-#include "dx12.h"
+#include "pch.h"
 
 namespace ImGuiCtrl
 {

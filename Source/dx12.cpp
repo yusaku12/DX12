@@ -1,7 +1,4 @@
-#include "dx12.h"
-#include <stdexcept>
-#include <string>
-#include "System\logger.h"
+#include "pch.h"
 
 DX12* DX12::m_instance = nullptr;
 
@@ -252,12 +249,6 @@ void DX12::screenResize(int width, int height)
 
     //! コマンドリセット
     commandReset();
-}
-
-void DX12::screenImGui()
-{
-    ImGui::Begin("Render Target View");
-    ImGui::End();
 }
 
 void DX12::enableDebugLayer()

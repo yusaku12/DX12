@@ -1,11 +1,5 @@
 #pragma once
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <wrl.h>
-#include <memory>
-#include "imgui_render.h"
-
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
@@ -75,9 +69,6 @@ public:
 
     //! 画面をリサイズ
     void screenResize(int width, int height);
-
-    //! sceneをimguiで表示
-    void screenImGui();
 
     //! フェンスを待つ
     void safeGPUWait();

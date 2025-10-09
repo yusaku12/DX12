@@ -1,9 +1,4 @@
 #pragma once
-#include <string>
-#include <mutex>
-#include <vector>
-#include <imgui.h>
-#include "stringformat.h"
 
 //! ƒƒOƒŒƒxƒ‹
 enum class LogLevel

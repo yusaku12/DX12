@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "System\window.h"
 
 static constexpr LONG SCREEN_WIDTH = static_cast<LONG>(1280);

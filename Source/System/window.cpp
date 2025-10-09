@@ -1,6 +1,5 @@
+#include "pch.h"
 #include "window.h"
-#include "logger.h"
-#include <imgui_render.h>
 
 Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
