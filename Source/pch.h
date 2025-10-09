@@ -1,5 +1,6 @@
 #pragma once
 
+//! DXの標準機能
 #include <string>
 #include <string_view>
 #include <format>
@@ -25,6 +26,7 @@
 #include <functional>
 #include <dxgi1_2.h>
 
+//! 自作の機能
 #include "System\stringformat.h"
 #include "dx12.h"
 #include "System\logger.h"
