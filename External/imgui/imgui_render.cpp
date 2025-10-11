@@ -105,8 +105,8 @@ namespace ImGuiCtrl
         init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
         init_info.SrvDescriptorHeap = DX12::getInstance().getSRVDiscriptorHeap();
         init_info.UserData = &DX12::getInstance();
-        init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) {auto dx12 = reinterpret_cast<DX12*>(info->UserData); return dx12->getExampleDescriptorHeapAllocator().Alloc(out_cpu_handle, out_gpu_handle); };
-        init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) {auto dx12 = reinterpret_cast<DX12*>(info->UserData); return dx12->getExampleDescriptorHeapAllocator().Free(cpu_handle, gpu_handle); };
+        init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) {auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData); return dx12Imgui->getExampleDescriptorHeapAllocator().Alloc(out_cpu_handle, out_gpu_handle); };
+        init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) {auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData); return dx12Imgui->getExampleDescriptorHeapAllocator().Free(cpu_handle, gpu_handle); };
         ImGui_ImplDX12_Init(&init_info);
     }
 

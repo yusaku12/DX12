@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Graphics\polygon.h"
+
 //=====================================================
 // Window ƒNƒ‰ƒX
 //=====================================================
@@ -26,4 +28,5 @@ private:
 
     const HWND m_hwnd;
     DX12 m_dx12;
+    std::unique_ptr<Polygon> m_polygon;
 };

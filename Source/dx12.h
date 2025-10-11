@@ -64,6 +64,9 @@ public:
     //! 画面をクリア
     void screenClear();
 
+    //! レンダーターゲットを元に戻し、コマンド終了
+    void renderTargetUndo();
+
     //! 画面クリアの後処理
     void screenClearCleanup();
 
@@ -72,9 +75,6 @@ public:
 
     //! フェンスを待つ
     void safeGPUWait();
-
-    //! スワップチェーン取得
-    IDXGISwapChain4* getSwapChain() const { return m_dxgiSwapChain4.Get(); }
 
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
@@ -119,5 +119,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_backBuffers[BUFFER_COUNT];
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
+    D3D12_RESOURCE_BARRIER barrierDesc = {};
     UINT64 m_fenceVall = 0;
 };

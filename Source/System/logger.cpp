@@ -41,7 +41,7 @@ void Logger::log(LogLevel level, const std::string& message)
     {
     case LogLevel::INFO:  prefix = "[INFO] "; out = &std::cout; break;
     case LogLevel::WARN:  prefix = "[ASSERT] "; out = &std::cerr; break;
-    case LogLevel::ASSERT: prefix = "[ERROR] "; out = &std::cerr; break;
+    case LogLevel::ERROR: prefix = "[ERROR] "; out = &std::cerr; break;
     }
 
     (*out) << prefix << message << std::endl;
@@ -50,7 +50,7 @@ void Logger::log(LogLevel level, const std::string& message)
     ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
     if (level == LogLevel::INFO) color = ImVec4(0.f, 1.f, 1.f, 1.f);
     if (level == LogLevel::WARN) color = ImVec4(1.f, 1.f, 0.f, 1.f);
-    if (level == LogLevel::ASSERT) color = ImVec4(1.f, 0.f, 0.f, 1.f);
+    if (level == LogLevel::ERROR) color = ImVec4(1.f, 0.f, 0.f, 1.f);
 
     m_imguiLogs.push_back({ prefix + message, color });
 }
