@@ -1,6 +1,10 @@
 #pragma once
 
+#define NOMINMAX
+
 //! DXの標準機能
+#include <windows.h>
+#include <d3d12.h>
 #include <string>
 #include <string_view>
 #include <format>
@@ -11,7 +15,6 @@
 #include <iostream>
 #include <tchar.h>
 #include <stdexcept>
-#include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl.h>
 #include <memory>
@@ -28,7 +31,9 @@
 #include <filesystem>
 #include <cstdio>
 #include <wrl\client.h>
-#include <Windows.h>
+#include <fstream>
+#include <array>
+
 #undef ERROR
 
 //! 自作の機能

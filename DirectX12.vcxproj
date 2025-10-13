@@ -47,6 +47,7 @@
     <ClCompile Include="Source\Graphics\polygon.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Math\simplemath.cpp" />
+    <ClCompile Include="Source\Model\pmxload.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
@@ -70,6 +71,7 @@
     <ClInclude Include="Source\Graphics\piplinestate.h" />
     <ClInclude Include="Source\Graphics\polygon.h" />
     <ClInclude Include="Source\Math\simplemath.h" />
+    <ClInclude Include="Source\Model\pmxload.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\System\logger.h" />
     <ClInclude Include="Source\System\stringformat.h" />
@@ -152,6 +154,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <MultiProcFXC>true</MultiProcFXC>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ShortProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <MultiProcFXC>true</MultiProcFXC>
@@ -195,7 +199,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\Users\2210359\Desktop\DirectX12\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
@@ -219,6 +223,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>.\External\imgui;.\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

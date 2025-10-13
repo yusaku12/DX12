@@ -1,2 +1,10 @@
 //
 // FX Version: fx_5_0
+//
+// 2 local object(s)
+//
+Texture2D tex;
+SamplerState smp
+{
+};
+

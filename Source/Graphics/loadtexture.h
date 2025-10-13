@@ -4,4 +4,4 @@
 #pragma comment(lib, "DirectXTex.lib")
 
 //! テクスチャ読み込み
-static void loadTexture();
+static void loadTexture(const wchar_t* textureName);

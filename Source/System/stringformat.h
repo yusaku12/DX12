@@ -14,3 +14,31 @@ std::string stringFormat(const std::string& format, Args&&... args)
     std::snprintf(buf.data(), size, format.c_str(), std::forward<Args>(args)...);
     return std::string(buf.data(), buf.data() + size - 1); //!< NULL‚ðœ‚­
 }
+
+//! UTF16‚Ì•¶Žš—ñ‚ðstd::wstring‚É•ÏŠ·
+static bool GetPMXStringUTF16(std::ifstream& _file, std::wstring& output)
+{
+    std::array<wchar_t, 512> wBuffer{};
+    int textSize;
+
+    _file.read(reinterpret_cast<char*>(&textSize), 4);
+
+    _file.read(reinterpret_cast<char*>(&wBuffer), textSize);
+    output = std::wstring(&wBuffer[0], &wBuffer[0] + textSize / 2);
+
+    return true;
+}
+
+//! UTF8‚Ì•¶Žš—ñ‚Ístd::string‚É•Û‘¶
+static bool GetPMXStringUTF8(std::ifstream& _file, std::string& output)
+{
+    std::array<wchar_t, 512> wBuffer{};
+    int textSize;
+
+    _file.read(reinterpret_cast<char*>(&textSize), 4);
+    _file.read(reinterpret_cast<char*>(&wBuffer), textSize);
+
+    output = std::string(&wBuffer[0], &wBuffer[0] + textSize);
+
+    return true;
+}
