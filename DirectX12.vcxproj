@@ -31,6 +31,12 @@
     <ClCompile Include="External\imgui\imgui_impl_win32.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="External\imgui\imgui_neo_internal.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\imgui_neo_sequencer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="External\imgui\imgui_render.cpp" />
     <ClCompile Include="External\imgui\imgui_tables.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -39,6 +45,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="External\imgui\imgui_widget_flamegraph.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="External\imgui\ImNodeFlow.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\dx12.cpp" />
@@ -55,13 +64,19 @@
     <ClCompile Include="Source\System\window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="External\imgui\context_wrapper.h" />
     <ClInclude Include="External\imgui\imconfig.h" />
     <ClInclude Include="External\imgui\imgui.h" />
+    <ClInclude Include="External\imgui\imgui_bezier_math.h" />
+    <ClInclude Include="External\imgui\imgui_extra_math.h" />
     <ClInclude Include="External\imgui\imgui_impl_dx12.h" />
     <ClInclude Include="External\imgui\imgui_impl_win32.h" />
     <ClInclude Include="External\imgui\imgui_internal.h" />
+    <ClInclude Include="External\imgui\imgui_neo_internal.h" />
+    <ClInclude Include="External\imgui\imgui_neo_sequencer.h" />
     <ClInclude Include="External\imgui\imgui_render.h" />
     <ClInclude Include="External\imgui\imgui_widget_flamegraph.h" />
+    <ClInclude Include="External\imgui\ImNodeFlow.h" />
     <ClInclude Include="External\imgui\imstb_rectpack.h" />
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
