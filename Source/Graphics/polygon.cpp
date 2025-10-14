@@ -3,6 +3,9 @@
 
 Polygon::Polygon()
 {
+    //! テクスチャ読み込み
+    m_loadTexture = std::make_unique<LoadTexture>(L"Data/Texture/barria.png");
+
     //! 四角形
     Vertex vertices[] =
     {
@@ -96,12 +99,39 @@ Polygon::Polygon()
         },
     };
 
+    //! テクスチャのルートパラメータ
+    D3D12_DESCRIPTOR_RANGE textureDescriptorRange = {};
+    textureDescriptorRange.NumDescriptors = 1;
+    textureDescriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;    //!< SRVなのでこれ
+    textureDescriptorRange.BaseShaderRegister = 0;
+    textureDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+    //! ルートパラメータ作成
+    D3D12_ROOT_PARAMETER rootparam[1] = {};
+    rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    rootparam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;           //!< ピクセルシェーダで使用するので
+    rootparam[0].DescriptorTable.pDescriptorRanges = &textureDescriptorRange;
+    rootparam[0].DescriptorTable.NumDescriptorRanges = 1;
+
+    //! サンプラー追加
+    D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+    samplerDesc.Filter = D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR;
+    samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+    samplerDesc.MinLOD = 0.0f;
+    samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;   //!< ピクセルシェーダで使用するので
+    samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;       //!< 基本的なサンプラではこれでよい(影の時は変更)
+    samplerDesc.RegisterSpace = 0;
+
     //! ルートシグネチャ(どのシェーダリソースを使用するのか、どのサンプラーを使用するのかを設定するもの)
     D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-    rootSignatureDesc.NumParameters = 0;
-    rootSignatureDesc.pParameters = nullptr;
-    rootSignatureDesc.NumStaticSamplers = 0;
-    rootSignatureDesc.pStaticSamplers = nullptr;
+    rootSignatureDesc.NumParameters = 1;
+    rootSignatureDesc.pParameters = rootparam;
+    rootSignatureDesc.NumStaticSamplers = 1;
+    rootSignatureDesc.pStaticSamplers = &samplerDesc;
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;  //!< 頂点情報が存在する
     hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, m_rootSigBlob.GetAddressOf(), errorBlob.GetAddressOf());
     hr = dx12.getDevice()->CreateRootSignature(0, m_rootSigBlob->GetBufferPointer(), m_rootSigBlob->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf()));
@@ -184,6 +214,10 @@ void Polygon::render()
     dx12.getGraphicsCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     dx12.getGraphicsCommandList()->IASetVertexBuffers(0, 1, &vbView);
     dx12.getGraphicsCommandList()->IASetIndexBuffer(&ibView);
+
+    ID3D12DescriptorHeap* heap = m_loadTexture->getDescriptorHeapTexture();
+    dx12.getGraphicsCommandList()->SetDescriptorHeaps(1, &heap);
+    dx12.getGraphicsCommandList()->SetGraphicsRootDescriptorTable(0, heap->GetGPUDescriptorHandleForHeapStart());
 
     dx12.getGraphicsCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
 }

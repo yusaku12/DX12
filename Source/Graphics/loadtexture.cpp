@@ -1,7 +1,12 @@
 #include "pch.h"
 #include "loadtexture.h"
 
-void loadTexture(const wchar_t* textureName)
+LoadTexture::LoadTexture(const wchar_t* textureName)
+{
+    loadTexture(textureName);
+}
+
+void LoadTexture::loadTexture(const wchar_t* textureName)
 {
     DirectX::TexMetadata metadata = {};
     DirectX::ScratchImage scratchImg = {};
@@ -51,34 +56,19 @@ void loadTexture(const wchar_t* textureName)
         img->slicePitch);
 
     //! ディスクリプタ ヒープ作成
-    ID3D12DescriptorHeap* basicDescHeap = nullptr;
     D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
     descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     descHeapDesc.NodeMask = 0;
     descHeapDesc.NumDescriptors = 1;
     descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    hr = DX12::getInstance().getDevice()->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&basicDescHeap));
+    hr = DX12::getInstance().getDevice()->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(m_basicDescHeap.GetAddressOf()));
 
     //! シェーダーリソースビュー作成
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Format = metadata.format;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;    //2次元テクスチャを使用するのでこれでOK
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;    //!< 2次元テクスチャを使用するのでこれでOK
     srvDesc.Texture2D.MipLevels = 1;
-    auto basicHeapHandle = basicDescHeap->GetCPUDescriptorHandleForHeapStart();
+    auto basicHeapHandle = m_basicDescHeap->GetCPUDescriptorHandleForHeapStart();
     DX12::getInstance().getDevice()->CreateShaderResourceView(texbuff, &srvDesc, basicHeapHandle);
-
-    //! ルートパラメータ
-    D3D12_DESCRIPTOR_RANGE textureDescriptorRange = {};
-    textureDescriptorRange.NumDescriptors = 1;
-    textureDescriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    textureDescriptorRange.BaseShaderRegister = 0;
-    textureDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-    //! ルートパラメータ作成
-    D3D12_ROOT_PARAMETER rootparam[1] = {};
-    rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-    rootparam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-    rootparam[0].DescriptorTable.pDescriptorRanges = &textureDescriptorRange;
-    rootparam[0].DescriptorTable.NumDescriptorRanges = 1;
 }

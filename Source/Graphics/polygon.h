@@ -1,5 +1,7 @@
 #pragma once
 
+#include "loadtexture.h"
+
 //=====================================================
 // Polygon ƒNƒ‰ƒX
 //=====================================================
@@ -29,4 +31,5 @@ private:
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
     D3D12_VERTEX_BUFFER_VIEW vbView = {};
     D3D12_INDEX_BUFFER_VIEW ibView = {};
+    std::unique_ptr<LoadTexture>m_loadTexture;
 };

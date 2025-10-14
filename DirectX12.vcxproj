@@ -53,6 +53,7 @@
     <ClCompile Include="Source\dx12.cpp" />
     <ClCompile Include="Source\Graphics\loadshader.cpp" />
     <ClCompile Include="Source\Graphics\loadtexture.cpp" />
+    <ClCompile Include="Source\Graphics\piplinestate.cpp" />
     <ClCompile Include="Source\Graphics\polygon.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Math\simplemath.cpp" />
