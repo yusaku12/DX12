@@ -81,6 +81,12 @@
     <ClCompile Include="Source\Graphics\piplinestate.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Graphics\texturemanager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\shadermanager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\dx12.h">
@@ -164,10 +170,16 @@
     <ClInclude Include="External\imgui\context_wrapper.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Graphics\texturemanager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Graphics\shadermanager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="HLSL\polygonVS.fx" />
-    <FxCompile Include="HLSL\polygonPS.fx" />
+    <FxCompile Include="HLSL\polygonVS.hlsl" />
+    <FxCompile Include="HLSL\polygonPS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\polygon.hlsli" />

@@ -35,6 +35,7 @@
 #include <array>
 
 #undef ERROR
+#undef OPAQUE
 
 //! ©ì‚Ì‹@”\
 #include "System\stringformat.h"
@@ -42,8 +43,9 @@
 #include "System\logger.h"
 #include "imgui_render.h"
 #include "Math\simplemath.h"
-#include "Graphics\loadshader.h"
-#include "Graphics\loadtexture.h"
+#include "Graphics\piplinestate.h"
+#include "Graphics\texturemanager.h"
+#include "Graphics\shadermanager.h"
 
 //! È—ªŒn
 using namespace DirectX::SimpleMath;

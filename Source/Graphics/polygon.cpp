@@ -3,9 +3,6 @@
 
 Polygon::Polygon()
 {
-    //! テクスチャ読み込み
-    m_loadTexture = std::make_unique<LoadTexture>(L"Data/Texture/barria.png");
-
     //! 四角形
     Vertex vertices[] =
     {
@@ -71,15 +68,6 @@ Polygon::Polygon()
     ibView.Format = DXGI_FORMAT_R16_UINT;
     ibView.SizeInBytes = sizeof(indices);
 
-    //! 各種生成
-    Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-    Microsoft::WRL::ComPtr<ID3DBlob> vsBlob;
-    Microsoft::WRL::ComPtr<ID3DBlob> psBlob;
-
-    //! シェーダー読み込み
-    LoadShader::getInstance().loadShader(L"HLSL\\polygonVS.fx", ShaderType::VS, vsBlob, errorBlob);
-    LoadShader::getInstance().loadShader(L"HLSL\\polygonPS.fx", ShaderType::PS, psBlob, errorBlob);
-
     //! 頂点レイアウト
     D3D12_INPUT_ELEMENT_DESC inputLayout[] =
     {
@@ -99,70 +87,25 @@ Polygon::Polygon()
         },
     };
 
-    //! テクスチャのルートパラメータ
-    D3D12_DESCRIPTOR_RANGE textureDescriptorRange = {};
-    textureDescriptorRange.NumDescriptors = 1;
-    textureDescriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;    //!< SRVなのでこれ
-    textureDescriptorRange.BaseShaderRegister = 0;
-    textureDescriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-    //! ルートパラメータ作成
-    D3D12_ROOT_PARAMETER rootparam[1] = {};
-    rootparam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-    rootparam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;           //!< ピクセルシェーダで使用するので
-    rootparam[0].DescriptorTable.pDescriptorRanges = &textureDescriptorRange;
-    rootparam[0].DescriptorTable.NumDescriptorRanges = 1;
-
-    //! サンプラー追加
-    D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
-    samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    samplerDesc.Filter = D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR;
-    samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
-    samplerDesc.MinLOD = 0.0f;
-    samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;   //!< ピクセルシェーダで使用するので
-    samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;       //!< 基本的なサンプラではこれでよい(影の時は変更)
-    samplerDesc.RegisterSpace = 0;
-
-    //! ルートシグネチャ(どのシェーダリソースを使用するのか、どのサンプラーを使用するのかを設定するもの)
-    D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-    rootSignatureDesc.NumParameters = 1;
-    rootSignatureDesc.pParameters = rootparam;
-    rootSignatureDesc.NumStaticSamplers = 1;
-    rootSignatureDesc.pStaticSamplers = &samplerDesc;
-    rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;  //!< 頂点情報が存在する
-    hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, m_rootSigBlob.GetAddressOf(), errorBlob.GetAddressOf());
-    hr = dx12.getDevice()->CreateRootSignature(0, m_rootSigBlob->GetBufferPointer(), m_rootSigBlob->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf()));
-    m_rootSigBlob->Release();
-
-    //! 使うシェーダを設定
     D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};
-    gpipeline.pRootSignature = m_rootSignature.Get();
-    gpipeline.VS.pShaderBytecode = vsBlob->GetBufferPointer();
-    gpipeline.VS.BytecodeLength = vsBlob->GetBufferSize();
-    gpipeline.PS.pShaderBytecode = psBlob->GetBufferPointer();
-    gpipeline.PS.BytecodeLength = psBlob->GetBufferSize();
 
-    //! 基本的なサンプリングマスクを使用し、アンチエイリアシングは使用しないように
-    //! カリングはせず、内側は埋めるように設定
-    //! 深度によるクリッピングは有効にする
-    gpipeline.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-    gpipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-    gpipeline.RasterizerState.FrontCounterClockwise = FALSE;
-    gpipeline.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-    gpipeline.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-    gpipeline.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-    gpipeline.RasterizerState.DepthClipEnable = TRUE;
-    gpipeline.RasterizerState.MultisampleEnable = FALSE;
-    gpipeline.RasterizerState.AntialiasedLineEnable = FALSE;
-    gpipeline.RasterizerState.ForcedSampleCount = 0;
-    gpipeline.RasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+    //! シェーダー読み込み
+    LoadShader* vs = ShaderManager::Instance().load(L"HLSL\\polygonVS.hlsl", ShaderType::VS);
+    LoadShader* ps = ShaderManager::Instance().load(L"HLSL\\polygonPS.hlsl", ShaderType::PS);
 
-    //! アルファテストとアルファブレンド無効
-    gpipeline.BlendState.AlphaToCoverageEnable = false;
-    gpipeline.BlendState.IndependentBlendEnable = false;
+    //! テクスチャ読み込み
+    tex = TextureManager::Instance().load(L"Data/Texture/barria.png");
+
+    //! サンプリングとリソース設定
+    tex->setRootSignature();
+
+    //! シェーダーを設定
+    gpipeline.pRootSignature = tex->getRootSignature();
+    vs->setShader(&gpipeline);
+    ps->setShader(&gpipeline);
+
+    //! パイプライン設定
+    setPlpelineStateObject(&gpipeline, BlendState::ALPHA, DepthStencilState::DEPTH_NONE, RasterizerState::CULL_NONE);
 
     //! レンダーターゲットのブレンド無効
     D3D12_RENDER_TARGET_BLEND_DESC renderTargetBlendDesc = {};
@@ -171,13 +114,9 @@ Polygon::Polygon()
     renderTargetBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
     gpipeline.BlendState.RenderTarget[0] = renderTargetBlendDesc;
 
-    gpipeline.DepthStencilState.DepthEnable = FALSE;
-    gpipeline.DepthStencilState.StencilEnable = FALSE;
-
     //! 入力レイアウトを設定
     gpipeline.InputLayout.pInputElementDescs = inputLayout;
     gpipeline.InputLayout.NumElements = _countof(inputLayout);
-
     gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
     gpipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
@@ -187,9 +126,7 @@ Polygon::Polygon()
     gpipeline.DSVFormat = DXGI_FORMAT_UNKNOWN; // 深度バッファなし
     gpipeline.SampleDesc.Count = 1;
     gpipeline.SampleDesc.Quality = 0;
-
-    //! 深度バッファ使わない場合でも指定は必須（空なら UNKNOWN）
-    gpipeline.SampleMask = UINT_MAX;
+    gpipeline.SampleMask = UINT_MAX;                   //! 深度バッファ使わない場合でも指定は必須（空なら UNKNOWN）
     gpipeline.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
     //! パイプラインステート生成
@@ -209,15 +146,13 @@ void Polygon::render()
     auto dx12 = DX12::getInstance();
 
     dx12.getGraphicsCommandList()->SetPipelineState(m_pipelineState.Get());
-    dx12.getGraphicsCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
+    dx12.getGraphicsCommandList()->SetGraphicsRootSignature(tex->getRootSignature());
 
     dx12.getGraphicsCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     dx12.getGraphicsCommandList()->IASetVertexBuffers(0, 1, &vbView);
     dx12.getGraphicsCommandList()->IASetIndexBuffer(&ibView);
 
-    ID3D12DescriptorHeap* heap = m_loadTexture->getDescriptorHeapTexture();
-    dx12.getGraphicsCommandList()->SetDescriptorHeaps(1, &heap);
-    dx12.getGraphicsCommandList()->SetGraphicsRootDescriptorTable(0, heap->GetGPUDescriptorHandleForHeapStart());
+    tex->applyTexture();
 
     dx12.getGraphicsCommandList()->DrawIndexedInstanced(6, 1, 0, 0, 0);
 }

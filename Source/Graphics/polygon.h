@@ -1,7 +1,5 @@
 #pragma once
 
-#include "loadtexture.h"
-
 //=====================================================
 // Polygon ƒNƒ‰ƒX
 //=====================================================
@@ -9,7 +7,7 @@ class Polygon
 {
 public:
 
-    Polygon();
+    explicit Polygon();
     ~Polygon();
 
     //! •`‰æ
@@ -26,10 +24,8 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;
-    Microsoft::WRL::ComPtr<ID3DBlob> m_rootSigBlob;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState;
     D3D12_VERTEX_BUFFER_VIEW vbView = {};
     D3D12_INDEX_BUFFER_VIEW ibView = {};
-    std::unique_ptr<LoadTexture>m_loadTexture;
+    LoadTexture* tex = nullptr;
 };

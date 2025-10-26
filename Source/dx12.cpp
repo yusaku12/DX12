@@ -202,8 +202,8 @@ void DX12::screenClear()
 
     //! ビューポート設定
     D3D12_VIEWPORT viewport = {};
-    viewport.Width = m_width;
-    viewport.Height = m_height;
+    viewport.Width = static_cast<FLOAT>(m_width);
+    viewport.Height = static_cast<FLOAT>(m_height);
     viewport.TopLeftX = 0;
     viewport.TopLeftY = 0;
     viewport.MaxDepth = 1.0f;

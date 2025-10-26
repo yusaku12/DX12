@@ -9,7 +9,7 @@ class Window
 {
 public:
 
-    Window(HWND hwnd);
+    explicit Window(HWND hwnd);
     ~Window();
 
     //! XVˆ—

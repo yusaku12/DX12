@@ -10,16 +10,29 @@ class LoadTexture
 {
 public:
 
-    LoadTexture(const wchar_t* textureName);
-    ~LoadTexture() {};
+    explicit LoadTexture(const wchar_t* textureName);
 
-    //! ディスクリプタ ヒープ取得
-    ID3D12DescriptorHeap* getDescriptorHeapTexture() const { return m_basicDescHeap.Get(); }
+    //! テクスチャを適用
+    void applyTexture();
+
+    //! ルートシグネチャ設定
+    void setRootSignature();
+
+    //! ディスクリプタヒープを取得
+    ID3D12DescriptorHeap* getDescriptorHeap() const { return m_basicDescHeap.Get(); }
+
+    //! テクスチャのリソース取得
+    ID3D12Resource* getResource() const { return m_texture.Get(); }
+
+    //! ルートシグネチャ取得
+    ID3D12RootSignature* getRootSignature()const { return m_rootSignature.Get(); }
 
 private:
 
     //! テクスチャ読み込み
     void loadTexture(const wchar_t* textureName);
 
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_basicDescHeap;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature;
 };

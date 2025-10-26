@@ -16,10 +16,10 @@ std::string stringFormat(const std::string& format, Args&&... args)
 }
 
 //! UTF16の文字列をstd::wstringに変換
-static bool GetPMXStringUTF16(std::ifstream& _file, std::wstring& output)
+static bool getPMXStringUTF16(std::ifstream& _file, std::wstring& output)
 {
     std::array<wchar_t, 512> wBuffer{};
-    int textSize;
+    int textSize = {};
 
     _file.read(reinterpret_cast<char*>(&textSize), 4);
 
@@ -30,10 +30,10 @@ static bool GetPMXStringUTF16(std::ifstream& _file, std::wstring& output)
 }
 
 //! UTF8の文字列はstd::stringに保存
-static bool GetPMXStringUTF8(std::ifstream& _file, std::string& output)
+static bool getPMXStringUTF8(std::ifstream& _file, std::string& output)
 {
     std::array<wchar_t, 512> wBuffer{};
-    int textSize;
+    int textSize = {};
 
     _file.read(reinterpret_cast<char*>(&textSize), 4);
     _file.read(reinterpret_cast<char*>(&wBuffer), textSize);
@@ -41,4 +41,28 @@ static bool GetPMXStringUTF8(std::ifstream& _file, std::string& output)
     output = std::string(&wBuffer[0], &wBuffer[0] + textSize);
 
     return true;
+}
+
+//! wstringをstringへ変換
+static std::string wstringToString(std::wstring oWString)
+{
+    //! wstring → SJIS
+    int iBufferSize = WideCharToMultiByte(CP_OEMCP, 0, oWString.c_str()
+        , -1, (char*)NULL, 0, NULL, NULL);
+
+    //! バッファの取得
+    CHAR* cpMultiByte = new CHAR[iBufferSize];
+
+    //! wstring → SJIS
+    WideCharToMultiByte(CP_OEMCP, 0, oWString.c_str(), -1, cpMultiByte
+        , iBufferSize, NULL, NULL);
+
+    //! stringの生成
+    std::string oRet(cpMultiByte, cpMultiByte + iBufferSize - 1);
+
+    //! バッファの破棄
+    delete[] cpMultiByte;
+
+    //! 変換結果を返す
+    return(oRet);
 }
