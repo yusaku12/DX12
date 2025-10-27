@@ -15,7 +15,7 @@ void LoadTexture::applyTexture()
     commandList->SetGraphicsRootDescriptorTable(0, m_basicDescHeap->GetGPUDescriptorHandleForHeapStart());
 }
 
-void LoadTexture::setRootSignature()
+void LoadTexture::setRootSignature(Microsoft::WRL::ComPtr<ID3D12RootSignature>& rootSignature)
 {
     //!@todo ¡ŒãC³ˆÄŒ
 
@@ -52,7 +52,7 @@ void LoadTexture::setRootSignature()
         return;
     }
 
-    hr = DX12::getInstance().getDevice()->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(m_rootSignature.GetAddressOf()));
+    hr = DX12::getInstance().getDevice()->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(rootSignature.GetAddressOf()));
     if (FAILED(hr))
     {
         Logger::getInstance().logCall(LogLevel::ERROR, "Failed to CreateRootSignature");

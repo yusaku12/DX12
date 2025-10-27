@@ -1,2 +1,10 @@
 //
 // FX Version: fx_5_0
+//
+// 1 local buffer(s)
+//
+cbuffer cbuff0 : register(b0)
+{
+    float4x4 mat;                       // Offset:    0, size:   64
+}
+

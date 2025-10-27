@@ -6,7 +6,7 @@ ShaderManager& ShaderManager::Instance()
     return instance;
 }
 
-LoadShader* ShaderManager::load(const std::wstring& filePath, ShaderType shaderType)
+LoadShader* ShaderManager::load(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline)
 {
     ShaderKey key{ filePath, shaderType };
     auto it = m_shaderCache.find(key);
@@ -16,7 +16,7 @@ LoadShader* ShaderManager::load(const std::wstring& filePath, ShaderType shaderT
     }
 
     //! êVãKÉçÅ[Éh
-    auto newShader = std::make_unique<LoadShader>(filePath, shaderType);
+    auto newShader = std::make_unique<LoadShader>(filePath, shaderType, gpipeline);
     LoadShader* shaderPtr = newShader.get();
 
     if (FAILED(newShader->getResult()))

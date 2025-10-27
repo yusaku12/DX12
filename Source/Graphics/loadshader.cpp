@@ -3,23 +3,26 @@
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
 
-LoadShader::LoadShader(const std::wstring& filePath, ShaderType shaderType)
+LoadShader::LoadShader(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline)
     : m_filePath(filePath), m_shaderType(shaderType), m_result(E_FAIL)
 {
     m_result = loadShader();
+
+    //! シェーダーをセット
+    setShader(gpipeline);
 }
 
-void LoadShader::setShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC* gpipeline)
+void LoadShader::setShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline)
 {
     switch (m_shaderType)
     {
     case ShaderType::VS:
-        gpipeline->VS.pShaderBytecode = m_shaderBlob->GetBufferPointer();
-        gpipeline->VS.BytecodeLength = m_shaderBlob->GetBufferSize();
+        gpipeline.VS.pShaderBytecode = m_shaderBlob->GetBufferPointer();
+        gpipeline.VS.BytecodeLength = m_shaderBlob->GetBufferSize();
         break;
     case ShaderType::PS:
-        gpipeline->PS.pShaderBytecode = m_shaderBlob->GetBufferPointer();
-        gpipeline->PS.BytecodeLength = m_shaderBlob->GetBufferSize();
+        gpipeline.PS.pShaderBytecode = m_shaderBlob->GetBufferPointer();
+        gpipeline.PS.BytecodeLength = m_shaderBlob->GetBufferSize();
         break;
     }
 }

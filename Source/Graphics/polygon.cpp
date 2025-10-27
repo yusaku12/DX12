@@ -89,20 +89,18 @@ Polygon::Polygon()
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};
 
-    //! シェーダー読み込み
-    LoadShader* vs = ShaderManager::Instance().load(L"HLSL\\polygonVS.hlsl", ShaderType::VS);
-    LoadShader* ps = ShaderManager::Instance().load(L"HLSL\\polygonPS.hlsl", ShaderType::PS);
-
     //! テクスチャ読み込み
     tex = TextureManager::Instance().load(L"Data/Texture/barria.png");
 
-    //! サンプリングとリソース設定
-    tex->setRootSignature();
+    //! シェーダー読み込み
+    ShaderManager::Instance().load(L"HLSL\\polygonVS.hlsl", ShaderType::VS, gpipeline);
+    ShaderManager::Instance().load(L"HLSL\\polygonPS.hlsl", ShaderType::PS, gpipeline);
 
-    //! シェーダーを設定
-    gpipeline.pRootSignature = tex->getRootSignature();
-    vs->setShader(&gpipeline);
-    ps->setShader(&gpipeline);
+    //! サンプリングとリソース設定
+    tex->setRootSignature(m_rootSignature);
+
+    //! ルートシグネチャ設定
+    gpipeline.pRootSignature = m_rootSignature.Get();
 
     //! パイプライン設定
     setPlpelineStateObject(&gpipeline, BlendState::ALPHA, DepthStencilState::DEPTH_NONE, RasterizerState::CULL_NONE);
@@ -146,7 +144,7 @@ void Polygon::render()
     auto dx12 = DX12::getInstance();
 
     dx12.getGraphicsCommandList()->SetPipelineState(m_pipelineState.Get());
-    dx12.getGraphicsCommandList()->SetGraphicsRootSignature(tex->getRootSignature());
+    dx12.getGraphicsCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());
 
     dx12.getGraphicsCommandList()->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     dx12.getGraphicsCommandList()->IASetVertexBuffers(0, 1, &vbView);
