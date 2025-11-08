@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "window.h"
+#include "camera.h"
 
 Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
@@ -7,6 +8,9 @@ Window::Window(HWND hwnd)
 {
     //! imgui初期化
     IMGUI_CTRL_INITIALIZE();
+
+    //! カメラ作成
+    Camera::Instance().createClipMatrix();
 
     //! ポリゴンクラス初期化
     m_polygon = std::make_unique<Polygon>();

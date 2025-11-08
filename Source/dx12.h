@@ -97,6 +97,10 @@ public:
     //! ハンドル取得
     HWND getHwnd() const { return m_hwnd; }
 
+    //! スクリーンサイズ取得
+    const int& getScreenWidth()const { return m_width; }
+    const int& getScreenHeight()const { return m_height; }
+
 private:
 
     //! DX12で使用するデバッグ機能

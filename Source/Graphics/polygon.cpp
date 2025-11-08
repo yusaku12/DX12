@@ -89,18 +89,15 @@ Polygon::Polygon()
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};
 
-    //! テクスチャ読み込み
-    tex = TextureManager::Instance().load(L"Data/Texture/barria.png");
-
     //! シェーダー読み込み
     ShaderManager::Instance().load(L"HLSL\\polygonVS.hlsl", ShaderType::VS, gpipeline);
     ShaderManager::Instance().load(L"HLSL\\polygonPS.hlsl", ShaderType::PS, gpipeline);
 
+    //! テクスチャ読み込み
+    tex = TextureManager::Instance().load(L"Data/Texture/barria.png");
+
     //! サンプリングとリソース設定
     tex->setRootSignature(m_rootSignature);
-
-    //! ルートシグネチャ設定
-    gpipeline.pRootSignature = m_rootSignature.Get();
 
     //! パイプライン設定
     setPlpelineStateObject(&gpipeline, BlendState::ALPHA, DepthStencilState::DEPTH_NONE, RasterizerState::CULL_NONE);
@@ -126,6 +123,9 @@ Polygon::Polygon()
     gpipeline.SampleDesc.Quality = 0;
     gpipeline.SampleMask = UINT_MAX;                   //! 深度バッファ使わない場合でも指定は必須（空なら UNKNOWN）
     gpipeline.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+    //! ルートシグネチャ設定
+    gpipeline.pRootSignature = m_rootSignature.Get();
 
     //! パイプラインステート生成
     hr = dx12.getDevice()->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(m_pipelineState.GetAddressOf()));

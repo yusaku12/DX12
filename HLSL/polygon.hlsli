@@ -6,5 +6,5 @@ struct VS_OUT
 
 cbuffer cbuff0 : register(b0)
 {
-    row_major float4x4 mat;
+    row_major float4x4 viewProjection;
 };

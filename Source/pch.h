@@ -33,6 +33,7 @@
 #include <wrl\client.h>
 #include <fstream>
 #include <array>
+#include <d3dx12.h>
 
 #undef ERROR
 #undef OPAQUE

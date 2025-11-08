@@ -19,7 +19,7 @@ public:
     void setRootSignature(Microsoft::WRL::ComPtr<ID3D12RootSignature>& rootSignature);
 
     //! ディスクリプタヒープを取得
-    ID3D12DescriptorHeap* getDescriptorHeap() const { return m_basicDescHeap.Get(); }
+    ID3D12DescriptorHeap* getDescriptorHeap() const { return m_basicDescHeap; }
 
     //! テクスチャのリソース取得
     ID3D12Resource* getResource() const { return m_texture.Get(); }
@@ -30,5 +30,5 @@ private:
     void loadTexture(const wchar_t* textureName);
 
     Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_basicDescHeap;
+    ID3D12DescriptorHeap* m_basicDescHeap = nullptr;
 };
