@@ -9,17 +9,8 @@ class PmxActor
 {
 public:
 
-    PmxActor();
-    ~PmxActor();
-
-    //! モデル読み込み
-    bool loadPmxModel(const std::wstring& filePath);
-
-    //! 更新処理
-    void update();
-
-    //! 描画
-    void draw() const;
+    PmxActor(const std::wstring& filePath);
+    ~PmxActor() {};
 
 private:
 
@@ -31,12 +22,30 @@ private:
         Vector2 uv = {};
     };
 
+    //! マテリアル構造体
+    struct Material
+    {
+        Vector4 diffuse = {};
+        Vector3 specular = {};
+        float specularPower = {};
+        Vector3 ambient = {};
+    };
+
+    //! モデル読み込み
+    bool loadPmxModel(const std::wstring& filePath);
+
     //! 頂点情報をコピー
     void loadVertexData(const std::vector<PmxLoad::PMXVertex>& vertex);
 
-    Vertex* m_mapVertex;                  //!< 頂点構造体のポインタ
-    std::vector<Vertex>m_containerVector; //!< データ格納コンテナ
-    Microsoft::WRL::ComPtr<ID3D12Resource>m_vertexBuffer = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12Resource>m_IndexBuffer = nullptr;
+    //! マテリアル情報コピー
+    bool loadMaterialData();
+
+    PmxLoad::PMXFileData m_pmxFileData;     //!< データ構造体
+    std::vector<Vertex> m_containerVector;  //!< データ格納コンテナ
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_materialBuffer = nullptr;
     D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView = {};
+    D3D12_INDEX_BUFFER_VIEW  m_indexBufferView = {};
+    char* m_mappedMaterial = nullptr;
 };
