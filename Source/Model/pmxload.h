@@ -5,7 +5,7 @@
 //=====================================================
 class PmxLoad
 {
-private:
+public:
 
     //! PMXのボーンウェイトタイプ
     enum class PMXVertexWeight : uint8_t
@@ -472,12 +472,16 @@ private:
         std::vector<PMXSoftBody> softBodies = {};
     };
 
-public:
-
     explicit PmxLoad(const std::wstring& filePath, PMXFileData& fileData);
     ~PmxLoad();
 
 private:
+
+    //! UTF16の文字列をstd::wstringに変換
+    bool getPMXStringUTF16(std::ifstream& _file, std::wstring& output);
+
+    //! UTF8の文字列はstd::stringに保存
+    bool getPMXStringUTF8(std::ifstream& _file, std::string& output);
 
     //! PMXモデル読み込み
     bool pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData);

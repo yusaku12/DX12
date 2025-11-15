@@ -11,6 +11,43 @@ PmxLoad::~PmxLoad()
 {
 }
 
+bool PmxLoad::getPMXStringUTF16(std::ifstream& _file, std::wstring& output)
+{
+    int textSize = 0;
+
+    //! 文字列サイズ(バイト)を取得
+    _file.read(reinterpret_cast<char*>(&textSize), 4);
+
+    // textSize 分のバッファを動的に確保（UTF-16 = 2byte）
+    std::vector<wchar_t> buffer(textSize / 2);
+
+    //! ファイルから読み込み
+    _file.read(reinterpret_cast<char*>(buffer.data()), textSize);
+
+    //! wstring に格納
+    output.assign(buffer.begin(), buffer.end());
+
+    return true;
+}
+
+bool PmxLoad::getPMXStringUTF8(std::ifstream& _file, std::string& output)
+{
+    int textSize = 0;
+
+    //! 文字列サイズを読込
+    _file.read(reinterpret_cast<char*>(&textSize), 4);
+
+    //! textSize 分のバッファを確保（UTF-8 = 1byte）
+    std::vector<char> buffer(textSize);
+
+    _file.read(reinterpret_cast<char*>(buffer.data()), textSize);
+
+    //! そのまま string に格納
+    output.assign(buffer.begin(), buffer.end());
+
+    return true;
+}
+
 bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
 {
     //! ファイルが無かったら
@@ -21,9 +58,10 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     }
 
     //! ファイル読み込み
-    std::ifstream pmxFile(std::filesystem::path(filePath), std::ios::binary);
-    if (!pmxFile.is_open())
+    std::ifstream pmxFile{ filePath, (std::ios::binary | std::ios::in) };
+    if (pmxFile.fail())
     {
+        pmxFile.close();
         Logger::getInstance().logCall(LogLevel::ERROR, "failure read file path");
         return false;
     }
@@ -124,8 +162,6 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    pmxFile.close();
-
     return true;
 }
 
@@ -223,7 +259,7 @@ bool PmxLoad::readVertex(PMXFileData& data, std::ifstream& file)
             file.read(reinterpret_cast<char*>(&vertex.sdefR1), 12);
             break;
         default:
-            return false;
+            break;
         }
 
         file.read(reinterpret_cast<char*>(&vertex.edgeMag), 4);
@@ -234,52 +270,38 @@ bool PmxLoad::readVertex(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readFace(PMXFileData& data, std::ifstream& file)
 {
-    int faceCount = 0;
-    file.read(reinterpret_cast<char*>(&faceCount), 4);
+    unsigned int indexCount = 0;
+    file.read(reinterpret_cast<char*>(&indexCount), 4);
 
-    faceCount /= 3;
+    //! インデックス数（3 * faceCount）
+    if (indexCount % 3 != 0) return false; // 異常ファイル保護
+
+    unsigned int faceCount = indexCount / 3;
     data.faces.resize(faceCount);
 
-    switch (data.header.vertexIndexSize)
-    {
-    case 1:
-    {
-        std::vector<uint8_t> vertices(faceCount * 3);
-        file.read(reinterpret_cast<char*>(vertices.data()), sizeof(uint8_t) * vertices.size());
-        for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++)
-        {
-            data.faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
-            data.faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
-            data.faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
-        }
-    }
-    break;
-    case 2:
-    {
-        std::vector<uint16_t> vertices(faceCount * 3);
-        file.read(reinterpret_cast<char*>(vertices.data()), sizeof(uint16_t) * vertices.size());
-        for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++)
-        {
-            data.faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
-            data.faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
-            data.faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
-        }
-    }
-    break;
-    case 4:
-    {
-        std::vector<uint32_t> vertices(faceCount * 3);
-        file.read(reinterpret_cast<char*>(vertices.data()), sizeof(uint32_t) * vertices.size());
-        for (int32_t faceIdx = 0; faceIdx < faceCount; faceIdx++)
-        {
-            data.faces[faceIdx].vertices[0] = vertices[faceIdx * 3 + 0];
-            data.faces[faceIdx].vertices[1] = vertices[faceIdx * 3 + 1];
-            data.faces[faceIdx].vertices[2] = vertices[faceIdx * 3 + 2];
-        }
-    }
-    break;
-    default:
+    size_t elementSize = data.header.vertexIndexSize;
+    size_t totalBytes = indexCount * elementSize;
+
+    std::vector<uint8_t> raw(totalBytes);
+
+    //! 読み込みエラーチェック
+    if (!file.read(reinterpret_cast<char*>(raw.data()), totalBytes))
         return false;
+
+    for (size_t i = 0; i < faceCount; i++)
+    {
+        auto readIndex = [&](size_t idx) -> uint32_t
+            {
+                size_t offset = idx * elementSize;
+                if (elementSize == 1) return raw[offset];
+                if (elementSize == 2) return *reinterpret_cast<uint16_t*>(&raw[offset]);
+                if (elementSize == 4) return *reinterpret_cast<uint32_t*>(&raw[offset]);
+                return 0;
+            };
+
+        data.faces[i].vertices[0] = readIndex(i * 3 + 0);
+        data.faces[i].vertices[1] = readIndex(i * 3 + 1);
+        data.faces[i].vertices[2] = readIndex(i * 3 + 2);
     }
 
     return true;

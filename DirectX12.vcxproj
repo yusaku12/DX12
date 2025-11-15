@@ -60,6 +60,7 @@
     <ClCompile Include="Source\Graphics\texturemanager.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Math\simplemath.cpp" />
+    <ClCompile Include="Source\Model\pmxactor.cpp" />
     <ClCompile Include="Source\Model\pmxload.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -93,6 +94,7 @@
     <ClInclude Include="Source\Graphics\shadermanager.h" />
     <ClInclude Include="Source\Graphics\texturemanager.h" />
     <ClInclude Include="Source\Math\simplemath.h" />
+    <ClInclude Include="Source\Model\pmxactor.h" />
     <ClInclude Include="Source\Model\pmxload.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\System\logger.h" />

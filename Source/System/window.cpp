@@ -11,9 +11,6 @@ Window::Window(HWND hwnd)
 
     //! カメラ作成
     Camera::Instance().createClipMatrix();
-
-    //! ポリゴンクラス初期化
-    m_polygon = std::make_unique<Polygon>();
 }
 
 Window::~Window()
@@ -41,9 +38,6 @@ void Window::render()
 
     //! 画面をクリア
     m_dx12.screenClear();
-
-    //! ポリゴン描画
-    m_polygon->render();
 
     //! imguiの描画情報を設定
     IMGUI_CTRL_RENDER_INFO();
