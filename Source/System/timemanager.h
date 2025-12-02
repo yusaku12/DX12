@@ -1,0 +1,55 @@
+#pragma once
+#include "cpugpuprofiler.h"
+
+//=====================================================
+// TimeManager クラス
+//=====================================================
+class TimeManager
+{
+public:
+
+    //! インスタンス取得
+    static TimeManager& Instance()
+    {
+        static TimeManager instance;
+        return instance;
+    }
+
+    //! 初期化
+    void initialize();
+
+    //! 更新処理
+    void update();
+
+    //! フレーム開始処理
+    void frameStart(ID3D12GraphicsCommandList* cmd);
+
+    // ! フレーム終了処理
+    void frameEnd(ID3D12GraphicsCommandList* cmd);
+
+    //! imgui
+    void imgui();
+
+private:
+
+    TimeManager() = default;
+    ~TimeManager() = default;
+
+    //! FPS 計算
+    void calculateFPS();
+
+    bool m_initialized = false; //!< 初期化済みフラグ
+    bool m_pause = false; //!< 一時停止フラグ
+    std::chrono::high_resolution_clock::time_point m_lastTime;  //!< 前回時間
+    std::chrono::high_resolution_clock::time_point m_startTime; //!< 開始時間
+    float m_deltaTime = 0.0f; //!< デルタタイム
+    float m_unscaledDeltaTime = 0.0f; //!< スケール無しデルタタイム
+    float m_time = 0.0f; //!< 経過時間
+    float m_unscaledTime = 0.0f; //!< スケール無し経過時間
+    float m_smoothDeltaTime = 0.0f; //!< 平滑化デルタタイム
+    float m_timeScale = 1.0f; //!< 時間スケール
+    int   m_fps = 0; //!< FPS
+    float m_fpsTimer = 0.0f; //!< FPS 計測タイマー
+    int   m_fpsFrameCounter = 0; //!< FPS フレームカウンター
+    CpuGpuProfiler m_profiler; //!< CPU/GPU プロファイラ
+};

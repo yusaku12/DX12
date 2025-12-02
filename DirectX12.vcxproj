@@ -65,7 +65,9 @@
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Source\System\cpugpuprofiler.cpp" />
     <ClCompile Include="Source\System\logger.cpp" />
+    <ClCompile Include="Source\System\timemanager.cpp" />
     <ClCompile Include="Source\System\window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -97,8 +99,10 @@
     <ClInclude Include="Source\Model\pmxactor.h" />
     <ClInclude Include="Source\Model\pmxload.h" />
     <ClInclude Include="Source\pch.h" />
+    <ClInclude Include="Source\System\cpugpuprofiler.h" />
     <ClInclude Include="Source\System\logger.h" />
     <ClInclude Include="Source\System\stringformat.h" />
+    <ClInclude Include="Source\System\timemanager.h" />
     <ClInclude Include="Source\System\window.h" />
   </ItemGroup>
   <ItemGroup>

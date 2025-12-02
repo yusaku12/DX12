@@ -16,6 +16,9 @@ public:
     //! 描画処理
     void render();
 
+    //! imgui描画処理
+    void imguiRender();
+
     //! メッセージループ
     int run();
 

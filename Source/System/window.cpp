@@ -11,6 +11,9 @@ Window::Window(HWND hwnd)
 
     //! カメラ作成
     Camera::Instance().createClipMatrix();
+
+    // TimeManager初期化
+    TimeManager::Instance().initialize();
 }
 
 Window::~Window()
@@ -24,23 +27,29 @@ Window::~Window()
 
 void Window::update()
 {
+    //! TimeManager更新
+    TimeManager::Instance().update();
+
     //! imgui更新
     IMGUI_CTRL_UPDATE();
 }
 
 void Window::render()
 {
-    //! ログ描画
-    Logger::getInstance().renderLog();
+    //! フレーム開始処理
+    TimeManager::Instance().frameStart(m_dx12.getGraphicsCommandList());
 
     //! imgui描画
-    IMGUI_CTRL_RENDER();
+    imguiRender();
 
     //! 画面をクリア
     m_dx12.screenClear();
 
     //! imguiの描画情報を設定
     IMGUI_CTRL_RENDER_INFO();
+
+    //! TimeManagerフレーム終了処理
+    TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
 
     //! レンダーターゲットを元に戻し、コマンド終了
     m_dx12.renderTargetUndo();
@@ -50,6 +59,18 @@ void Window::render()
 
     //! 画面クリア後の後処理
     m_dx12.screenClearCleanup();
+}
+
+void Window::imguiRender()
+{
+    //! ログ描画
+    Logger::getInstance().renderLog();
+
+    //!TimeManagerのimgui描画
+    TimeManager::Instance().imgui();
+
+    //! imgui描画
+    IMGUI_CTRL_RENDER();
 }
 
 int Window::run()

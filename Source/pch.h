@@ -47,6 +47,7 @@
 #include "Graphics\piplinestate.h"
 #include "Graphics\texturemanager.h"
 #include "Graphics\shadermanager.h"
+#include "System\timemanager.h"
 
 //! È—ªŒn
 using namespace DirectX::SimpleMath;
