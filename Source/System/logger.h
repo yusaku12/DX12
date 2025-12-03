@@ -16,7 +16,7 @@ class Logger
 public:
 
     //! ƒVƒ“ƒOƒ‹ƒgƒ“Žæ“¾
-    static Logger& getInstance()
+    static Logger& Instance()
     {
         static Logger instance;
         return instance;

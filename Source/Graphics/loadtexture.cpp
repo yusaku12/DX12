@@ -11,8 +11,8 @@ void LoadTexture::applyTexture()
 {
     //!@todo 以後修正案件
     //! テクスチャのリソース読み込み
-    auto device = DX12::getInstance().getDevice();
-    auto commandList = DX12::getInstance().getGraphicsCommandList();
+    auto device = DX12::Instance().getDevice();
+    auto commandList = DX12::Instance().getGraphicsCommandList();
     commandList->SetDescriptorHeaps(1, &m_basicDescHeap);
     commandList->SetGraphicsRootDescriptorTable(0, m_basicDescHeap->GetGPUDescriptorHandleForHeapStart());
     auto heapHandle = m_basicDescHeap->GetGPUDescriptorHandleForHeapStart();
@@ -58,8 +58,8 @@ void LoadTexture::setRootSignature(Microsoft::WRL::ComPtr<ID3D12RootSignature>& 
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;  //!< 頂点情報が存在する
     rootSignatureDesc.pParameters = rootparam;
     rootSignatureDesc.NumParameters = 2;
-    D3D12_STATIC_SAMPLER_DESC samplerDesc = setSamplerState(SamplerState::LINEAR_WRAP, D3D12_SHADER_VISIBILITY_PIXEL, 0, 0);
-    rootSignatureDesc.pStaticSamplers = &samplerDesc;
+    //D3D12_STATIC_SAMPLER_DESC samplerDesc = setSamplerState(SamplerState::LINEAR_WRAP, D3D12_SHADER_VISIBILITY_PIXEL, 0, 0);
+    //rootSignatureDesc.pStaticSamplers = &samplerDesc;
     rootSignatureDesc.NumStaticSamplers = 1;
     Microsoft::WRL::ComPtr<ID3DBlob> rootSigBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
@@ -68,14 +68,14 @@ void LoadTexture::setRootSignature(Microsoft::WRL::ComPtr<ID3D12RootSignature>& 
     {
         if (errorBlob)
             OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-        Logger::getInstance().logCall(LogLevel::ERROR, "Failed to D3D12SerializeRootSignature");
+        Logger::Instance().logCall(LogLevel::ERROR, "Failed to D3D12SerializeRootSignature");
         return;
     }
 
-    hr = DX12::getInstance().getDevice()->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(rootSignature.GetAddressOf()));
+    hr = DX12::Instance().getDevice()->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(rootSignature.GetAddressOf()));
     if (FAILED(hr))
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "Failed to CreateRootSignature");
+        Logger::Instance().logCall(LogLevel::ERROR, "Failed to CreateRootSignature");
         return;
     }
 }
@@ -89,7 +89,7 @@ void LoadTexture::loadTexture(const wchar_t* textureName)
     HRESULT hr = DirectX::LoadFromWICFile(textureName, DirectX::WIC_FLAGS_NONE, &metadata, scratchImg);
     if (FAILED(hr))
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "Failed to load texture");
+        Logger::Instance().logCall(LogLevel::ERROR, "Failed to load texture");
         return;
     }
 
@@ -111,7 +111,7 @@ void LoadTexture::loadTexture(const wchar_t* textureName)
     resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-    auto device = DX12::getInstance().getDevice();
+    auto device = DX12::Instance().getDevice();
 
     //! どのシェーダーで読み込みか伝える
     hr = device->CreateCommittedResource(
@@ -125,7 +125,7 @@ void LoadTexture::loadTexture(const wchar_t* textureName)
 
     if (FAILED(hr))
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "Failed to create texture resource");
+        Logger::Instance().logCall(LogLevel::ERROR, "Failed to create texture resource");
         return;
     }
 
@@ -141,7 +141,7 @@ void LoadTexture::loadTexture(const wchar_t* textureName)
 
     if (FAILED(hr))
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "Failed to write texture data");
+        Logger::Instance().logCall(LogLevel::ERROR, "Failed to write texture data");
         return;
     }
 
@@ -154,7 +154,7 @@ void LoadTexture::loadTexture(const wchar_t* textureName)
 
     if (FAILED(hr))
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "Failed to create descriptor heap");
+        Logger::Instance().logCall(LogLevel::ERROR, "Failed to create descriptor heap");
         return;
     }
 

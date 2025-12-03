@@ -19,7 +19,7 @@ Polygon::Polygon()
         2,1,3
     };
 
-    auto dx12 = DX12::getInstance();
+    const auto& dx12 = DX12::Instance();
 
     //! 頂点バッファとインデックスバッファ
     D3D12_HEAP_PROPERTIES heapprop = {};
@@ -100,7 +100,7 @@ Polygon::Polygon()
     tex->setRootSignature(m_rootSignature);
 
     //! パイプライン設定
-    setPlpelineStateObject(&gpipeline, BlendState::ALPHA, DepthStencilState::DEPTH_NONE, RasterizerState::CULL_NONE);
+    //setPlpelineStateObject(&gpipeline, BlendState::ALPHA, DepthStencilState::DEPTH_NONE, RasterizerState::CULL_NONE);
 
     //! レンダーターゲットのブレンド無効
     D3D12_RENDER_TARGET_BLEND_DESC renderTargetBlendDesc = {};
@@ -131,7 +131,7 @@ Polygon::Polygon()
     hr = dx12.getDevice()->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(m_pipelineState.GetAddressOf()));
     if (FAILED(hr))
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "Failed to create pipeline state");
+        Logger::Instance().logCall(LogLevel::ERROR, "Failed to create pipeline state");
     }
 }
 
@@ -141,7 +141,7 @@ Polygon::~Polygon()
 
 void Polygon::render()
 {
-    auto dx12 = DX12::getInstance();
+    auto dx12 = DX12::Instance();
 
     dx12.getGraphicsCommandList()->SetPipelineState(m_pipelineState.Get());
     dx12.getGraphicsCommandList()->SetGraphicsRootSignature(m_rootSignature.Get());

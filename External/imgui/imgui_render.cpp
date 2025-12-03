@@ -96,15 +96,15 @@ namespace ImGuiCtrl
             style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         }
 
-        ImGui_ImplWin32_Init(DX12::getInstance().getHwnd());
+        ImGui_ImplWin32_Init(DX12::Instance().getHwnd());
         ImGui_ImplDX12_InitInfo init_info = {};
-        init_info.Device = DX12::getInstance().getDevice();
-        init_info.CommandQueue = DX12::getInstance().getCommandQueue();
+        init_info.Device = DX12::Instance().getDevice();
+        init_info.CommandQueue = DX12::Instance().getCommandQueue();
         init_info.NumFramesInFlight = 3;
         init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
         init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
-        init_info.SrvDescriptorHeap = DX12::getInstance().getSRVDiscriptorHeap();
-        init_info.UserData = &DX12::getInstance();
+        init_info.SrvDescriptorHeap = DX12::Instance().getSRVDiscriptorHeap();
+        init_info.UserData = &DX12::Instance();
         init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) {auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData); return dx12Imgui->getExampleDescriptorHeapAllocator().Alloc(out_cpu_handle, out_gpu_handle); };
         init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) {auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData); return dx12Imgui->getExampleDescriptorHeapAllocator().Free(cpu_handle, gpu_handle); };
         ImGui_ImplDX12_Init(&init_info);
@@ -133,7 +133,7 @@ namespace ImGuiCtrl
 
     void renderInfo()
     {
-        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), DX12::getInstance().getGraphicsCommandList());
+        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), DX12::Instance().getGraphicsCommandList());
     }
 
     void updateRender()

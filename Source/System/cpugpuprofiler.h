@@ -7,7 +7,7 @@ class CpuGpuProfiler
 {
 public:
 
-    CpuGpuProfiler();
+    explicit CpuGpuProfiler();
     ~CpuGpuProfiler() {}
 
     //! フレーム開始

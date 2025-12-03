@@ -12,8 +12,11 @@ Window::Window(HWND hwnd)
     //! ƒJƒƒ‰ì¬
     Camera::Instance().createClipMatrix();
 
-    // TimeManager‰Šú‰»
+    //! TimeManager‰Šú‰»
     TimeManager::Instance().initialize();
+
+    //! PiplineState‰Šú‰»
+    PiplineState::Instance().initialize();
 }
 
 Window::~Window()
@@ -64,7 +67,7 @@ void Window::render()
 void Window::imguiRender()
 {
     //! ƒƒO•`‰æ
-    Logger::getInstance().renderLog();
+    Logger::Instance().renderLog();
 
     //!TimeManager‚Ìimgui•`‰æ
     TimeManager::Instance().imgui();
@@ -111,7 +114,7 @@ LRESULT Window::processMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
     case WM_SIZE:
         if (wparam != SIZE_MINIMIZED)
         {
-            Logger::getInstance().logCall(LogLevel::INFO, "resize");
+            Logger::Instance().logCall(LogLevel::INFO, "resize");
             int width = LOWORD(lparam);
             int height = HIWORD(lparam);
             m_dx12.screenResize(width, height);

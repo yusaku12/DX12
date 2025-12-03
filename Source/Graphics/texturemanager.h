@@ -9,7 +9,12 @@ class TextureManager
 {
 public:
 
-    static TextureManager& Instance();
+    //! シングルトンインスタンス取得
+    static TextureManager& Instance()
+    {
+        static TextureManager instance;
+        return instance;
+    }
 
     //! テクスチャをロード（キャッシュあり）
     LoadTexture* load(const std::wstring& filePath);

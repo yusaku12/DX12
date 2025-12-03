@@ -9,7 +9,12 @@ class ShaderManager
 {
 public:
 
-    static ShaderManager& Instance();
+    //! シングルトンインスタンス取得
+    static ShaderManager& Instance()
+    {
+        static ShaderManager instance;
+        return instance;
+    }
 
     //! シェーダ読み込み
     LoadShader* load(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline);

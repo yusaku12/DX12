@@ -3,7 +3,7 @@
 
 CpuGpuProfiler::CpuGpuProfiler()
 {
-    const auto& dx12 = DX12::getInstance();
+    const auto& dx12 = DX12::Instance();
 
     //! GPUŽü”g”Žæ“¾
     dx12.getCommandQueue()->GetTimestampFrequency(&m_gpuFreq);

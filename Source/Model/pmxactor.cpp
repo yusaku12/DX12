@@ -16,7 +16,7 @@ bool PmxActor::loadPmxModel(const std::wstring& filePath)
     //! 頂点情報をコピー
     loadVertexData(m_pmxFileData.vertices);
 
-    auto device = DX12::getInstance().getDevice();
+    auto device = DX12::Instance().getDevice();
 
     //! 頂点バッファ作成
     D3D12_HEAP_PROPERTIES heapprop = {};
@@ -98,7 +98,7 @@ void PmxActor::loadVertexData(const std::vector<PmxLoad::PMXVertex>& vertex)
 
 bool PmxActor::loadMaterialData()
 {
-    auto device = DX12::getInstance().getDevice();
+    auto device = DX12::Instance().getDevice();
 
     int materialBufferSize = sizeof(Material);
     materialBufferSize = (materialBufferSize + 0xff) & ~0xff;

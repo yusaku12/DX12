@@ -9,7 +9,7 @@ class PmxActor
 {
 public:
 
-    PmxActor(const std::wstring& filePath);
+    explicit PmxActor(const std::wstring& filePath);
     ~PmxActor() {};
 
 private:

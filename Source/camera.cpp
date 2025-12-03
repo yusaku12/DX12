@@ -1,12 +1,6 @@
 #include "pch.h"
 #include "camera.h"
 
-Camera& Camera::Instance()
-{
-    static Camera instance;
-    return instance;
-}
-
 void Camera::update()
 {
 }
@@ -21,7 +15,7 @@ void Camera::createClipMatrix()
     Matrix lookMatrix = DirectX::XMMatrixLookAtLH(m_eye, m_target, m_up);
 
     //! ìäâeçsóÒÅiâìãﬂä¥Åj
-    Matrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, static_cast<float>(DX12::getInstance().getScreenWidth()) / static_cast<float>(DX12::getInstance().getScreenHeight()), m_near, m_far);
+    Matrix projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV2, static_cast<float>(DX12::Instance().getScreenWidth()) / static_cast<float>(DX12::Instance().getScreenHeight()), m_near, m_far);
 
     //! çáê¨
     m_matrix *= m_worldMatrix;

@@ -53,7 +53,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     //! ƒtƒ@ƒCƒ‹‚ª–³‚©‚Á‚½‚ç
     if (filePath.empty())
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure file path");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure file path");
         return false;
     }
 
@@ -62,7 +62,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     if (pmxFile.fail())
     {
         pmxFile.close();
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure read file path");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure read file path");
         return false;
     }
 
@@ -70,7 +70,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     bool result = readHeader(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readHeader");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readHeader");
         return false;
     }
 
@@ -78,7 +78,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readModelInfo(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readModelInfo");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readModelInfo");
         return false;
     }
 
@@ -86,7 +86,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readVertex(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readVertex");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readVertex");
         return false;
     }
 
@@ -94,7 +94,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readFace(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readFace");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readFace");
         return false;
     }
 
@@ -102,7 +102,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readTextures(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readTextures");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readTextures");
         return false;
     }
 
@@ -110,7 +110,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readMaterial(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readMaterial");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readMaterial");
         return false;
     }
 
@@ -118,7 +118,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readBone(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readBone");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readBone");
         return false;
     }
 
@@ -126,7 +126,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readMorph(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readMorph");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readMorph");
         return false;
     }
 
@@ -134,7 +134,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readDisplayFrame(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readDisplayFrame");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readDisplayFrame");
         return false;
     }
 
@@ -142,7 +142,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readRigidBody(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readRigidBody");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readRigidBody");
         return false;
     }
 
@@ -150,7 +150,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readJoint(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readJoint");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readJoint");
         return false;
     }
 
@@ -158,7 +158,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
     result = readSoftBody(fileData, pmxFile);
     if (!result)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure readSoftBody");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure readSoftBody");
         return false;
     }
 
@@ -171,7 +171,7 @@ bool PmxLoad::readHeader(PMXFileData& data, std::ifstream& file)
     file.read(reinterpret_cast<char*>(data.header.magic.data()), data.header.magic.size());
     if (data.header.magic != PMX_MAGIC_NUMBER)
     {
-        Logger::getInstance().logCall(LogLevel::ERROR, "failure PMX file");
+        Logger::Instance().logCall(LogLevel::ERROR, "failure PMX file");
         return false;
     }
 

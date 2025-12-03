@@ -6,7 +6,8 @@ enum class BlendState
     OPAQUE,
     ALPHA,
     ADD,
-    MULTIPLIE
+    MULTIPLIE,
+    MAX
 };
 
 //! デプスステンシルステート
@@ -16,7 +17,8 @@ enum class DepthStencilState
     DEPTH_DEFALT,
     DEPTH_READ,
     DEPTH_REVERSE_Z,
-    DEPTH_READ_REVERSE_Z
+    DEPTH_READ_REVERSE_Z,
+    MAX
 };
 
 //! ラスタライザステート
@@ -25,7 +27,8 @@ enum class RasterizerState
     CULL_NONE,
     CULL_CLOCKWISE,
     CULL_COUNTER_CLOCKWISE,
-    WIRE_FRAME
+    WIRE_FRAME,
+    MAX
 };
 
 //! サンプラーステート
@@ -36,20 +39,50 @@ enum class SamplerState
     LINEAR_WRAP,
     LINEAR_CLAMP,
     ANISOTROPIC_WRAP,
-    ANISOTROPIC_CLAMP
+    ANISOTROPIC_CLAMP,
+    MAX
 };
-
-//! サンプラーステート設定
-const D3D12_STATIC_SAMPLER_DESC& setSamplerState(SamplerState samplerState, D3D12_SHADER_VISIBILITY shderType, int shderSlot, int spaceSlot);
-
-//! ブレンドステート設定
-D3D12_BLEND_DESC setBlendState(BlendState blendState);
-
-//! デプスステンシルステート設定
-D3D12_DEPTH_STENCIL_DESC setDepthStencilState(DepthStencilState depthStencilState);
-
-//! ラスタライザステート設定
-D3D12_RASTERIZER_DESC setRasterizerState(RasterizerState rasterizerState);
 
 //! パイプラインの設定
 void setPlpelineStateObject(D3D12_GRAPHICS_PIPELINE_STATE_DESC* psoDesc, BlendState blendState, DepthStencilState depthStencilState, RasterizerState rasterizerState);
+
+//=====================================================
+// PiplineState クラス
+//=====================================================
+class PiplineState
+{
+public:
+
+    //! インスタンス取得
+    static PiplineState& Instance()
+    {
+        static PiplineState instance;
+        return instance;
+    }
+
+    //! 初期化
+    void initialize();
+
+private:
+
+    PiplineState() = default;
+    ~PiplineState() = default;
+
+    //! サンプラーステート初期化
+    void initSamplerState();
+
+    //! ブレンドステート初期化
+    void initBlendState();
+
+    //! デプスステンシルステート初期化
+    void initDepthStencilState();
+
+    //! ラスタライザステート初期化
+    void initRasterizerState();
+
+    //! 各種パイプラインステート
+    D3D12_STATIC_SAMPLER_DESC m_samplerState[static_cast<int>(SamplerState::MAX)] = {};
+    D3D12_BLEND_DESC m_blendState[static_cast<int>(BlendState::MAX)] = {};
+    D3D12_DEPTH_STENCIL_DESC m_depthStencilState[static_cast<int>(DepthStencilState::MAX)] = {};
+    D3D12_RASTERIZER_DESC m_rasterizerState[static_cast<int>(RasterizerState::MAX)] = {};
+};

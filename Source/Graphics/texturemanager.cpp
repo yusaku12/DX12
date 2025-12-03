@@ -1,11 +1,5 @@
 #include "pch.h"
 
-TextureManager& TextureManager::Instance()
-{
-    static TextureManager instance;
-    return instance;
-}
-
 LoadTexture* TextureManager::load(const std::wstring& filePath)
 {
     //! キャッシュに存在すれば再利用
@@ -22,12 +16,12 @@ LoadTexture* TextureManager::load(const std::wstring& filePath)
     m_textureCache[filePath] = std::move(newTex);
 
     std::wstring filename = L"[TextureManager] Loaded:" + filePath + L"\n";
-    Logger::getInstance().logCall(LogLevel::INFO, wstringToString(filename));
+    Logger::Instance().logCall(LogLevel::INFO, wstringToString(filename));
     return texPtr;
 }
 
 void TextureManager::clear()
 {
     m_textureCache.clear();
-    Logger::getInstance().logCall(LogLevel::INFO, "[TextureManager] Cleared all textures");
+    Logger::Instance().logCall(LogLevel::INFO, "[TextureManager] Cleared all textures");
 }

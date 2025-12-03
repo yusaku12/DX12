@@ -7,7 +7,12 @@ class Camera
 {
 public:
 
-    static Camera& Instance();
+    //! シングルトンインスタンス取得
+    static Camera& Instance()
+    {
+        static Camera instance;
+        return instance;
+    }
 
     //! 更新処理
     void update();

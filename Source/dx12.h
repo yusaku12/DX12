@@ -59,7 +59,7 @@ public:
     ~DX12() {};
 
     //! シングルトン取得
-    static DX12& getInstance() { return *m_instance; };
+    static DX12& Instance() { return *m_instance; };
 
     //! 画面をクリア
     void screenClear();
