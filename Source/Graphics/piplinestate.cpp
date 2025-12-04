@@ -1,11 +1,11 @@
 #include "pch.h"
 
-void setPlpelineStateObject(D3D12_GRAPHICS_PIPELINE_STATE_DESC* psoDesc, BlendState blendState, DepthStencilState depthStencilState, RasterizerState rasterizerState)
-{
+//void setPlpelineStateObject(D3D12_GRAPHICS_PIPELINE_STATE_DESC* psoDesc, BlendState blendState, DepthStencilState depthStencilState, RasterizerState rasterizerState)
+//{
     //psoDesc->BlendState = setBlendState(blendState);
     //psoDesc->RasterizerState = setRasterizerState(rasterizerState);
     //psoDesc->DepthStencilState = setDepthStencilState(depthStencilState);
-}
+//}
 
 void PiplineState::initialize()
 {
@@ -24,80 +24,92 @@ void PiplineState::initialize()
 
 void PiplineState::initSamplerState()
 {
-    //D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+    //! サンプラーステートの基本設定を作成するラムダ
+    auto makeSamplerDesc = [&]()
+        {
+            D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
 
-    ////! サンプラーステートの各設定
-    //switch (samplerState)
-    //{
-    //case SamplerState::POINT_WRAP:
-    //    samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    //    samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.MaxAnisotropy = D3D12_MAX_MAXANISOTROPY;
-    //    samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-    //    samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    //    break;
-    //case SamplerState::POINT_CLAMP:
-    //    samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    //    samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.MaxAnisotropy = D3D12_MAX_MAXANISOTROPY;
-    //    samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-    //    samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    //    break;
-    //case SamplerState::LINEAR_WRAP:
-    //    samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-    //    samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.MaxAnisotropy = D3D12_MAX_MAXANISOTROPY;
-    //    samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-    //    samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    //    break;
-    //case SamplerState::LINEAR_CLAMP:
-    //    samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-    //    samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.MaxAnisotropy = D3D12_MAX_MAXANISOTROPY;
-    //    samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-    //    samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    //    break;
-    //case SamplerState::ANISOTROPIC_WRAP:
-    //    samplerDesc.Filter = D3D12_FILTER_ANISOTROPIC;
-    //    samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    //    samplerDesc.MaxAnisotropy = D3D12_MAX_MAXANISOTROPY;
-    //    samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-    //    samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    //    break;
-    //case SamplerState::ANISOTROPIC_CLAMP:
-    //    samplerDesc.Filter = D3D12_FILTER_ANISOTROPIC;
-    //    samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    //    samplerDesc.MaxAnisotropy = D3D12_MAX_MAXANISOTROPY;
-    //    samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-    //    samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-    //    break;
-    //}
+            samplerDesc.MipLODBias = 0.0f;
+            samplerDesc.MinLOD = 0.0f;
+            samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+            samplerDesc.MaxAnisotropy = D3D12_MAX_MAXANISOTROPY;
+            samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+            samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+            samplerDesc.RegisterSpace = 0;
+            samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+            return samplerDesc;
+        };
 
-    ////! 共通設定
-    //samplerDesc.MipLODBias = 0.0f;
-    //samplerDesc.MinLOD = 0.0f;
-    //samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
-    //samplerDesc.ShaderRegister = shderSlot;   //!< 使うシェーダのレジスター番号
-    //samplerDesc.RegisterSpace = spaceSlot;    //!< スロット指定
-    //samplerDesc.ShaderVisibility = shderType; //!< 使うシェーダを設定
+    //! 全てデフォルト値で初期化
+    for (int i = 0; i < static_cast<int>(SamplerState::MAX); i++)
+    {
+        m_samplerState[i] = makeSamplerDesc();
+    }
 
-    //return samplerDesc;
+    //! POINT_WRAP
+    {
+        auto& desc = m_samplerState[static_cast<int>(SamplerState::POINT_WRAP)];
+        desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+        desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.ShaderRegister = 0;
+    }
+
+    //! POINT_CLAMP
+    {
+        auto& desc = m_samplerState[static_cast<int>(SamplerState::POINT_CLAMP)];
+        desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+        desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.ShaderRegister = 1;
+    }
+
+    //! LINEAR_WRAP
+    {
+        auto& desc = m_samplerState[static_cast<int>(SamplerState::LINEAR_WRAP)];
+        desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.ShaderRegister = 2;
+    }
+
+    //! LINEAR_CLAMP
+    {
+        auto& desc = m_samplerState[static_cast<int>(SamplerState::LINEAR_CLAMP)];
+        desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.ShaderRegister = 3;
+    }
+
+    //! ANISOTROPIC_WRAP
+    {
+        auto& desc = m_samplerState[static_cast<int>(SamplerState::ANISOTROPIC_WRAP)];
+        desc.Filter = D3D12_FILTER_ANISOTROPIC;
+        desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        desc.ShaderRegister = 4;
+    }
+
+    //! ANISOTROPIC_CLAMP
+    {
+        auto& desc = m_samplerState[static_cast<int>(SamplerState::ANISOTROPIC_CLAMP)];
+        desc.Filter = D3D12_FILTER_ANISOTROPIC;
+        desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        desc.ShaderRegister = 5;
+    }
 }
 
 void PiplineState::initBlendState()
 {
+    //! ブレンドステートの基本設定を作成するラムダ
     auto makeBlendDesc = [&]()
         {
             D3D12_BLEND_DESC desc = {};
@@ -158,6 +170,7 @@ void PiplineState::initBlendState()
 
 void PiplineState::initDepthStencilState()
 {
+    //! デプスステンシルステートの基本設定を作成するラムダ
     auto makeDepthStencilDesc = [&]()
         {
             D3D12_DEPTH_STENCIL_DESC desc = {};
@@ -225,6 +238,7 @@ void PiplineState::initDepthStencilState()
 
 void PiplineState::initRasterizerState()
 {
+    //! ラスタライザーステートの基本設定を作成するラムダ
     auto makeRasterizerDesc = [&]()
         {
             D3D12_RASTERIZER_DESC desc = {};
