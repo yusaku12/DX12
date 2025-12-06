@@ -53,14 +53,11 @@ void LoadTexture::setRootSignature(Microsoft::WRL::ComPtr<ID3D12RootSignature>& 
     rootparam[1].DescriptorTable.pDescriptorRanges = &constantBufferDescriptorRange;
     rootparam[1].DescriptorTable.NumDescriptorRanges = 1;
 
-    //! ルートシグネチャ(どのシェーダリソースを使用するのか、どのサンプラーを使用するのかを設定するもの)
+    //! ルートシグネチャ(どのシェーダリソースを使用するのか設定するもの)
     D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
     rootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;  //!< 頂点情報が存在する
     rootSignatureDesc.pParameters = rootparam;
     rootSignatureDesc.NumParameters = 2;
-    //D3D12_STATIC_SAMPLER_DESC samplerDesc = setSamplerState(SamplerState::LINEAR_WRAP, D3D12_SHADER_VISIBILITY_PIXEL, 0, 0);
-    //rootSignatureDesc.pStaticSamplers = &samplerDesc;
-    rootSignatureDesc.NumStaticSamplers = 1;
     Microsoft::WRL::ComPtr<ID3DBlob> rootSigBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
     HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, rootSigBlob.GetAddressOf(), errorBlob.GetAddressOf());

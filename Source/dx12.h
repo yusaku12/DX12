@@ -76,6 +76,15 @@ public:
     //! フェンスを待つ
     void safeGPUWait();
 
+    //! DescriptorHeapをGPUにセット
+    void setDescriptorHeaps();
+
+    //! CBV、SRV用のディスクリプタハンドルを割り当て
+    D3D12_CPU_DESCRIPTOR_HANDLE allocateCbvSrvHandle();
+
+    //! CPUディスクリプタハンドルからGPUディスクリプタハンドルを取得
+    D3D12_GPU_DESCRIPTOR_HANDLE getGpuHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle);
+
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
 
@@ -109,10 +118,16 @@ private:
     //! コマンドリセット
     void commandReset();
 
+    //! DescriptorHeapを作成
+    void createDescriptorHeaps();
+
     static DX12* m_instance;
     const HWND m_hwnd;
     int m_width = 1280, m_height = 720;     //!< 画面の立幅、横幅
+    UINT m_cbvSrvDescriptorSize = 0;
+    UINT m_cbvSrvAllocatedCount = 0;
     static constexpr int BUFFER_COUNT = 3;  //!< バックバッファの数
+    static constexpr UINT MAX_CBV_SRV_COUNT = 512;  //!< CBVとSRVの最大数
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_graphicsCommandList;
@@ -122,6 +137,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeaps;
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_backBuffers[BUFFER_COUNT];
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_cbvSrvHeap;
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
     D3D12_RESOURCE_BARRIER barrierDesc = {};
     UINT64 m_fenceVall = 0;

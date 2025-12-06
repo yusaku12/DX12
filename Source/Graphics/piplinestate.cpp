@@ -1,12 +1,5 @@
 #include "pch.h"
 
-//void setPlpelineStateObject(D3D12_GRAPHICS_PIPELINE_STATE_DESC* psoDesc, BlendState blendState, DepthStencilState depthStencilState, RasterizerState rasterizerState)
-//{
-    //psoDesc->BlendState = setBlendState(blendState);
-    //psoDesc->RasterizerState = setRasterizerState(rasterizerState);
-    //psoDesc->DepthStencilState = setDepthStencilState(depthStencilState);
-//}
-
 void PiplineState::initialize()
 {
     //! サンプラーステート初期化
@@ -53,7 +46,7 @@ void PiplineState::initSamplerState()
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        desc.ShaderRegister = 0;
+        desc.ShaderRegister = 0; //!< s0
     }
 
     //! POINT_CLAMP
@@ -63,7 +56,7 @@ void PiplineState::initSamplerState()
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-        desc.ShaderRegister = 1;
+        desc.ShaderRegister = 1; //!< s1
     }
 
     //! LINEAR_WRAP
@@ -73,7 +66,7 @@ void PiplineState::initSamplerState()
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        desc.ShaderRegister = 2;
+        desc.ShaderRegister = 2; //!< s2
     }
 
     //! LINEAR_CLAMP
@@ -83,7 +76,7 @@ void PiplineState::initSamplerState()
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-        desc.ShaderRegister = 3;
+        desc.ShaderRegister = 3; //!< s3
     }
 
     //! ANISOTROPIC_WRAP
@@ -93,7 +86,7 @@ void PiplineState::initSamplerState()
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-        desc.ShaderRegister = 4;
+        desc.ShaderRegister = 4; //!< s4
     }
 
     //! ANISOTROPIC_CLAMP
@@ -103,7 +96,55 @@ void PiplineState::initSamplerState()
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-        desc.ShaderRegister = 5;
+        desc.ShaderRegister = 5; //!< s5
+    }
+
+    //! 配列にコピー
+    D3D12_STATIC_SAMPLER_DESC samplers[static_cast<int>(SamplerState::MAX)];
+    for (int i = 0; i < static_cast<int>(SamplerState::MAX); i++)
+    {
+        samplers[i] = m_samplerState[i];
+    }
+
+    //! RootParameter はゼロ（サンプラーだけなので）
+    CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc;
+    rootSigDesc.Init(
+        0,                  //!< RootParameter は無し
+        nullptr,            //!< パラメータ配列も無し
+        _countof(samplers), //!< 静的サンプラー数
+        samplers,           //!< 静的サンプラー配列
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+    );
+
+    //! シリアライズ & ルートシグネチャ作成
+    Microsoft::WRL::ComPtr<ID3DBlob> sigBlob;
+    Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+
+    HRESULT hr = D3D12SerializeRootSignature(
+        &rootSigDesc,
+        D3D_ROOT_SIGNATURE_VERSION_1,
+        &sigBlob,
+        &errorBlob);
+
+    if (FAILED(hr))
+    {
+        if (errorBlob)
+        {
+            OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+        }
+        throw std::runtime_error("RootSignature serialization failed");
+    }
+
+    //hr = DX12::Instance().getDevice()->CreateRootSignature(
+    //    0,
+    //    sigBlob->GetBufferPointer(),
+    //    sigBlob->GetBufferSize(),
+    //    IID_PPV_ARGS(&m_rootSignature)
+    //);
+
+    if (FAILED(hr))
+    {
+        throw std::runtime_error("RootSignature creation failed");
     }
 }
 

@@ -45,7 +45,7 @@ void CpuGpuProfiler::endFrame(ID3D12GraphicsCommandList* cmd)
     //! GPU 計測終了
     cmd->EndQuery(m_queryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
 
-    // 結果コピー
+    //! 結果コピー
     cmd->ResolveQueryData(
         m_queryHeap.Get(),
         D3D12_QUERY_TYPE_TIMESTAMP,

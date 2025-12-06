@@ -169,6 +169,9 @@ DX12::DX12(HWND hwnd)
     {
         Logger::Instance().logCall(LogLevel::ERROR, "Failed to CreateFence");
     }
+
+    //! ディスクリプタヒープ作成
+    createDescriptorHeaps();
 }
 
 void DX12::screenClear()
@@ -329,9 +332,57 @@ void DX12::safeGPUWait()
     }
 }
 
+void DX12::setDescriptorHeaps()
+{
+    ID3D12DescriptorHeap* heaps[] = { m_cbvSrvHeap.Get() };
+    m_graphicsCommandList->SetDescriptorHeaps(_countof(heaps), heaps);
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DX12::allocateCbvSrvHandle()
+{
+    assert(m_cbvSrvAllocatedCount < MAX_CBV_SRV_COUNT);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE handle = m_cbvSrvHeap->GetCPUDescriptorHandleForHeapStart();
+
+    handle.ptr += static_cast<SIZE_T>(m_cbvSrvAllocatedCount) * m_cbvSrvDescriptorSize;
+
+    m_cbvSrvAllocatedCount++;
+
+    return handle;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DX12::getGpuHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
+{
+    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = m_cbvSrvHeap->GetGPUDescriptorHandleForHeapStart();
+
+    SIZE_T offset = (cpuHandle.ptr - m_cbvSrvHeap->GetCPUDescriptorHandleForHeapStart().ptr);
+
+    gpuHandle.ptr += offset;
+
+    return gpuHandle;
+}
+
 void DX12::commandReset()
 {
     //! 領域をクリア、次フレーム用に命令を積める状態にする
     m_commandAllocator->Reset();
     m_graphicsCommandList->Reset(m_commandAllocator.Get(), nullptr);
+}
+
+void DX12::createDescriptorHeaps()
+{
+    D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+    heapDesc.NumDescriptors = MAX_CBV_SRV_COUNT;
+    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+    HRESULT hr = m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_cbvSrvHeap));
+    if (FAILED(hr))
+    {
+        assert(false && "Failed to create CBV/SRV/UAV DescriptorHeap");
+    }
+
+    m_cbvSrvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    m_cbvSrvAllocatedCount = 0;
 }

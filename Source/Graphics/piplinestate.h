@@ -43,9 +43,6 @@ enum class SamplerState
     MAX
 };
 
-//! パイプラインの設定
-//void setPlpelineStateObject(D3D12_GRAPHICS_PIPELINE_STATE_DESC* psoDesc, BlendState blendState, DepthStencilState depthStencilState, RasterizerState rasterizerState);
-
 //=====================================================
 // PiplineState クラス
 //=====================================================
