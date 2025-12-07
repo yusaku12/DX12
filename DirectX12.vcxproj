@@ -56,7 +56,6 @@
     <ClCompile Include="Source\Graphics\loadshader.cpp" />
     <ClCompile Include="Source\Graphics\loadtexture.cpp" />
     <ClCompile Include="Source\Graphics\piplinestate.cpp" />
-    <ClCompile Include="Source\Graphics\polygon.cpp" />
     <ClCompile Include="Source\Graphics\shadermanager.cpp" />
     <ClCompile Include="Source\Graphics\texturemanager.cpp" />
     <ClCompile Include="Source\main.cpp" />
@@ -94,7 +93,6 @@
     <ClInclude Include="Source\Graphics\loadshader.h" />
     <ClInclude Include="Source\Graphics\loadtexture.h" />
     <ClInclude Include="Source\Graphics\piplinestate.h" />
-    <ClInclude Include="Source\Graphics\polygon.h" />
     <ClInclude Include="Source\Graphics\shadermanager.h" />
     <ClInclude Include="Source\Graphics\texturemanager.h" />
     <ClInclude Include="Source\Math\simplemath.h" />
