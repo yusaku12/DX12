@@ -1,7 +1,7 @@
-#pragma once
+ï»¿#pragma once
 
 //=====================================================
-// GraphicsSetting ƒNƒ‰ƒX
+// GraphicsSetting ã‚¯ãƒ©ã‚¹
 //=====================================================
 class GraphicsSetting
 {
@@ -10,7 +10,7 @@ public:
     GraphicsSetting();
     ~GraphicsSetting();
 
-    //! ƒo[ƒeƒbƒNƒXƒŠƒ\[ƒXİ’è
+    //! ãƒãƒ¼ãƒ†ãƒƒã‚¯ã‚¹ãƒªã‚½ãƒ¼ã‚¹è¨­å®š
     template<typename T>
     void settingVertexResource(const std::vector<T>& data, UINT strideInBytes)
     {
@@ -28,7 +28,7 @@ public:
             &resourceDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
-            IID_PPV_ARGS(&m_vertexBuffer)
+            IID_PPV_ARGS(m_vertexBuffer.GetAddressOf())
         );
         if (!SUCCEEDED(hr)) return;
 
@@ -43,13 +43,13 @@ public:
         //! Unmap
         m_vertexBuffer->Unmap(0, nullptr);
 
-        //! ƒoƒbƒtƒ@ƒrƒ…[İ’è
+        //! ãƒãƒƒãƒ•ã‚¡ãƒ“ãƒ¥ãƒ¼è¨­å®š
         m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
         m_vertexBufferView.SizeInBytes = bufferSize;
         m_vertexBufferView.StrideInBytes = strideInBytes;
     }
 
-    //! ƒCƒ“ƒfƒbƒNƒXƒŠƒ\[ƒXİ’è
+    //! ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒªã‚½ãƒ¼ã‚¹è¨­å®š
     template<typename T>
     void settingIndexResource(const std::vector<T>& data, DXGI_FORMAT format)
     {
@@ -67,7 +67,7 @@ public:
             &resourceDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
-            IID_PPV_ARGS(&m_indexBuffer)
+            IID_PPV_ARGS(m_indexBuffer.GetAddressOf())
         );
         if (!SUCCEEDED(hr)) return;
 
@@ -82,23 +82,23 @@ public:
         //! Unmap
         m_indexBuffer->Unmap(0, nullptr);
 
-        //! ƒoƒbƒtƒ@ƒrƒ…[İ’è
+        //! ãƒãƒƒãƒ•ã‚¡ãƒ“ãƒ¥ãƒ¼è¨­å®š
         m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
         m_indexBufferView.SizeInBytes = bufferSize;
         m_indexBufferView.Format = format;
     }
 
-    //! ƒRƒ“ƒXƒ^ƒ“ƒgƒoƒbƒtƒ@İ’è
+    //! ã‚³ãƒ³ã‚¹ã‚¿ãƒ³ãƒˆãƒãƒƒãƒ•ã‚¡è¨­å®š
     template<typename T>
     void settingConstantBuffer(const T& data)
     {
         auto device = DX12::Instance().getDevice();
         auto cmd = DX12::Instance().getGraphicsCommandList();
 
-        //! 256ƒoƒCƒgƒAƒ‰ƒCƒ“
+        //! 256ãƒã‚¤ãƒˆã‚¢ãƒ©ã‚¤ãƒ³
         const UINT cbSize = (sizeof(T) + 255) & ~255;
 
-        //! ‚Ü‚¾ CB ‚ªì‚ç‚ê‚Ä‚¢‚È‚¯‚ê‚Îì‚é
+        //! ã¾ã  CB ãŒä½œã‚‰ã‚Œã¦ã„ãªã‘ã‚Œã°ä½œã‚‹
         if (!m_constantBuffer)
         {
             CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
@@ -118,7 +118,7 @@ public:
             hr = m_constantBuffer->Map(0, nullptr, &m_mappedCB);
             if (!SUCCEEDED(hr)) { m_mappedCB = nullptr; return; }
 
-            //! CBV ‚ğì¬i‚Ü‚¾ƒnƒ“ƒhƒ‹‚ğ‚Á‚Ä‚¢‚È‚¯‚ê‚ÎŠ„“–‚Äj
+            //! CBV ã‚’ä½œæˆï¼ˆã¾ã ãƒãƒ³ãƒ‰ãƒ«ã‚’æŒã£ã¦ã„ãªã‘ã‚Œã°å‰²å½“ã¦ï¼‰
             if (m_cbvHandleCPU.ptr == 0)
             {
                 m_cbvHandleCPU = DX12::Instance().allocateCbvSrvHandle();
@@ -133,29 +133,29 @@ public:
         }
     }
 
-    //! ƒRƒ“ƒXƒ^ƒ“ƒgƒoƒbƒtƒ@‚ğXV
+    //! ã‚³ãƒ³ã‚¹ã‚¿ãƒ³ãƒˆãƒãƒƒãƒ•ã‚¡ã‚’æ›´æ–°
     template<typename T>
     void updateConstantBuffer(const T& data)
     {
         memcpy(m_mappedCB, &data, sizeof(T));
     }
 
-    //! ƒRƒ“ƒXƒ^ƒ“ƒgƒoƒbƒtƒ@‚ğƒoƒCƒ“ƒh
+    //! ã‚³ãƒ³ã‚¹ã‚¿ãƒ³ãƒˆãƒãƒƒãƒ•ã‚¡ã‚’ãƒã‚¤ãƒ³ãƒ‰
     void bindConstantBuffer(UINT rootParameterIndex, bool rootIsDescriptorTable = true);
 
-    //! ƒƒbƒVƒ…‚ğ•`‰æ‚·‚é‚½‚ß‚Ìƒoƒbƒtƒ@iVBEIBj‚ğİ’è
+    //! ãƒ¡ãƒƒã‚·ãƒ¥ã‚’æç”»ã™ã‚‹ãŸã‚ã®ãƒãƒƒãƒ•ã‚¡ï¼ˆVBãƒ»IBï¼‰ã‚’è¨­å®š
     void setMeshBuffers(D3D12_PRIMITIVE_TOPOLOGY topology);
 
 private:
 
-    //! ŒÂ•Ê‚É•Û‚·‚é
+    //! å€‹åˆ¥ã«ä¿æŒã™ã‚‹
     Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;
 
     D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView = {};
     D3D12_INDEX_BUFFER_VIEW m_indexBufferView = {};
 
-    //! ConstantBuffer ŠÖ˜A
+    //! ConstantBuffer é–¢é€£
     Microsoft::WRL::ComPtr<ID3D12Resource> m_constantBuffer;
     void* m_mappedCB;
     D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandleCPU = { 0 };

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 #include "graphicssetting.h"
 
 GraphicsSetting::GraphicsSetting()
@@ -8,7 +8,7 @@ GraphicsSetting::GraphicsSetting()
 
 GraphicsSetting::~GraphicsSetting()
 {
-    //! í‚É Unmap ‚·‚éiƒAƒvƒŠI—¹Žž‚È‚Çj
+    //! å¸¸ã« Unmap ã™ã‚‹ï¼ˆã‚¢ãƒ—ãƒªçµ‚äº†æ™‚ãªã©ï¼‰
     if (m_constantBuffer && m_mappedCB)
     {
         m_constantBuffer->Unmap(0, nullptr);
@@ -22,12 +22,12 @@ void GraphicsSetting::bindConstantBuffer(UINT rootParameterIndex, bool rootIsDes
 
     if (rootIsDescriptorTable)
     {
-        // CBV ƒfƒBƒXƒNƒŠƒvƒ^ƒe[ƒuƒ‹‚ðƒZƒbƒg
+        // CBV ãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ãƒ†ãƒ¼ãƒ–ãƒ«ã‚’ã‚»ãƒƒãƒˆ
         cmd->SetGraphicsRootDescriptorTable(rootParameterIndex, m_cbvHandleGPU);
     }
     else
     {
-        // ’¼Ú CBV ‚ðƒZƒbƒg
+        // ç›´æŽ¥ CBV ã‚’ã‚»ãƒƒãƒˆ
         cmd->SetGraphicsRootConstantBufferView(rootParameterIndex, m_constantBuffer->GetGPUVirtualAddress());
     }
 }
@@ -36,7 +36,7 @@ void GraphicsSetting::setMeshBuffers(D3D12_PRIMITIVE_TOPOLOGY topology)
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
 
-    //! ƒgƒ|ƒƒW[
+    //! ãƒˆãƒãƒ­ã‚¸ãƒ¼
     cmd->IASetPrimitiveTopology(topology);
 
     //! VB
