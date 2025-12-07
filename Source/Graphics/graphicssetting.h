@@ -8,92 +8,83 @@ class GraphicsSetting
 public:
 
     GraphicsSetting();
-    ~GraphicsSetting() {}
+    ~GraphicsSetting();
 
     //! バーテックスリソース設定
     template<typename T>
-    void setteingVertexResource(const std::vector<T>& data, UINT sizeInBytes, UINT strideInBytes)
+    void settingVertexResource(const std::vector<T>& data, UINT strideInBytes)
     {
         auto device = DX12::Instance().getDevice();
 
         const UINT bufferSize = UINT(sizeof(T) * data.size());
 
-        m_resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-        m_resourceDesc.Width = bufferSize;
-        m_resourceDesc.Height = 1;
-        m_resourceDesc.DepthOrArraySize = 1;
-        m_resourceDesc.MipLevels = 1;
-        m_resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-        m_resourceDesc.SampleDesc.Count = 1;
-        m_resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-        m_resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
 
         CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
 
-        Microsoft::WRL::ComPtr<ID3D12Resource> vertexResource;
         HRESULT hr = device->CreateCommittedResource(
             &heapProps,
             D3D12_HEAP_FLAG_NONE,
-            &m_resourceDesc,
+            &resourceDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
-            IID_PPV_ARGS(&vertexResource)
+            IID_PPV_ARGS(&m_vertexBuffer)
         );
-        if (!SUCCEEDED(hr))return;
+        if (!SUCCEEDED(hr)) return;
 
         //! Map
         void* mapped = nullptr;
-        hr = vertexResource->Map(0, nullptr, &mapped);
-        if (!SUCCEEDED(hr))return;
+        hr = m_vertexBuffer->Map(0, nullptr, &mapped);
+        if (!SUCCEEDED(hr)) return;
 
         //! Copy
         memcpy(mapped, data.data(), bufferSize);
 
-        hr = vertexResource->Unmap(0, nullptr);
-        if (!SUCCEEDED(hr))return;
+        //! Unmap
+        m_vertexBuffer->Unmap(0, nullptr);
 
         //! バッファビュー設定
-        m_vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
-        m_vertexBufferView.SizeInBytes = sizeInBytes;
+        m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+        m_vertexBufferView.SizeInBytes = bufferSize;
         m_vertexBufferView.StrideInBytes = strideInBytes;
     }
 
     //! インデックスリソース設定
     template<typename T>
-    void setteingIndexResource(const std::vector<T>& data, UINT sizeInBytes, DXGI_FORMAT format)
+    void settingIndexResource(const std::vector<T>& data, DXGI_FORMAT format)
     {
         auto device = DX12::Instance().getDevice();
 
         const UINT bufferSize = UINT(sizeof(T) * data.size());
 
-        m_resourceDesc.Width = bufferSize;
+        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
 
         CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
 
-        Microsoft::WRL::ComPtr<ID3D12Resource> indexResource;
         HRESULT hr = device->CreateCommittedResource(
             &heapProps,
             D3D12_HEAP_FLAG_NONE,
-            &m_resourceDesc,
+            &resourceDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
-            IID_PPV_ARGS(&indexResource)
+            IID_PPV_ARGS(&m_indexBuffer)
         );
+        if (!SUCCEEDED(hr)) return;
 
         //! Map
         void* mapped = nullptr;
-        hr = indexResource->Map(0, nullptr, &mapped);
-        if (!SUCCEEDED(hr))return;
+        hr = m_indexBuffer->Map(0, nullptr, &mapped);
+        if (!SUCCEEDED(hr)) return;
 
         //! Copy
         memcpy(mapped, data.data(), bufferSize);
 
-        hr = indexResource->Unmap(0, nullptr);
-        if (!SUCCEEDED(hr))return;
+        //! Unmap
+        m_indexBuffer->Unmap(0, nullptr);
 
         //! バッファビュー設定
-        m_indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
-        m_indexBufferView.SizeInBytes = sizeInBytes;
+        m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+        m_indexBufferView.SizeInBytes = bufferSize;
         m_indexBufferView.Format = format;
     }
 
@@ -102,58 +93,71 @@ public:
     void settingConstantBuffer(const T& data)
     {
         auto device = DX12::Instance().getDevice();
+        auto cmd = DX12::Instance().getGraphicsCommandList();
 
-        // 256バイトアライン
-        UINT cbSize = (sizeof(T) + 255) & ~255;
+        //! 256バイトアライン
+        const UINT cbSize = (sizeof(T) + 255) & ~255;
 
-        auto resourceDescCB = CD3DX12_RESOURCE_DESC::Buffer(cbSize);
+        //! まだ CB が作られていなければ作る
+        if (!m_constantBuffer)
+        {
+            CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+            CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(cbSize);
 
-        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+            HRESULT hr = device->CreateCommittedResource(
+                &heapProps,
+                D3D12_HEAP_FLAG_NONE,
+                &desc,
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr,
+                IID_PPV_ARGS(&m_constantBuffer)
+            );
+            if (!SUCCEEDED(hr)) return;
 
-        Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer;
-        HRESULT hr = device->CreateCommittedResource(
-            &heapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDescCB,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(&constantBuffer)
-        );
-        if (!SUCCEEDED(hr))return;
+            //! Map
+            hr = m_constantBuffer->Map(0, nullptr, &m_mappedCB);
+            if (!SUCCEEDED(hr)) { m_mappedCB = nullptr; return; }
 
-        //! Map
-        void* mapped = nullptr;
-        hr = constantBuffer->Map(0, nullptr, &mapped);
-        if (!SUCCEEDED(hr))return;
+            //! CBV を作成（まだハンドルを持っていなければ割当て）
+            if (m_cbvHandleCPU.ptr == 0)
+            {
+                m_cbvHandleCPU = DX12::Instance().allocateCbvSrvHandle();
+                m_cbvHandleGPU = DX12::Instance().getGpuHandle(m_cbvHandleCPU);
 
-        //! Copy
-        memcpy(mapped, &data, sizeof(T));
+                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+                cbvDesc.BufferLocation = m_constantBuffer->GetGPUVirtualAddress();
+                cbvDesc.SizeInBytes = cbSize;
 
-        hr = constantBuffer->Unmap(0, nullptr);
-        if (!SUCCEEDED(hr))return;
-
-        //! 定数バッファのデータ確保
-        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-        cbvDesc.BufferLocation = constantBuffer->GetGPUVirtualAddress();
-        cbvDesc.SizeInBytes = cbSize;
-
-        //! ハンドル割り当て
-        m_cbvHandle = DX12::Instance().allocateCbvSrvHandle();
-
-        //! GPU に登録
-        device->CreateConstantBufferView(&cbvDesc, m_cbvHandle);
+                device->CreateConstantBufferView(&cbvDesc, m_cbvHandleCPU);
+            }
+        }
     }
 
-    //! Root Signature のスロットにバインド
-    void bindRootSignature(UINT rootParameterIndex);
+    //! コンスタントバッファを更新
+    template<typename T>
+    void updateConstantBuffer(const T& data)
+    {
+        memcpy(m_mappedCB, &data, sizeof(T));
+    }
+
+    //! コンスタントバッファをバインド
+    void bindConstantBuffer(UINT rootParameterIndex, bool rootIsDescriptorTable = true);
 
     //! メッシュを描画するためのバッファ（VB・IB）を設定
     void setMeshBuffers(D3D12_PRIMITIVE_TOPOLOGY topology);
 
 private:
 
-    D3D12_RESOURCE_DESC m_resourceDesc = {};
+    //! 個別に保持する
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;
+
     D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView = {};
     D3D12_INDEX_BUFFER_VIEW m_indexBufferView = {};
-    D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandle = {};
+
+    //! ConstantBuffer 関連
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_constantBuffer;
+    void* m_mappedCB;
+    D3D12_CPU_DESCRIPTOR_HANDLE m_cbvHandleCPU = { 0 };
+    D3D12_GPU_DESCRIPTOR_HANDLE m_cbvHandleGPU = { 0 };
 };
