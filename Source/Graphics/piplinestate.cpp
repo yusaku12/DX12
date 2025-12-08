@@ -112,7 +112,7 @@ void PiplineState::initSamplerState()
     auto rs = rootSignature.build();
 
     //! Manager に保存
-    RootSignatureManager::Instance().add("Standard", rs);
+    RootSignatureManager::Instance().add("Pipline", rs);
 }
 
 void PiplineState::initBlendState()
