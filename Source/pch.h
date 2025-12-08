@@ -1,8 +1,8 @@
-#pragma once
+ï»¿#pragma once
 
 #define NOMINMAX
 
-//! DX‚Ì•W€‹@”\
+//! DXã®æ¨™æº–æ©Ÿèƒ½
 #include <windows.h>
 #include <d3d12.h>
 #include <string>
@@ -38,7 +38,7 @@
 #undef ERROR
 #undef OPAQUE
 
-//! ©ì‚Ì‹@”\
+//! è‡ªä½œã®æ©Ÿèƒ½
 #include "System\stringformat.h"
 #include "dx12.h"
 #include "System\logger.h"
@@ -47,7 +47,8 @@
 #include "Graphics\piplinestate.h"
 #include "Graphics\texturemanager.h"
 #include "Graphics\shadermanager.h"
+#include "Graphics\rootsignaturemanager.h"
 #include "System\timemanager.h"
 
-//! È—ªŒn
+//! çœç•¥ç³»
 using namespace DirectX::SimpleMath;

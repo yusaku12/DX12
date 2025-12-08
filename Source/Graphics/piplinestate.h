@@ -1,6 +1,6 @@
-#pragma once
+ï»¿#pragma once
 
-//! ƒuƒŒƒ“ƒhƒXƒe[ƒg
+//! ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆ
 enum class BlendState
 {
     OPAQUE,
@@ -10,7 +10,7 @@ enum class BlendState
     MAX
 };
 
-//! ƒfƒvƒXƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒg
+//! ãƒ‡ãƒ—ã‚¹ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ã‚¹ãƒ†ãƒ¼ãƒˆ
 enum class DepthStencilState
 {
     DEPTH_NONE,
@@ -21,7 +21,7 @@ enum class DepthStencilState
     MAX
 };
 
-//! ƒ‰ƒXƒ^ƒ‰ƒCƒUƒXƒe[ƒg
+//! ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ã‚¹ãƒ†ãƒ¼ãƒˆ
 enum class RasterizerState
 {
     CULL_NONE,
@@ -31,7 +31,7 @@ enum class RasterizerState
     MAX
 };
 
-//! ƒTƒ“ƒvƒ‰[ƒXƒe[ƒg
+//! ã‚µãƒ³ãƒ—ãƒ©ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆ
 enum class SamplerState
 {
     POINT_WRAP,
@@ -44,20 +44,20 @@ enum class SamplerState
 };
 
 //=====================================================
-// PiplineState ƒNƒ‰ƒX
+// PiplineState ã‚¯ãƒ©ã‚¹
 //=====================================================
 class PiplineState
 {
 public:
 
-    //! ƒCƒ“ƒXƒ^ƒ“ƒXæ“¾
+    //! ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å–å¾—
     static PiplineState& Instance()
     {
         static PiplineState instance;
         return instance;
     }
 
-    //! ‰Šú‰»
+    //! åˆæœŸåŒ–
     void initialize();
 
 private:
@@ -65,19 +65,19 @@ private:
     PiplineState() = default;
     ~PiplineState() = default;
 
-    //! ƒTƒ“ƒvƒ‰[ƒXƒe[ƒg‰Šú‰»
+    //! ã‚µãƒ³ãƒ—ãƒ©ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆåˆæœŸåŒ–
     void initSamplerState();
 
-    //! ƒuƒŒƒ“ƒhƒXƒe[ƒg‰Šú‰»
+    //! ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆåˆæœŸåŒ–
     void initBlendState();
 
-    //! ƒfƒvƒXƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒg‰Šú‰»
+    //! ãƒ‡ãƒ—ã‚¹ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ã‚¹ãƒ†ãƒ¼ãƒˆåˆæœŸåŒ–
     void initDepthStencilState();
 
-    //! ƒ‰ƒXƒ^ƒ‰ƒCƒUƒXƒe[ƒg‰Šú‰»
+    //! ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ã‚¹ãƒ†ãƒ¼ãƒˆåˆæœŸåŒ–
     void initRasterizerState();
 
-    //! ŠeíƒpƒCƒvƒ‰ƒCƒ“ƒXƒe[ƒg
+    //! å„ç¨®ãƒ‘ã‚¤ãƒ—ãƒ©ã‚¤ãƒ³ã‚¹ãƒ†ãƒ¼ãƒˆ
     D3D12_STATIC_SAMPLER_DESC m_samplerState[static_cast<int>(SamplerState::MAX)] = {};
     D3D12_BLEND_DESC m_blendState[static_cast<int>(BlendState::MAX)] = {};
     D3D12_DEPTH_STENCIL_DESC m_depthStencilState[static_cast<int>(DepthStencilState::MAX)] = {};

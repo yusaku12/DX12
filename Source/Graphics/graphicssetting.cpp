@@ -22,12 +22,12 @@ void GraphicsSetting::bindConstantBuffer(UINT rootParameterIndex, bool rootIsDes
 
     if (rootIsDescriptorTable)
     {
-        // CBV ディスクリプタテーブルをセット
+        //! CBV ディスクリプタテーブルをセット
         cmd->SetGraphicsRootDescriptorTable(rootParameterIndex, m_cbvHandleGPU);
     }
     else
     {
-        // 直接 CBV をセット
+        //! 直接 CBV をセット
         cmd->SetGraphicsRootConstantBufferView(rootParameterIndex, m_constantBuffer->GetGPUVirtualAddress());
     }
 }

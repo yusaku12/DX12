@@ -1,23 +1,24 @@
-#include "pch.h"
+ï»¿#include "pch.h"
+#include "RootSignature.h"
 
 void PiplineState::initialize()
 {
-    //! ƒTƒ“ƒvƒ‰[ƒXƒe[ƒg‰Šú‰»
+    //! ã‚µãƒ³ãƒ—ãƒ©ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆåˆæœŸåŒ–
     initSamplerState();
 
-    //! ƒuƒŒƒ“ƒhƒXƒe[ƒg‰Šú‰»
+    //! ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆåˆæœŸåŒ–
     initBlendState();
 
-    //! ƒfƒvƒXƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒg‰Šú‰»
+    //! ãƒ‡ãƒ—ã‚¹ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ã‚¹ãƒ†ãƒ¼ãƒˆåˆæœŸåŒ–
     initDepthStencilState();
 
-    //! ƒ‰ƒXƒ^ƒ‰ƒCƒUƒXƒe[ƒg‰Šú‰»
+    //! ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ã‚¹ãƒ†ãƒ¼ãƒˆåˆæœŸåŒ–
     initRasterizerState();
 }
 
 void PiplineState::initSamplerState()
 {
-    //! ƒTƒ“ƒvƒ‰[ƒXƒe[ƒg‚ÌŠî–{İ’è‚ğì¬‚·‚éƒ‰ƒ€ƒ_
+    //! ã‚µãƒ³ãƒ—ãƒ©ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆã®åŸºæœ¬è¨­å®šã‚’ä½œæˆã™ã‚‹ãƒ©ãƒ ãƒ€
     auto makeSamplerDesc = [&]()
         {
             D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -33,7 +34,7 @@ void PiplineState::initSamplerState()
             return samplerDesc;
         };
 
-    //! ‘S‚ÄƒfƒtƒHƒ‹ƒg’l‚Å‰Šú‰»
+    //! å…¨ã¦ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã§åˆæœŸåŒ–
     for (int i = 0; i < static_cast<int>(SamplerState::MAX); i++)
     {
         m_samplerState[i] = makeSamplerDesc();
@@ -99,58 +100,24 @@ void PiplineState::initSamplerState()
         desc.ShaderRegister = 5; //!< s5
     }
 
-    //! ”z—ñ‚ÉƒRƒs[
-    D3D12_STATIC_SAMPLER_DESC samplers[static_cast<int>(SamplerState::MAX)];
-    for (int i = 0; i < static_cast<int>(SamplerState::MAX); i++)
+    RootSignature rootSignature;
+    for (int i = 0; i < (int)SamplerState::MAX; i++)
     {
-        samplers[i] = m_samplerState[i];
+        rootSignature.addStaticSampler(m_samplerState[i]);
     }
 
-    //! RootParameter ‚Íƒ[ƒiƒTƒ“ƒvƒ‰[‚¾‚¯‚È‚Ì‚Åj
-    CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc;
-    rootSigDesc.Init(
-        0,                  //!< RootParameter ‚Í–³‚µ
-        nullptr,            //!< ƒpƒ‰ƒ[ƒ^”z—ñ‚à–³‚µ
-        _countof(samplers), //!< Ã“IƒTƒ“ƒvƒ‰[”
-        samplers,           //!< Ã“IƒTƒ“ƒvƒ‰[”z—ñ
-        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-    );
+    rootSignature.setFlags(D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
-    //! ƒVƒŠƒAƒ‰ƒCƒY & ƒ‹[ƒgƒVƒOƒlƒ`ƒƒì¬
-    Microsoft::WRL::ComPtr<ID3DBlob> sigBlob;
-    Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+    //! ãƒ«ãƒ¼ãƒˆã‚·ã‚°ãƒãƒãƒ£ç”Ÿæˆ
+    auto rs = rootSignature.build();
 
-    HRESULT hr = D3D12SerializeRootSignature(
-        &rootSigDesc,
-        D3D_ROOT_SIGNATURE_VERSION_1,
-        &sigBlob,
-        &errorBlob);
-
-    if (FAILED(hr))
-    {
-        if (errorBlob)
-        {
-            OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-        }
-        throw std::runtime_error("RootSignature serialization failed");
-    }
-
-    //hr = DX12::Instance().getDevice()->CreateRootSignature(
-    //    0,
-    //    sigBlob->GetBufferPointer(),
-    //    sigBlob->GetBufferSize(),
-    //    IID_PPV_ARGS(&m_rootSignature)
-    //);
-
-    if (FAILED(hr))
-    {
-        throw std::runtime_error("RootSignature creation failed");
-    }
+    //! Manager ã«ä¿å­˜
+    RootSignatureManager::Instance().add("Standard", rs);
 }
 
 void PiplineState::initBlendState()
 {
-    //! ƒuƒŒƒ“ƒhƒXƒe[ƒg‚ÌŠî–{İ’è‚ğì¬‚·‚éƒ‰ƒ€ƒ_
+    //! ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆã®åŸºæœ¬è¨­å®šã‚’ä½œæˆã™ã‚‹ãƒ©ãƒ ãƒ€
     auto makeBlendDesc = [&]()
         {
             D3D12_BLEND_DESC desc = {};
@@ -172,7 +139,7 @@ void PiplineState::initBlendState()
             return desc;
         };
 
-    //! ‘S‚ÄƒfƒtƒHƒ‹ƒg’l‚Å‰Šú‰»
+    //! å…¨ã¦ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã§åˆæœŸåŒ–
     for (int i = 0; i < static_cast<int>(BlendState::MAX); i++)
     {
         m_blendState[i] = makeBlendDesc();
@@ -211,7 +178,7 @@ void PiplineState::initBlendState()
 
 void PiplineState::initDepthStencilState()
 {
-    //! ƒfƒvƒXƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒg‚ÌŠî–{İ’è‚ğì¬‚·‚éƒ‰ƒ€ƒ_
+    //! ãƒ‡ãƒ—ã‚¹ã‚¹ãƒ†ãƒ³ã‚·ãƒ«ã‚¹ãƒ†ãƒ¼ãƒˆã®åŸºæœ¬è¨­å®šã‚’ä½œæˆã™ã‚‹ãƒ©ãƒ ãƒ€
     auto makeDepthStencilDesc = [&]()
         {
             D3D12_DEPTH_STENCIL_DESC desc = {};
@@ -230,7 +197,7 @@ void PiplineState::initDepthStencilState()
             return desc;
         };
 
-    //! ‘S‚ÄƒfƒtƒHƒ‹ƒg’l‚Å‰Šú‰»
+    //! å…¨ã¦ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã§åˆæœŸåŒ–
     for (int i = 0; i < static_cast<int>(DepthStencilState::MAX); i++)
     {
         m_depthStencilState[i] = makeDepthStencilDesc();
@@ -279,7 +246,7 @@ void PiplineState::initDepthStencilState()
 
 void PiplineState::initRasterizerState()
 {
-    //! ƒ‰ƒXƒ^ƒ‰ƒCƒU[ƒXƒe[ƒg‚ÌŠî–{İ’è‚ğì¬‚·‚éƒ‰ƒ€ƒ_
+    //! ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆã®åŸºæœ¬è¨­å®šã‚’ä½œæˆã™ã‚‹ãƒ©ãƒ ãƒ€
     auto makeRasterizerDesc = [&]()
         {
             D3D12_RASTERIZER_DESC desc = {};
@@ -297,7 +264,7 @@ void PiplineState::initRasterizerState()
             return desc;
         };
 
-    //! ‘S‚ÄƒfƒtƒHƒ‹ƒg’l‚Å‰Šú‰»
+    //! å…¨ã¦ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤ã§åˆæœŸåŒ–
     for (int i = 0; i < static_cast<int>(RasterizerState::MAX); i++)
     {
         m_rasterizerState[i] = makeRasterizerDesc();
