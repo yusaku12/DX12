@@ -1,5 +1,5 @@
-#include "pch.h"
-#include "loadshader.h"
+ï»¿#include "pch.h"
+#include "LoadShader.h"
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
 
@@ -8,7 +8,7 @@ LoadShader::LoadShader(const std::wstring& filePath, ShaderType shaderType, D3D1
 {
     m_result = loadShader();
 
-    //! ƒVƒF[ƒ_[‚ğƒZƒbƒg
+    //! ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’ã‚»ãƒƒãƒˆ
     setShader(gpipeline);
 }
 
@@ -41,7 +41,7 @@ std::string LoadShader::getErrorString() const
 
 HRESULT LoadShader::loadShader()
 {
-    //! ƒtƒ@ƒCƒ‹‘¶İƒ`ƒFƒbƒN
+    //! ãƒ•ã‚¡ã‚¤ãƒ«å­˜åœ¨ãƒã‚§ãƒƒã‚¯
     if (!std::filesystem::exists(m_filePath))
     {
         std::wstring msg = L"Shader file not found: " + m_filePath;
@@ -49,7 +49,7 @@ HRESULT LoadShader::loadShader()
         return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
     }
 
-    //! ƒ\[ƒX‚©‚çƒRƒ“ƒpƒCƒ‹
+    //! ã‚½ãƒ¼ã‚¹ã‹ã‚‰ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«
     const char* entryName = nullptr;
     const char* shaderVersion = nullptr;
     switch (m_shaderType)
@@ -67,7 +67,7 @@ HRESULT LoadShader::loadShader()
         return E_INVALIDARG;
     }
 
-    //! .cso ‚ª‘¶İ‚·‚ê‚Î‚»‚ê‚ğ“Ç‚İ‚Ş
+    //! .cso ãŒå­˜åœ¨ã™ã‚Œã°ãã‚Œã‚’èª­ã¿è¾¼ã‚€
     std::filesystem::path shaderPath = m_filePath;
     std::wstring filename = shaderPath.stem();
     std::wstring csoPath = L"Shader/" + filename + L".cso";
@@ -94,12 +94,12 @@ HRESULT LoadShader::loadShader()
     HRESULT hr = D3DCompileFromFile(m_filePath.c_str(), nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryName, shaderVersion, compileFlags, 0, m_shaderBlob.GetAddressOf(), m_errorBlob.GetAddressOf());
     if (FAILED(hr))
     {
-        //! ƒGƒ‰[ƒƒO
+        //! ã‚¨ãƒ©ãƒ¼ãƒ­ã‚°
         std::string err = getErrorString();
         std::wstring logmsg = L"Failed to compile shader: " + m_filePath + L"\n";
         Logger::Instance().logCall(LogLevel::ERROR, wstringToString(logmsg + std::wstring(err.begin(), err.end())).c_str());
 
-        //! ƒfƒoƒbƒO—p‚É OutputDebugString
+        //! ãƒ‡ãƒãƒƒã‚°ç”¨ã« OutputDebugString
         if (m_errorBlob)
         {
             OutputDebugStringA(static_cast<const char*>(m_errorBlob->GetBufferPointer()));
@@ -108,7 +108,7 @@ HRESULT LoadShader::loadShader()
         return hr;
     }
 
-    //! ƒRƒ“ƒpƒCƒ‹¬Œ÷ ¨ .cso ‚É•Û‘¶
+    //! ã‚³ãƒ³ãƒ‘ã‚¤ãƒ«æˆåŠŸ â†’ .cso ã«ä¿å­˜
     HRESULT hrWrite = D3DWriteBlobToFile(m_shaderBlob.Get(), csoPath.c_str(), TRUE);
     if (FAILED(hrWrite))
     {

@@ -1,25 +1,25 @@
-#pragma once
+ï»¿#pragma once
 
-#include "loadtexture.h"
+#include "LoadTexture.h"
 
 //=====================================================
-// TextureManager ƒNƒ‰ƒX
+// TextureManager ã‚¯ãƒ©ã‚¹
 //=====================================================
 class TextureManager
 {
 public:
 
-    //! ƒVƒ“ƒOƒ‹ƒgƒ“ƒCƒ“ƒXƒ^ƒ“ƒXæ“¾
+    //! ã‚·ãƒ³ã‚°ãƒ«ãƒˆãƒ³ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å–å¾—
     static TextureManager& Instance()
     {
         static TextureManager instance;
         return instance;
     }
 
-    //! ƒeƒNƒXƒ`ƒƒ‚ğƒ[ƒhiƒLƒƒƒbƒVƒ…‚ ‚èj
+    //! ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’ãƒ­ãƒ¼ãƒ‰ï¼ˆã‚­ãƒ£ãƒƒã‚·ãƒ¥ã‚ã‚Šï¼‰
     LoadTexture* load(const std::wstring& filePath);
 
-    //! ‘SƒeƒNƒXƒ`ƒƒ‰ğ•ú
+    //! å…¨ãƒ†ã‚¯ã‚¹ãƒãƒ£è§£æ”¾
     void clear();
 
 private:
@@ -27,6 +27,6 @@ private:
     TextureManager() = default;
     ~TextureManager() = default;
 
-    //! ƒeƒNƒXƒ`ƒƒƒLƒƒƒbƒVƒ…
+    //! ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚­ãƒ£ãƒƒã‚·ãƒ¥
     std::unordered_map<std::wstring, std::unique_ptr<LoadTexture>> m_textureCache;
 };

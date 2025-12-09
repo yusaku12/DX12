@@ -1,78 +1,74 @@
-#include "pch.h"
-#include "window.h"
-#include "camera.h"
+ï»¿#include "pch.h"
+#include "Window.h"
 
 Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
     , m_dx12(hwnd)
 {
-    //! imgui‰Šú‰»
+    //! imguiåˆæœŸåŒ–
     IMGUI_CTRL_INITIALIZE();
 
-    //! ƒJƒƒ‰ì¬
-    Camera::Instance().createClipMatrix();
-
-    //! TimeManager‰Šú‰»
+    //! TimeManageråˆæœŸåŒ–
     TimeManager::Instance().initialize();
 
-    //! PiplineState‰Šú‰»
+    //! PiplineStateåˆæœŸåŒ–
     PiplineState::Instance().initialize();
 }
 
 Window::~Window()
 {
-    //! GPU Š®—¹‘Ò‚¿
+    //! GPU å®Œäº†å¾…ã¡
     m_dx12.safeGPUWait();
 
-    //! ImGui ‚ª‚ ‚éê‡‚Íæ‚ÉI—¹ˆ—
+    //! ImGui ãŒã‚ã‚‹å ´åˆã¯å…ˆã«çµ‚äº†å‡¦ç†
     IMGUI_CTRL_FINALIZE();
 }
 
 void Window::update()
 {
-    //! TimeManagerXV
+    //! TimeManageræ›´æ–°
     TimeManager::Instance().update();
 
-    //! imguiXV
+    //! imguiæ›´æ–°
     IMGUI_CTRL_UPDATE();
 }
 
 void Window::render()
 {
-    //! ƒtƒŒ[ƒ€ŠJnˆ—
+    //! ãƒ•ãƒ¬ãƒ¼ãƒ é–‹å§‹å‡¦ç†
     TimeManager::Instance().frameStart(m_dx12.getGraphicsCommandList());
 
-    //! imgui•`‰æ
+    //! imguiæç”»
     imguiRender();
 
-    //! ‰æ–Ê‚ğƒNƒŠƒA
+    //! ç”»é¢ã‚’ã‚¯ãƒªã‚¢
     m_dx12.screenClear();
 
-    //! imgui‚Ì•`‰æî•ñ‚ğİ’è
+    //! imguiã®æç”»æƒ…å ±ã‚’è¨­å®š
     IMGUI_CTRL_RENDER_INFO();
 
-    //! TimeManagerƒtƒŒ[ƒ€I—¹ˆ—
+    //! TimeManagerãƒ•ãƒ¬ãƒ¼ãƒ çµ‚äº†å‡¦ç†
     TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
 
-    //! ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒg‚ğŒ³‚É–ß‚µAƒRƒ}ƒ“ƒhI—¹
+    //! ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’å…ƒã«æˆ»ã—ã€ã‚³ãƒãƒ³ãƒ‰çµ‚äº†
     m_dx12.renderTargetUndo();
 
-    //! ƒvƒ‰ƒbƒgƒtƒH[ƒ€‚ğ’Ç‰Á‚µ‚ÄƒEƒBƒ“ƒhƒEXV
+    //! ãƒ—ãƒ©ãƒƒãƒˆãƒ•ã‚©ãƒ¼ãƒ ã‚’è¿½åŠ ã—ã¦ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦æ›´æ–°
     IMGUI_CTRL_UPDATE_RENDER();
 
-    //! ‰æ–ÊƒNƒŠƒAŒã‚ÌŒãˆ—
+    //! ç”»é¢ã‚¯ãƒªã‚¢å¾Œã®å¾Œå‡¦ç†
     m_dx12.screenClearCleanup();
 }
 
 void Window::imguiRender()
 {
-    //! ƒƒO•`‰æ
+    //! ãƒ­ã‚°æç”»
     Logger::Instance().renderLog();
 
-    //!TimeManager‚Ìimgui•`‰æ
+    //!TimeManagerã®imguiæç”»
     TimeManager::Instance().imgui();
 
-    //! imgui•`‰æ
+    //! imguiæç”»
     IMGUI_CTRL_RENDER();
 }
 
@@ -88,7 +84,7 @@ int Window::run()
         }
         else
         {
-            //! XVA•`‰æ
+            //! æ›´æ–°ã€æç”»
             update();
             render();
         }
@@ -98,7 +94,7 @@ int Window::run()
 
 LRESULT Window::processMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    //! ImGui ‚ÉƒƒbƒZ[ƒW‚ğ“n‚·
+    //! ImGui ã«ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’æ¸¡ã™
     IMGUI_CTRL_WND_PRC_HANDLER(hwnd, msg, wparam, lparam);
 
     switch (msg)

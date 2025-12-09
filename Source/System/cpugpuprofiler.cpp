@@ -1,20 +1,20 @@
-#include "pch.h"
-#include "cpugpuprofiler.h"
+ï»¿#include "pch.h"
+#include "CpuGpuProfiler.h"
 
 CpuGpuProfiler::CpuGpuProfiler()
 {
     const auto& dx12 = DX12::Instance();
 
-    //! GPUü”g”æ“¾
+    //! GPUå‘¨æ³¢æ•°å–å¾—
     dx12.getCommandQueue()->GetTimestampFrequency(&m_gpuFreq);
 
-    //! QueryHeap ì¬
+    //! QueryHeap ä½œæˆ
     D3D12_QUERY_HEAP_DESC desc = {};
     desc.Count = QUERYCOUNT;
     desc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
     dx12.getDevice()->CreateQueryHeap(&desc, IID_PPV_ARGS(&m_queryHeap));
 
-    //! Œ‹‰ÊŠi”[ƒoƒbƒtƒ@
+    //! çµæœæ ¼ç´ãƒãƒƒãƒ•ã‚¡
     D3D12_RESOURCE_DESC bufDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(UINT64) * QUERYCOUNT);
     auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
     dx12.getDevice()->CreateCommittedResource(
@@ -33,19 +33,19 @@ CpuGpuProfiler::CpuGpuProfiler()
 
 void CpuGpuProfiler::beginFrame(ID3D12GraphicsCommandList* cmd)
 {
-    //! CPU Œv‘ªŠJn
+    //! CPU è¨ˆæ¸¬é–‹å§‹
     m_cpuStart = std::chrono::high_resolution_clock::now();
 
-    //! GPU Œv‘ªŠJn
+    //! GPU è¨ˆæ¸¬é–‹å§‹
     cmd->EndQuery(m_queryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
 }
 
 void CpuGpuProfiler::endFrame(ID3D12GraphicsCommandList* cmd)
 {
-    //! GPU Œv‘ªI—¹
+    //! GPU è¨ˆæ¸¬çµ‚äº†
     cmd->EndQuery(m_queryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
 
-    //! Œ‹‰ÊƒRƒs[
+    //! çµæœã‚³ãƒ”ãƒ¼
     cmd->ResolveQueryData(
         m_queryHeap.Get(),
         D3D12_QUERY_TYPE_TIMESTAMP,
@@ -55,15 +55,15 @@ void CpuGpuProfiler::endFrame(ID3D12GraphicsCommandList* cmd)
         0
     );
 
-    //! CPU Œv‘ªI—¹
+    //! CPU è¨ˆæ¸¬çµ‚äº†
     auto cpuEnd = std::chrono::high_resolution_clock::now();
     m_cpuTimeMs = std::chrono::duration<float, std::milli>(cpuEnd - m_cpuStart).count();
 
-    //! —š—ğXV
+    //! å±¥æ­´æ›´æ–°
     m_cpuHistory.erase(m_cpuHistory.begin());
     m_cpuHistory.push_back(m_cpuTimeMs);
 
-    //! GPU ƒf[ƒ^æ“¾
+    //! GPU ãƒ‡ãƒ¼ã‚¿å–å¾—
     UINT64 result[QUERYCOUNT] = {};
     void* mapped = nullptr;
 

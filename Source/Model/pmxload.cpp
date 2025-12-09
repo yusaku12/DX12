@@ -1,9 +1,9 @@
-#include "pch.h"
-#include "pmxload.h"
+ï»¿#include "pch.h"
+#include "PmxLoad.h"
 
 PmxLoad::PmxLoad(const std::wstring& filePath, PMXFileData& fileData)
 {
-    //! PMXƒ‚ƒfƒ‹“Ç‚İ‚İ
+    //! PMXãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿
     pmxLoadFile(filePath, fileData);
 }
 
@@ -15,16 +15,16 @@ bool PmxLoad::getPMXStringUTF16(std::ifstream& _file, std::wstring& output)
 {
     int textSize = 0;
 
-    //! •¶š—ñƒTƒCƒY(ƒoƒCƒg)‚ğæ“¾
+    //! æ–‡å­—åˆ—ã‚µã‚¤ã‚º(ãƒã‚¤ãƒˆ)ã‚’å–å¾—
     _file.read(reinterpret_cast<char*>(&textSize), 4);
 
-    // textSize •ª‚Ìƒoƒbƒtƒ@‚ğ“®“I‚ÉŠm•ÛiUTF-16 = 2bytej
+    // textSize åˆ†ã®ãƒãƒƒãƒ•ã‚¡ã‚’å‹•çš„ã«ç¢ºä¿ï¼ˆUTF-16 = 2byteï¼‰
     std::vector<wchar_t> buffer(textSize / 2);
 
-    //! ƒtƒ@ƒCƒ‹‚©‚ç“Ç‚İ‚İ
+    //! ãƒ•ã‚¡ã‚¤ãƒ«ã‹ã‚‰èª­ã¿è¾¼ã¿
     _file.read(reinterpret_cast<char*>(buffer.data()), textSize);
 
-    //! wstring ‚ÉŠi”[
+    //! wstring ã«æ ¼ç´
     output.assign(buffer.begin(), buffer.end());
 
     return true;
@@ -34,15 +34,15 @@ bool PmxLoad::getPMXStringUTF8(std::ifstream& _file, std::string& output)
 {
     int textSize = 0;
 
-    //! •¶š—ñƒTƒCƒY‚ğ“Ç
+    //! æ–‡å­—åˆ—ã‚µã‚¤ã‚ºã‚’èª­è¾¼
     _file.read(reinterpret_cast<char*>(&textSize), 4);
 
-    //! textSize •ª‚Ìƒoƒbƒtƒ@‚ğŠm•ÛiUTF-8 = 1bytej
+    //! textSize åˆ†ã®ãƒãƒƒãƒ•ã‚¡ã‚’ç¢ºä¿ï¼ˆUTF-8 = 1byteï¼‰
     std::vector<char> buffer(textSize);
 
     _file.read(reinterpret_cast<char*>(buffer.data()), textSize);
 
-    //! ‚»‚Ì‚Ü‚Ü string ‚ÉŠi”[
+    //! ãã®ã¾ã¾ string ã«æ ¼ç´
     output.assign(buffer.begin(), buffer.end());
 
     return true;
@@ -50,14 +50,14 @@ bool PmxLoad::getPMXStringUTF8(std::ifstream& _file, std::string& output)
 
 bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
 {
-    //! ƒtƒ@ƒCƒ‹‚ª–³‚©‚Á‚½‚ç
+    //! ãƒ•ã‚¡ã‚¤ãƒ«ãŒç„¡ã‹ã£ãŸã‚‰
     if (filePath.empty())
     {
         Logger::Instance().logCall(LogLevel::ERROR, "failure file path");
         return false;
     }
 
-    //! ƒtƒ@ƒCƒ‹“Ç‚İ‚İ
+    //! ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿
     std::ifstream pmxFile{ filePath, (std::ios::binary | std::ios::in) };
     if (pmxFile.fail())
     {
@@ -66,7 +66,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! PMX‚Ìƒtƒ@ƒCƒ‹ƒwƒbƒ_[î•ñ“Ç‚İ‚İ
+    //! PMXã®ãƒ•ã‚¡ã‚¤ãƒ«ãƒ˜ãƒƒãƒ€ãƒ¼æƒ…å ±èª­ã¿è¾¼ã¿
     bool result = readHeader(fileData, pmxFile);
     if (!result)
     {
@@ -74,7 +74,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! PMX‚Ìƒ‚ƒfƒ‹î•ñ‚Íƒ‚ƒfƒ‹‚Ì–¼‘O‚ÆƒRƒƒ“ƒg‚ğ“Ç‚İ‚Ş
+    //! PMXã®ãƒ¢ãƒ‡ãƒ«æƒ…å ±ã¯ãƒ¢ãƒ‡ãƒ«ã®åå‰ã¨ã‚³ãƒ¡ãƒ³ãƒˆã‚’èª­ã¿è¾¼ã‚€
     result = readModelInfo(fileData, pmxFile);
     if (!result)
     {
@@ -82,7 +82,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ’¸“_î•ñ“Ç‚İ‚İ
+    //! é ‚ç‚¹æƒ…å ±èª­ã¿è¾¼ã¿
     result = readVertex(fileData, pmxFile);
     if (!result)
     {
@@ -90,7 +90,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ƒtƒFƒCƒXî•ñ“Ç‚İ‚İ
+    //! ãƒ•ã‚§ã‚¤ã‚¹æƒ…å ±èª­ã¿è¾¼ã¿
     result = readFace(fileData, pmxFile);
     if (!result)
     {
@@ -98,7 +98,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ƒeƒNƒXƒ`ƒƒî•ñ“Ç‚İ‚İ
+    //! ãƒ†ã‚¯ã‚¹ãƒãƒ£æƒ…å ±èª­ã¿è¾¼ã¿
     result = readTextures(fileData, pmxFile);
     if (!result)
     {
@@ -106,7 +106,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ƒ}ƒeƒŠƒAƒ‹“Ç‚İ‚İ
+    //! ãƒãƒ†ãƒªã‚¢ãƒ«èª­ã¿è¾¼ã¿
     result = readMaterial(fileData, pmxFile);
     if (!result)
     {
@@ -114,7 +114,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ƒ{[ƒ“î•ñ“Ç‚İ‚İ
+    //! ãƒœãƒ¼ãƒ³æƒ…å ±èª­ã¿è¾¼ã¿
     result = readBone(fileData, pmxFile);
     if (!result)
     {
@@ -122,7 +122,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ƒ‚[ƒtî•ñ“Ç‚İ‚İ
+    //! ãƒ¢ãƒ¼ãƒ•æƒ…å ±èª­ã¿è¾¼ã¿
     result = readMorph(fileData, pmxFile);
     if (!result)
     {
@@ -130,7 +130,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! •\¦ƒpƒlƒ‹“Ç‚İ‚İ
+    //! è¡¨ç¤ºãƒ‘ãƒãƒ«èª­ã¿è¾¼ã¿
     result = readDisplayFrame(fileData, pmxFile);
     if (!result)
     {
@@ -138,7 +138,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! „‘Ì“Ç‚İ‚İ
+    //! å‰›ä½“èª­ã¿è¾¼ã¿
     result = readRigidBody(fileData, pmxFile);
     if (!result)
     {
@@ -146,7 +146,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ƒWƒ‡ƒCƒ“ƒg“Ç‚İ‚İ
+    //! ã‚¸ãƒ§ã‚¤ãƒ³ãƒˆèª­ã¿è¾¼ã¿
     result = readJoint(fileData, pmxFile);
     if (!result)
     {
@@ -154,7 +154,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ƒ\ƒtƒgƒ{ƒfƒB“Ç‚İ‚İ
+    //! ã‚½ãƒ•ãƒˆãƒœãƒ‡ã‚£èª­ã¿è¾¼ã¿
     result = readSoftBody(fileData, pmxFile);
     if (!result)
     {
@@ -167,7 +167,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
 
 bool PmxLoad::readHeader(PMXFileData& data, std::ifstream& file)
 {
-    //! ˆê’v‚µ‚È‚¢ê‡‚ÍPMXƒtƒ@ƒCƒ‹Œ`®‚Å‚Í‚È‚¢
+    //! ä¸€è‡´ã—ãªã„å ´åˆã¯PMXãƒ•ã‚¡ã‚¤ãƒ«å½¢å¼ã§ã¯ãªã„
     file.read(reinterpret_cast<char*>(data.header.magic.data()), data.header.magic.size());
     if (data.header.magic != PMX_MAGIC_NUMBER)
     {
@@ -175,17 +175,17 @@ bool PmxLoad::readHeader(PMXFileData& data, std::ifstream& file)
         return false;
     }
 
-    //! 4ƒoƒCƒg‚Íƒtƒ@ƒCƒ‹‚Ìƒo[ƒWƒ‡ƒ“
-    //! 1ƒoƒCƒg‚Íƒf[ƒ^‚ÌƒTƒCƒY
-    //! 1ƒoƒCƒg‚ÍƒeƒLƒXƒgƒGƒ“ƒR[ƒfƒBƒ“ƒO
+    //! 4ãƒã‚¤ãƒˆã¯ãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³
+    //! 1ãƒã‚¤ãƒˆã¯ãƒ‡ãƒ¼ã‚¿ã®ã‚µã‚¤ã‚º
+    //! 1ãƒã‚¤ãƒˆã¯ãƒ†ã‚­ã‚¹ãƒˆã‚¨ãƒ³ã‚³ãƒ¼ãƒ‡ã‚£ãƒ³ã‚°
     file.read(reinterpret_cast<char*>(&data.header.version), sizeof(data.header.version));
     file.read(reinterpret_cast<char*>(&data.header.dataLength), sizeof(data.header.dataLength));
     file.read(reinterpret_cast<char*>(&data.header.textEncoding), sizeof(data.header.textEncoding));
 
-    //! ’Ç‰ÁUV‚Ì”
+    //! è¿½åŠ UVã®æ•°
     file.read(reinterpret_cast<char*>(&data.header.addUVNum), sizeof(data.header.addUVNum));
 
-    //! 1ƒoƒCƒg‚¸‚Âƒ‚ƒfƒ‹î•ñ‚ğ“Ç‚İ‚Ş
+    //! 1ãƒã‚¤ãƒˆãšã¤ãƒ¢ãƒ‡ãƒ«æƒ…å ±ã‚’èª­ã¿è¾¼ã‚€
     file.read(reinterpret_cast<char*>(&data.header.vertexIndexSize), sizeof(data.header.vertexIndexSize));
     file.read(reinterpret_cast<char*>(&data.header.textureIndexSize), sizeof(data.header.textureIndexSize));
     file.read(reinterpret_cast<char*>(&data.header.materialIndexSize), sizeof(data.header.materialIndexSize));
@@ -208,25 +208,25 @@ bool PmxLoad::readModelInfo(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readVertex(PMXFileData& data, std::ifstream& file)
 {
-    //! “Ç‚İ‚ñ‚¾ƒ‚ƒfƒ‹‚Ì’¸“_”
+    //! èª­ã¿è¾¼ã‚“ã ãƒ¢ãƒ‡ãƒ«ã®é ‚ç‚¹æ•°
     unsigned int vertexCount;
     file.read(reinterpret_cast<char*>(&vertexCount), 4);
     data.vertices.resize(vertexCount);
 
     for (auto& vertex : data.vertices)
     {
-        //! ˆÊ’uA–@üAUV’l
+        //! ä½ç½®ã€æ³•ç·šã€UVå€¤
         file.read(reinterpret_cast<char*>(&vertex.position), 12);
         file.read(reinterpret_cast<char*>(&vertex.normal), 12);
         file.read(reinterpret_cast<char*>(&vertex.uv), 8);
 
-        //! ’Ç‰ÁUV
+        //! è¿½åŠ UV
         for (int i = 0; i < data.header.addUVNum; i++)
         {
             file.read(reinterpret_cast<char*>(&vertex.additionalUV[i]), 16);
         }
 
-        //!  ƒ{[ƒ“‚ÌƒEƒFƒCƒgƒ^ƒCƒv
+        //!  ãƒœãƒ¼ãƒ³ã®ã‚¦ã‚§ã‚¤ãƒˆã‚¿ã‚¤ãƒ—
         file.read(reinterpret_cast<char*>(&vertex.weightType), 1);
         const unsigned char boneIndexSize = data.header.boneIndexSize;
         switch (vertex.weightType)
@@ -273,8 +273,8 @@ bool PmxLoad::readFace(PMXFileData& data, std::ifstream& file)
     unsigned int indexCount = 0;
     file.read(reinterpret_cast<char*>(&indexCount), 4);
 
-    //! ƒCƒ“ƒfƒbƒNƒX”i3 * faceCountj
-    if (indexCount % 3 != 0) return false; // ˆÙíƒtƒ@ƒCƒ‹•ÛŒì
+    //! ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹æ•°ï¼ˆ3 * faceCountï¼‰
+    if (indexCount % 3 != 0) return false; // ç•°å¸¸ãƒ•ã‚¡ã‚¤ãƒ«ä¿è­·
 
     unsigned int faceCount = indexCount / 3;
     data.faces.resize(faceCount);
@@ -284,7 +284,7 @@ bool PmxLoad::readFace(PMXFileData& data, std::ifstream& file)
 
     std::vector<uint8_t> raw(totalBytes);
 
-    //! “Ç‚İ‚İƒGƒ‰[ƒ`ƒFƒbƒN
+    //! èª­ã¿è¾¼ã¿ã‚¨ãƒ©ãƒ¼ãƒã‚§ãƒƒã‚¯
     if (!file.read(reinterpret_cast<char*>(raw.data()), totalBytes))
         return false;
 

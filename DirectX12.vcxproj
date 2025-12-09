@@ -50,27 +50,26 @@
     <ClCompile Include="External\imgui\ImNodeFlow.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\camera.cpp" />
-    <ClCompile Include="Source\dx12.cpp" />
-    <ClCompile Include="Source\Graphics\graphicssetting.cpp" />
-    <ClCompile Include="Source\Graphics\loadshader.cpp" />
-    <ClCompile Include="Source\Graphics\loadtexture.cpp" />
-    <ClCompile Include="Source\Graphics\piplinestate.cpp" />
-    <ClCompile Include="Source\Graphics\rootsignature.cpp" />
-    <ClCompile Include="Source\Graphics\rootsignaturemanager.cpp" />
-    <ClCompile Include="Source\Graphics\shadermanager.cpp" />
-    <ClCompile Include="Source\Graphics\texturemanager.cpp" />
-    <ClCompile Include="Source\main.cpp" />
-    <ClCompile Include="Source\Math\simplemath.cpp" />
-    <ClCompile Include="Source\Model\pmxactor.cpp" />
-    <ClCompile Include="Source\Model\pmxload.cpp" />
+    <ClCompile Include="Source\Graphics\DX12.cpp" />
+    <ClCompile Include="Source\Graphics\GraphicsSetting.cpp" />
+    <ClCompile Include="Source\Graphics\LoadShader.cpp" />
+    <ClCompile Include="Source\Graphics\LoadTexture.cpp" />
+    <ClCompile Include="Source\Graphics\PiplineState.cpp" />
+    <ClCompile Include="Source\Graphics\RootSignature.cpp" />
+    <ClCompile Include="Source\Graphics\RootSignatureManager.cpp" />
+    <ClCompile Include="Source\Graphics\ShaderManager.cpp" />
+    <ClCompile Include="Source\Graphics\TextureManager.cpp" />
+    <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\Math\SimpleMath.cpp" />
+    <ClCompile Include="Source\Model\PmxActor.cpp" />
+    <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\System\cpugpuprofiler.cpp" />
-    <ClCompile Include="Source\System\logger.cpp" />
-    <ClCompile Include="Source\System\timemanager.cpp" />
-    <ClCompile Include="Source\System\window.cpp" />
+    <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
+    <ClCompile Include="Source\System\Logger.cpp" />
+    <ClCompile Include="Source\System\TimeManager.cpp" />
+    <ClCompile Include="Source\System\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="External\imgui\context_wrapper.h" />
@@ -89,25 +88,24 @@
     <ClInclude Include="External\imgui\imstb_rectpack.h" />
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
-    <ClInclude Include="Source\camera.h" />
-    <ClInclude Include="Source\dx12.h" />
-    <ClInclude Include="Source\Graphics\graphicssetting.h" />
-    <ClInclude Include="Source\Graphics\loadshader.h" />
-    <ClInclude Include="Source\Graphics\loadtexture.h" />
-    <ClInclude Include="Source\Graphics\piplinestate.h" />
-    <ClInclude Include="Source\Graphics\rootsignature.h" />
-    <ClInclude Include="Source\Graphics\rootsignaturemanager.h" />
-    <ClInclude Include="Source\Graphics\shadermanager.h" />
-    <ClInclude Include="Source\Graphics\texturemanager.h" />
-    <ClInclude Include="Source\Math\simplemath.h" />
-    <ClInclude Include="Source\Model\pmxactor.h" />
-    <ClInclude Include="Source\Model\pmxload.h" />
+    <ClInclude Include="Source\Graphics\DX12.h" />
+    <ClInclude Include="Source\Graphics\GraphicsSetting.h" />
+    <ClInclude Include="Source\Graphics\LoadShader.h" />
+    <ClInclude Include="Source\Graphics\LoadTexture.h" />
+    <ClInclude Include="Source\Graphics\PiplineState.h" />
+    <ClInclude Include="Source\Graphics\RootSignature.h" />
+    <ClInclude Include="Source\Graphics\RootSignatureManager.h" />
+    <ClInclude Include="Source\Graphics\ShaderManager.h" />
+    <ClInclude Include="Source\Graphics\TextureManager.h" />
+    <ClInclude Include="Source\Math\SimpleMath.h" />
+    <ClInclude Include="Source\Model\PmxActor.h" />
+    <ClInclude Include="Source\Model\PmxLoad.h" />
     <ClInclude Include="Source\pch.h" />
-    <ClInclude Include="Source\System\cpugpuprofiler.h" />
-    <ClInclude Include="Source\System\logger.h" />
-    <ClInclude Include="Source\System\stringformat.h" />
-    <ClInclude Include="Source\System\timemanager.h" />
-    <ClInclude Include="Source\System\window.h" />
+    <ClInclude Include="Source\System\CpuGpuProfiler.h" />
+    <ClInclude Include="Source\System\Logger.h" />
+    <ClInclude Include="Source\System\Stringformat.h" />
+    <ClInclude Include="Source\System\TimeManager.h" />
+    <ClInclude Include="Source\System\Window.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\polygonPS.hlsl">

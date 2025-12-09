@@ -1,28 +1,28 @@
-#pragma once
+ï»¿#pragma once
 
-#include "loadshader.h"
+#include "LoadShader.h"
 
 //=====================================================
-// ShaderManager ƒNƒ‰ƒX
+// ShaderManager ã‚¯ãƒ©ã‚¹
 //=====================================================
 class ShaderManager
 {
 public:
 
-    //! ƒVƒ“ƒOƒ‹ƒgƒ“ƒCƒ“ƒXƒ^ƒ“ƒXæ“¾
+    //! ã‚·ãƒ³ã‚°ãƒ«ãƒˆãƒ³ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å–å¾—
     static ShaderManager& Instance()
     {
         static ShaderManager instance;
         return instance;
     }
 
-    //! ƒVƒF[ƒ_“Ç‚İ‚İ
+    //! ã‚·ã‚§ãƒ¼ãƒ€èª­ã¿è¾¼ã¿
     LoadShader* load(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline);
 
-    //! ŒÂ•ÊƒAƒ“ƒ[ƒh
+    //! å€‹åˆ¥ã‚¢ãƒ³ãƒ­ãƒ¼ãƒ‰
     void unload(const std::wstring& filePath, ShaderType shaderType);
 
-    //! ‘SƒVƒF[ƒ_ƒNƒŠƒA
+    //! å…¨ã‚·ã‚§ãƒ¼ãƒ€ã‚¯ãƒªã‚¢
     void clear();
 
 private:
@@ -32,6 +32,6 @@ private:
     ShaderManager(const ShaderManager&) = delete;
     ShaderManager& operator=(const ShaderManager&) = delete;
 
-    //! ƒVƒF[ƒ_ƒLƒƒƒbƒVƒ…
+    //! ã‚·ã‚§ãƒ¼ãƒ€ã‚­ãƒ£ãƒƒã‚·ãƒ¥
     std::unordered_map<ShaderKey, std::unique_ptr<LoadShader>, ShaderKeyHash> m_shaderCache;
 };

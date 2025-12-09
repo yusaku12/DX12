@@ -1,30 +1,30 @@
-#include "pch.h"
-#include "pmxactor.h"
+ï»¿#include "pch.h"
+#include "PmxActor.h"
 
 PmxActor::PmxActor(const std::wstring& filePath)
 {
-    //! PMXƒ‚ƒfƒ‹“Ç‚İ‚İ
+    //! PMXãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿
     loadPmxModel(filePath);
 }
 
 bool PmxActor::loadPmxModel(const std::wstring& filePath)
 {
-    //! PMXƒtƒ@ƒCƒ‹“Ç‚İ‚İ
+    //! PMXãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿
     std::unique_ptr<PmxLoad>pmxLoad = std::make_unique<PmxLoad>(filePath, m_pmxFileData);
     if (!pmxLoad)return false;
 
-    //! ’¸“_î•ñ‚ğƒRƒs[
+    //! é ‚ç‚¹æƒ…å ±ã‚’ã‚³ãƒ”ãƒ¼
     loadVertexData(m_pmxFileData.vertices);
 
     auto device = DX12::Instance().getDevice();
 
-    //! ’¸“_ƒoƒbƒtƒ@ì¬
+    //! é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ä½œæˆ
     D3D12_HEAP_PROPERTIES heapprop = {};
     heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
     heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
     heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
-    //! ƒƒ‚ƒŠŠm•Û
+    //! ãƒ¡ãƒ¢ãƒªç¢ºä¿
     D3D12_RESOURCE_DESC resdesc = {};
     size_t vertexSize = sizeof(Vertex);
     resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -37,45 +37,45 @@ bool PmxActor::loadPmxModel(const std::wstring& filePath)
     resdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
     resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-    //! ƒŠƒ\[ƒXì¬
+    //! ãƒªã‚½ãƒ¼ã‚¹ä½œæˆ
     Vertex* vertex = nullptr;
     HRESULT hr = device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_NONE, &resdesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_vertexBuffer.ReleaseAndGetAddressOf()));
     if (!SUCCEEDED(hr))return false;
 
-    //! ƒf[ƒ^‚ğƒ}ƒbƒv
+    //! ãƒ‡ãƒ¼ã‚¿ã‚’ãƒãƒƒãƒ—
     hr = m_vertexBuffer->Map(0, nullptr, (void**)&vertex);
     if (!SUCCEEDED(hr))return false;
 
-    //! ƒRƒs[
+    //! ã‚³ãƒ”ãƒ¼
     std::copy(std::begin(m_containerVector), std::end(m_containerVector), vertex);
     m_vertexBuffer->Unmap(0, nullptr);
 
-    //! ƒf[ƒ^İ’è
+    //! ãƒ‡ãƒ¼ã‚¿è¨­å®š
     m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
     m_vertexBufferView.SizeInBytes = vertexSize * m_pmxFileData.vertices.size();
     m_vertexBufferView.StrideInBytes = vertexSize;
 
-    //! ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@‚ÌƒŠƒ\[ƒXì¬
+    //! ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡ã®ãƒªã‚½ãƒ¼ã‚¹ä½œæˆ
     unsigned int indexCount = m_pmxFileData.faces.size();
     resdesc.Width = sizeof(unsigned int) * indexCount;
     hr = device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_NONE, &resdesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_indexBuffer.ReleaseAndGetAddressOf()));
     if (!SUCCEEDED(hr))return false;
 
-    //! ƒf[ƒ^‚ğƒ}ƒbƒv
+    //! ãƒ‡ãƒ¼ã‚¿ã‚’ãƒãƒƒãƒ—
     PmxLoad::PMXFace* pmxIndex = nullptr;
     hr = m_indexBuffer->Map(0, nullptr, (void**)&pmxIndex);
     if (!SUCCEEDED(hr))return false;
 
-    //! ƒRƒs[
+    //! ã‚³ãƒ”ãƒ¼
     std::copy(std::begin(m_pmxFileData.faces), std::end(m_pmxFileData.faces), pmxIndex);
     m_indexBuffer->Unmap(0, nullptr);
 
-    //! ƒf[ƒ^İ’è
+    //! ãƒ‡ãƒ¼ã‚¿è¨­å®š
     m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
     m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
     m_indexBufferView.SizeInBytes = sizeof(unsigned int) * indexCount;
 
-    //! ƒ}ƒeƒŠƒAƒ‹ƒf[ƒ^“Ç‚İ‚İ
+    //! ãƒãƒ†ãƒªã‚¢ãƒ«ãƒ‡ãƒ¼ã‚¿èª­ã¿è¾¼ã¿
     loadMaterialData();
 
     return true;
@@ -103,7 +103,7 @@ bool PmxActor::loadMaterialData()
     int materialBufferSize = sizeof(Material);
     materialBufferSize = (materialBufferSize + 0xff) & ~0xff;
 
-    //! ƒŠƒ\[ƒXì¬
+    //! ãƒªã‚½ãƒ¼ã‚¹ä½œæˆ
     auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
     auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(materialBufferSize * m_pmxFileData.materials.size());
     HRESULT hr = device->CreateCommittedResource(
@@ -116,13 +116,13 @@ bool PmxActor::loadMaterialData()
     );
     if (!SUCCEEDED(hr))return false;
 
-    //! ƒ}ƒbƒv
+    //! ãƒãƒƒãƒ—
     hr = m_materialBuffer->Map(0, nullptr, (void**)&m_mappedMaterial);
     if (!SUCCEEDED(hr))return false;
 
     char* mappedMaterialPtr = m_mappedMaterial;
 
-    //! ƒf[ƒ^[ƒRƒs[
+    //! ãƒ‡ãƒ¼ã‚¿ãƒ¼ã‚³ãƒ”ãƒ¼
     for (const auto& material : m_pmxFileData.materials)
     {
         Material* uploadMat = reinterpret_cast<Material*>(mappedMaterialPtr);

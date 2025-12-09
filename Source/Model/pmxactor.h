@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 
-#include "pmxload.h"
+#include "PmxLoad.h"
 
 //=====================================================
-// PmxActor ƒNƒ‰ƒX
+// PmxActor ã‚¯ãƒ©ã‚¹
 //=====================================================
 class PmxActor
 {
@@ -14,7 +14,7 @@ public:
 
 private:
 
-    //! ƒ‚ƒfƒ‹‚Ì’¸“_\‘¢‘Ì
+    //! ãƒ¢ãƒ‡ãƒ«ã®é ‚ç‚¹æ§‹é€ ä½“
     struct Vertex
     {
         Vector3 position = {};
@@ -22,7 +22,7 @@ private:
         Vector2 uv = {};
     };
 
-    //! ƒ}ƒeƒŠƒAƒ‹\‘¢‘Ì
+    //! ãƒãƒ†ãƒªã‚¢ãƒ«æ§‹é€ ä½“
     struct Material
     {
         Vector4 diffuse = {};
@@ -31,17 +31,17 @@ private:
         Vector3 ambient = {};
     };
 
-    //! ƒ‚ƒfƒ‹“Ç‚İ‚İ
+    //! ãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿
     bool loadPmxModel(const std::wstring& filePath);
 
-    //! ’¸“_î•ñ‚ğƒRƒs[
+    //! é ‚ç‚¹æƒ…å ±ã‚’ã‚³ãƒ”ãƒ¼
     void loadVertexData(const std::vector<PmxLoad::PMXVertex>& vertex);
 
-    //! ƒ}ƒeƒŠƒAƒ‹î•ñƒRƒs[
+    //! ãƒãƒ†ãƒªã‚¢ãƒ«æƒ…å ±ã‚³ãƒ”ãƒ¼
     bool loadMaterialData();
 
-    PmxLoad::PMXFileData m_pmxFileData;     //!< ƒf[ƒ^\‘¢‘Ì
-    std::vector<Vertex> m_containerVector;  //!< ƒf[ƒ^Ši”[ƒRƒ“ƒeƒi
+    PmxLoad::PMXFileData m_pmxFileData;     //!< ãƒ‡ãƒ¼ã‚¿æ§‹é€ ä½“
+    std::vector<Vertex> m_containerVector;  //!< ãƒ‡ãƒ¼ã‚¿æ ¼ç´ã‚³ãƒ³ãƒ†ãƒŠ
     Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_materialBuffer = nullptr;

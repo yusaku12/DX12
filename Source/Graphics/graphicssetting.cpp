@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "graphicssetting.h"
+#include "GraphicsSetting.h"
 
 GraphicsSetting::GraphicsSetting()
     :m_mappedCB(nullptr)

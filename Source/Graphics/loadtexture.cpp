@@ -1,5 +1,5 @@
-#include "pch.h"
-#include "loadtexture.h"
+ï»¿#include "pch.h"
+#include "LoadTexture.h"
 
 LoadTexture::LoadTexture(const wchar_t* filename)
 {
@@ -10,7 +10,7 @@ void LoadTexture::loadTexture(const wchar_t* filename)
 {
     auto device = DX12::Instance().getDevice();
 
-    //! WIC ‚©‚ç‰æ‘œƒ[ƒh
+    //! WIC ã‹ã‚‰ç”»åƒãƒ­ãƒ¼ãƒ‰
     DirectX::TexMetadata metadata = {};
     DirectX::ScratchImage scratchImg = {};
 
@@ -27,7 +27,7 @@ void LoadTexture::loadTexture(const wchar_t* filename)
         return;
     }
 
-    //! ƒeƒNƒXƒ`ƒƒƒŠƒ\[ƒXì¬
+    //! ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒªã‚½ãƒ¼ã‚¹ä½œæˆ
     D3D12_HEAP_PROPERTIES heapProp = {};
     heapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
     heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
@@ -59,7 +59,7 @@ void LoadTexture::loadTexture(const wchar_t* filename)
         return;
     }
 
-    //! ƒŠƒ\[ƒX‚É‰æ‘œ‚ğ‘‚«‚İ
+    //! ãƒªã‚½ãƒ¼ã‚¹ã«ç”»åƒã‚’æ›¸ãè¾¼ã¿
     const DirectX::Image* img = scratchImg.GetImage(0, 0, 0);
     hr = m_texture->WriteToSubresource(
         0,
@@ -75,7 +75,7 @@ void LoadTexture::loadTexture(const wchar_t* filename)
         return;
     }
 
-    //! SRV —pƒfƒBƒXƒNƒŠƒvƒ^ƒq[ƒvì¬
+    //! SRV ç”¨ãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ãƒ’ãƒ¼ãƒ—ä½œæˆ
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     heapDesc.NumDescriptors = 1;
@@ -88,7 +88,7 @@ void LoadTexture::loadTexture(const wchar_t* filename)
         return;
     }
 
-    //! SRV ì¬
+    //! SRV ä½œæˆ
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Format = metadata.format;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

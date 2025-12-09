@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "rootsignature.h"
+#include "RootSignature.h"
 
 void RootSignature::addParameter(const D3D12_ROOT_PARAMETER& param)
 {

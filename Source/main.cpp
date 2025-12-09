@@ -1,5 +1,5 @@
-#include "pch.h"
-#include "System\window.h"
+Ôªø#include "pch.h"
+#include "System\Window.h"
 
 static constexpr LONG SCREEN_WIDTH = static_cast<LONG>(1280);
 static constexpr LONG SCREEN_HEIGHT = static_cast<LONG>(720);
@@ -13,11 +13,11 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 }
 
 //=====================================================
-// ÉGÉìÉgÉäÅ[É|ÉCÉìÉg
+// „Ç®„É≥„Éà„É™„Éº„Éù„Ç§„É≥„Éà
 //=====================================================
 INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdLine, INT cmdShow)
 {
-    //! ÉTÉCÉYí≤êÆ
+    //! „Çµ„Ç§„Ç∫Ë™øÊï¥
     DWORD dw_style = WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
     DWORD dw_ex_style = WS_EX_APPWINDOW;
     RECT rect;
@@ -31,23 +31,23 @@ INT WINAPI wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdLine, 
     LONG width = rect.right - rect.left;
     LONG height = rect.bottom - rect.top;
 
-    //! WindowÉNÉâÉXÇÃê›íË
+    //! Window„ÇØ„É©„Çπ„ÅÆË®≠ÂÆö
     WNDCLASSEX wcex = {};
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = windowProc;		             //!< ÉEÉBÉìÉhÉEÇÃÉÅÉbÉZÅ[ÉWÇèàóùÇ∑ÇÈÇΩÇﬂÇÃÉRÅ[ÉãÉoÉbÉNä÷êî
+    wcex.lpfnWndProc = windowProc;		             //!< „Ç¶„Ç£„É≥„Éâ„Ç¶„ÅÆ„É°„ÉÉ„Çª„Éº„Ç∏„ÇíÂá¶ÁêÜ„Åô„Çã„Åü„ÇÅ„ÅÆ„Ç≥„Éº„É´„Éê„ÉÉ„ÇØÈñ¢Êï∞
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = instance;
     wcex.hIcon = LoadIcon(instance, (LPCWSTR)111);
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); //!< ÉEÉBÉìÉhÉEîwåiêF
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); //!< „Ç¶„Ç£„É≥„Éâ„Ç¶ËÉåÊôØËâ≤
     wcex.lpszMenuName = NULL;
     wcex.lpszClassName = WINDOW_CLASS;
     wcex.hIconSm = 0;
     RegisterClassEx(&wcex);
 
-    //! WindowçÏê¨
+    //! Window‰ΩúÊàê
     HWND hwnd = ::CreateWindowEx(dw_ex_style, WINDOW_CLASS, TITLE, dw_style, CW_USEDEFAULT, CW_USEDEFAULT, width, height, NULL, nullptr, instance, NULL);
 
     ShowWindow(hwnd, cmdShow);

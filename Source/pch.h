@@ -40,15 +40,15 @@
 
 //! 自作の機能
 #include "System\stringformat.h"
-#include "dx12.h"
-#include "System\logger.h"
+#include "Graphics\DX12.h"
+#include "System\Logger.h"
 #include "imgui_render.h"
-#include "Math\simplemath.h"
-#include "Graphics\piplinestate.h"
-#include "Graphics\texturemanager.h"
-#include "Graphics\shadermanager.h"
-#include "Graphics\rootsignaturemanager.h"
-#include "System\timemanager.h"
+#include "Math\SimpleMath.h"
+#include "Graphics\PiplineState.h"
+#include "Graphics\TextureManager.h"
+#include "Graphics\ShaderManager.h"
+#include "Graphics\RootsignatureManager.h"
+#include "System\TimeManager.h"
 
 //! 省略系
 using namespace DirectX::SimpleMath;

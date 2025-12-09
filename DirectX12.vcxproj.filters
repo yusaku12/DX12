@@ -15,16 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\dx12.cpp">
+    <ClCompile Include="Source\Graphics\DX12.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\main.cpp">
+    <ClCompile Include="Source\Main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\System\logger.cpp">
+    <ClCompile Include="Source\System\Logger.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\System\window.cpp">
+    <ClCompile Include="Source\System\Window.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="External\imgui\imgui.cpp">
@@ -51,19 +51,19 @@
     <ClCompile Include="External\imgui\imgui_widget_flamegraph.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Math\simplemath.cpp">
+    <ClCompile Include="Source\Math\SimpleMath.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\pch.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\loadshader.cpp">
+    <ClCompile Include="Source\Graphics\LoadShader.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\loadtexture.cpp">
+    <ClCompile Include="Source\Graphics\LoadTexture.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Model\pmxload.cpp">
+    <ClCompile Include="Source\Model\PmxLoad.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="External\imgui\imgui_neo_internal.cpp">
@@ -75,48 +75,45 @@
     <ClCompile Include="External\imgui\ImNodeFlow.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\piplinestate.cpp">
+    <ClCompile Include="Source\Graphics\PiplineState.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\texturemanager.cpp">
+    <ClCompile Include="Source\Graphics\TextureManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\shadermanager.cpp">
+    <ClCompile Include="Source\Graphics\ShaderManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\camera.cpp">
+    <ClCompile Include="Source\Model\PmxActor.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Model\pmxactor.cpp">
+    <ClCompile Include="Source\System\TimeManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\System\timemanager.cpp">
+    <ClCompile Include="Source\System\CpuGpuProfiler.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\System\cpugpuprofiler.cpp">
+    <ClCompile Include="Source\Graphics\GraphicsSetting.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\graphicssetting.cpp">
+    <ClCompile Include="Source\Graphics\RootSignature.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\rootsignature.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\rootsignaturemanager.cpp">
+    <ClCompile Include="Source\Graphics\RootSignatureManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\dx12.h">
+    <ClInclude Include="Source\Graphics\DX12.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\System\logger.h">
+    <ClInclude Include="Source\System\Logger.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\System\stringformat.h">
+    <ClInclude Include="Source\System\Stringformat.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\System\window.h">
+    <ClInclude Include="Source\System\Window.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imconfig.h">
@@ -149,22 +146,22 @@
     <ClInclude Include="External\imgui\imgui_widget_flamegraph.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Math\simplemath.h">
+    <ClInclude Include="Source\Math\SimpleMath.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\pch.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\piplinestate.h">
+    <ClInclude Include="Source\Graphics\PiplineState.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\loadshader.h">
+    <ClInclude Include="Source\Graphics\LoadShader.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\loadtexture.h">
+    <ClInclude Include="Source\Graphics\LoadTexture.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Model\pmxload.h">
+    <ClInclude Include="Source\Model\PmxLoad.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_neo_sequencer.h">
@@ -185,31 +182,28 @@
     <ClInclude Include="External\imgui\context_wrapper.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\texturemanager.h">
+    <ClInclude Include="Source\Graphics\TextureManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\shadermanager.h">
+    <ClInclude Include="Source\Graphics\ShaderManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\camera.h">
+    <ClInclude Include="Source\Model\PmxActor.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Model\pmxactor.h">
+    <ClInclude Include="Source\System\TimeManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\System\timemanager.h">
+    <ClInclude Include="Source\System\CpuGpuProfiler.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\System\cpugpuprofiler.h">
+    <ClInclude Include="Source\Graphics\GraphicsSetting.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\graphicssetting.h">
+    <ClInclude Include="Source\Graphics\RootSignature.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\rootsignature.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\rootsignaturemanager.h">
+    <ClInclude Include="Source\Graphics\RootSignatureManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>

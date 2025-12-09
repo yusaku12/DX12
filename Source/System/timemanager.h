@@ -1,30 +1,30 @@
-#pragma once
-#include "cpugpuprofiler.h"
+ï»¿#pragma once
+#include "CpuGpuProfiler.h"
 
 //=====================================================
-// TimeManager ƒNƒ‰ƒX
+// TimeManager ã‚¯ãƒ©ã‚¹
 //=====================================================
 class TimeManager
 {
 public:
 
-    //! ƒCƒ“ƒXƒ^ƒ“ƒXæ“¾
+    //! ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å–å¾—
     static TimeManager& Instance()
     {
         static TimeManager instance;
         return instance;
     }
 
-    //! ‰Šú‰»
+    //! åˆæœŸåŒ–
     void initialize();
 
-    //! XVˆ—
+    //! æ›´æ–°å‡¦ç†
     void update();
 
-    //! ƒtƒŒ[ƒ€ŠJnˆ—
+    //! ãƒ•ãƒ¬ãƒ¼ãƒ é–‹å§‹å‡¦ç†
     void frameStart(ID3D12GraphicsCommandList* cmd);
 
-    // ! ƒtƒŒ[ƒ€I—¹ˆ—
+    // ! ãƒ•ãƒ¬ãƒ¼ãƒ çµ‚äº†å‡¦ç†
     void frameEnd(ID3D12GraphicsCommandList* cmd);
 
     //! imgui
@@ -35,21 +35,21 @@ private:
     TimeManager() = default;
     ~TimeManager() = default;
 
-    //! FPS ŒvZ
+    //! FPS è¨ˆç®—
     void calculateFPS();
 
-    bool m_initialized = false; //!< ‰Šú‰»Ï‚İƒtƒ‰ƒO
-    bool m_pause = false; //!< ˆê’â~ƒtƒ‰ƒO
-    std::chrono::high_resolution_clock::time_point m_lastTime;  //!< ‘O‰ñŠÔ
-    std::chrono::high_resolution_clock::time_point m_startTime; //!< ŠJnŠÔ
-    float m_deltaTime = 0.0f; //!< ƒfƒ‹ƒ^ƒ^ƒCƒ€
-    float m_unscaledDeltaTime = 0.0f; //!< ƒXƒP[ƒ‹–³‚µƒfƒ‹ƒ^ƒ^ƒCƒ€
-    float m_time = 0.0f; //!< Œo‰ßŠÔ
-    float m_unscaledTime = 0.0f; //!< ƒXƒP[ƒ‹–³‚µŒo‰ßŠÔ
-    float m_smoothDeltaTime = 0.0f; //!< •½ŠŠ‰»ƒfƒ‹ƒ^ƒ^ƒCƒ€
-    float m_timeScale = 1.0f; //!< ŠÔƒXƒP[ƒ‹
+    bool m_initialized = false; //!< åˆæœŸåŒ–æ¸ˆã¿ãƒ•ãƒ©ã‚°
+    bool m_pause = false; //!< ä¸€æ™‚åœæ­¢ãƒ•ãƒ©ã‚°
+    std::chrono::high_resolution_clock::time_point m_lastTime;  //!< å‰å›æ™‚é–“
+    std::chrono::high_resolution_clock::time_point m_startTime; //!< é–‹å§‹æ™‚é–“
+    float m_deltaTime = 0.0f; //!< ãƒ‡ãƒ«ã‚¿ã‚¿ã‚¤ãƒ 
+    float m_unscaledDeltaTime = 0.0f; //!< ã‚¹ã‚±ãƒ¼ãƒ«ç„¡ã—ãƒ‡ãƒ«ã‚¿ã‚¿ã‚¤ãƒ 
+    float m_time = 0.0f; //!< çµŒéæ™‚é–“
+    float m_unscaledTime = 0.0f; //!< ã‚¹ã‚±ãƒ¼ãƒ«ç„¡ã—çµŒéæ™‚é–“
+    float m_smoothDeltaTime = 0.0f; //!< å¹³æ»‘åŒ–ãƒ‡ãƒ«ã‚¿ã‚¿ã‚¤ãƒ 
+    float m_timeScale = 1.0f; //!< æ™‚é–“ã‚¹ã‚±ãƒ¼ãƒ«
     int   m_fps = 0; //!< FPS
-    float m_fpsTimer = 0.0f; //!< FPS Œv‘ªƒ^ƒCƒ}[
-    int   m_fpsFrameCounter = 0; //!< FPS ƒtƒŒ[ƒ€ƒJƒEƒ“ƒ^[
-    CpuGpuProfiler m_profiler; //!< CPU/GPU ƒvƒƒtƒ@ƒCƒ‰
+    float m_fpsTimer = 0.0f; //!< FPS è¨ˆæ¸¬ã‚¿ã‚¤ãƒãƒ¼
+    int   m_fpsFrameCounter = 0; //!< FPS ãƒ•ãƒ¬ãƒ¼ãƒ ã‚«ã‚¦ãƒ³ã‚¿ãƒ¼
+    CpuGpuProfiler m_profiler; //!< CPU/GPU ãƒ—ãƒ­ãƒ•ã‚¡ã‚¤ãƒ©
 };
