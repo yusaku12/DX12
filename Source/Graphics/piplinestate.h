@@ -82,4 +82,5 @@ private:
     D3D12_BLEND_DESC m_blendState[static_cast<int>(BlendState::MAX)] = {};
     D3D12_DEPTH_STENCIL_DESC m_depthStencilState[static_cast<int>(DepthStencilState::MAX)] = {};
     D3D12_RASTERIZER_DESC m_rasterizerState[static_cast<int>(RasterizerState::MAX)] = {};
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState = nullptr;
 };
