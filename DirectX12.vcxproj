@@ -89,6 +89,7 @@
     <ClInclude Include="External\imgui\imstb_rectpack.h" />
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
+    <ClInclude Include="Source\Graphics\CreateResource.h" />
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h" />
     <ClInclude Include="Source\Graphics\DX12.h" />
     <ClInclude Include="Source\Graphics\GraphicsSetting.h" />
