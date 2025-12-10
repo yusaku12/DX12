@@ -1,10 +1,10 @@
-#pragma once
+ï»¿#pragma once
 
 #include <DirectXTex.h>
 #pragma comment(lib, "DirectXTex.lib")
 
 //=====================================================
-// LoadTexture ƒNƒ‰ƒX
+// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿ã‚¯ãƒ©ã‚¹
 //=====================================================
 class LoadTexture
 {
@@ -13,10 +13,10 @@ public:
     explicit LoadTexture(const wchar_t* filename);
     ~LoadTexture() {}
 
-    //! SRV ‚ðŠi”[‚µ‚½ƒfƒBƒXƒNƒŠƒvƒ^ƒq[ƒv‚ð•Ô‚·
+    //! SRV ã‚’æ ¼ç´ã—ãŸãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ãƒ’ãƒ¼ãƒ—ã‚’è¿”ã™
     ID3D12DescriptorHeap* GetHeap() const { return m_srvHeap.Get(); }
 
-    //! GPU ƒnƒ“ƒhƒ‹‚ð•Ô‚·iroot parameter ‚ÖÝ’è‚·‚é‚Æ‚«‚ÉŽg—pj
+    //! GPU ãƒãƒ³ãƒ‰ãƒ«ã‚’è¿”ã™ï¼ˆroot parameter ã¸è¨­å®šã™ã‚‹ã¨ãã«ä½¿ç”¨ï¼‰
     D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const { return m_srvHeap->GetGPUDescriptorHandleForHeapStart(); }
 
 private:

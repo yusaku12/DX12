@@ -1,6 +1,6 @@
-#pragma once
+ï»¿#pragma once
 
-//! ƒƒOƒŒƒxƒ‹
+//! ãƒ­ã‚°ãƒ¬ãƒ™ãƒ«
 enum class LogLevel
 {
     INFO,
@@ -9,27 +9,27 @@ enum class LogLevel
 };
 
 //=====================================================
-// Logger ƒNƒ‰ƒX
+// ãƒ­ã‚°å‡ºåŠ›ã‚’ç®¡ç†ã™ã‚‹ã‚·ãƒ³ã‚°ãƒ«ãƒˆãƒ³
 //=====================================================
 class Logger
 {
 public:
 
-    //! ƒVƒ“ƒOƒ‹ƒgƒ“æ“¾
+    //! ã‚·ãƒ³ã‚°ãƒ«ãƒˆãƒ³å–å¾—
     static Logger& Instance()
     {
         static Logger instance;
         return instance;
     }
 
-    //! ‘®w’èƒƒOo—Íi‰Â•Ïˆø”‘Î‰j
+    //! æ›¸å¼æŒ‡å®šãƒ­ã‚°å‡ºåŠ›ï¼ˆå¯å¤‰å¼•æ•°å¯¾å¿œï¼‰
     template<typename... Args>
     void logCall(LogLevel level, const std::string& format, Args&&... args)
     {
         log(level, stringFormat(format, std::forward<Args>(args)...));
     }
 
-    //! ƒƒO•\¦
+    //! ãƒ­ã‚°è¡¨ç¤º
     void renderLog();
 
 private:
@@ -37,22 +37,22 @@ private:
     Logger() = default;
     ~Logger() = default;
 
-    // ƒRƒs[/ƒ€[ƒu‹Ö~
+    // ã‚³ãƒ”ãƒ¼/ãƒ ãƒ¼ãƒ–ç¦æ­¢
     Logger(const Logger&) = delete;
     Logger(Logger&&) = delete;
     Logger& operator=(const Logger&) = delete;
     Logger& operator=(Logger&&) = delete;
 
-    //! ÀÛ‚ÌƒƒOo—Íˆ—
+    //! å®Ÿéš›ã®ãƒ­ã‚°å‡ºåŠ›å‡¦ç†
     void log(LogLevel level, const std::string& message);
 
-    //! ImGui ‚Å‚ÌƒƒO•Û\‘¢‘Ì
+    //! ImGui ã§ã®ãƒ­ã‚°ä¿æŒæ§‹é€ ä½“
     struct ImGuiLogEntry
     {
-        std::string message;  //!< –{•¶
-        ImVec4 color;         //!< •\¦F
+        std::string message;  //!< æœ¬æ–‡
+        ImVec4 color;         //!< è¡¨ç¤ºè‰²
     };
 
-    std::mutex m_mutex;                     //!< ƒXƒŒƒbƒhˆÀ‘S—p
-    std::vector<ImGuiLogEntry> m_imguiLogs; //!< ImGui —pƒƒO
+    std::mutex m_mutex;                     //!< ã‚¹ãƒ¬ãƒƒãƒ‰å®‰å…¨ç”¨
+    std::vector<ImGuiLogEntry> m_imguiLogs; //!< ImGui ç”¨ãƒ­ã‚°
 };

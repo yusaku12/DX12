@@ -1,13 +1,13 @@
-#pragma once
+ï»¿#pragma once
 
 //=====================================================
-// PmxLoad ƒNƒ‰ƒX
+// PMXãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿ã‚’è¡Œã†
 //=====================================================
 class PmxLoad
 {
 public:
 
-    //! PMX‚Ìƒ{[ƒ“ƒEƒFƒCƒgƒ^ƒCƒv
+    //! PMXã®ãƒœãƒ¼ãƒ³ã‚¦ã‚§ã‚¤ãƒˆã‚¿ã‚¤ãƒ—
     enum class PMXVertexWeight : uint8_t
     {
         BDEF1,
@@ -17,7 +17,7 @@ public:
         SDEF
     };
 
-    //! PMXƒtƒ@ƒCƒ‹‚Ìƒ}ƒeƒŠƒAƒ‹u•`‰æƒ‚[ƒhiDraw flagsjv
+    //! PMXãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒãƒ†ãƒªã‚¢ãƒ«ã€Œæç”»ãƒ¢ãƒ¼ãƒ‰ï¼ˆDraw flagsï¼‰ã€
     enum PMXDrawModeFlags : uint8_t
     {
         PMX_DRAW_DOUBLE_SIDED = 1 << 0,
@@ -27,23 +27,23 @@ public:
         PMX_DRAW_EDGE_ENABLED = 1 << 4
     };
 
-    //! ƒ}ƒeƒŠƒAƒ‹‚ÌToonMode
+    //! ãƒãƒ†ãƒªã‚¢ãƒ«ã®ToonMode
     enum class PMXToonMode : uint8_t
     {
         Separate,
         Common
     };
 
-    //! uƒXƒtƒBƒAƒ‚[ƒhv‚ÍAŠÂ‹«ƒ}ƒbƒvisphere mapj‚Ìg‚¢•û
+    //! ã€Œã‚¹ãƒ•ã‚£ã‚¢ãƒ¢ãƒ¼ãƒ‰ã€ã¯ã€ç’°å¢ƒãƒãƒƒãƒ—ï¼ˆsphere mapï¼‰ã®ä½¿ã„æ–¹
     enum class PMXSphereMode : uint8_t
     {
-        None = 0,   // –³Œø
-        Mul = 1,    // æZ
-        Add = 2,    // ‰ÁZ
-        SubTex = 3  // ƒTƒuƒeƒNƒXƒ`ƒƒ
+        None = 0,   // ç„¡åŠ¹
+        Mul = 1,    // ä¹—ç®—
+        Add = 2,    // åŠ ç®—
+        SubTex = 3  // ã‚µãƒ–ãƒ†ã‚¯ã‚¹ãƒãƒ£
     };
 
-    //! ƒ{[ƒ“‚ÌƒIƒvƒVƒ‡ƒ“
+    //! ãƒœãƒ¼ãƒ³ã®ã‚ªãƒ—ã‚·ãƒ§ãƒ³
     enum class PMXBoneFlags : uint16_t
     {
         TargetShowMode = 0x0001,
@@ -61,7 +61,7 @@ public:
         DeformOuterParent = 0x2000,
     };
 
-    //! ƒ‚[ƒtƒ^ƒCƒv
+    //! ãƒ¢ãƒ¼ãƒ•ã‚¿ã‚¤ãƒ—
     enum class PMXMorphType : uint8_t
     {
         Group,
@@ -77,7 +77,7 @@ public:
         Impluse,
     };
 
-    //! PMXƒtƒ@ƒCƒ‹‚Ìƒwƒbƒ_[î•ñ
+    //! PMXãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ˜ãƒƒãƒ€ãƒ¼æƒ…å ±
     struct PMXHeader
     {
         std::array<unsigned char, 4> magic = {};
@@ -93,7 +93,7 @@ public:
         unsigned char rigidBodyIndexSize = {};
     };
 
-    //! PMXƒ‚ƒfƒ‹î•ñ\‘¢‘Ì
+    //! PMXãƒ¢ãƒ‡ãƒ«æƒ…å ±æ§‹é€ ä½“
     struct PMXModelInfo
     {
         std::wstring modelName = {};
@@ -102,7 +102,7 @@ public:
         std::string  englishComment = {};
     };
 
-    //! PMX’¸“_î•ñ“Ç‚İ‚İ
+    //! PMXé ‚ç‚¹æƒ…å ±èª­ã¿è¾¼ã¿
     struct PMXVertex
     {
         Vector3 position = {};
@@ -120,19 +120,19 @@ public:
         float edgeMag = {};
     };
 
-    //! ƒtƒFƒCƒX\‘¢‘Ì
+    //! ãƒ•ã‚§ã‚¤ã‚¹æ§‹é€ ä½“
     struct PMXFace
     {
         int vertices[3] = {};
     };
 
-    //! ƒeƒNƒXƒ`ƒƒ\‘¢‘Ì
+    //! ãƒ†ã‚¯ã‚¹ãƒãƒ£æ§‹é€ ä½“
     struct PMXTexture
     {
         std::wstring textureName = {};
     };
 
-    //! ƒ}ƒeƒŠƒAƒ‹\‘¢‘Ì
+    //! ãƒãƒ†ãƒªã‚¢ãƒ«æ§‹é€ ä½“
     struct PMXMaterial
     {
         std::wstring name = {};
@@ -160,7 +160,7 @@ public:
         unsigned int numFaceVertices = {};
     };
 
-    //! IK‚Åg—p‚·‚é\‘¢‘Ì
+    //! IKã§ä½¿ç”¨ã™ã‚‹æ§‹é€ ä½“
     struct PMXIKLink
     {
         unsigned int ikBoneIndex = {};
@@ -170,7 +170,7 @@ public:
         Vector3 limitMax = {};
     };
 
-    //! Bone\‘¢‘Ì
+    //! Boneæ§‹é€ ä½“
     struct PMXBone
     {
         std::wstring name = {};
@@ -201,7 +201,7 @@ public:
         std::vector<PMXIKLink> ikLinks = {};
     };
 
-    //! ƒ‚[ƒt\‘¢‘Ì
+    //! ãƒ¢ãƒ¼ãƒ•æ§‹é€ ä½“
     struct PMXMorph
     {
         std::wstring name = {};
@@ -279,7 +279,7 @@ public:
         std::vector<ImpulseMorph> impulseMorph = {};
     };
 
-    //! •\¦ƒpƒlƒ‹‚ç‚µ‚¢
+    //! è¡¨ç¤ºãƒ‘ãƒãƒ«ã‚‰ã—ã„
     struct PMXDisplayFrame
     {
         std::wstring name = {};
@@ -306,7 +306,7 @@ public:
         std::vector<Target> targets = {};
     };
 
-    //! „‘Ì“Ç‚İ‚İ
+    //! å‰›ä½“èª­ã¿è¾¼ã¿
     struct PMXRigidBody
     {
         std::wstring name = {};
@@ -343,7 +343,7 @@ public:
         Operation op = {};
     };
 
-    //! ƒWƒ‡ƒCƒ“ƒg\‘¢‘Ì
+    //! ã‚¸ãƒ§ã‚¤ãƒ³ãƒˆæ§‹é€ ä½“
     struct PMXJoint
     {
         std::wstring name = {};
@@ -374,7 +374,7 @@ public:
         Vector3 springRotateFactor = {};
     };
 
-    //! ƒ\ƒtƒgƒ{ƒfƒB\‘¢‘Ì
+    //! ã‚½ãƒ•ãƒˆãƒœãƒ‡ã‚£æ§‹é€ ä½“
     struct PMXSoftBody
     {
         std::wstring name = {};
@@ -454,7 +454,7 @@ public:
         std::vector<unsigned int> pinVertexIndices = {};
     };
 
-    //! PMXƒ‚ƒfƒ‹‚Ì\‘¢‘Ì
+    //! PMXãƒ¢ãƒ‡ãƒ«ã®æ§‹é€ ä½“
     struct PMXFileData
     {
         PMXHeader header = PMXHeader();
@@ -477,50 +477,50 @@ public:
 
 private:
 
-    //! UTF16‚Ì•¶š—ñ‚ğstd::wstring‚É•ÏŠ·
+    //! UTF16ã®æ–‡å­—åˆ—ã‚’std::wstringã«å¤‰æ›
     bool getPMXStringUTF16(std::ifstream& _file, std::wstring& output);
 
-    //! UTF8‚Ì•¶š—ñ‚Ístd::string‚É•Û‘¶
+    //! UTF8ã®æ–‡å­—åˆ—ã¯std::stringã«ä¿å­˜
     bool getPMXStringUTF8(std::ifstream& _file, std::string& output);
 
-    //! PMXƒ‚ƒfƒ‹“Ç‚İ‚İ
+    //! PMXãƒ¢ãƒ‡ãƒ«èª­ã¿è¾¼ã¿
     bool pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData);
 
-    //! PMXƒwƒbƒ_[î•ñ“Ç‚İ‚İ
+    //! PMXãƒ˜ãƒƒãƒ€ãƒ¼æƒ…å ±èª­ã¿è¾¼ã¿
     bool readHeader(PMXFileData& data, std::ifstream& file);
 
-    //! PMXƒ‚ƒfƒ‹î•ñ“Ç‚İ‚İ
+    //! PMXãƒ¢ãƒ‡ãƒ«æƒ…å ±èª­ã¿è¾¼ã¿
     bool readModelInfo(PMXFileData& data, std::ifstream& file);
 
-    //! PMXƒ‚ƒfƒ‹’¸“_î•ñ“Ç‚İ‚İ
+    //! PMXãƒ¢ãƒ‡ãƒ«é ‚ç‚¹æƒ…å ±èª­ã¿è¾¼ã¿
     bool readVertex(PMXFileData& data, std::ifstream& file);
 
-    //! PMXƒ‚ƒfƒ‹ƒtƒFƒCƒX“Ç‚İ‚İ
+    //! PMXãƒ¢ãƒ‡ãƒ«ãƒ•ã‚§ã‚¤ã‚¹èª­ã¿è¾¼ã¿
     bool readFace(PMXFileData& data, std::ifstream& file);
 
-    //! ƒeƒNƒXƒ`ƒƒî•ñ“Ç‚İ‚İ
+    //! ãƒ†ã‚¯ã‚¹ãƒãƒ£æƒ…å ±èª­ã¿è¾¼ã¿
     bool readTextures(PMXFileData& data, std::ifstream& file);
 
-    //! ƒ}ƒeƒŠƒAƒ‹î•ñ“Ç‚İ‚İ
+    //! ãƒãƒ†ãƒªã‚¢ãƒ«æƒ…å ±èª­ã¿è¾¼ã¿
     bool readMaterial(PMXFileData& data, std::ifstream& file);
 
-    //! ƒ{[ƒ“î•ñ“Ç‚İ‚İ
+    //! ãƒœãƒ¼ãƒ³æƒ…å ±èª­ã¿è¾¼ã¿
     bool readBone(PMXFileData& data, std::ifstream& file);
 
-    //! ƒ‚[ƒtî•ñ“Ç‚İ‚İ
+    //! ãƒ¢ãƒ¼ãƒ•æƒ…å ±èª­ã¿è¾¼ã¿
     bool readMorph(PMXFileData& data, std::ifstream& file);
 
-    //! •\¦ƒpƒlƒ‹î•ñ“Ç‚İ‚İ
+    //! è¡¨ç¤ºãƒ‘ãƒãƒ«æƒ…å ±èª­ã¿è¾¼ã¿
     bool readDisplayFrame(PMXFileData& data, std::ifstream& file);
 
-    //! „‘Ì“Ç‚İ‚İ
+    //! å‰›ä½“èª­ã¿è¾¼ã¿
     bool readRigidBody(PMXFileData& data, std::ifstream& file);
 
-    //! ƒWƒ‡ƒCƒ“ƒg“Ç‚İ‚İ
+    //! ã‚¸ãƒ§ã‚¤ãƒ³ãƒˆèª­ã¿è¾¼ã¿
     bool readJoint(PMXFileData& data, std::ifstream& file);
 
-    //! ƒ\ƒtƒgƒ{ƒfƒB“Ç‚İ‚İ
+    //! ã‚½ãƒ•ãƒˆãƒœãƒ‡ã‚£èª­ã¿è¾¼ã¿
     bool readSoftBody(PMXFileData& data, std::ifstream& file);
 
-    static constexpr std::array<unsigned char, 4> PMX_MAGIC_NUMBER{ 0x50, 0x4d, 0x58, 0x20 };  //!< PMXƒtƒ@ƒCƒ‹‚Ìƒ}ƒWƒbƒNƒiƒ“ƒo[
+    static constexpr std::array<unsigned char, 4> PMX_MAGIC_NUMBER{ 0x50, 0x4d, 0x58, 0x20 };  //!< PMXãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒã‚¸ãƒƒã‚¯ãƒŠãƒ³ãƒãƒ¼
 };

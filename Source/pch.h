@@ -48,6 +48,7 @@
 #include "Graphics\TextureManager.h"
 #include "Graphics\ShaderManager.h"
 #include "Graphics\RootsignatureManager.h"
+#include "Graphics\DescriptorHeapManager.h"
 #include "System\TimeManager.h"
 
 //! 省略系

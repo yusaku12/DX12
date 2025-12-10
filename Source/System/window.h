@@ -1,7 +1,8 @@
-#pragma once
+ï»¿#pragma once
 
 //=====================================================
-// Window ƒNƒ‰ƒX
+// windowã®ç®¡ç†ã‚’è¡Œã†ã‚¯ãƒ©ã‚¹
+// ãã®ä»–ã®ã‚·ã‚¹ãƒ†ãƒ ã‚’åˆæœŸåŒ–ã™ã‚‹å ´æ‰€ã§ã‚‚ã‚ã‚‹
 //=====================================================
 class Window
 {
@@ -10,19 +11,19 @@ public:
     explicit Window(HWND hwnd);
     ~Window();
 
-    //! XVˆ—
+    //! æ›´æ–°å‡¦ç†
     void update();
 
-    //! •`‰æˆ—
+    //! æç”»å‡¦ç†
     void render();
 
-    //! imgui•`‰æˆ—
+    //! imguiæç”»å‡¦ç†
     void imguiRender();
 
-    //! ƒƒbƒZ[ƒWƒ‹[ƒv
+    //! ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒ«ãƒ¼ãƒ—
     int run();
 
-    //! ƒEƒBƒ“ƒhƒEƒvƒƒV[ƒWƒƒ
+    //! ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£
     LRESULT processMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 private:

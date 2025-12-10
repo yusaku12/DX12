@@ -1,7 +1,8 @@
-#pragma once
+ï»¿#pragma once
 
 //=====================================================
-// CpuGpuProfiler ƒNƒ‰ƒX
+// ãƒ—ãƒ­ãƒ•ã‚¡ã‚¤ãƒ©ã® CPU/GPU æ™‚é–“è¨ˆæ¸¬
+// FPS è¨ˆæ¸¬
 //=====================================================
 class CpuGpuProfiler
 {
@@ -10,20 +11,20 @@ public:
     explicit CpuGpuProfiler();
     ~CpuGpuProfiler() {}
 
-    //! ƒtƒŒ[ƒ€ŠJn
+    //! ãƒ•ãƒ¬ãƒ¼ãƒ é–‹å§‹
     void beginFrame(ID3D12GraphicsCommandList* cmd);
 
-    //! ƒtƒŒ[ƒ€I—¹
+    //! ãƒ•ãƒ¬ãƒ¼ãƒ çµ‚äº†
     void endFrame(ID3D12GraphicsCommandList* cmd);
 
-    //! CPUŠÔæ“¾ (ms)
+    //! CPUæ™‚é–“å–å¾— (ms)
     void recordFps(float fps);
 
-    //! CPU/GPUŠÔæ“¾
+    //! CPU/GPUæ™‚é–“å–å¾—
     float getCpuTimems() const { return m_cpuTimeMs; }
     float getGpuTimems() const { return m_gpuTimeMs; }
 
-    //! —š—ğæ“¾
+    //! å±¥æ­´å–å¾—
     const std::vector<float>& cpuHistory() const { return m_cpuHistory; }
     const std::vector<float>& gpuHistory() const { return m_gpuHistory; }
     const std::vector<float>& fpsHistory() const { return m_fpsHistory; }
@@ -42,7 +43,7 @@ private:
     UINT64 m_gpuFreq = 0;
     float m_gpuTimeMs = 0.0f;
 
-    //! History buffers (Length 120 = 2•b•ª @ 60FPS)
+    //! History buffers (Length 120 = 2ç§’åˆ† @ 60FPS)
     std::vector<float> m_cpuHistory;
     std::vector<float> m_gpuHistory;
     std::vector<float> m_fpsHistory;

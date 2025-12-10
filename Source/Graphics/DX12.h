@@ -1,9 +1,9 @@
-#pragma once
+ï»¿#pragma once
 
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
-//@todo ˆê“I‚Éimguiê—p‚ÌƒAƒƒP[ƒ^‚ğì‚Á‚Ä‚¢‚é‚ªŒãX‚¿‚á‚ñ‚Æ‚µ‚½‚Ì‚ğ§ì—\’è
+//@todo ä¸€æ™‚çš„ã«imguiå°‚ç”¨ã®ã‚¢ãƒ­ã‚±ãƒ¼ã‚¿ã‚’ä½œã£ã¦ã„ã‚‹ãŒå¾Œã€…ã¡ã‚ƒã‚“ã¨ã—ãŸã®ã‚’åˆ¶ä½œäºˆå®š
 struct ExampleDescriptorHeapAllocator
 {
     ID3D12DescriptorHeap* Heap = nullptr;
@@ -49,7 +49,7 @@ struct ExampleDescriptorHeapAllocator
 };
 
 //=====================================================
-// DX12 ƒNƒ‰ƒX
+// DX12ç®¡ç†ã‚·ãƒ³ã‚°ãƒ«ãƒˆãƒ³
 //=====================================================
 class DX12
 {
@@ -58,76 +58,61 @@ public:
     DX12(HWND hwnd);
     ~DX12() {};
 
-    //! ƒVƒ“ƒOƒ‹ƒgƒ“æ“¾
+    //! ã‚·ãƒ³ã‚°ãƒ«ãƒˆãƒ³å–å¾—
     static DX12& Instance() { return *m_instance; };
 
-    //! ‰æ–Ê‚ğƒNƒŠƒA
+    //! ç”»é¢ã‚’ã‚¯ãƒªã‚¢
     void screenClear();
 
-    //! ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒg‚ğŒ³‚É–ß‚µAƒRƒ}ƒ“ƒhI—¹
+    //! ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã‚’å…ƒã«æˆ»ã—ã€ã‚³ãƒãƒ³ãƒ‰çµ‚äº†
     void renderTargetUndo();
 
-    //! ‰æ–ÊƒNƒŠƒA‚ÌŒãˆ—
+    //! ç”»é¢ã‚¯ãƒªã‚¢ã®å¾Œå‡¦ç†
     void screenClearCleanup();
 
-    //! ‰æ–Ê‚ğƒŠƒTƒCƒY
+    //! ç”»é¢ã‚’ãƒªã‚µã‚¤ã‚º
     void screenResize(int width, int height);
 
-    //! ƒtƒFƒ“ƒX‚ğ‘Ò‚Â
+    //! ãƒ•ã‚§ãƒ³ã‚¹ã‚’å¾…ã¤
     void safeGPUWait();
 
-    //! DescriptorHeap‚ğGPU‚ÉƒZƒbƒg
-    void setDescriptorHeaps();
-
-    //! CBVASRV—p‚ÌƒfƒBƒXƒNƒŠƒvƒ^ƒnƒ“ƒhƒ‹‚ğŠ„‚è“–‚Ä
-    D3D12_CPU_DESCRIPTOR_HANDLE allocateCbvSrvHandle();
-
-    //! CPUƒfƒBƒXƒNƒŠƒvƒ^ƒnƒ“ƒhƒ‹‚©‚çGPUƒfƒBƒXƒNƒŠƒvƒ^ƒnƒ“ƒhƒ‹‚ğæ“¾
-    D3D12_GPU_DESCRIPTOR_HANDLE getGpuHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle);
-
-    //! ƒfƒoƒCƒXæ“¾
+    //! ãƒ‡ãƒã‚¤ã‚¹å–å¾—
     ID3D12Device* getDevice() const { return m_device.Get(); }
 
-    //! ƒRƒ}ƒ“ƒhƒLƒ…[æ“¾
+    //! ã‚³ãƒãƒ³ãƒ‰ã‚­ãƒ¥ãƒ¼å–å¾—
     ID3D12CommandQueue* getCommandQueue() const { return m_commandQueue.Get(); }
 
-    //! ƒŒƒ“ƒ_[ƒ^[ƒQƒbƒg‚ÌƒfƒBƒXƒNƒŠƒvƒ^ƒq[ƒv
+    //! ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®ãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ãƒ’ãƒ¼ãƒ—
     ID3D12DescriptorHeap* getRTVDiscriptorHeap() const { return m_rtvHeaps.Get(); }
 
-    //! ƒVƒF[ƒ_[ƒŠƒ\[ƒX‚ÌƒfƒBƒXƒNƒŠƒvƒ^ƒq[ƒv
+    //! ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ãƒªã‚½ãƒ¼ã‚¹ã®ãƒ‡ã‚£ã‚¹ã‚¯ãƒªãƒ—ã‚¿ãƒ’ãƒ¼ãƒ—
     ID3D12DescriptorHeap* getSRVDiscriptorHeap() const { return m_srvHeaps.Get(); }
 
-    //! ƒRƒ}ƒ“ƒhƒŠƒXƒgæ“¾
+    //! ã‚³ãƒãƒ³ãƒ‰ãƒªã‚¹ãƒˆå–å¾—
     ID3D12GraphicsCommandList* getGraphicsCommandList() const { return m_graphicsCommandList.Get(); }
 
-    //! imguiˆê“I‚ÈƒAƒƒP[ƒ^
+    //! imguiä¸€æ™‚çš„ãªã‚¢ãƒ­ã‚±ãƒ¼ã‚¿
     ExampleDescriptorHeapAllocator getExampleDescriptorHeapAllocator() const { return m_exampleDescriptorHeapAllocator; }
 
-    //! ƒnƒ“ƒhƒ‹æ“¾
+    //! ãƒãƒ³ãƒ‰ãƒ«å–å¾—
     HWND getHwnd() const { return m_hwnd; }
 
-    //! ƒXƒNƒŠ[ƒ“ƒTƒCƒYæ“¾
+    //! ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ã‚µã‚¤ã‚ºå–å¾—
     const int& getScreenWidth()const { return m_width; }
     const int& getScreenHeight()const { return m_height; }
 
 private:
 
-    //! DX12‚Åg—p‚·‚éƒfƒoƒbƒO‹@”\
+    //! DX12ã§ä½¿ç”¨ã™ã‚‹ãƒ‡ãƒãƒƒã‚°æ©Ÿèƒ½
     void enableDebugLayer();
 
-    //! ƒRƒ}ƒ“ƒhƒŠƒZƒbƒg
+    //! ã‚³ãƒãƒ³ãƒ‰ãƒªã‚»ãƒƒãƒˆ
     void commandReset();
-
-    //! DescriptorHeap‚ğì¬
-    void createDescriptorHeaps();
 
     static DX12* m_instance;
     const HWND m_hwnd;
-    int m_width = 1280, m_height = 720;     //!< ‰æ–Ê‚Ì—§•A‰¡•
-    UINT m_cbvSrvDescriptorSize = 0;
-    UINT m_cbvSrvAllocatedCount = 0;
-    static constexpr int BUFFER_COUNT = 3;  //!< ƒoƒbƒNƒoƒbƒtƒ@‚Ì”
-    static constexpr UINT MAX_CBV_SRV_COUNT = 512;  //!< CBV‚ÆSRV‚ÌÅ‘å”
+    int m_width = 1280, m_height = 720;     //!< ç”»é¢ã®ç«‹å¹…ã€æ¨ªå¹…
+    static constexpr int BUFFER_COUNT = 3;  //!< ãƒãƒƒã‚¯ãƒãƒƒãƒ•ã‚¡ã®æ•°
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_graphicsCommandList;
@@ -137,7 +122,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeaps;
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_backBuffers[BUFFER_COUNT];
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_cbvSrvHeap;
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
     D3D12_RESOURCE_BARRIER barrierDesc = {};
     UINT64 m_fenceVall = 0;

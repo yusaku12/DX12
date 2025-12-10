@@ -1,13 +1,13 @@
-#pragma once
+ï»¿#pragma once
 
-//! ƒVƒF[ƒ_‚ğ“Ç‚İ‚ŞÛ‚Ì”»•Ê
+//! ã‚·ã‚§ãƒ¼ãƒ€ã‚’èª­ã¿è¾¼ã‚€éš›ã®åˆ¤åˆ¥
 enum class ShaderType : int
 {
     VS,
     PS
 };
 
-//! ShaderKey: path + type ‚ğƒnƒbƒVƒ…‰»‚µ‚ÄƒLƒƒƒbƒVƒ…ƒL[‚É‚·‚é
+//! ShaderKey: path + type ã‚’ãƒãƒƒã‚·ãƒ¥åŒ–ã—ã¦ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã‚­ãƒ¼ã«ã™ã‚‹
 struct ShaderKey
 {
     std::wstring path = {};
@@ -30,7 +30,7 @@ struct ShaderKeyHash
 };
 
 //=====================================================
-// LoadShader ƒNƒ‰ƒX
+// ã‚·ã‚§ãƒ¼ãƒ€èª­ã¿è¾¼ã¿ã‚¯ãƒ©ã‚¹
 //=====================================================
 class LoadShader
 {
@@ -38,18 +38,18 @@ public:
 
     LoadShader(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline);
 
-    //! ƒGƒ‰[ƒƒbƒZ[ƒW‚ğæ“¾
+    //! ã‚¨ãƒ©ãƒ¼ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’å–å¾—
     std::string getErrorString() const;
 
-    //! resultæ“¾
+    //! resultå–å¾—
     HRESULT getResult() const { return m_result; }
 
 private:
 
-    //! ƒVƒF[ƒ_[‚ğƒZƒbƒg‚·‚é
+    //! ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’ã‚»ãƒƒãƒˆã™ã‚‹
     void setShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline);
 
-    //! ƒVƒF[ƒ_“Ç‚İ‚İ
+    //! ã‚·ã‚§ãƒ¼ãƒ€èª­ã¿è¾¼ã¿
     HRESULT loadShader();
 
     std::wstring m_filePath = {};
