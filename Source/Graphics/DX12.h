@@ -123,6 +123,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_backBuffers[BUFFER_COUNT];
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
-    D3D12_RESOURCE_BARRIER barrierDesc = {};
+    D3D12_RESOURCE_BARRIER m_barrierDesc = {};
     UINT64 m_fenceVall = 0;
 };

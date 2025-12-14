@@ -181,13 +181,13 @@ void DX12::screenClear()
     rtvHandle.ptr += bbIdx * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
     //! リソースバリア: Present → RenderTarget に変更
-    barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrierDesc.Transition.pResource = m_backBuffers[bbIdx].Get();
-    barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    m_graphicsCommandList->ResourceBarrier(1, &barrierDesc);
+    m_barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    m_barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    m_barrierDesc.Transition.pResource = m_backBuffers[bbIdx].Get();
+    m_barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    m_barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+    m_barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    m_graphicsCommandList->ResourceBarrier(1, &m_barrierDesc);
 
     //! レンダーターゲットを設定
     m_graphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
@@ -222,9 +222,9 @@ void DX12::screenClear()
 void DX12::renderTargetUndo()
 {
     //! リソースバリア: RenderTarget → Present に戻す
-    barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-    m_graphicsCommandList->ResourceBarrier(1, &barrierDesc);
+    m_barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    m_barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+    m_graphicsCommandList->ResourceBarrier(1, &m_barrierDesc);
 
     //! コマンドリストを閉じて実行
     m_graphicsCommandList->Close();
