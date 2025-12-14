@@ -50,9 +50,10 @@
     <ClCompile Include="External\imgui\ImNodeFlow.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Source\Graphics\CreateIndexData.cpp" />
+    <ClCompile Include="Source\Graphics\CreateVertexData.cpp" />
     <ClCompile Include="Source\Graphics\DescriptorHeapManager.cpp" />
     <ClCompile Include="Source\Graphics\DX12.cpp" />
-    <ClCompile Include="Source\Graphics\GraphicsSetting.cpp" />
     <ClCompile Include="Source\Graphics\LoadShader.cpp" />
     <ClCompile Include="Source\Graphics\LoadTexture.cpp" />
     <ClCompile Include="Source\Graphics\PiplineState.cpp" />
@@ -89,10 +90,12 @@
     <ClInclude Include="External\imgui\imstb_rectpack.h" />
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
+    <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
+    <ClInclude Include="Source\Graphics\CreateIndexData.h" />
     <ClInclude Include="Source\Graphics\CreateResource.h" />
+    <ClInclude Include="Source\Graphics\CreateVertexData.h" />
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h" />
     <ClInclude Include="Source\Graphics\DX12.h" />
-    <ClInclude Include="Source\Graphics\GraphicsSetting.h" />
     <ClInclude Include="Source\Graphics\LoadShader.h" />
     <ClInclude Include="Source\Graphics\LoadTexture.h" />
     <ClInclude Include="Source\Graphics\PiplineState.h" />

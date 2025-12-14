@@ -7,6 +7,15 @@ PmxActor::PmxActor(const std::wstring& filePath)
     loadPmxModel(filePath);
 }
 
+void PmxActor::render() const
+{
+    auto cmd = DX12::Instance().getGraphicsCommandList();
+
+    m_vertexData->bindVertexBuffer();
+    m_indexData->bindIndexBuffer();
+    cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+}
+
 bool PmxActor::loadPmxModel(const std::wstring& filePath)
 {
     //! PMXファイル読み込み
@@ -16,64 +25,13 @@ bool PmxActor::loadPmxModel(const std::wstring& filePath)
     //! 頂点情報をコピー
     loadVertexData(m_pmxFileData.vertices);
 
-    auto device = DX12::Instance().getDevice();
-
     //! 頂点バッファ作成
-    D3D12_HEAP_PROPERTIES heapprop = {};
-    heapprop.Type = D3D12_HEAP_TYPE_UPLOAD;
-    heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    m_vertexData = std::make_unique<CreateVertexData>();
+    m_vertexData->settingVertexResource(m_containerVector, sizeof(Vertex));
 
-    //! メモリ確保
-    D3D12_RESOURCE_DESC resdesc = {};
-    size_t vertexSize = sizeof(Vertex);
-    resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    resdesc.Width = m_containerVector.size() * vertexSize;
-    resdesc.Height = 1;
-    resdesc.DepthOrArraySize = 1;
-    resdesc.MipLevels = 1;
-    resdesc.Format = DXGI_FORMAT_UNKNOWN;
-    resdesc.SampleDesc.Count = 1;
-    resdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-
-    //! リソース作成
-    Vertex* vertex = nullptr;
-    HRESULT hr = device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_NONE, &resdesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_vertexBuffer.ReleaseAndGetAddressOf()));
-    if (!SUCCEEDED(hr))return false;
-
-    //! データをマップ
-    hr = m_vertexBuffer->Map(0, nullptr, (void**)&vertex);
-    if (!SUCCEEDED(hr))return false;
-
-    //! コピー
-    std::copy(std::begin(m_containerVector), std::end(m_containerVector), vertex);
-    m_vertexBuffer->Unmap(0, nullptr);
-
-    //! データ設定
-    m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-    m_vertexBufferView.SizeInBytes = vertexSize * m_pmxFileData.vertices.size();
-    m_vertexBufferView.StrideInBytes = vertexSize;
-
-    //! インデックスバッファのリソース作成
-    unsigned int indexCount = m_pmxFileData.faces.size();
-    resdesc.Width = sizeof(unsigned int) * indexCount;
-    hr = device->CreateCommittedResource(&heapprop, D3D12_HEAP_FLAG_NONE, &resdesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(m_indexBuffer.ReleaseAndGetAddressOf()));
-    if (!SUCCEEDED(hr))return false;
-
-    //! データをマップ
-    PmxLoad::PMXFace* pmxIndex = nullptr;
-    hr = m_indexBuffer->Map(0, nullptr, (void**)&pmxIndex);
-    if (!SUCCEEDED(hr))return false;
-
-    //! コピー
-    std::copy(std::begin(m_pmxFileData.faces), std::end(m_pmxFileData.faces), pmxIndex);
-    m_indexBuffer->Unmap(0, nullptr);
-
-    //! データ設定
-    m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-    m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
-    m_indexBufferView.SizeInBytes = sizeof(unsigned int) * indexCount;
+    //! インデックスバッファ作成
+    m_indexData = std::make_unique<CreateIndexData>();
+    m_indexData->settingIndexResource(m_pmxFileData.faces, DXGI_FORMAT_R32_UINT);
 
     //! マテリアルデータ読み込み
     loadMaterialData();

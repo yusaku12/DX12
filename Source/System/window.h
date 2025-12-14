@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Model\PmxActor.h"
+
 //=====================================================
 // windowの管理を行うクラス
 // その他のシステムを初期化する場所でもある
@@ -30,4 +32,5 @@ private:
 
     const HWND m_hwnd;
     DX12 m_dx12;
+    std::unique_ptr<PmxActor> m_pmxActor;
 };

@@ -1,6 +1,9 @@
 ﻿#pragma once
 
 #include "PmxLoad.h"
+#include "Graphics\CreateVertexData.h"
+#include "Graphics\CreateIndexData.h"
+#include "Graphics\ConstantBuffer.h"
 
 //=====================================================
 // PMXモデルを扱うクラス
@@ -11,6 +14,9 @@ public:
 
     explicit PmxActor(const std::wstring& filePath);
     ~PmxActor() {};
+
+    //! 描画
+    void render() const;
 
 private:
 
@@ -42,10 +48,8 @@ private:
 
     PmxLoad::PMXFileData m_pmxFileData;     //!< データ構造体
     std::vector<Vertex> m_containerVector;  //!< データ格納コンテナ
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer = nullptr;
+    std::unique_ptr<CreateVertexData>m_vertexData;
+    std::unique_ptr<CreateIndexData>m_indexData;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_materialBuffer = nullptr;
-    D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView = {};
-    D3D12_INDEX_BUFFER_VIEW  m_indexBufferView = {};
     char* m_mappedMaterial = nullptr;
 };

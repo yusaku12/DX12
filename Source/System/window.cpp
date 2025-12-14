@@ -13,6 +13,12 @@ Window::Window(HWND hwnd)
 
     //! PiplineState初期化
     PiplineState::Instance().initialize();
+
+    //! DescriptorHeapManager初期化
+    DescriptorHeapManager::Instance().initialize();
+
+    //! PMXモデル読み込み
+    m_pmxActor = std::make_unique<PmxActor>(L"Data/Model/Kazusa_ByPOWER_v1.0/Kazusa_ByPOWER.pmx");
 }
 
 Window::~Window()
@@ -43,6 +49,9 @@ void Window::render()
 
     //! 画面をクリア
     m_dx12.screenClear();
+
+    //! PMXモデル描画
+    m_pmxActor->render();
 
     //! imguiの描画情報を設定
     IMGUI_CTRL_RENDER_INFO();
