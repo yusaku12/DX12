@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "PmxLoad.h"
-#include "Graphics\CreateVertexData.h"
-#include "Graphics\CreateIndexData.h"
+#include "Graphics\VertexBuffer.h"
+#include "Graphics\IndexBuffer.h"
 #include "Graphics\ConstantBuffer.h"
 
 //=====================================================
@@ -48,8 +48,8 @@ private:
 
     PmxLoad::PMXFileData m_pmxFileData;     //!< データ構造体
     std::vector<Vertex> m_containerVector;  //!< データ格納コンテナ
-    std::unique_ptr<CreateVertexData>m_vertexData;
-    std::unique_ptr<CreateIndexData>m_indexData;
+    std::unique_ptr<VertexBuffer<Vertex>> m_vertexBuffer;         //!< 頂点バッファ
+    std::unique_ptr<IndexBuffer<PmxLoad::PMXFace>> m_indexBuffer; //!< インデックスバッファ
     Microsoft::WRL::ComPtr<ID3D12Resource> m_materialBuffer = nullptr;
     char* m_mappedMaterial = nullptr;
 };

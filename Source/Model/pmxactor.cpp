@@ -11,8 +11,8 @@ void PmxActor::render() const
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
 
-    m_vertexData->bindVertexBuffer();
-    m_indexData->bindIndexBuffer();
+    m_vertexBuffer->bind();
+    m_indexBuffer->bind();
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
@@ -26,12 +26,10 @@ bool PmxActor::loadPmxModel(const std::wstring& filePath)
     loadVertexData(m_pmxFileData.vertices);
 
     //! 頂点バッファ作成
-    m_vertexData = std::make_unique<CreateVertexData>();
-    m_vertexData->settingVertexResource(m_containerVector, sizeof(Vertex));
+    m_vertexBuffer = std::make_unique<VertexBuffer<Vertex>>(m_containerVector);
 
     //! インデックスバッファ作成
-    m_indexData = std::make_unique<CreateIndexData>();
-    m_indexData->settingIndexResource(m_pmxFileData.faces, DXGI_FORMAT_R32_UINT);
+    m_indexBuffer = std::make_unique<IndexBuffer<PmxLoad::PMXFace>>(m_pmxFileData.faces, DXGI_FORMAT_R32_UINT);
 
     //! マテリアルデータ読み込み
     loadMaterialData();
