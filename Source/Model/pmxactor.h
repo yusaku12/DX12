@@ -20,6 +20,12 @@ public:
 
 private:
 
+    //! モデル行列
+    struct ModelMatrix
+    {
+        Matrix world = Matrix::Identity;
+    };
+
     //! モデルの頂点構造体
     struct Vertex
     {
@@ -50,6 +56,8 @@ private:
     std::vector<Vertex> m_containerVector;  //!< データ格納コンテナ
     std::unique_ptr<VertexBuffer<Vertex>> m_vertexBuffer;         //!< 頂点バッファ
     std::unique_ptr<IndexBuffer<PmxLoad::PMXFace>> m_indexBuffer; //!< インデックスバッファ
+    ConstantBuffer<ModelMatrix> m_modelMatrixCB; //!< モデル行列用定数バッファ
+    ConstantBuffer<Material> m_materialCB;    //!< マテリアル用定数バッファ
     Microsoft::WRL::ComPtr<ID3D12Resource> m_materialBuffer = nullptr;
     char* m_mappedMaterial = nullptr;
 };

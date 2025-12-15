@@ -31,6 +31,9 @@ bool PmxActor::loadPmxModel(const std::wstring& filePath)
     //! インデックスバッファ作成
     m_indexBuffer = std::make_unique<IndexBuffer<PmxLoad::PMXFace>>(m_pmxFileData.faces, DXGI_FORMAT_R32_UINT);
 
+    //! モデル行列用定数バッファ作成
+    m_modelMatrixCB = ConstantBuffer<ModelMatrix>();
+
     //! マテリアルデータ読み込み
     loadMaterialData();
 
@@ -54,43 +57,25 @@ void PmxActor::loadVertexData(const std::vector<PmxLoad::PMXVertex>& vertex)
 
 bool PmxActor::loadMaterialData()
 {
-    auto device = DX12::Instance().getDevice();
+    const UINT materialCount = static_cast<UINT>(m_pmxFileData.materials.size());
 
-    int materialBufferSize = sizeof(Material);
-    materialBufferSize = (materialBufferSize + 0xff) & ~0xff;
+    if (materialCount == 0)
+        return true;
 
-    //! リソース作成
-    auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-    auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(materialBufferSize * m_pmxFileData.materials.size());
-    HRESULT hr = device->CreateCommittedResource(
-        &heapProps,
-        D3D12_HEAP_FLAG_NONE,
-        &resourceDesc,
-        D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr,
-        IID_PPV_ARGS(m_materialBuffer.ReleaseAndGetAddressOf())
-    );
-    if (!SUCCEEDED(hr))return false;
+    //! Material配列用CB作成
+    m_materialCB = ConstantBuffer<Material>(materialCount);
 
-    //! マップ
-    hr = m_materialBuffer->Map(0, nullptr, (void**)&m_mappedMaterial);
-    if (!SUCCEEDED(hr))return false;
-
-    char* mappedMaterialPtr = m_mappedMaterial;
-
-    //! データーコピー
-    for (const auto& material : m_pmxFileData.materials)
+    //! データ書き込み
+    for (UINT i = 0; i < materialCount; ++i)
     {
-        Material* uploadMat = reinterpret_cast<Material*>(mappedMaterialPtr);
-        uploadMat->diffuse = material.diffuse;
-        uploadMat->specular = material.specular;
-        uploadMat->specularPower = material.specularPower;
-        uploadMat->ambient = material.ambient;
+        Material mat{};
+        mat.diffuse = m_pmxFileData.materials[i].diffuse;
+        mat.specular = m_pmxFileData.materials[i].specular;
+        mat.specularPower = m_pmxFileData.materials[i].specularPower;
+        mat.ambient = m_pmxFileData.materials[i].ambient;
 
-        mappedMaterialPtr += materialBufferSize;
+        m_materialCB.update(i, mat);
     }
-
-    m_materialBuffer->Unmap(0, nullptr);
 
     return true;
 }

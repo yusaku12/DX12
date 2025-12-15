@@ -9,54 +9,63 @@ class ConstantBuffer
 public:
 
     //! コンストラクタでCB生成
-    ConstantBuffer()
+    ConstantBuffer(UINT elementCount = 1)
+        : m_elementCount(elementCount)
     {
         auto device = DX12::Instance().getDevice();
 
-        //! 256バイトアライン
-        m_cbSize = (sizeof(T) + 255) & ~255;
+        m_elementSize = (sizeof(T) + 255) & ~255;
+        m_bufferSize = m_elementSize * m_elementCount;
+
+        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(m_bufferSize);
+        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
 
         HRESULT hr = device->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+            &heapProps,
             D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Buffer(m_cbSize),
+            &resourceDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
-            IID_PPV_ARGS(m_constantBuffer.ReleaseAndGetAddressOf())
+            IID_PPV_ARGS(m_buffer.ReleaseAndGetAddressOf())
         );
         if (FAILED(hr)) return;
 
-        //! Map（永続Map）
-        hr = m_constantBuffer->Map(0, nullptr, &m_mappedCB);
+        hr = m_buffer->Map(0, nullptr, reinterpret_cast<void**>(&m_mapped));
         if (FAILED(hr))
         {
-            m_mappedCB = nullptr;
+            m_mapped = nullptr;
             return;
         }
 
         //! CBV 作成
-        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-        cbvDesc.BufferLocation = m_constantBuffer->GetGPUVirtualAddress();
-        cbvDesc.SizeInBytes = m_cbSize;
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{};
+        cbvDesc.BufferLocation = m_buffer->GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes = m_bufferSize;
 
-        //! DescriptorHeap に登録（index は Manager 側で管理）
         m_cbvIndex = DescriptorHeapManager::Instance().createCBV(cbvDesc);
     }
 
     //! デストラクタ
     ~ConstantBuffer()
     {
-        if (m_constantBuffer && m_mappedCB)
-        {
-            m_constantBuffer->Unmap(0, nullptr);
-            m_mappedCB = nullptr;
-        }
+        //! 何故かデストラクタでUnmapすると落ちるのでコメントアウト
+        //if (m_buffer && m_mapped)
+        //{
+        //    m_buffer->Unmap(0, nullptr);
+        //    m_mapped = nullptr;
+        //}
     }
 
-    //! コンスタントバッファ更新
+    //! 単体用（index = 0）
     void update(const T& data)
     {
-        memcpy(m_mappedCB, &data, sizeof(T));
+        memcpy(m_mapped, &data, sizeof(T));
+    }
+
+    //! 配列用
+    void update(UINT index, const T& data)
+    {
+        memcpy(m_mapped + index * m_elementSize, &data, sizeof(T));
     }
 
     //! GPUハンドル取得（描画時用）
@@ -67,9 +76,12 @@ public:
 
 private:
 
-    UINT m_cbSize = 0;
-    void* m_mappedCB = nullptr;
+    UINT m_elementCount = 0;
+    UINT m_elementSize = 0;
+    UINT m_bufferSize = 0;
 
-    UINT m_cbvIndex = 0;  //!< DescriptorHeap上のCBVインデックス
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_constantBuffer;
+    UINT m_cbvIndex = 0;
+
+    uint8_t* m_mapped = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_buffer;
 };
