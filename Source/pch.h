@@ -50,6 +50,7 @@
 #include "Graphics\RootsignatureManager.h"
 #include "Graphics\DescriptorHeapManager.h"
 #include "System\TimeManager.h"
+#include "Scene\SceneManager.h"
 
 //! 省略系
 using namespace DirectX::SimpleMath;

@@ -37,6 +37,9 @@ void Window::update()
 
     //! imgui更新
     IMGUI_CTRL_UPDATE();
+
+    //! SceneManager更新
+    SceneManager::Instance().update();
 }
 
 void Window::render()
@@ -52,6 +55,9 @@ void Window::render()
 
     //! PMXモデル描画
     m_pmxActor->render();
+
+    //! シーンマネージャ描画
+    SceneManager::Instance().draw();
 
     //! imguiの描画情報を設定
     IMGUI_CTRL_RENDER_INFO();
@@ -76,6 +82,9 @@ void Window::imguiRender()
 
     //!TimeManagerのimgui描画
     TimeManager::Instance().imgui();
+
+    //! SceneManagerのimgui描画
+    SceneManager::Instance().debugOption();
 
     //! imgui描画
     IMGUI_CTRL_RENDER();

@@ -1,16 +1,23 @@
 ﻿#pragma once
 
+//============================================================
+// Scene 基底クラス
+//============================================================
 class Scene
 {
 public:
 
-private:
+    virtual ~Scene() = default;
 
-    //! シーンデータ(GPUで送る)
-    struct SceneData
-    {
-        Matrix view;        //!< ビュー行列
-        Matrix projection;  //!< プロジェクト行列
-        Vector3 eye;        //!< カメラ位置
-    };
+    //! シーン生成時に1回だけ呼ばれる
+    virtual void onEnter() {}
+
+    //! シーン破棄時に1回だけ呼ばれる
+    virtual void onExit() {}
+
+    //! 毎フレーム更新
+    virtual void update() = 0;
+
+    //! 描画
+    virtual void draw() = 0;
 };
