@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#include "Camera.h"
+#include "CameraBehaviour.h"
+
 //=====================================================
 // カメラマネージャ(シングルトン)
 //=====================================================
@@ -7,25 +10,22 @@ class CameraManager
 {
 public:
 
-    //static CameraManager& Instance()
-    //{
-    //    static CameraManager inst;
-    //    return inst;
-    //}
+    //! シングルトンインスタンス取得
+    static CameraManager& Instance()
+    {
+        static CameraManager inst;
+        return inst;
+    }
 
-    //Camera camera;
+    //! カメラ取得
+    Camera m_camera;
 
-    //void SetBehaviour(std::unique_ptr<CameraBehaviour> b)
-    //{
-    //    behaviour = std::move(b);
-    //}
+    //! カメラ挙動設定
+    void setBehaviour(std::unique_ptr<CameraBehaviour> behaviour);
 
-    //void Update(float dt)
-    //{
-    //    if (behaviour)
-    //        behaviour->Update(camera, dt);
-    //}
+    //! カメラ更新
+    void update();
 
 private:
-    //std::unique_ptr<CameraBehaviour> behaviour;
+    std::unique_ptr<CameraBehaviour> m_behaviour;
 };

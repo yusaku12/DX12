@@ -51,6 +51,7 @@
 #include "Graphics\DescriptorHeapManager.h"
 #include "System\TimeManager.h"
 #include "Scene\SceneManager.h"
+#include "Camera\CameraManager.h"
 
 //! 省略系
 using namespace DirectX::SimpleMath;

@@ -50,6 +50,7 @@
     <ClCompile Include="External\imgui\ImNodeFlow.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Source\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Graphics\DescriptorHeapManager.cpp" />
     <ClCompile Include="Source\Graphics\DX12.cpp" />
     <ClCompile Include="Source\Graphics\LoadShader.cpp" />
@@ -90,6 +91,7 @@
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Camera\Camera.h" />
+    <ClInclude Include="Source\Camera\CameraBehaviour.h" />
     <ClInclude Include="Source\Camera\CameraManager.h" />
     <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
     <ClInclude Include="Source\Graphics\IndexBuffer.h" />
