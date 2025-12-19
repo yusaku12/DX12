@@ -10,19 +10,33 @@ class LoadTexture
 {
 public:
 
-    explicit LoadTexture(const wchar_t* filename);
-    ~LoadTexture() {}
+    explicit LoadTexture(const std::wstring& filePath);
 
-    //! SRV を格納したディスクリプタヒープを返す
-    ID3D12DescriptorHeap* GetHeap() const { return m_srvHeap.Get(); }
+    //! シェーダリソースビュー用デスクリプタヒープ取得
+    ID3D12DescriptorHeap* getSrvHeap() const { return m_srvHeap.Get(); }
 
-    //! GPU ハンドルを返す（root parameter へ設定するときに使用）
-    D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const { return m_srvHeap->GetGPUDescriptorHandleForHeapStart(); }
+    //! テクスチャリソース取得
+    ID3D12Resource* getResource() const { return m_texture.Get(); }
+
+    //! 読み込み成功しているか
+    bool isValid() const { return m_isValid; }
 
 private:
 
-    void loadTexture(const wchar_t* filename);
+    //! ローダー関数型定義
+    using LoaderFunc = std::function<HRESULT(const std::wstring&, DirectX::TexMetadata*, DirectX::ScratchImage&)>;
 
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap;
+    //! ローダーテーブル初期化
+    void initLoaderTable();
+
+    //! ファイルからテクスチャ読み込み
+    bool loadFromFile(const std::wstring& filePath);
+
+    //! テクスチャリソース作成
+    void createTextureResource(const DirectX::TexMetadata& meta, const DirectX::ScratchImage& img);
+
+    bool m_isValid = false;  //!< 読み込み成功フラグ
+    std::unordered_map<std::wstring, LoaderFunc> m_loaderTable; //!< ローダーテーブル
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_texture; //!< テクスチャリソース
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap; //!< シェーダリソースビュー用デスクリプタヒープ
 };

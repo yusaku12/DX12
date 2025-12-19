@@ -1,99 +1,119 @@
 ﻿#include "pch.h"
 #include "LoadTexture.h"
 
-LoadTexture::LoadTexture(const wchar_t* filename)
+LoadTexture::LoadTexture(const std::wstring& filePath)
 {
-    loadTexture(filename);
+    initLoaderTable();
+    m_isValid = loadFromFile(filePath);
 }
 
-void LoadTexture::loadTexture(const wchar_t* filename)
+void LoadTexture::initLoaderTable()
 {
-    auto device = DX12::Instance().getDevice();
+    m_loaderTable[L"sph"]
+        = m_loaderTable[L"spa"]
+        = m_loaderTable[L"bmp"]
+        = m_loaderTable[L"png"]
+        = m_loaderTable[L"jpg"]
+        = [](const std::wstring& path, DirectX::TexMetadata* meta, DirectX::ScratchImage& img)
+        {
+            return LoadFromWICFile(path.c_str(), DirectX::WIC_FLAGS_NONE, meta, img);
+        };
 
-    //! WIC から画像ロード
+    m_loaderTable[L"tga"]
+        = [](const std::wstring& path, DirectX::TexMetadata* meta, DirectX::ScratchImage& img)
+        {
+            return LoadFromTGAFile(path.c_str(), meta, img);
+        };
+
+    m_loaderTable[L"dds"]
+        = [](const std::wstring& path, DirectX::TexMetadata* meta, DirectX::ScratchImage& img)
+        {
+            return LoadFromDDSFile(path.c_str(), DirectX::DDS_FLAGS_NONE, meta, img);
+        };
+}
+
+bool LoadTexture::loadFromFile(const std::wstring& filePath)
+{
     DirectX::TexMetadata metadata = {};
     DirectX::ScratchImage scratchImg = {};
 
-    HRESULT hr = DirectX::LoadFromWICFile(
-        filename,
-        DirectX::WIC_FLAGS_NONE,
-        &metadata,
-        scratchImg
-    );
-
-    if (FAILED(hr))
+    //! 拡張子取得
+    auto pos = filePath.find_last_of(L'.');
+    if (pos == std::wstring::npos)
     {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to load texture file");
-        return;
+        Logger::Instance().logCall(LogLevel::ERROR, "Texture has no extension");
+        return false;
     }
 
-    //! テクスチャリソース作成
-    D3D12_HEAP_PROPERTIES heapProp = {};
+    std::wstring ext = filePath.substr(pos + 1);
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
+
+    auto it = m_loaderTable.find(ext);
+    if (it == m_loaderTable.end())
+    {
+        Logger::Instance().logCall(LogLevel::ERROR, "Unsupported texture format");
+        return false;
+    }
+
+    HRESULT hr = it->second(filePath, &metadata, scratchImg);
+    if (FAILED(hr))
+    {
+        Logger::Instance().logCall(LogLevel::ERROR, "Texture load failed");
+        return false;
+    }
+
+    createTextureResource(metadata, scratchImg);
+    return true;
+}
+
+void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const DirectX::ScratchImage& img)
+{
+    auto device = DX12::Instance().getDevice();
+
+    D3D12_HEAP_PROPERTIES heapProp{};
     heapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
     heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
     heapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
 
-    D3D12_RESOURCE_DESC texDesc = {};
-    texDesc.Format = metadata.format;
-    texDesc.Width = metadata.width;
-    texDesc.Height = (UINT)metadata.height;
-    texDesc.DepthOrArraySize = (UINT16)metadata.arraySize;
-    texDesc.MipLevels = (UINT16)metadata.mipLevels;
-    texDesc.SampleDesc.Count = 1;
-    texDesc.Dimension = (D3D12_RESOURCE_DIMENSION)metadata.dimension;
-    texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    D3D12_RESOURCE_DESC desc{};
+    desc.Dimension = (D3D12_RESOURCE_DIMENSION)meta.dimension;
+    desc.Format = meta.format;
+    desc.Width = meta.width;
+    desc.Height = (UINT)meta.height;
+    desc.DepthOrArraySize = (UINT16)meta.arraySize;
+    desc.MipLevels = (UINT16)meta.mipLevels;
+    desc.SampleDesc.Count = 1;
 
-    hr = device->CreateCommittedResource(
+    device->CreateCommittedResource(
         &heapProp,
         D3D12_HEAP_FLAG_NONE,
-        &texDesc,
+        &desc,
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
         nullptr,
         IID_PPV_ARGS(m_texture.GetAddressOf())
     );
 
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to create texture resource");
-        return;
-    }
-
-    //! リソースに画像を書き込み
-    const DirectX::Image* img = scratchImg.GetImage(0, 0, 0);
-    hr = m_texture->WriteToSubresource(
-        0,
-        nullptr,
-        img->pixels,
-        static_cast<UINT>(img->rowPitch),
-        static_cast<UINT>(img->slicePitch)
+    const DirectX::Image* image = img.GetImage(0, 0, 0);
+    m_texture->WriteToSubresource(
+        0, nullptr,
+        image->pixels,
+        (UINT)image->rowPitch,
+        (UINT)image->slicePitch
     );
 
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to write texture data");
-        return;
-    }
-
-    //! SRV 用ディスクリプタヒープ作成
-    D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+    //! SRV Heap
+    D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     heapDesc.NumDescriptors = 1;
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-    hr = device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_srvHeap));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to create SRV heap");
-        return;
-    }
+    device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_srvHeap));
 
-    //! SRV 作成
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = metadata.format;
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+    srvDesc.Format = meta.format;
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Texture2D.MipLevels = desc.MipLevels;
 
     device->CreateShaderResourceView(
         m_texture.Get(),
