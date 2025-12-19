@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
@@ -18,38 +18,56 @@ inline static void CopyIOEvents(ImGuiContext* src, ImGuiContext* dst, ImVec2 ori
 
 inline static void AppendDrawData(ImDrawList* src, ImVec2 origin, float scale)
 {
-    // TODO optimize if vtx_start == 0 || if idx_start == 0
+    if (!src || src->VtxBuffer.empty())
+        return;
+
     ImDrawList* dl = ImGui::GetWindowDrawList();
-    const int vtx_start = dl->VtxBuffer.size();
-    const int idx_start = dl->IdxBuffer.size();
-    dl->VtxBuffer.resize(dl->VtxBuffer.size() + src->VtxBuffer.size());
-    dl->IdxBuffer.resize(dl->IdxBuffer.size() + src->IdxBuffer.size());
-    dl->CmdBuffer.reserve(dl->CmdBuffer.size() + src->CmdBuffer.size());
+
+    const int vtx_start = dl->VtxBuffer.Size;
+    const int idx_start = dl->IdxBuffer.Size;
+
+    dl->VtxBuffer.resize(vtx_start + src->VtxBuffer.Size);
+    dl->IdxBuffer.resize(idx_start + src->IdxBuffer.Size);
+    dl->CmdBuffer.reserve(dl->CmdBuffer.Size + src->CmdBuffer.Size);
+
     dl->_VtxWritePtr = dl->VtxBuffer.Data + vtx_start;
     dl->_IdxWritePtr = dl->IdxBuffer.Data + idx_start;
+
     const ImDrawVert* vtx_read = src->VtxBuffer.Data;
     const ImDrawIdx* idx_read = src->IdxBuffer.Data;
-    for (int i = 0, c = src->VtxBuffer.size(); i < c; ++i) {
+
+    // Vertex copy
+    for (int i = 0; i < src->VtxBuffer.Size; ++i)
+    {
         dl->_VtxWritePtr[i].uv = vtx_read[i].uv;
         dl->_VtxWritePtr[i].col = vtx_read[i].col;
         dl->_VtxWritePtr[i].pos = vtx_read[i].pos * scale + origin;
     }
-    for (int i = 0, c = src->IdxBuffer.size(); i < c; ++i) {
-        dl->_IdxWritePtr[i] = idx_read[i] + vtx_start;
+
+    // Index copy
+    for (int i = 0; i < src->IdxBuffer.Size; ++i)
+    {
+        dl->_IdxWritePtr[i] = static_cast<ImDrawIdx>(idx_read[i] + vtx_start);
     }
-    for (auto cmd : src->CmdBuffer) {
-        cmd.IdxOffset += idx_start;
+
+    // Command copy
+    for (ImDrawCmd cmd : src->CmdBuffer) // ← コピー必須
+    {
         IM_ASSERT(cmd.VtxOffset == 0);
+
+        cmd.IdxOffset += idx_start;
+
         cmd.ClipRect.x = cmd.ClipRect.x * scale + origin.x;
         cmd.ClipRect.y = cmd.ClipRect.y * scale + origin.y;
         cmd.ClipRect.z = cmd.ClipRect.z * scale + origin.x;
         cmd.ClipRect.w = cmd.ClipRect.w * scale + origin.y;
+
         dl->CmdBuffer.push_back(cmd);
     }
 
-    dl->_VtxCurrentIdx += src->VtxBuffer.size();
-    dl->_VtxWritePtr = dl->VtxBuffer.Data + dl->VtxBuffer.size();
-    dl->_IdxWritePtr = dl->IdxBuffer.Data + dl->IdxBuffer.size();
+    dl->_VtxCurrentIdx += src->VtxBuffer.Size;
+    dl->_VtxWritePtr = dl->VtxBuffer.Data + dl->VtxBuffer.Size;
+    dl->_IdxWritePtr = dl->IdxBuffer.Data + dl->IdxBuffer.Size;
 }
 
 struct ContainedContextConfig

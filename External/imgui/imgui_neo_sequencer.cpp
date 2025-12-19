@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by Matty on 2022-01-28.
 //
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -213,17 +213,24 @@ namespace ImGui
         currentTimelineHeight = 0.0f;
     }
 
-    static ImColor getKeyframeColor(ImGuiNeoSequencerInternalData& context, bool hovered, bool inSelection)
+    static ImU32 getKeyframeColor(
+        ImGuiNeoSequencerInternalData& context,
+        bool hovered,
+        bool inSelection)
     {
+        (void)context;
+
         if (inSelection)
         {
-            return ColorConvertFloat4ToU32(GetStyleNeoSequencerColorVec4(ImGuiNeoSequencerCol_KeyframeSelected));
+            return ColorConvertFloat4ToU32(
+                GetStyleNeoSequencerColorVec4(ImGuiNeoSequencerCol_KeyframeSelected));
         }
 
-        return hovered ?
-            ColorConvertFloat4ToU32(
-                GetStyleNeoSequencerColorVec4(ImGuiNeoSequencerCol_KeyframeHovered)) :
-            ColorConvertFloat4ToU32(GetStyleNeoSequencerColorVec4(ImGuiNeoSequencerCol_Keyframe));
+        return hovered
+            ? ColorConvertFloat4ToU32(
+                GetStyleNeoSequencerColorVec4(ImGuiNeoSequencerCol_KeyframeHovered))
+            : ColorConvertFloat4ToU32(
+                GetStyleNeoSequencerColorVec4(ImGuiNeoSequencerCol_Keyframe));
     }
 
     static void addKeyframeToDeleteData(int32_t value, ImGuiNeoSequencerInternalData& context, const ImGuiID timelineId)
@@ -1017,14 +1024,21 @@ namespace ImGui
 
 #ifdef __cplusplus
 
-    bool
-        BeginNeoTimeline(const char* label, std::vector<int32_t>& keyframes, bool* open, ImGuiNeoTimelineFlags flags)
+    bool BeginNeoTimeline(
+        const char* label,
+        std::vector<int32_t>& keyframes,
+        bool* open,
+        ImGuiNeoTimelineFlags flags)
     {
-        std::vector<int32_t*> c_keyframes{ keyframes.size() };
-        for (uint32_t i = 0; i < keyframes.size(); i++)
-            c_keyframes[i] = &keyframes[i];
+        std::vector<int32_t*> c_keyframes;
+        c_keyframes.reserve(keyframes.size());
 
-        return BeginNeoTimeline(label, c_keyframes.data(), c_keyframes.size(), open, flags);
+        for (auto& k : keyframes)
+            c_keyframes.push_back(&k);
+
+        return BeginNeoTimeline(label, c_keyframes.data(),
+            static_cast<int>(c_keyframes.size()),
+            open, flags);
     }
 
 #endif

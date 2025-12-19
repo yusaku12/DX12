@@ -65,8 +65,8 @@ void LoadTexture::loadTexture(const wchar_t* filename)
         0,
         nullptr,
         img->pixels,
-        img->rowPitch,
-        img->slicePitch
+        static_cast<UINT>(img->rowPitch),
+        static_cast<UINT>(img->slicePitch)
     );
 
     if (FAILED(hr))

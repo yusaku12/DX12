@@ -17,6 +17,9 @@ Window::Window(HWND hwnd)
     //! DescriptorHeapManager初期化
     DescriptorHeapManager::Instance().initialize();
 
+    //! CameraManager初期化
+    CameraManager::Instance().initialize();
+
     //! PMXモデル読み込み
     m_pmxActor = std::make_unique<PmxActor>(L"Data/Model/Kazusa_ByPOWER_v1.0/Kazusa_ByPOWER.pmx");
 }
@@ -40,6 +43,9 @@ void Window::update()
 
     //! SceneManager更新
     SceneManager::Instance().update();
+
+    //! CameraManager更新
+    CameraManager::Instance().update();
 }
 
 void Window::render()

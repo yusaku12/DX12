@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 void TimeManager::initialize()
 {
@@ -9,7 +9,7 @@ void TimeManager::update()
 {
     using namespace std::chrono;
 
-    //! Œ»İŠÔ
+    //! ç¾åœ¨æ™‚é–“
     auto now = high_resolution_clock::now();
 
     if (!m_initialized)
@@ -20,47 +20,47 @@ void TimeManager::update()
         return;
     }
 
-    //! Œo‰ßŠÔŒv‘ªiƒXƒP[ƒ‹‚È‚µj
+    //! çµŒéæ™‚é–“è¨ˆæ¸¬ï¼ˆã‚¹ã‚±ãƒ¼ãƒ«ãªã—ï¼‰
     duration<float> diff = now - m_lastTime;
     m_unscaledDeltaTime = diff.count();
     m_lastTime = now;
 
-    //! timeScale ‚ğ“K—p‚µ‚½ deltaTime
+    //! timeScale ã‚’é©ç”¨ã—ãŸ deltaTime
     m_deltaTime = m_unscaledDeltaTime * m_timeScale;
 
-    //! Œo‰ßŠÔ
+    //! çµŒéæ™‚é–“
     duration<float> fromStart = now - m_startTime;
     m_unscaledTime = fromStart.count();
     m_time = m_unscaledTime * m_timeScale;
 
-    //! smoothDeltaTime ‚ÌXViŠÈˆÕˆÚ“®•½‹Ïj
+    //! smoothDeltaTime ã®æ›´æ–°ï¼ˆç°¡æ˜“ç§»å‹•å¹³å‡ï¼‰
     const float smoothing = 0.1f;
     m_smoothDeltaTime = m_smoothDeltaTime * (1.0f - smoothing) + m_deltaTime * smoothing;
 }
 
 void TimeManager::frameStart(ID3D12GraphicsCommandList* cmd)
 {
-    //! ƒvƒƒtƒ@ƒCƒ‰XV(‘‚«‚İŠJn)
+    //! ãƒ—ãƒ­ãƒ•ã‚¡ã‚¤ãƒ©æ›´æ–°(æ›¸ãè¾¼ã¿é–‹å§‹)
     m_profiler.beginFrame(cmd);
 }
 
 void TimeManager::frameEnd(ID3D12GraphicsCommandList* cmd)
 {
-    //! ƒvƒƒtƒ@ƒCƒ‰XV(‘‚«‚İI—¹)
+    //! ãƒ—ãƒ­ãƒ•ã‚¡ã‚¤ãƒ©æ›´æ–°(æ›¸ãè¾¼ã¿çµ‚äº†)
     m_profiler.endFrame(cmd);
 
-    //! FPS ŒvZ
+    //! FPS è¨ˆç®—
     calculateFPS();
 
-    //! ƒvƒƒtƒ@ƒCƒ‰‚ÉFPS‹L˜^
+    //! ãƒ—ãƒ­ãƒ•ã‚¡ã‚¤ãƒ©ã«FPSè¨˜éŒ²
     m_profiler.recordFps(static_cast<float>(m_fps));
 }
 
 void TimeManager::imgui()
 {
-    if (ImGui::Begin("Performance Monitor"))   // © 1‚Â‚ÌƒEƒBƒ“ƒhƒE‚É“‡
+    if (ImGui::Begin("Performance Monitor"))   // â† 1ã¤ã®ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«çµ±åˆ
     {
-        //! TimeManager î•ñ
+        //! TimeManager æƒ…å ±
         ImGui::Text("Delta: %.5f  (Unscaled: %.5f)", m_deltaTime, m_unscaledDeltaTime);
         ImGui::Text("Time : %.2f  (Unscaled: %.2f)", m_time, m_unscaledTime);
         ImGui::Text("SmoothDelta: %.5f", m_smoothDeltaTime);
@@ -73,7 +73,7 @@ void TimeManager::imgui()
         ImGui::Separator();
         ImGui::Text("FPS: %d", m_fps);
 
-        //! Profiler î•ñ
+        //! Profiler æƒ…å ±
         CpuGpuProfiler& profiler = m_profiler;
 
         ImGui::Separator();
@@ -82,19 +82,19 @@ void TimeManager::imgui()
             profiler.getGpuTimems()
         );
 
-        //! ¬Œ^ƒOƒ‰ƒt
+        //! å°å‹ã‚°ãƒ©ãƒ•
         ImGui::PlotLines("CPU (ms)",
-            profiler.cpuHistory().data(), profiler.cpuHistory().size(),
+            profiler.cpuHistory().data(), static_cast<int>(profiler.cpuHistory().size()),
             0, nullptr, 0.0f, 30.0f, ImVec2(0, 60)
         );
 
         ImGui::PlotLines("GPU (ms)",
-            profiler.gpuHistory().data(), profiler.gpuHistory().size(),
+            profiler.gpuHistory().data(), static_cast<int>(profiler.gpuHistory().size()),
             0, nullptr, 0.0f, 30.0f, ImVec2(0, 60)
         );
 
         ImGui::PlotLines("FPS",
-            profiler.fpsHistory().data(), profiler.fpsHistory().size(),
+            profiler.fpsHistory().data(), static_cast<int>(profiler.fpsHistory().size()),
             0, nullptr, 0.0f, 120.0f, ImVec2(0, 60)
         );
     }
@@ -108,7 +108,7 @@ void TimeManager::calculateFPS()
 
     if (m_fpsTimer >= 1.0f)
     {
-        m_fps = m_fpsFrameCounter;  //!< 1 •bŠÔ‚ÌƒtƒŒ[ƒ€”
+        m_fps = m_fpsFrameCounter;  //!< 1 ç§’é–“ã®ãƒ•ãƒ¬ãƒ¼ãƒ æ•°
         m_fpsFrameCounter = 0;
         m_fpsTimer = 0.0f;
     }

@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#define NOMINMAX
-
 //! DXの標準機能
 #include <windows.h>
 #include <d3d12.h>

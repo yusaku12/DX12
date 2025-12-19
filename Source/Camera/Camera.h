@@ -22,8 +22,7 @@ public:
     {
         Vector3 forward = Vector3::Transform(Vector3::Forward, m_rotation);
         Vector3 up = Vector3::Transform(Vector3::Up, m_rotation);
-
-        return Matrix::CreateLookAt(m_position, forward, up);
+        return Matrix::CreateLookAt(m_position, m_position + forward, up);
     }
 
     //! プロジェクション行列の取得
@@ -31,4 +30,7 @@ public:
     {
         return Matrix::CreatePerspectiveFieldOfView(m_fov, m_aspect, m_nearZ, m_farZ);
     }
+
+    // カメラ座標取得
+    const Vector3& getPosition() const { return m_position; }
 };
