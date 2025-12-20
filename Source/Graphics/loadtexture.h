@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "DescriptorHeapManager.h"
 #include <DirectXTex.h>
 #pragma comment(lib, "DirectXTex.lib")
 
@@ -12,11 +13,14 @@ public:
 
     explicit LoadTexture(const std::wstring& filePath);
 
-    //! シェーダリソースビュー用デスクリプタヒープ取得
-    ID3D12DescriptorHeap* getSrvHeap() const { return m_srvHeap.Get(); }
-
     //! テクスチャリソース取得
     ID3D12Resource* getResource() const { return m_texture.Get(); }
+
+    //! GPUハンドル取得（描画時用）
+    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const
+    {
+        return DescriptorHeapManager::Instance().getGPUHandle(m_srvIndex);
+    }
 
     //! 読み込み成功しているか
     bool isValid() const { return m_isValid; }
@@ -38,5 +42,5 @@ private:
     bool m_isValid = false;  //!< 読み込み成功フラグ
     std::unordered_map<std::wstring, LoaderFunc> m_loaderTable; //!< ローダーテーブル
     Microsoft::WRL::ComPtr<ID3D12Resource> m_texture; //!< テクスチャリソース
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap; //!< シェーダリソースビュー用デスクリプタヒープ
+    UINT m_srvIndex = 0;
 };

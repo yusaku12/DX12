@@ -95,7 +95,6 @@
     <ClInclude Include="Source\Camera\CameraManager.h" />
     <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
     <ClInclude Include="Source\Graphics\IndexBuffer.h" />
-    <ClInclude Include="Source\Graphics\CreateResource.h" />
     <ClInclude Include="Source\Graphics\VertexBuffer.h" />
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h" />
     <ClInclude Include="Source\Graphics\DX12.h" />

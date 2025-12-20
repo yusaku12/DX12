@@ -212,9 +212,6 @@
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Graphics\CreateResource.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Graphics\ConstantBuffer.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
