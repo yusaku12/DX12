@@ -1,15 +1,15 @@
-#include "pch.h"
+﻿#include "pch.h"
 
 LoadTexture* TextureManager::load(const std::wstring& filePath)
 {
-    //! �L���b�V���ɑ��݂���΍ė��p
+    //! キャッシュに存在すれば再利用
     auto it = m_textureCache.find(filePath);
     if (it != m_textureCache.end())
     {
         return it->second.get();
     }
 
-    //! ���݂��Ȃ��ꍇ �� �V�K���[�h
+    //! 存在しない場合 → 新規ロード
     auto newTex = std::make_unique<LoadTexture>(filePath.c_str());
     LoadTexture* texPtr = newTex.get();
 
@@ -20,8 +20,23 @@ LoadTexture* TextureManager::load(const std::wstring& filePath)
     return texPtr;
 }
 
+UINT TextureManager::getWhiteTextureSRVIndex()
+{
+    //! まだ作られていなければロード
+    if (m_whiteTexture == nullptr)
+    {
+        //! ここはプロジェクト内に必ず存在する白テクスチャ
+        const std::wstring whiteTexPath = L"Data/Texture/dummyWhite.jpg";
+
+        m_whiteTexture = load(whiteTexPath);
+    }
+
+    return m_whiteTexture->getSRVIndex();
+}
+
 void TextureManager::clear()
 {
     m_textureCache.clear();
+    m_whiteTexture = nullptr;
     Logger::Instance().logCall(LogLevel::INFO, "[TextureManager] Cleared all textures");
 }

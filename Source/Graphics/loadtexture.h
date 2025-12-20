@@ -22,6 +22,9 @@ public:
         return DescriptorHeapManager::Instance().getGPUHandle(m_srvIndex);
     }
 
+    //! SRVインデックス取得
+    UINT getSRVIndex() const { return m_srvIndex; }
+
     //! 読み込み成功しているか
     bool isValid() const { return m_isValid; }
 

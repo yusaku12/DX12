@@ -326,7 +326,6 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
 {
     int numOfMaterial = 0;
     file.read(reinterpret_cast<char*>(&numOfMaterial), 4);
-
     data.materials.resize(numOfMaterial);
 
     for (auto& mat : data.materials)
@@ -340,31 +339,44 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
         file.read(reinterpret_cast<char*>(&mat.ambient), 12);
 
         file.read(reinterpret_cast<char*>(&mat.drawMode), 1);
-
         file.read(reinterpret_cast<char*>(&mat.edgeColor), 16);
         file.read(reinterpret_cast<char*>(&mat.edgeSize), 4);
 
-        file.read(reinterpret_cast<char*>(&mat.textureIndex), data.header.textureIndexSize);
-        file.read(reinterpret_cast<char*>(&mat.sphereTextureIndex), data.header.textureIndexSize);
+        int textureIndex = -1;
+        int sphereTextureIndex = -1;
+        int toonTextureIndex = -1;
+
+        file.read(reinterpret_cast<char*>(&textureIndex), data.header.textureIndexSize);
+        file.read(reinterpret_cast<char*>(&sphereTextureIndex), data.header.textureIndexSize);
         file.read(reinterpret_cast<char*>(&mat.sphereMode), 1);
 
         file.read(reinterpret_cast<char*>(&mat.toonMode), 1);
 
         if (mat.toonMode == PMXToonMode::Separate)
         {
-            file.read(reinterpret_cast<char*>(&mat.toonTextureIndex), data.header.textureIndexSize);
+            file.read(reinterpret_cast<char*>(&toonTextureIndex), data.header.textureIndexSize);
         }
         else if (mat.toonMode == PMXToonMode::Common)
         {
-            file.read(reinterpret_cast<char*>(&mat.toonTextureIndex), 1);
+            uint8_t commonIndex = 0;
+            file.read(reinterpret_cast<char*>(&commonIndex), 1);
+            toonTextureIndex = commonIndex;
         }
         else
         {
             return false;
         }
 
-        getPMXStringUTF16(file, mat.memo);
+        if (textureIndex >= 0 && textureIndex < (int)data.textures.size())
+            mat.texturePath = data.textures[textureIndex].textureName;
 
+        if (sphereTextureIndex >= 0 && sphereTextureIndex < (int)data.textures.size())
+            mat.sphereTexturePath = data.textures[sphereTextureIndex].textureName;
+
+        if (toonTextureIndex >= 0 && toonTextureIndex < (int)data.textures.size())
+            mat.toonTexturePath = data.textures[toonTextureIndex].textureName;
+
+        getPMXStringUTF16(file, mat.memo);
         file.read(reinterpret_cast<char*>(&mat.numFaceVertices), 4);
     }
 

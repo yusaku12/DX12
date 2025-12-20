@@ -43,6 +43,14 @@ private:
         Vector3 ambient = {};
     };
 
+    //! マテリアル用SRV構造体
+    struct MaterialSRV
+    {
+        UINT diffuse;
+        UINT toon;
+        UINT sphere;
+    };
+
     //! モデル読み込み
     bool loadPmxModel(const std::wstring& filePath);
 
@@ -54,6 +62,7 @@ private:
 
     PmxLoad::PMXFileData m_pmxFileData;     //!< データ構造体
     std::vector<Vertex> m_containerVector;  //!< データ格納コンテナ
+    std::vector<MaterialSRV> m_materialSRVs; //!< マテリアル用SRVコンテナ
     std::unique_ptr<VertexBuffer<Vertex>> m_vertexBuffer;         //!< 頂点バッファ
     std::unique_ptr<IndexBuffer<PmxLoad::PMXFace>> m_indexBuffer; //!< インデックスバッファ
     ConstantBuffer<ModelMatrix> m_modelMatrixCB; //!< モデル行列用定数バッファ

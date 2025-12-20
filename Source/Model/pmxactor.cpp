@@ -58,23 +58,59 @@ void PmxActor::loadVertexData(const std::vector<PmxLoad::PMXVertex>& vertex)
 bool PmxActor::loadMaterialData()
 {
     const UINT materialCount = static_cast<UINT>(m_pmxFileData.materials.size());
-
     if (materialCount == 0)
         return true;
 
-    //! Material配列用CB作成
+    //! Material CB（配列）
     m_materialCB = ConstantBuffer<Material>(materialCount);
+    m_materialSRVs.resize(materialCount);
 
-    //! データ書き込み
+    auto& texMgr = TextureManager::Instance();
+
     for (UINT i = 0; i < materialCount; ++i)
     {
-        Material mat{};
-        mat.diffuse = m_pmxFileData.materials[i].diffuse;
-        mat.specular = m_pmxFileData.materials[i].specular;
-        mat.specularPower = m_pmxFileData.materials[i].specularPower;
-        mat.ambient = m_pmxFileData.materials[i].ambient;
+        const auto& srcMat = m_pmxFileData.materials[i];
 
+        //! Material 定数
+        Material mat{};
+        mat.diffuse = srcMat.diffuse;
+        mat.specular = srcMat.specular;
+        mat.specularPower = srcMat.specularPower;
+        mat.ambient = srcMat.ambient;
         m_materialCB.update(i, mat);
+
+        //! Diffuse Texture
+        if (!srcMat.texturePath.empty())
+        {
+            auto tex = texMgr.load(srcMat.texturePath);
+            m_materialSRVs[i].diffuse = tex->getSRVIndex();
+        }
+        else
+        {
+            m_materialSRVs[i].diffuse = texMgr.getWhiteTextureSRVIndex();
+        }
+
+        //! Toon Texture
+        if (!srcMat.toonTexturePath.empty())
+        {
+            auto tex = texMgr.load(srcMat.toonTexturePath);
+            m_materialSRVs[i].toon = tex->getSRVIndex();
+        }
+        else
+        {
+            m_materialSRVs[i].toon = texMgr.getWhiteTextureSRVIndex();
+        }
+
+        //! Sphere Texture
+        if (!srcMat.sphereTexturePath.empty())
+        {
+            auto tex = texMgr.load(srcMat.sphereTexturePath);
+            m_materialSRVs[i].sphere = tex->getSRVIndex();
+        }
+        else
+        {
+            m_materialSRVs[i].sphere = texMgr.getWhiteTextureSRVIndex();
+        }
     }
 
     return true;

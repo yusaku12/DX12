@@ -19,6 +19,9 @@ public:
     //! テクスチャをロード（キャッシュあり）
     LoadTexture* load(const std::wstring& filePath);
 
+    //!  白テクスチャ取得
+    UINT getWhiteTextureSRVIndex();
+
     //! 全テクスチャ解放
     void clear();
 
@@ -29,4 +32,7 @@ private:
 
     //! テクスチャキャッシュ
     std::unordered_map<std::wstring, std::unique_ptr<LoadTexture>> m_textureCache;
+
+    //! 白テクスチャ作成
+    LoadTexture* m_whiteTexture = nullptr;
 };
