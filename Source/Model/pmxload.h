@@ -526,5 +526,14 @@ private:
     //! ソフトボディ読み込み
     bool readSoftBody(PMXFileData& data, std::ifstream& file);
 
+    //! インデックス読み込み共通関数
+    static void readIndex(std::ifstream& file, int indexSize, int& out);
+
+    //! インデックス読み込み共通関数（戻り値版）
+    static int readIndex(std::ifstream& file, uint8_t indexSize);
+
+    //! ボーンフラグの判定
+    inline bool hasBoneFlag(PMXBoneFlags flags, PMXBoneFlags test);
+
     static constexpr std::array<unsigned char, 4> PMX_MAGIC_NUMBER{ 0x50, 0x4d, 0x58, 0x20 };  //!< PMXファイルのマジックナンバー
 };

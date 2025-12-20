@@ -167,31 +167,37 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
 
 bool PmxLoad::readHeader(PMXFileData& data, std::ifstream& file)
 {
-    //! 一致しない場合はPMXファイル形式ではない
-    file.read(reinterpret_cast<char*>(data.header.magic.data()), data.header.magic.size());
-    if (data.header.magic != PMX_MAGIC_NUMBER)
+    //! magic
+    if (!file.read(reinterpret_cast<char*>(data.header.magic.data()), data.header.magic.size()))
     {
-        Logger::Instance().logCall(LogLevel::ERROR, "failure PMX file");
+        Logger::Instance().logCall(LogLevel::ERROR, "PMX magic read failed");
         return false;
     }
 
-    //! 4バイトはファイルのバージョン
-    //! 1バイトはデータのサイズ
-    //! 1バイトはテキストエンコーディング
-    file.read(reinterpret_cast<char*>(&data.header.version), sizeof(data.header.version));
-    file.read(reinterpret_cast<char*>(&data.header.dataLength), sizeof(data.header.dataLength));
-    file.read(reinterpret_cast<char*>(&data.header.textEncoding), sizeof(data.header.textEncoding));
+    if (data.header.magic != PMX_MAGIC_NUMBER)
+    {
+        Logger::Instance().logCall(LogLevel::ERROR, "Not PMX file");
+        return false;
+    }
 
-    //! 追加UVの数
-    file.read(reinterpret_cast<char*>(&data.header.addUVNum), sizeof(data.header.addUVNum));
+    //! version
+    file.read(reinterpret_cast<char*>(&data.header.version), sizeof(float));
 
-    //! 1バイトずつモデル情報を読み込む
-    file.read(reinterpret_cast<char*>(&data.header.vertexIndexSize), sizeof(data.header.vertexIndexSize));
-    file.read(reinterpret_cast<char*>(&data.header.textureIndexSize), sizeof(data.header.textureIndexSize));
-    file.read(reinterpret_cast<char*>(&data.header.materialIndexSize), sizeof(data.header.materialIndexSize));
-    file.read(reinterpret_cast<char*>(&data.header.boneIndexSize), sizeof(data.header.boneIndexSize));
-    file.read(reinterpret_cast<char*>(&data.header.morphIndexSize), sizeof(data.header.morphIndexSize));
-    file.read(reinterpret_cast<char*>(&data.header.rigidBodyIndexSize), sizeof(data.header.rigidBodyIndexSize));
+    //! data length
+    file.read(reinterpret_cast<char*>(&data.header.dataLength), 1);
+
+    //! 可変ヘッダ
+    std::vector<uint8_t> headerData(data.header.dataLength);
+    file.read(reinterpret_cast<char*>(headerData.data()), data.header.dataLength);
+
+    data.header.textEncoding = headerData[0];
+    data.header.addUVNum = headerData[1];
+    data.header.vertexIndexSize = headerData[2];
+    data.header.textureIndexSize = headerData[3];
+    data.header.materialIndexSize = headerData[4];
+    data.header.boneIndexSize = headerData[5];
+    data.header.morphIndexSize = headerData[6];
+    data.header.rigidBodyIndexSize = headerData[7];
 
     return true;
 }
@@ -199,70 +205,80 @@ bool PmxLoad::readHeader(PMXFileData& data, std::ifstream& file)
 bool PmxLoad::readModelInfo(PMXFileData& data, std::ifstream& file)
 {
     getPMXStringUTF16(file, data.modelInfo.modelName);
-    getPMXStringUTF8(file, data.modelInfo.englishModelName);
     getPMXStringUTF16(file, data.modelInfo.comment);
+    getPMXStringUTF8(file, data.modelInfo.englishModelName);
     getPMXStringUTF8(file, data.modelInfo.englishComment);
+
+    //!読み込んだモデル名をログ出力
+    Logger::Instance().logCall(
+        LogLevel::INFO,
+        "PMX Model Loaded : " + wstringToString(data.modelInfo.modelName)
+    );
 
     return true;
 }
 
 bool PmxLoad::readVertex(PMXFileData& data, std::ifstream& file)
 {
-    //! 読み込んだモデルの頂点数
-    unsigned int vertexCount;
-    file.read(reinterpret_cast<char*>(&vertexCount), 4);
+    uint32_t vertexCount = 0;
+    file.read(reinterpret_cast<char*>(&vertexCount), sizeof(uint32_t));
     data.vertices.resize(vertexCount);
 
     for (auto& vertex : data.vertices)
     {
-        //! 位置、法線、UV値
+        //! position / normal / uv
         file.read(reinterpret_cast<char*>(&vertex.position), 12);
         file.read(reinterpret_cast<char*>(&vertex.normal), 12);
         file.read(reinterpret_cast<char*>(&vertex.uv), 8);
 
-        //! 追加UV
-        for (int i = 0; i < data.header.addUVNum; i++)
+        //! additional UV (max 4)
+        for (uint8_t i = 0; i < std::min(data.header.addUVNum, uint8_t(4)); ++i)
         {
             file.read(reinterpret_cast<char*>(&vertex.additionalUV[i]), 16);
         }
 
-        //!  ボーンのウェイトタイプ
+        //! weight type
         file.read(reinterpret_cast<char*>(&vertex.weightType), 1);
-        const unsigned char boneIndexSize = data.header.boneIndexSize;
+
         switch (vertex.weightType)
         {
         case PMXVertexWeight::BDEF1:
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[0]), boneIndexSize);
+            readIndex(file, data.header.boneIndexSize, vertex.boneIndices[0]);
             break;
+
         case PMXVertexWeight::BDEF2:
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[0]), boneIndexSize);
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[1]), boneIndexSize);
+            readIndex(file, data.header.boneIndexSize, vertex.boneIndices[0]);
+            readIndex(file, data.header.boneIndexSize, vertex.boneIndices[1]);
             file.read(reinterpret_cast<char*>(&vertex.boneWeights[0]), 4);
             break;
+
         case PMXVertexWeight::BDEF4:
         case PMXVertexWeight::QDEF:
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[0]), boneIndexSize);
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[1]), boneIndexSize);
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[2]), boneIndexSize);
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[3]), boneIndexSize);
-            file.read(reinterpret_cast<char*>(&vertex.boneWeights[0]), 4);
-            file.read(reinterpret_cast<char*>(&vertex.boneWeights[1]), 4);
-            file.read(reinterpret_cast<char*>(&vertex.boneWeights[2]), 4);
-            file.read(reinterpret_cast<char*>(&vertex.boneWeights[3]), 4);
+            for (int i = 0; i < 4; ++i)
+                readIndex(file, data.header.boneIndexSize, vertex.boneIndices[i]);
+
+            for (int i = 0; i < 4; ++i)
+                file.read(reinterpret_cast<char*>(&vertex.boneWeights[i]), 4);
             break;
+
         case PMXVertexWeight::SDEF:
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[0]), boneIndexSize);
-            file.read(reinterpret_cast<char*>(&vertex.boneIndices[1]), boneIndexSize);
+            readIndex(file, data.header.boneIndexSize, vertex.boneIndices[0]);
+            readIndex(file, data.header.boneIndexSize, vertex.boneIndices[1]);
             file.read(reinterpret_cast<char*>(&vertex.boneWeights[0]), 4);
             file.read(reinterpret_cast<char*>(&vertex.sdefC), 12);
             file.read(reinterpret_cast<char*>(&vertex.sdefR0), 12);
             file.read(reinterpret_cast<char*>(&vertex.sdefR1), 12);
             break;
-        default:
-            break;
         }
 
+        //! edge
         file.read(reinterpret_cast<char*>(&vertex.edgeMag), 4);
+
+        if (!file)
+        {
+            Logger::Instance().logCall(LogLevel::ERROR, "Vertex read failed");
+            return false;
+        }
     }
 
     return true;
@@ -270,38 +286,25 @@ bool PmxLoad::readVertex(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readFace(PMXFileData& data, std::ifstream& file)
 {
-    unsigned int indexCount = 0;
-    file.read(reinterpret_cast<char*>(&indexCount), 4);
+    uint32_t indexCount = 0;
+    file.read(reinterpret_cast<char*>(&indexCount), sizeof(uint32_t));
 
-    //! インデックス数（3 * faceCount）
-    if (indexCount % 3 != 0) return false; // 異常ファイル保護
-
-    unsigned int faceCount = indexCount / 3;
-    data.faces.resize(faceCount);
-
-    size_t elementSize = data.header.vertexIndexSize;
-    size_t totalBytes = indexCount * elementSize;
-
-    std::vector<uint8_t> raw(totalBytes);
-
-    //! 読み込みエラーチェック
-    if (!file.read(reinterpret_cast<char*>(raw.data()), totalBytes))
+    if (indexCount % 3 != 0)
         return false;
 
-    for (size_t i = 0; i < faceCount; i++)
-    {
-        auto readIndex = [&](size_t idx) -> uint32_t
-            {
-                size_t offset = idx * elementSize;
-                if (elementSize == 1) return raw[offset];
-                if (elementSize == 2) return *reinterpret_cast<uint16_t*>(&raw[offset]);
-                if (elementSize == 4) return *reinterpret_cast<uint32_t*>(&raw[offset]);
-                return 0;
-            };
+    const uint32_t faceCount = indexCount / 3;
+    data.faces.resize(faceCount);
 
-        data.faces[i].vertices[0] = readIndex(i * 3 + 0);
-        data.faces[i].vertices[1] = readIndex(i * 3 + 1);
-        data.faces[i].vertices[2] = readIndex(i * 3 + 2);
+    for (uint32_t i = 0; i < faceCount; ++i)
+    {
+        for (int v = 0; v < 3; ++v)
+        {
+            int index = readIndex(file, data.header.vertexIndexSize);
+            if (index < 0)
+                return false;
+
+            data.faces[i].vertices[v] = static_cast<uint32_t>(index);
+        }
     }
 
     return true;
@@ -309,8 +312,8 @@ bool PmxLoad::readFace(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readTextures(PMXFileData& data, std::ifstream& file)
 {
-    unsigned int numOfTexture = 0;
-    file.read(reinterpret_cast<char*>(&numOfTexture), 4);
+    uint32_t numOfTexture = 0;
+    file.read(reinterpret_cast<char*>(&numOfTexture), sizeof(uint32_t));
 
     data.textures.resize(numOfTexture);
 
@@ -324,41 +327,45 @@ bool PmxLoad::readTextures(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
 {
-    int numOfMaterial = 0;
-    file.read(reinterpret_cast<char*>(&numOfMaterial), 4);
+    uint32_t numOfMaterial = 0;
+    file.read(reinterpret_cast<char*>(&numOfMaterial), sizeof(uint32_t));
     data.materials.resize(numOfMaterial);
 
     for (auto& mat : data.materials)
     {
+        //! name
         getPMXStringUTF16(file, mat.name);
         getPMXStringUTF8(file, mat.englishName);
 
+        //! basic params
         file.read(reinterpret_cast<char*>(&mat.diffuse), 16);
         file.read(reinterpret_cast<char*>(&mat.specular), 12);
         file.read(reinterpret_cast<char*>(&mat.specularPower), 4);
         file.read(reinterpret_cast<char*>(&mat.ambient), 12);
 
+        //! draw flag
         file.read(reinterpret_cast<char*>(&mat.drawMode), 1);
+
+        //! edge
         file.read(reinterpret_cast<char*>(&mat.edgeColor), 16);
         file.read(reinterpret_cast<char*>(&mat.edgeSize), 4);
 
-        int textureIndex = -1;
-        int sphereTextureIndex = -1;
-        int toonTextureIndex = -1;
+        //! texture indices
+        int textureIndex = readIndex(file, data.header.textureIndexSize);
+        int sphereTextureIndex = readIndex(file, data.header.textureIndexSize);
 
-        file.read(reinterpret_cast<char*>(&textureIndex), data.header.textureIndexSize);
-        file.read(reinterpret_cast<char*>(&sphereTextureIndex), data.header.textureIndexSize);
         file.read(reinterpret_cast<char*>(&mat.sphereMode), 1);
-
         file.read(reinterpret_cast<char*>(&mat.toonMode), 1);
+
+        int toonTextureIndex = -1;
 
         if (mat.toonMode == PMXToonMode::Separate)
         {
-            file.read(reinterpret_cast<char*>(&toonTextureIndex), data.header.textureIndexSize);
+            toonTextureIndex = readIndex(file, data.header.textureIndexSize);
         }
         else if (mat.toonMode == PMXToonMode::Common)
         {
-            uint8_t commonIndex = 0;
+            uint8_t commonIndex;
             file.read(reinterpret_cast<char*>(&commonIndex), 1);
             toonTextureIndex = commonIndex;
         }
@@ -367,6 +374,7 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
             return false;
         }
 
+        //! resolve texture path
         if (textureIndex >= 0 && textureIndex < (int)data.textures.size())
             mat.texturePath = data.textures[textureIndex].textureName;
 
@@ -376,8 +384,14 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
         if (toonTextureIndex >= 0 && toonTextureIndex < (int)data.textures.size())
             mat.toonTexturePath = data.textures[toonTextureIndex].textureName;
 
+        //! memo
         getPMXStringUTF16(file, mat.memo);
+
+        //! face vertex count
         file.read(reinterpret_cast<char*>(&mat.numFaceVertices), 4);
+
+        if (!file)
+            return false;
     }
 
     return true;
@@ -385,76 +399,86 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readBone(PMXFileData& data, std::ifstream& file)
 {
-    unsigned int numOfBone;
-    file.read(reinterpret_cast<char*>(&numOfBone), 4);
+    uint32_t numOfBone = 0;
+    file.read(reinterpret_cast<char*>(&numOfBone), sizeof(uint32_t));
 
     data.bones.resize(numOfBone);
 
     for (auto& bone : data.bones)
     {
+        //! name
         getPMXStringUTF16(file, bone.name);
         getPMXStringUTF8(file, bone.englishName);
 
+        //! base
         file.read(reinterpret_cast<char*>(&bone.position), 12);
-        file.read(reinterpret_cast<char*>(&bone.parentBoneIndex), data.header.boneIndexSize);
+        bone.parentBoneIndex = readIndex(file, data.header.boneIndexSize);
         file.read(reinterpret_cast<char*>(&bone.deformDepth), 4);
-
         file.read(reinterpret_cast<char*>(&bone.boneFlag), 2);
 
-        if (((uint16_t)bone.boneFlag & (uint16_t)PMXBoneFlags::TargetShowMode) == 0)
+        //! 表示先
+        if (!hasBoneFlag(bone.boneFlag, PMXBoneFlags::TargetShowMode))
         {
             file.read(reinterpret_cast<char*>(&bone.positionOffset), 12);
         }
         else
         {
-            file.read(reinterpret_cast<char*>(&bone.linkBoneIndex), data.header.boneIndexSize);
+            bone.linkBoneIndex = readIndex(file, data.header.boneIndexSize);
         }
 
-        if (((uint16_t)bone.boneFlag & (uint16_t)PMXBoneFlags::AppendRotate) ||
-            ((uint16_t)bone.boneFlag & (uint16_t)PMXBoneFlags::AppendTranslate))
+        //! 付与
+        if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::AppendRotate) ||
+            hasBoneFlag(bone.boneFlag, PMXBoneFlags::AppendTranslate))
         {
-            file.read(reinterpret_cast<char*>(&bone.appendBoneIndex), data.header.boneIndexSize);
+            bone.appendBoneIndex = readIndex(file, data.header.boneIndexSize);
             file.read(reinterpret_cast<char*>(&bone.appendWeight), 4);
         }
 
-        if ((uint16_t)bone.boneFlag & (uint16_t)PMXBoneFlags::FixedAxis)
+        //! 固定軸
+        if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::FixedAxis))
         {
             file.read(reinterpret_cast<char*>(&bone.fixedAxis), 12);
         }
 
-        if ((uint16_t)bone.boneFlag & (uint16_t)PMXBoneFlags::LocalAxis)
+        //! ローカル軸
+        if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::LocalAxis))
         {
             file.read(reinterpret_cast<char*>(&bone.localXAxis), 12);
             file.read(reinterpret_cast<char*>(&bone.localZAxis), 12);
         }
 
-        if ((uint16_t)bone.boneFlag & (uint16_t)PMXBoneFlags::DeformOuterParent)
+        //! 外部親変形
+        if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::DeformOuterParent))
         {
             file.read(reinterpret_cast<char*>(&bone.keyValue), 4);
         }
 
-        if ((uint16_t)bone.boneFlag & (uint16_t)PMXBoneFlags::IK)
+        //! IK
+        if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::IK))
         {
-            file.read(reinterpret_cast<char*>(&bone.ikTargetBoneIndex), data.header.boneIndexSize);
+            bone.ikTargetBoneIndex = readIndex(file, data.header.boneIndexSize);
             file.read(reinterpret_cast<char*>(&bone.ikIterationCount), 4);
             file.read(reinterpret_cast<char*>(&bone.ikLimit), 4);
 
-            unsigned int linkCount = 0;
+            uint32_t linkCount = 0;
             file.read(reinterpret_cast<char*>(&linkCount), 4);
 
             bone.ikLinks.resize(linkCount);
             for (auto& ikLink : bone.ikLinks)
             {
-                file.read(reinterpret_cast<char*>(&ikLink.ikBoneIndex), data.header.boneIndexSize);
+                ikLink.ikBoneIndex = readIndex(file, data.header.boneIndexSize);
                 file.read(reinterpret_cast<char*>(&ikLink.enableLimit), 1);
 
-                if (ikLink.enableLimit != 0)
+                if (ikLink.enableLimit)
                 {
                     file.read(reinterpret_cast<char*>(&ikLink.limitMin), 12);
                     file.read(reinterpret_cast<char*>(&ikLink.limitMax), 12);
                 }
             }
         }
+
+        if (!file)
+            return false;
     }
 
     return true;
@@ -462,105 +486,102 @@ bool PmxLoad::readBone(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readMorph(PMXFileData& data, std::ifstream& file)
 {
-    unsigned int numOfMorph = 0;
-    file.read(reinterpret_cast<char*>(&numOfMorph), 4);
+    uint32_t numOfMorph = 0;
+    file.read(reinterpret_cast<char*>(&numOfMorph), sizeof(uint32_t));
 
     data.morphs.resize(numOfMorph);
 
     for (auto& morph : data.morphs)
     {
+        //! name
         getPMXStringUTF16(file, morph.name);
         getPMXStringUTF8(file, morph.englishName);
 
         file.read(reinterpret_cast<char*>(&morph.controlPanel), 1);
         file.read(reinterpret_cast<char*>(&morph.morphType), 1);
 
-        unsigned int dataCount;
+        uint32_t dataCount = 0;
         file.read(reinterpret_cast<char*>(&dataCount), 4);
 
-        if (morph.morphType == PMXMorphType::Position)
+        switch (morph.morphType)
         {
+        case PMXMorphType::Position:
             morph.positionMorph.resize(dataCount);
-            for (auto& morphData : morph.positionMorph)
+            for (auto& d : morph.positionMorph)
             {
-                file.read(reinterpret_cast<char*>(&morphData.vertexIndex), data.header.vertexIndexSize);
-                file.read(reinterpret_cast<char*>(&morphData.position), 12);
+                d.vertexIndex = readIndex(file, data.header.vertexIndexSize);
+                file.read(reinterpret_cast<char*>(&d.position), 12);
             }
-        }
-        else if (morph.morphType == PMXMorphType::UV ||
-            morph.morphType == PMXMorphType::AddUV1 ||
-            morph.morphType == PMXMorphType::AddUV2 ||
-            morph.morphType == PMXMorphType::AddUV3 ||
-            morph.morphType == PMXMorphType::AddUV4)
-        {
+            break;
+
+        case PMXMorphType::UV:
+        case PMXMorphType::AddUV1:
+        case PMXMorphType::AddUV2:
+        case PMXMorphType::AddUV3:
+        case PMXMorphType::AddUV4:
             morph.uvMorph.resize(dataCount);
-            for (auto& morphData : morph.uvMorph)
+            for (auto& d : morph.uvMorph)
             {
-                file.read(reinterpret_cast<char*>(&morphData.vertexIndex), data.header.vertexIndexSize);
-                file.read(reinterpret_cast<char*>(&morphData.uv), 16);
+                d.vertexIndex = readIndex(file, data.header.vertexIndexSize);
+                file.read(reinterpret_cast<char*>(&d.uv), 16);
             }
-        }
-        else if (morph.morphType == PMXMorphType::Bone)
-        {
+            break;
+
+        case PMXMorphType::Bone:
             morph.boneMorph.resize(dataCount);
-            for (auto& morphData : morph.boneMorph)
+            for (auto& d : morph.boneMorph)
             {
-                file.read(reinterpret_cast<char*>(&morphData.boneIndex), data.header.boneIndexSize);
-                file.read(reinterpret_cast<char*>(&morphData.position), 12);
-                file.read(reinterpret_cast<char*>(&morphData.quaternion), 16);
+                d.boneIndex = readIndex(file, data.header.boneIndexSize);
+                file.read(reinterpret_cast<char*>(&d.position), 12);
+                file.read(reinterpret_cast<char*>(&d.quaternion), 16);
             }
-        }
-        else if (morph.morphType == PMXMorphType::Material)
-        {
+            break;
+
+        case PMXMorphType::Material:
             morph.materialMorph.resize(dataCount);
-            for (auto& morphData : morph.materialMorph)
+            for (auto& d : morph.materialMorph)
             {
-                file.read(reinterpret_cast<char*>(&morphData.materialIndex), data.header.materialIndexSize);
-                file.read(reinterpret_cast<char*>(&morphData.opType), 1);
-                file.read(reinterpret_cast<char*>(&morphData.diffuse), 16);
-                file.read(reinterpret_cast<char*>(&morphData.specular), 12);
-                file.read(reinterpret_cast<char*>(&morphData.specularPower), 4);
-                file.read(reinterpret_cast<char*>(&morphData.ambient), 12);
-                file.read(reinterpret_cast<char*>(&morphData.edgeColor), 16);
-                file.read(reinterpret_cast<char*>(&morphData.edgeSize), 4);
-                file.read(reinterpret_cast<char*>(&morphData.textureFactor), 16);
-                file.read(reinterpret_cast<char*>(&morphData.sphereTextureFactor), 16);
-                file.read(reinterpret_cast<char*>(&morphData.toonTextureFactor), 16);
+                d.materialIndex = readIndex(file, data.header.materialIndexSize);
+                file.read(reinterpret_cast<char*>(&d.opType), 1);
+                file.read(reinterpret_cast<char*>(&d.diffuse), 16);
+                file.read(reinterpret_cast<char*>(&d.specular), 12);
+                file.read(reinterpret_cast<char*>(&d.specularPower), 4);
+                file.read(reinterpret_cast<char*>(&d.ambient), 12);
+                file.read(reinterpret_cast<char*>(&d.edgeColor), 16);
+                file.read(reinterpret_cast<char*>(&d.edgeSize), 4);
+                file.read(reinterpret_cast<char*>(&d.textureFactor), 16);
+                file.read(reinterpret_cast<char*>(&d.sphereTextureFactor), 16);
+                file.read(reinterpret_cast<char*>(&d.toonTextureFactor), 16);
             }
-        }
-        else if (morph.morphType == PMXMorphType::Group)
-        {
+            break;
+
+        case PMXMorphType::Group:
+        case PMXMorphType::Flip:
             morph.groupMorph.resize(dataCount);
-            for (auto& morphData : morph.groupMorph)
+            for (auto& d : morph.groupMorph)
             {
-                file.read(reinterpret_cast<char*>(&morphData.morphIndex), data.header.morphIndexSize);
-                file.read(reinterpret_cast<char*>(&morphData.weight), 4);
+                d.morphIndex = readIndex(file, data.header.morphIndexSize);
+                file.read(reinterpret_cast<char*>(&d.weight), 4);
             }
-        }
-        else if (morph.morphType == PMXMorphType::Flip)
-        {
-            morph.flipMorph.resize(dataCount);
-            for (auto& morphData : morph.flipMorph)
-            {
-                file.read(reinterpret_cast<char*>(&morphData.morphIndex), data.header.morphIndexSize);
-                file.read(reinterpret_cast<char*>(&morphData.weight), 4);
-            }
-        }
-        else if (morph.morphType == PMXMorphType::Impluse)
-        {
+            break;
+
+        case PMXMorphType::Impluse:
             morph.impulseMorph.resize(dataCount);
-            for (auto& morphData : morph.impulseMorph)
+            for (auto& d : morph.impulseMorph)
             {
-                file.read(reinterpret_cast<char*>(&morphData.rigidBodyIndex), data.header.rigidBodyIndexSize);
-                file.read(reinterpret_cast<char*>(&morphData.localFlag), 1);
-                file.read(reinterpret_cast<char*>(&morphData.translateVelocity), 12);
-                file.read(reinterpret_cast<char*>(&morphData.rotateTorque), 12);
+                d.rigidBodyIndex = readIndex(file, data.header.rigidBodyIndexSize);
+                file.read(reinterpret_cast<char*>(&d.localFlag), 1);
+                file.read(reinterpret_cast<char*>(&d.translateVelocity), 12);
+                file.read(reinterpret_cast<char*>(&d.rotateTorque), 12);
             }
-        }
-        else
-        {
+            break;
+
+        default:
             return false;
         }
+
+        if (!file)
+            return false;
     }
 
     return true;
@@ -568,38 +589,43 @@ bool PmxLoad::readMorph(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readDisplayFrame(PMXFileData& data, std::ifstream& file)
 {
-    unsigned int numOfDisplayFrame = 0;
-    file.read(reinterpret_cast<char*>(&numOfDisplayFrame), 4);
+    uint32_t numOfDisplayFrame = 0;
+    file.read(reinterpret_cast<char*>(&numOfDisplayFrame), sizeof(uint32_t));
 
     data.displayFrames.resize(numOfDisplayFrame);
 
-    for (auto& displayFrame : data.displayFrames)
+    for (auto& frame : data.displayFrames)
     {
-        getPMXStringUTF16(file, displayFrame.name);
-        getPMXStringUTF8(file, displayFrame.englishName);
+        //! name
+        getPMXStringUTF16(file, frame.name);
+        getPMXStringUTF8(file, frame.englishName);
 
-        file.read(reinterpret_cast<char*>(&displayFrame.flag), 1);
+        file.read(reinterpret_cast<char*>(&frame.flag), 1);
 
-        unsigned int targetCount = 0;
-        file.read(reinterpret_cast<char*>(&targetCount), 4);
+        uint32_t targetCount = 0;
+        file.read(reinterpret_cast<char*>(&targetCount), sizeof(uint32_t));
 
-        displayFrame.targets.resize(targetCount);
-        for (auto& target : displayFrame.targets)
+        frame.targets.resize(targetCount);
+        for (auto& target : frame.targets)
         {
             file.read(reinterpret_cast<char*>(&target.type), 1);
+
             if (target.type == PMXDisplayFrame::TargetType::BoneIndex)
             {
-                file.read(reinterpret_cast<char*>(&target.index), data.header.boneIndexSize);
+                target.index = readIndex(file, data.header.boneIndexSize);
             }
             else if (target.type == PMXDisplayFrame::TargetType::MorphIndex)
             {
-                file.read(reinterpret_cast<char*>(&target.index), data.header.morphIndexSize);
+                target.index = readIndex(file, data.header.morphIndexSize);
             }
             else
             {
                 return false;
             }
         }
+
+        if (!file)
+            return false;
     }
 
     return true;
@@ -607,29 +633,34 @@ bool PmxLoad::readDisplayFrame(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readRigidBody(PMXFileData& data, std::ifstream& file)
 {
-    unsigned int numOfRigidBody = 0;
-    file.read(reinterpret_cast<char*>(&numOfRigidBody), 4);
+    uint32_t numOfRigidBody = 0;
+    file.read(reinterpret_cast<char*>(&numOfRigidBody), sizeof(uint32_t));
 
     data.rigidBodies.resize(numOfRigidBody);
 
-    for (auto& rigidBody : data.rigidBodies)
+    for (auto& rb : data.rigidBodies)
     {
-        getPMXStringUTF16(file, rigidBody.name);
-        getPMXStringUTF8(file, rigidBody.englishName);
+        //! name
+        getPMXStringUTF16(file, rb.name);
+        getPMXStringUTF8(file, rb.englishName);
 
-        file.read(reinterpret_cast<char*>(&rigidBody.boneIndex), data.header.boneIndexSize);
-        file.read(reinterpret_cast<char*>(&rigidBody.group), 1);
-        file.read(reinterpret_cast<char*>(&rigidBody.collisionGroup), 2);
-        file.read(reinterpret_cast<char*>(&rigidBody.shape), 1);
-        file.read(reinterpret_cast<char*>(&rigidBody.shapeSize), 12);
-        file.read(reinterpret_cast<char*>(&rigidBody.translate), 12);
-        file.read(reinterpret_cast<char*>(&rigidBody.rotate), 12);
-        file.read(reinterpret_cast<char*>(&rigidBody.mass), 4);
-        file.read(reinterpret_cast<char*>(&rigidBody.translateDimmer), 4);
-        file.read(reinterpret_cast<char*>(&rigidBody.rotateDimmer), 4);
-        file.read(reinterpret_cast<char*>(&rigidBody.repulsion), 4);
-        file.read(reinterpret_cast<char*>(&rigidBody.friction), 4);
-        file.read(reinterpret_cast<char*>(&rigidBody.op), 1);
+        rb.boneIndex = readIndex(file, data.header.boneIndexSize);
+
+        file.read(reinterpret_cast<char*>(&rb.group), 1);
+        file.read(reinterpret_cast<char*>(&rb.collisionGroup), 2);
+        file.read(reinterpret_cast<char*>(&rb.shape), 1);
+        file.read(reinterpret_cast<char*>(&rb.shapeSize), 12);
+        file.read(reinterpret_cast<char*>(&rb.translate), 12);
+        file.read(reinterpret_cast<char*>(&rb.rotate), 12);
+        file.read(reinterpret_cast<char*>(&rb.mass), 4);
+        file.read(reinterpret_cast<char*>(&rb.translateDimmer), 4);
+        file.read(reinterpret_cast<char*>(&rb.rotateDimmer), 4);
+        file.read(reinterpret_cast<char*>(&rb.repulsion), 4);
+        file.read(reinterpret_cast<char*>(&rb.friction), 4);
+        file.read(reinterpret_cast<char*>(&rb.op), 1);
+
+        if (!file)
+            return false;
     }
 
     return true;
@@ -637,19 +668,21 @@ bool PmxLoad::readRigidBody(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readJoint(PMXFileData& data, std::ifstream& file)
 {
-    unsigned int numOfJoint = 0;
-    file.read(reinterpret_cast<char*>(&numOfJoint), 4);
+    uint32_t numOfJoint = 0;
+    file.read(reinterpret_cast<char*>(&numOfJoint), sizeof(uint32_t));
 
     data.joints.resize(numOfJoint);
 
     for (auto& joint : data.joints)
     {
+        //! name
         getPMXStringUTF16(file, joint.name);
         getPMXStringUTF8(file, joint.englishName);
 
         file.read(reinterpret_cast<char*>(&joint.type), 1);
-        file.read(reinterpret_cast<char*>(&joint.rigidBodyAIndex), data.header.rigidBodyIndexSize);
-        file.read(reinterpret_cast<char*>(&joint.rigidBodyBIndex), data.header.rigidBodyIndexSize);
+
+        joint.rigidBodyAIndex = readIndex(file, data.header.rigidBodyIndexSize);
+        joint.rigidBodyBIndex = readIndex(file, data.header.rigidBodyIndexSize);
 
         file.read(reinterpret_cast<char*>(&joint.translate), 12);
         file.read(reinterpret_cast<char*>(&joint.rotate), 12);
@@ -661,6 +694,9 @@ bool PmxLoad::readJoint(PMXFileData& data, std::ifstream& file)
 
         file.read(reinterpret_cast<char*>(&joint.springTranslateFactor), 12);
         file.read(reinterpret_cast<char*>(&joint.springRotateFactor), 12);
+
+        if (!file)
+            return false;
     }
 
     return true;
@@ -668,81 +704,156 @@ bool PmxLoad::readJoint(PMXFileData& data, std::ifstream& file)
 
 bool PmxLoad::readSoftBody(PMXFileData& data, std::ifstream& file)
 {
-    unsigned int numOfSoftBody = 0;
-    file.read(reinterpret_cast<char*>(&numOfSoftBody), 4);
+    uint32_t numOfSoftBody = 0;
+    file.read(reinterpret_cast<char*>(&numOfSoftBody), sizeof(uint32_t));
 
     data.softBodies.resize(numOfSoftBody);
 
-    for (auto& softBody : data.softBodies)
+    for (auto& sb : data.softBodies)
     {
-        getPMXStringUTF16(file, softBody.name);
-        getPMXStringUTF8(file, softBody.englishName);
+        //! name
+        getPMXStringUTF16(file, sb.name);
+        getPMXStringUTF8(file, sb.englishName);
 
-        file.read(reinterpret_cast<char*>(&softBody.type), 1);
+        //! base
+        file.read(reinterpret_cast<char*>(&sb.type), 1);
 
-        file.read(reinterpret_cast<char*>(&softBody.materialIndex), data.header.materialIndexSize);
-        file.read(reinterpret_cast<char*>(&softBody.group), 1);
-        file.read(reinterpret_cast<char*>(&softBody.collisionGroup), 2);
+        sb.materialIndex = readIndex(file, data.header.materialIndexSize);
 
-        file.read(reinterpret_cast<char*>(&softBody.flag), 1);
+        file.read(reinterpret_cast<char*>(&sb.group), 1);
+        file.read(reinterpret_cast<char*>(&sb.collisionGroup), 2);
+        file.read(reinterpret_cast<char*>(&sb.flag), 1);
 
-        file.read(reinterpret_cast<char*>(&softBody.bLinkLength), 4);
-        file.read(reinterpret_cast<char*>(&softBody.numClusters), 4);
+        file.read(reinterpret_cast<char*>(&sb.bLinkLength), 4);
+        file.read(reinterpret_cast<char*>(&sb.numClusters), 4);
 
-        file.read(reinterpret_cast<char*>(&softBody.totalMass), 4);
-        file.read(reinterpret_cast<char*>(&softBody.collisionMargin), 4);
+        file.read(reinterpret_cast<char*>(&sb.totalMass), 4);
+        file.read(reinterpret_cast<char*>(&sb.collisionMargin), 4);
 
-        file.read(reinterpret_cast<char*>(&softBody.areoModel), 4);
+        file.read(reinterpret_cast<char*>(&sb.areoModel), 4);
 
-        file.read(reinterpret_cast<char*>(&softBody.vcf), 4);
-        file.read(reinterpret_cast<char*>(&softBody.dp), 4);
-        file.read(reinterpret_cast<char*>(&softBody.dg), 4);
-        file.read(reinterpret_cast<char*>(&softBody.lf), 4);
-        file.read(reinterpret_cast<char*>(&softBody.pr), 4);
-        file.read(reinterpret_cast<char*>(&softBody.vc), 4);
-        file.read(reinterpret_cast<char*>(&softBody.df), 4);
-        file.read(reinterpret_cast<char*>(&softBody.mt), 4);
-        file.read(reinterpret_cast<char*>(&softBody.chr), 4);
-        file.read(reinterpret_cast<char*>(&softBody.khr), 4);
-        file.read(reinterpret_cast<char*>(&softBody.shr), 4);
-        file.read(reinterpret_cast<char*>(&softBody.ahr), 4);
+        //! physics parameters
+        file.read(reinterpret_cast<char*>(&sb.vcf), 4);
+        file.read(reinterpret_cast<char*>(&sb.dp), 4);
+        file.read(reinterpret_cast<char*>(&sb.dg), 4);
+        file.read(reinterpret_cast<char*>(&sb.lf), 4);
+        file.read(reinterpret_cast<char*>(&sb.pr), 4);
+        file.read(reinterpret_cast<char*>(&sb.vc), 4);
+        file.read(reinterpret_cast<char*>(&sb.df), 4);
+        file.read(reinterpret_cast<char*>(&sb.mt), 4);
+        file.read(reinterpret_cast<char*>(&sb.chr), 4);
+        file.read(reinterpret_cast<char*>(&sb.khr), 4);
+        file.read(reinterpret_cast<char*>(&sb.shr), 4);
+        file.read(reinterpret_cast<char*>(&sb.ahr), 4);
 
-        file.read(reinterpret_cast<char*>(&softBody.srhr_cl), 4);
-        file.read(reinterpret_cast<char*>(&softBody.skhr_cl), 4);
-        file.read(reinterpret_cast<char*>(&softBody.sshr_cl), 4);
-        file.read(reinterpret_cast<char*>(&softBody.sr_splt_cl), 4);
-        file.read(reinterpret_cast<char*>(&softBody.sk_splt_cl), 4);
-        file.read(reinterpret_cast<char*>(&softBody.ss_splt_cl), 4);
+        //! cluster
+        file.read(reinterpret_cast<char*>(&sb.srhr_cl), 4);
+        file.read(reinterpret_cast<char*>(&sb.skhr_cl), 4);
+        file.read(reinterpret_cast<char*>(&sb.sshr_cl), 4);
+        file.read(reinterpret_cast<char*>(&sb.sr_splt_cl), 4);
+        file.read(reinterpret_cast<char*>(&sb.sk_splt_cl), 4);
+        file.read(reinterpret_cast<char*>(&sb.ss_splt_cl), 4);
 
-        file.read(reinterpret_cast<char*>(&softBody.v_it), 4);
-        file.read(reinterpret_cast<char*>(&softBody.p_it), 4);
-        file.read(reinterpret_cast<char*>(&softBody.d_it), 4);
-        file.read(reinterpret_cast<char*>(&softBody.c_it), 4);
+        //! iteration
+        file.read(reinterpret_cast<char*>(&sb.v_it), 4);
+        file.read(reinterpret_cast<char*>(&sb.p_it), 4);
+        file.read(reinterpret_cast<char*>(&sb.d_it), 4);
+        file.read(reinterpret_cast<char*>(&sb.c_it), 4);
 
-        file.read(reinterpret_cast<char*>(&softBody.lst), 4);
-        file.read(reinterpret_cast<char*>(&softBody.ast), 4);
-        file.read(reinterpret_cast<char*>(&softBody.vst), 4);
+        //! stiffness
+        file.read(reinterpret_cast<char*>(&sb.lst), 4);
+        file.read(reinterpret_cast<char*>(&sb.ast), 4);
+        file.read(reinterpret_cast<char*>(&sb.vst), 4);
 
-        unsigned int anchorCount = 0;
-        file.read(reinterpret_cast<char*>(&anchorCount), 4);
+        //! anchor rigid body
+        uint32_t anchorCount = 0;
+        file.read(reinterpret_cast<char*>(&anchorCount), sizeof(uint32_t));
 
-        softBody.anchorRigidBodies.resize(anchorCount);
-        for (auto& anchor : softBody.anchorRigidBodies)
+        sb.anchorRigidBodies.resize(anchorCount);
+        for (auto& anchor : sb.anchorRigidBodies)
         {
-            file.read(reinterpret_cast<char*>(&anchor.rigidBodyIndex), data.header.rigidBodyIndexSize);
-            file.read(reinterpret_cast<char*>(&anchor.vertexIndex), data.header.vertexIndexSize);
+            anchor.rigidBodyIndex = readIndex(file, data.header.rigidBodyIndexSize);
+            anchor.vertexIndex = readIndex(file, data.header.vertexIndexSize);
             file.read(reinterpret_cast<char*>(&anchor.nearMode), 1);
         }
 
-        unsigned int pinVertexCount = 0;
-        file.read(reinterpret_cast<char*>(&pinVertexCount), 4);
+        //! pin vertex
+        uint32_t pinVertexCount = 0;
+        file.read(reinterpret_cast<char*>(&pinVertexCount), sizeof(uint32_t));
 
-        softBody.pinVertexIndices.resize(pinVertexCount);
-        for (auto& pinVertex : softBody.pinVertexIndices)
+        sb.pinVertexIndices.resize(pinVertexCount);
+        for (auto& idx : sb.pinVertexIndices)
         {
-            file.read(reinterpret_cast<char*>(&pinVertex), data.header.vertexIndexSize);
+            idx = readIndex(file, data.header.vertexIndexSize);
         }
+
+        if (!file)
+            return false;
     }
 
     return true;
+}
+
+void PmxLoad::readIndex(std::ifstream& file, int indexSize, int& out)
+{
+    switch (indexSize)
+    {
+    case 1:
+    {
+        int8_t v;
+        file.read(reinterpret_cast<char*>(&v), 1);
+        out = v;
+        break;
+    }
+    case 2:
+    {
+        int16_t v;
+        file.read(reinterpret_cast<char*>(&v), 2);
+        out = v;
+        break;
+    }
+    case 4:
+    {
+        int32_t v;
+        file.read(reinterpret_cast<char*>(&v), 4);
+        out = v;
+        break;
+    }
+    default:
+        out = -1;
+        break;
+    }
+}
+
+int PmxLoad::readIndex(std::ifstream& file, uint8_t indexSize)
+{
+    switch (indexSize)
+    {
+    case 1:
+    {
+        int8_t v;
+        file.read(reinterpret_cast<char*>(&v), 1);
+        return v;
+    }
+    case 2:
+    {
+        int16_t v;
+        file.read(reinterpret_cast<char*>(&v), 2);
+        return v;
+    }
+    case 4:
+    {
+        int32_t v;
+        file.read(reinterpret_cast<char*>(&v), 4);
+        return v;
+    }
+    default:
+        return -1;
+    }
+}
+
+inline bool PmxLoad::hasBoneFlag(PMXBoneFlags flags, PMXBoneFlags test)
+{
+    return (static_cast<uint16_t>(flags) &
+        static_cast<uint16_t>(test)) != 0;
 }

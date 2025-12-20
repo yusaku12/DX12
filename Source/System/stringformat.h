@@ -1,40 +1,40 @@
-#pragma once
+ï»¿#pragma once
 
-//! •¶š—ñ‚ÌƒtƒH[ƒ}ƒbƒeƒBƒ“ƒO
+//! æ–‡å­—åˆ—ã®ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒ†ã‚£ãƒ³ã‚°
 template <typename... Args>
 std::string stringFormat(const std::string& format, Args&&... args)
 {
-    // ƒoƒbƒtƒ@ƒTƒCƒY‚ğŒvZ
+    // ãƒãƒƒãƒ•ã‚¡ã‚µã‚¤ã‚ºã‚’è¨ˆç®—
     int size_s = std::snprintf(nullptr, 0, format.c_str(), std::forward<Args>(args) ...);
     if (size_s < 0) throw std::runtime_error("stringFormat error");
 
-    size_t size = static_cast<size_t>(size_s) + 1; //!< I’[NULL•ª
+    size_t size = static_cast<size_t>(size_s) + 1; //!< çµ‚ç«¯NULLåˆ†
 
     std::vector<char> buf(size);
     std::snprintf(buf.data(), size, format.c_str(), std::forward<Args>(args)...);
-    return std::string(buf.data(), buf.data() + size - 1); //!< NULL‚ğœ‚­
+    return std::string(buf.data(), buf.data() + size - 1); //!< NULLã‚’é™¤ã
 }
 
-//! wstring‚ğstring‚Ö•ÏŠ·
+//! wstringã‚’stringã¸å¤‰æ›
 static std::string wstringToString(std::wstring oWString)
 {
-    //! wstring ¨ SJIS
+    //! wstring â†’ SJIS
     int iBufferSize = WideCharToMultiByte(CP_OEMCP, 0, oWString.c_str()
         , -1, (char*)NULL, 0, NULL, NULL);
 
-    //! ƒoƒbƒtƒ@‚Ìæ“¾
+    //! ãƒãƒƒãƒ•ã‚¡ã®å–å¾—
     CHAR* cpMultiByte = new CHAR[iBufferSize];
 
-    //! wstring ¨ SJIS
+    //! wstring â†’ SJIS
     WideCharToMultiByte(CP_OEMCP, 0, oWString.c_str(), -1, cpMultiByte
         , iBufferSize, NULL, NULL);
 
-    //! string‚Ì¶¬
+    //! stringã®ç”Ÿæˆ
     std::string oRet(cpMultiByte, cpMultiByte + iBufferSize - 1);
 
-    //! ƒoƒbƒtƒ@‚Ì”jŠü
+    //! ãƒãƒƒãƒ•ã‚¡ã®ç ´æ£„
     delete[] cpMultiByte;
 
-    //! •ÏŠ·Œ‹‰Ê‚ğ•Ô‚·
+    //! å¤‰æ›çµæœã‚’è¿”ã™
     return(oRet);
 }
