@@ -41,7 +41,7 @@ bool LoadTexture::loadFromFile(const std::wstring& filePath)
     auto pos = filePath.find_last_of(L'.');
     if (pos == std::wstring::npos)
     {
-        Logger::Instance().logCall(LogLevel::ERROR, "Texture has no extension");
+        LOG_ASSERT_NO_JUDGE("Texture has no extension");
         return false;
     }
 
@@ -51,14 +51,15 @@ bool LoadTexture::loadFromFile(const std::wstring& filePath)
     auto it = m_loaderTable.find(ext);
     if (it == m_loaderTable.end())
     {
-        Logger::Instance().logCall(LogLevel::ERROR, "Unsupported texture format");
+        LOG_ASSERT_NO_JUDGE("Unsupported texture format");
         return false;
     }
 
     HRESULT hr = it->second(filePath, &metadata, scratchImg);
     if (FAILED(hr))
     {
-        Logger::Instance().logCall(LogLevel::ERROR, "Texture load failed");
+        //LOG_ASSERT_NO_JUDGE("Texture load failed");
+        LOG_ERROR("Texture load failed");
         return false;
     }
 

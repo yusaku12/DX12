@@ -115,6 +115,7 @@
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
     <ClInclude Include="Source\System\Logger.h" />
+    <ClInclude Include="Source\System\LoggerMacros.h" />
     <ClInclude Include="Source\System\Stringformat.h" />
     <ClInclude Include="Source\System\TimeManager.h" />
     <ClInclude Include="Source\System\Window.h" />

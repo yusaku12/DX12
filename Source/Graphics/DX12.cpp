@@ -35,10 +35,7 @@ DX12::DX12(HWND hwnd)
     //! DXGI ファクトリ（IDXGIFactory） を作成
     Microsoft::WRL::ComPtr<IDXGIFactory6> m_dxgiFactory;
     HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(m_dxgiFactory.GetAddressOf()));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to CreateDXGIFactory2");
-    }
+    LOG_HR(hr, "Failed to CreateDXGIFactory2");
 
     //! NVIDIAのアダプタを探す
     Microsoft::WRL::ComPtr<IDXGIAdapter>selectedAdapter;
@@ -73,17 +70,11 @@ DX12::DX12(HWND hwnd)
 
     //! コマンドアロケーターを作成
     hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf()));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to CreateCommandAllocator");
-    }
+    LOG_HR(hr, "Failed to CreateCommandAllocator");
 
     //! コマンドリスト作成
     hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_graphicsCommandList.GetAddressOf()));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to CreateCommandList");
-    }
+    LOG_HR(hr, "Failed to CreateCommandList");
 
     //! コマンドキュー作成
     D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
@@ -92,10 +83,7 @@ DX12::DX12(HWND hwnd)
     cmdQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;//!< プライオリティ特に指定なし
     cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;         //!< ここはコマンドリストと合わせる
     hr = m_device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(m_commandQueue.GetAddressOf()));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to CreateCommandQueue");
-    }
+    LOG_HR(hr, "Failed to CreateCommandQueue");
 
     //! スワップチェイン作成
     DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
@@ -117,10 +105,7 @@ DX12::DX12(HWND hwnd)
         nullptr,
         nullptr,
         reinterpret_cast<IDXGISwapChain1**>(m_dxgiSwapChain4.GetAddressOf()));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to CreateSwapChainForHwnd");
-    }
+    LOG_HR(hr, "Failed to CreateSwapChainForHwnd");
 
     //! RTVのディスクリプタヒープを作成
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
@@ -129,10 +114,7 @@ DX12::DX12(HWND hwnd)
     heapDesc.NumDescriptors = BUFFER_COUNT;          //! BufferCountの数に合わせる
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;//! シェーダーからデータを読み取るわけでは無いのでNONE
     hr = m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_rtvHeaps.GetAddressOf()));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to RTV CreateDescriptorHeap");
-    }
+    LOG_HR(hr, "Failed to CreateDescriptorHeap");
 
     //! SRVのディスクリプタヒープを作成
     D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -141,10 +123,7 @@ DX12::DX12(HWND hwnd)
     desc.NodeMask = 0;
     desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     hr = m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_srvHeaps.GetAddressOf()));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to SRV CreateDescriptorHeap");
-    }
+    LOG_HR(hr, "Failed to SRV CreateDescriptorHeap");
 
     m_exampleDescriptorHeapAllocator.Create(m_device.Get(), m_srvHeaps.Get());  // @todo imgui用一時的なアロケータ
 
@@ -165,10 +144,7 @@ DX12::DX12(HWND hwnd)
 
     //! フェンスを作成(GPU側の処理が完了したか知るための仕組み)
     hr = m_device->CreateFence(m_fenceVall, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf()));
-    if (FAILED(hr))
-    {
-        Logger::Instance().logCall(LogLevel::ERROR, "Failed to CreateFence");
-    }
+    LOG_HR(hr, "Failed to CreateFence");
 }
 
 void DX12::screenClear()
@@ -263,7 +239,7 @@ void DX12::screenResize(int width, int height)
     //! バッファをリサイズ
     DXGI_SWAP_CHAIN_DESC oldDesc = {};
     HRESULT hr = m_dxgiSwapChain4->GetDesc(&oldDesc);
-    if (FAILED(hr)) Logger::Instance().logCall(LogLevel::ERROR, "GetDesc failed before ResizeBuffers");
+    LOG_HR(hr, "GetDesc failed before ResizeBuffers");
 
     hr = m_dxgiSwapChain4->ResizeBuffers(
         oldDesc.BufferCount,
@@ -272,12 +248,12 @@ void DX12::screenResize(int width, int height)
         oldDesc.BufferDesc.Format,
         oldDesc.Flags
     );
-    if (FAILED(hr)) Logger::Instance().logCall(LogLevel::ERROR, "ResizeBuffers failed");
+    LOG_HR(hr, "ResizeBuffers failed");
 
     //! Resize 後に再取得して最新情報を反映
     DXGI_SWAP_CHAIN_DESC newDesc = {};
     hr = m_dxgiSwapChain4->GetDesc(&newDesc);
-    if (FAILED(hr)) Logger::Instance().logCall(LogLevel::ERROR, "GetDesc failed after ResizeBuffers");
+    LOG_HR(hr, "GetDesc failed after ResizeBuffers");
 
     //! 内部保持するサイズを更新
     m_width = width;
@@ -292,7 +268,7 @@ void DX12::screenResize(int width, int height)
     for (UINT i = 0; i < newDesc.BufferCount; ++i)
     {
         hr = m_dxgiSwapChain4->GetBuffer(i, IID_PPV_ARGS(m_backBuffers[i].ReleaseAndGetAddressOf()));
-        if (FAILED(hr)) Logger::Instance().logCall(LogLevel::ERROR, "GetBuffer failed after ResizeBuffers");
+        LOG_HR(hr, "GetBuffer failed after ResizeBuffers");
 
         m_device->CreateRenderTargetView(m_backBuffers[i].Get(), &rtvDesc, handle);
         handle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -321,7 +297,7 @@ void DX12::safeGPUWait()
     if (m_fence->GetCompletedValue() < fenceValueToWait)
     {
         HANDLE event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        if (event == nullptr) Logger::Instance().logCall(LogLevel::ERROR, "CreateEvent failed in safeGPUWait");
+        if (event == nullptr) LOG_ASSERT_NO_JUDGE("CreateEvent failed in safeGPUWait");
 
         m_fence->SetEventOnCompletion(fenceValueToWait, event);
         WaitForSingleObject(event, INFINITE);

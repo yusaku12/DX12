@@ -28,7 +28,7 @@ public:
             nullptr,
             IID_PPV_ARGS(m_buffer.ReleaseAndGetAddressOf())
         );
-        if (FAILED(hr)) return;
+        LOG_HR(hr, "[ConstantBuffer] Failed to create constant buffer resource.");
 
         hr = m_buffer->Map(0, nullptr, reinterpret_cast<void**>(&m_mapped));
         if (FAILED(hr))

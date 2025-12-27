@@ -28,12 +28,12 @@ public:
             nullptr,
             IID_PPV_ARGS(m_vertexBuffer.ReleaseAndGetAddressOf())
         );
-        if (FAILED(hr)) return;
+        LOG_HR(hr, "failed CreateCommittedResource");
 
         //! Map → Copy → Unmap
         void* mapped = nullptr;
         hr = m_vertexBuffer->Map(0, nullptr, &mapped);
-        if (FAILED(hr)) return;
+        LOG_HR(hr, "failed Map");
 
         memcpy(mapped, vertices.data(), m_bufferSize);
         m_vertexBuffer->Unmap(0, nullptr);

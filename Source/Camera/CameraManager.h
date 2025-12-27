@@ -35,7 +35,7 @@ private:
     //! GPUに送るカメラ定数バッファ
     void uploadCameraBufferToGPU();
 
-    // 定数バッファ構造体
+    //! 定数バッファ構造体
     struct GPUCameraBuffer
     {
         Matrix view;        //!< ビュー行列

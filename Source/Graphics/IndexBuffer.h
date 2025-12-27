@@ -29,12 +29,12 @@ public:
             nullptr,
             IID_PPV_ARGS(m_indexBuffer.ReleaseAndGetAddressOf())
         );
-        if (FAILED(hr)) return;
+        LOG_HR(hr, "Failed to create index buffer.");
 
         //! Map → Copy → Unmap
         void* mapped = nullptr;
         hr = m_indexBuffer->Map(0, nullptr, &mapped);
-        if (FAILED(hr)) return;
+        LOG_HR(hr, "Failed Map");
 
         memcpy(mapped, indices.data(), m_bufferSize);
         m_indexBuffer->Unmap(0, nullptr);

@@ -16,7 +16,7 @@ LoadTexture* TextureManager::load(const std::wstring& filePath)
     m_textureCache[filePath] = std::move(newTex);
 
     std::wstring filename = L"[TextureManager] Loaded:" + filePath + L"\n";
-    Logger::Instance().logCall(LogLevel::INFO, wstringToString(filename));
+    LOG_INFO(wstringToString(filename));
     return texPtr;
 }
 
@@ -26,9 +26,7 @@ UINT TextureManager::getWhiteTextureSRVIndex()
     if (m_whiteTexture == nullptr)
     {
         //! ここはプロジェクト内に必ず存在する白テクスチャ
-        const std::wstring whiteTexPath = L"Data/Texture/dummyWhite.jpg";
-
-        m_whiteTexture = load(whiteTexPath);
+        m_whiteTexture = load(L"Data/Texture/dummyWhite.jpg");
     }
 
     return m_whiteTexture->getSRVIndex();
@@ -38,5 +36,5 @@ void TextureManager::clear()
 {
     m_textureCache.clear();
     m_whiteTexture = nullptr;
-    Logger::Instance().logCall(LogLevel::INFO, "[TextureManager] Cleared all textures");
+    LOG_INFO("[TextureManager] Cleared all textures");
 }

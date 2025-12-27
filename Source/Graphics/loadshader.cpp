@@ -16,7 +16,7 @@ void LoadShader::setShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline)
 {
     if (!m_shaderBlob)
     {
-        Logger::Instance().logCall(LogLevel::ERROR, "Shader blob is null.");
+        LOG_ASSERT_NO_JUDGE("Shader blob is null.");
         return;
     }
 
@@ -45,7 +45,7 @@ HRESULT LoadShader::loadShader()
     if (!std::filesystem::exists(m_filePath))
     {
         std::wstring msg = L"Shader file not found: " + m_filePath;
-        Logger::Instance().logCall(LogLevel::ERROR, wstringToString(msg).c_str());
+        LOG_ERROR(wstringToString(msg).c_str());
         return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
     }
 
@@ -63,7 +63,7 @@ HRESULT LoadShader::loadShader()
         shaderVersion = "ps_5_0";
         break;
     default:
-        Logger::Instance().logCall(LogLevel::ERROR, "Unknown shader type.");
+        LOG_ERROR("Unknown shader type.");
         return E_INVALIDARG;
     }
 
@@ -76,14 +76,12 @@ HRESULT LoadShader::loadShader()
         HRESULT hr = D3DReadFileToBlob(csoPath.c_str(), m_shaderBlob.GetAddressOf());
         if (SUCCEEDED(hr))
         {
-            Logger::Instance().logCall(
-                LogLevel::INFO,
-                ("Loaded cached CSO: " + wstringToString(csoPath) +
-                    " (" + std::to_string(m_shaderBlob->GetBufferSize()) + " bytes)").c_str()
+            LOG_INFO(("Loaded cached CSO: " + wstringToString(csoPath) +
+                " (" + std::to_string(m_shaderBlob->GetBufferSize()) + " bytes)").c_str()
             );
             return S_OK;
         }
-        Logger::Instance().logCall(LogLevel::WARN, "Failed to read CSO. Compiling instead...");
+        LOG_WARN("Failed to read CSO. Compiling instead...");
     }
 
     UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
@@ -97,7 +95,7 @@ HRESULT LoadShader::loadShader()
         //! エラーログ
         std::string err = getErrorString();
         std::wstring logmsg = L"Failed to compile shader: " + m_filePath + L"\n";
-        Logger::Instance().logCall(LogLevel::ERROR, wstringToString(logmsg + std::wstring(err.begin(), err.end())).c_str());
+        LOG_ERROR(wstringToString(logmsg + std::wstring(err.begin(), err.end())).c_str());
 
         //! デバッグ用に OutputDebugString
         if (m_errorBlob)
@@ -112,16 +110,11 @@ HRESULT LoadShader::loadShader()
     HRESULT hrWrite = D3DWriteBlobToFile(m_shaderBlob.Get(), csoPath.c_str(), TRUE);
     if (FAILED(hrWrite))
     {
-        Logger::Instance().logCall(LogLevel::WARN,
-            ("Failed to write CSO: " + wstringToString(csoPath)).c_str());
+        LOG_WARN(("Failed to write CSO: " + wstringToString(csoPath)).c_str());
     }
     else
     {
-        Logger::Instance().logCall(
-            LogLevel::INFO,
-            ("Saved CSO: " + wstringToString(csoPath) +
-                " (" + std::to_string(m_shaderBlob->GetBufferSize()) + " bytes)").c_str()
-        );
+        LOG_INFO(("Saved CSO: " + wstringToString(csoPath) + " (" + std::to_string(m_shaderBlob->GetBufferSize()) + " bytes)").c_str());
     }
     return S_OK;
 }

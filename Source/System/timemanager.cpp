@@ -58,7 +58,7 @@ void TimeManager::frameEnd(ID3D12GraphicsCommandList* cmd)
 
 void TimeManager::imgui()
 {
-    if (ImGui::Begin("Performance Monitor"))   // ← 1つのウィンドウに統合
+    if (ImGui::Begin("Performance Monitor"))
     {
         //! TimeManager 情報
         ImGui::Text("Delta: %.5f  (Unscaled: %.5f)", m_deltaTime, m_unscaledDeltaTime);
