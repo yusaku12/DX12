@@ -1,5 +1,4 @@
 ﻿#include "pch.h"
-#include "RootSignature.h"
 
 void PiplineState::initialize()
 {
@@ -100,19 +99,14 @@ void PiplineState::initSamplerState()
         desc.ShaderRegister = 5; //!< s5
     }
 
-    RootSignature rootSignature;
-    for (int i = 0; i < (int)SamplerState::MAX; i++)
+    //! RootSignatureに登録
+    auto& rsm = RootSignatureManager::Instance();
+    rsm.begin("DefaultSamplerRootSignature");
+    for (const auto& sampler : m_samplerState)
     {
-        rootSignature.addStaticSampler(m_samplerState[i]);
+        rsm.addStaticSampler(sampler);
     }
-
-    rootSignature.setFlags(D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-    //! ルートシグネチャ生成
-    auto rs = rootSignature.build();
-
-    //! Manager に保存
-    RootSignatureManager::Instance().add("Pipline", rs);
+    rsm.build();
 }
 
 void PiplineState::initBlendState()

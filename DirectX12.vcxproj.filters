@@ -93,9 +93,6 @@
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Graphics\RootSignature.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Graphics\RootSignatureManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -204,9 +201,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\CpuGpuProfiler.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\RootSignature.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\RootSignatureManager.h">
