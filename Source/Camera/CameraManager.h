@@ -35,6 +35,9 @@ private:
     //! GPUに送るカメラ定数バッファ
     void uploadCameraBufferToGPU();
 
+    //! ルートシグネチャ作成
+    void createRootSignature();
+
     //! 定数バッファ構造体
     struct GPUCameraBuffer
     {

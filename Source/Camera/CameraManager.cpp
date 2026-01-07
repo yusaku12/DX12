@@ -10,6 +10,9 @@ void CameraManager::initialize()
     //! カメラ定数バッファ作成
     m_cameraCB = ConstantBuffer<GPUCameraBuffer>();
 
+    //! RootSignature 作成
+    createRootSignature();
+
     //! カメラ定数バッファをGPUにアップロード
     uploadCameraBufferToGPU();
 }
@@ -34,4 +37,12 @@ void CameraManager::uploadCameraBufferToGPU()
     camera.cameraPos = m_camera.getPosition();
 
     m_cameraCB.update(camera);
+}
+
+void CameraManager::createRootSignature()
+{
+    auto& rsm = RootSignatureManager::Instance();
+
+    //! カメラ定数バッファを b0 に登録
+    rsm.addParameterTo("DefaultRootSignature", m_cameraCB.createRootParameter(0));
 }

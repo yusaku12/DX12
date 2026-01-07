@@ -14,43 +14,47 @@ public:
         return instance;
     }
 
-    //! RootSignature作成
+    //!　RootSignature 作成開始
     void begin(const std::string& name);
 
-    //! パラメータ追加
+    //!　パラメータ追加
     void addParameter(const D3D12_ROOT_PARAMETER& param);
 
-    //! スタティックサンプラー追加
+    //! サンプラーステート追加
     void addStaticSampler(const D3D12_STATIC_SAMPLER_DESC& sampler);
 
-    //! RootSignature構築
+    //! RootSignature 作成
     void build();
 
-    //! RootSignature取得
+    //!　指定した名前で RootSignature 作成開始(初期化時だけ有効)
+    void addParameterTo(const std::string& name, const D3D12_ROOT_PARAMETER& param);
+
+    //! 指定した名前の RootSignature を取得
     ID3D12RootSignature* getRootSignature(const std::string& name) const;
 
-    //! RootSignature存在確認
+    //! 指定した名前の RootSignature が存在するか
     bool exists(const std::string& name) const;
 
-    //! 全RootSignature解放
+    //! 全ての RootSignature を破棄
     void clear();
-
-    //! フラグ設定
-    void setFlags(D3D12_ROOT_SIGNATURE_FLAGS flags) { m_flags = flags; }
 
 private:
 
     RootSignatureManager() = default;
-    ~RootSignatureManager() = default;
-    RootSignatureManager(const RootSignatureManager&) = delete;
-    RootSignatureManager& operator=(const RootSignatureManager&) = delete;
 
-    //! 登録済みRootSignature
-    std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> m_rootSignatures;
+    // RootSignature の構造体
+    struct RootSignatureDefinition
+    {
+        std::vector<D3D12_ROOT_PARAMETER> parameters;
+        std::vector<D3D12_STATIC_SAMPLER_DESC> samplers;
+        D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    };
 
-    //! Build中データ
+    //! 指定した名前で RootSignature を再構築
+    void rebuild(const std::string& name);
+
     std::string m_buildingName;
-    std::vector<D3D12_ROOT_PARAMETER> m_parameters;
-    std::vector<D3D12_STATIC_SAMPLER_DESC> m_samplers;
-    D3D12_ROOT_SIGNATURE_FLAGS m_flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+    std::unordered_map<std::string, RootSignatureDefinition> m_definitions;
+    std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> m_rootSignatures;
 };

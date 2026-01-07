@@ -45,6 +45,17 @@ public:
         m_cbvIndex = DescriptorHeapManager::Instance().createCBV(cbvDesc);
     }
 
+    //! RootSignature用 RootParameter を生成
+    D3D12_ROOT_PARAMETER createRootParameter(UINT shaderRegister, UINT registerSpace = 0, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL) const
+    {
+        D3D12_ROOT_PARAMETER param{};
+        param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+        param.ShaderVisibility = visibility;
+        param.Descriptor.ShaderRegister = shaderRegister;
+        param.Descriptor.RegisterSpace = registerSpace;
+        return param;
+    }
+
     //! デストラクタ
     ~ConstantBuffer()
     {
