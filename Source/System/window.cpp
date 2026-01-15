@@ -46,6 +46,9 @@ void Window::update()
 
     //! CameraManager更新
     CameraManager::Instance().update();
+
+    //! ゲームオブジェクト更新
+    GameObjectRegistry::Instance().update();
 }
 
 void Window::render()
@@ -91,6 +94,9 @@ void Window::imguiRender()
 
     //! SceneManagerのimgui描画
     SceneManager::Instance().debugOption();
+
+    //! EditorManagerのimgui描画
+    EditorManager::Instance().imgui();
 
     //! imgui描画
     IMGUI_CTRL_RENDER();

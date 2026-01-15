@@ -17,10 +17,7 @@ public:
     ID3D12Resource* getResource() const { return m_texture.Get(); }
 
     //! GPUハンドル取得（描画時用）
-    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const
-    {
-        return DescriptorHeapManager::Instance().getGPUHandle(m_srvIndex);
-    }
+    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const { return DescriptorHeapManager::Instance().getGPUHandle(m_srvIndex); }
 
     //! SRVインデックス取得
     UINT getSRVIndex() const { return m_srvIndex; }

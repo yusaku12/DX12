@@ -20,5 +20,8 @@ public:
 
 private:
 
+    //! フォワードパイプライン描画前処理
+    void beforeDrawAtFowardPipline();
+
     std::vector<std::shared_ptr<PmxActor>> m_pmxActor;
 };

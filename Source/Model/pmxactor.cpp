@@ -65,6 +65,9 @@ bool PmxActor::loadMaterialData()
     m_materialCB = ConstantBuffer<Material>(materialCount);
     m_materialSRVs.resize(materialCount);
 
+    //! RootSignature にパラメータ追加
+    RootSignatureManager::Instance().addParameterTo("DefaultRootSignature", m_materialCB.createRootParameter(2));
+
     auto& texMgr = TextureManager::Instance();
 
     for (UINT i = 0; i < materialCount; ++i)

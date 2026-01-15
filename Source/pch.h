@@ -32,6 +32,7 @@
 #include <fstream>
 #include <array>
 #include <d3dx12.h>
+#include <typeindex>
 
 #undef ERROR
 #undef OPAQUE
@@ -51,6 +52,10 @@
 #include "System\TimeManager.h"
 #include "Scene\SceneManager.h"
 #include "Camera\CameraManager.h"
+#include "GameObject\GameObjectRegistry.h"
+#include "Editor\EditorManager.h"
 
 //! 省略系
-using namespace DirectX::SimpleMath;
+using namespace DirectX;
+using namespace SimpleMath;
+using namespace Microsoft::WRL;

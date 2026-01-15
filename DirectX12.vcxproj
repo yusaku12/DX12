@@ -51,6 +51,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Camera\CameraManager.cpp" />
+    <ClCompile Include="Source\Editor\EditorContext.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\EditorManager.cpp" />
+    <ClCompile Include="Source\Editor\HierarchyWindow.cpp" />
+    <ClCompile Include="Source\Editor\InspectorWindow.cpp" />
+    <ClCompile Include="Source\GameObject\GameObject.cpp" />
+    <ClCompile Include="Source\GameObject\GameObjectRegistry.cpp" />
     <ClCompile Include="Source\Graphics\DescriptorHeapManager.cpp" />
     <ClCompile Include="Source\Graphics\DX12.cpp" />
     <ClCompile Include="Source\Graphics\LoadShader.cpp" />
@@ -93,7 +101,18 @@
     <ClInclude Include="Source\Camera\Camera.h" />
     <ClInclude Include="Source\Camera\CameraBehaviour.h" />
     <ClInclude Include="Source\Camera\CameraManager.h" />
+    <ClInclude Include="Source\Component\Behaviour.h" />
+    <ClInclude Include="Source\Component\Component.h" />
+    <ClInclude Include="Source\Component\Object.h" />
+    <ClInclude Include="Source\Component\ScriptBehaviour.h" />
+    <ClInclude Include="Source\Editor\EditorContext.h" />
+    <ClInclude Include="Source\Editor\EditorManager.h" />
+    <ClInclude Include="Source\Editor\HierarchyWindow.h" />
+    <ClInclude Include="Source\Editor\InspectorWindow.h" />
+    <ClInclude Include="Source\GameObject\GameObject.h" />
+    <ClInclude Include="Source\GameObject\GameObjectRegistry.h" />
     <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
+    <ClInclude Include="Source\Graphics\CreateResource.h" />
     <ClInclude Include="Source\Graphics\IndexBuffer.h" />
     <ClInclude Include="Source\Graphics\VertexBuffer.h" />
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h" />

@@ -60,6 +60,9 @@ public:
     //! 初期化
     void initialize();
 
+    //! 各種ステート取得
+    const Microsoft::WRL::ComPtr<ID3D12PipelineState>& getPipelineState() const { return m_pipelineState; }
+
 private:
 
     PiplineState() = default;
