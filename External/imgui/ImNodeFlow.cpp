@@ -1,4 +1,4 @@
-#include "ImNodeFlow.h"
+﻿#include "ImNodeFlow.h"
 
 namespace ImFlow {
     // -----------------------------------------------------------------------------------------------------------------
@@ -20,11 +20,12 @@ namespace ImFlow {
                 m_inf->consumeSingleUseClick();
                 m_selected = true;
             }
-        } else { m_hovered = false; }
+        }
+        else { m_hovered = false; }
 
         if (m_selected)
             smart_bezier(start, end, m_left->getStyle()->extra.outline_color,
-                         thickness + m_left->getStyle()->extra.link_selected_outline_thickness);
+                thickness + m_left->getStyle()->extra.link_selected_outline_thickness);
         smart_bezier(start, end, m_left->getStyle()->color, thickness);
 
         if (m_selected && ImGui::IsKeyPressed(ImGuiKey_Delete, false))
@@ -39,19 +40,19 @@ namespace ImFlow {
     // BASE NODE
 
     bool BaseNode::isHovered() {
-        ImVec2 paddingTL = {m_style->padding.x, m_style->padding.y};
-        ImVec2 paddingBR = {m_style->padding.z, m_style->padding.w};
+        ImVec2 paddingTL = { m_style->padding.x, m_style->padding.y };
+        ImVec2 paddingBR = { m_style->padding.z, m_style->padding.w };
         return ImGui::IsMouseHoveringRect(m_inf->grid2screen(m_pos - paddingTL),
-                                          m_inf->grid2screen(m_pos + m_size + paddingBR));
+            m_inf->grid2screen(m_pos + m_size + paddingBR));
     }
 
     void BaseNode::update() {
-        ImDrawList *draw_list = ImGui::GetWindowDrawList();
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
         ImGui::PushID(this);
         bool mouseClickState = m_inf->getSingleUseClick();
-        ImVec2 offset = m_inf->grid2screen({0.f, 0.f});
-        ImVec2 paddingTL = {m_style->padding.x, m_style->padding.y};
-        ImVec2 paddingBR = {m_style->padding.z, m_style->padding.w};
+        ImVec2 offset = m_inf->grid2screen({ 0.f, 0.f });
+        ImVec2 paddingTL = { m_style->padding.x, m_style->padding.y };
+        ImVec2 paddingBR = { m_style->padding.z, m_style->padding.w };
 
         draw_list->ChannelsSetCurrent(1); // Foreground
         ImGui::SetCursorScreenPos(offset + m_pos);
@@ -69,11 +70,11 @@ namespace ImFlow {
         // Inputs
         if (!m_ins.empty() || !m_dynamicIns.empty()) {
             ImGui::BeginGroup();
-            for (auto &p: m_ins) {
+            for (auto& p : m_ins) {
                 p->setPos(ImGui::GetCursorPos());
                 p->update();
             }
-            for (auto &p: m_dynamicIns) {
+            for (auto& p : m_dynamicIns) {
                 if (p.first == 1) {
                     p.second->setPos(ImGui::GetCursorPos());
                     p.second->update();
@@ -93,37 +94,37 @@ namespace ImFlow {
 
         // Outputs
         float maxW = 0.0f;
-        for (auto &p: m_outs) {
+        for (auto& p : m_outs) {
             float w = p->calcWidth();
             if (w > maxW)
                 maxW = w;
         }
-        for (auto &p: m_dynamicOuts) {
+        for (auto& p : m_dynamicOuts) {
             float w = p.second->calcWidth();
             if (w > maxW)
                 maxW = w;
         }
         ImGui::BeginGroup();
-        for (auto &p: m_outs) {
+        for (auto& p : m_outs) {
             // FIXME: This looks horrible
             if ((m_pos + ImVec2(titleW, 0) + m_inf->getGrid().scroll()).x <
                 ImGui::GetCursorPos().x + ImGui::GetWindowPos().x + maxW)
                 p->setPos(ImGui::GetCursorPos() + ImGui::GetWindowPos() + ImVec2(maxW - p->calcWidth(), 0.f));
             else
                 p->setPos(ImVec2((m_pos + ImVec2(titleW - p->calcWidth(), 0) + m_inf->getGrid().scroll()).x,
-                                 ImGui::GetCursorPos().y + ImGui::GetWindowPos().y));
+                    ImGui::GetCursorPos().y + ImGui::GetWindowPos().y));
             p->update();
         }
-        for (auto &p: m_dynamicOuts) {
+        for (auto& p : m_dynamicOuts) {
             // FIXME: This looks horrible
             if ((m_pos + ImVec2(titleW, 0) + m_inf->getGrid().scroll()).x <
                 ImGui::GetCursorPos().x + ImGui::GetWindowPos().x + maxW)
                 p.second->setPos(
-                        ImGui::GetCursorPos() + ImGui::GetWindowPos() + ImVec2(maxW - p.second->calcWidth(), 0.f));
+                    ImGui::GetCursorPos() + ImGui::GetWindowPos() + ImVec2(maxW - p.second->calcWidth(), 0.f));
             else
                 p.second->setPos(
-                        ImVec2((m_pos + ImVec2(titleW - p.second->calcWidth(), 0) + m_inf->getGrid().scroll()).x,
-                               ImGui::GetCursorPos().y + ImGui::GetWindowPos().y));
+                    ImVec2((m_pos + ImVec2(titleW - p.second->calcWidth(), 0) + m_inf->getGrid().scroll()).x,
+                        ImGui::GetCursorPos().y + ImGui::GetWindowPos().y));
             p.second->update();
             p.first -= 1;
         }
@@ -137,9 +138,9 @@ namespace ImFlow {
         // Background
         draw_list->ChannelsSetCurrent(0);
         draw_list->AddRectFilled(offset + m_pos - paddingTL, offset + m_pos + m_size + paddingBR, m_style->bg,
-                                 m_style->radius);
+            m_style->radius);
         draw_list->AddRectFilled(offset + m_pos - paddingTL, offset + m_pos + headerSize, m_style->header_bg,
-                                 m_style->radius, ImDrawFlags_RoundCornersTop);
+            m_style->radius, ImDrawFlags_RoundCornersTop);
         m_fullSize = m_size + paddingTL + paddingBR;
         ImU32 col = m_style->border_color;
         float thickness = m_style->border_thickness;
@@ -157,7 +158,6 @@ namespace ImFlow {
             thickness *= -1.f;
         }
         draw_list->AddRect(offset + m_pos - ptl, offset + m_pos + m_size + pbr, col, m_style->radius, 0, thickness);
-
 
         if (ImGui::IsWindowHovered() && !ImGui::IsKeyDown(ImGuiKey_LeftCtrl) &&
             ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_inf->on_selected_node())
@@ -197,11 +197,11 @@ namespace ImFlow {
 
         // Deleting dead pins
         m_dynamicIns.erase(std::remove_if(m_dynamicIns.begin(), m_dynamicIns.end(),
-                                          [](const std::pair<int, std::shared_ptr<Pin>> &p) { return p.first == 0; }),
-                           m_dynamicIns.end());
+            [](const std::pair<int, std::shared_ptr<Pin>>& p) { return p.first == 0; }),
+            m_dynamicIns.end());
         m_dynamicOuts.erase(std::remove_if(m_dynamicOuts.begin(), m_dynamicOuts.end(),
-                                           [](const std::pair<int, std::shared_ptr<Pin>> &p) { return p.first == 0; }),
-                            m_dynamicOuts.end());
+            [](const std::pair<int, std::shared_ptr<Pin>>& p) { return p.first == 0; }),
+            m_dynamicOuts.end());
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -211,31 +211,31 @@ namespace ImFlow {
 
     bool ImNodeFlow::on_selected_node() {
         return std::any_of(m_nodes.begin(), m_nodes.end(),
-                           [](const auto &n) { return n.second->isSelected() && n.second->isHovered(); });
+            [](const auto& n) { return n.second->isSelected() && n.second->isHovered(); });
     }
 
     bool ImNodeFlow::on_free_space() {
         return std::all_of(m_nodes.begin(), m_nodes.end(),
-                           [](const auto &n) { return !n.second->isHovered(); })
-               && std::all_of(m_links.begin(), m_links.end(),
-                              [](const auto &l) { return !l.lock()->isHovered(); });
+            [](const auto& n) { return !n.second->isHovered(); })
+            && std::all_of(m_links.begin(), m_links.end(),
+                [](const auto& l) { return !l.lock()->isHovered(); });
     }
 
-    ImVec2 ImNodeFlow::screen2grid( const ImVec2 & p )
+    ImVec2 ImNodeFlow::screen2grid(const ImVec2& p)
     {
-        if ( ImGui::GetCurrentContext() == m_context.getRawContext() )
+        if (ImGui::GetCurrentContext() == m_context.getRawContext())
             return p - m_context.scroll();
-        return ( p - m_context.origin() ) / m_context.scale() - m_context.scroll();
+        return (p - m_context.origin()) / m_context.scale() - m_context.scroll();
     }
 
-    ImVec2 ImNodeFlow::grid2screen( const ImVec2 & p )
+    ImVec2 ImNodeFlow::grid2screen(const ImVec2& p)
     {
-        if ( ImGui::GetCurrentContext() == m_context.getRawContext() )
+        if (ImGui::GetCurrentContext() == m_context.getRawContext())
             return p + m_context.scroll();
-        return ( p + m_context.scroll() ) * m_context.scale() + m_context.origin();
+        return (p + m_context.scroll()) * m_context.scale() + m_context.origin();
     }
 
-    void ImNodeFlow::addLink(std::shared_ptr<Link> &link) {
+    void ImNodeFlow::addLink(std::shared_ptr<Link>& link) {
         m_links.push_back(link);
     }
 
@@ -250,7 +250,7 @@ namespace ImFlow {
         m_context.begin();
         ImGui::GetIO().IniFilename = nullptr;
 
-        ImDrawList *draw_list = ImGui::GetWindowDrawList();
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
         // Display grid
         ImVec2 gridSize = ImGui::GetWindowSize();
@@ -269,7 +269,7 @@ namespace ImFlow {
         // Update and draw nodes
         // TODO: I don't like this
         draw_list->ChannelsSplit(2);
-        for (auto &node: m_nodes) { node.second->update(); }
+        for (auto& node : m_nodes) { node.second->update(); }
         // Remove "toDelete" nodes
         for (auto iter = m_nodes.begin(); iter != m_nodes.end();) {
             if (iter->second->toDestroy())
@@ -278,10 +278,10 @@ namespace ImFlow {
                 ++iter;
         }
         draw_list->ChannelsMerge();
-        for (auto &node: m_nodes) { node.second->updatePublicStatus(); }
+        for (auto& node : m_nodes) { node.second->updatePublicStatus(); }
 
         // Update and draw links
-        for (auto &l: m_links) { if (!l.expired()) l.lock()->update(); }
+        for (auto& l : m_links) { if (!l.expired()) l.lock()->update(); }
 
         // Links drop-off
         if (m_dragOut && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
@@ -292,7 +292,8 @@ namespace ImFlow {
                         ImGui::OpenPopup("DroppedLinkPopUp");
                     }
                 }
-            } else
+            }
+            else
                 m_dragOut->createLink(m_hovering);
         }
 
@@ -302,10 +303,10 @@ namespace ImFlow {
         if (m_dragOut) {
             if (m_dragOut->getType() == PinType_Output)
                 smart_bezier(m_dragOut->pinPoint(), ImGui::GetMousePos(), m_dragOut->getStyle()->color,
-                             m_dragOut->getStyle()->extra.link_dragged_thickness);
+                    m_dragOut->getStyle()->extra.link_dragged_thickness);
             else
                 smart_bezier(ImGui::GetMousePos(), m_dragOut->pinPoint(), m_dragOut->getStyle()->color,
-                             m_dragOut->getStyle()->extra.link_dragged_thickness);
+                    m_dragOut->getStyle()->extra.link_dragged_thickness);
 
             if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                 m_dragOut = nullptr;
@@ -329,7 +330,7 @@ namespace ImFlow {
 
         // Removing dead Links
         m_links.erase(std::remove_if(m_links.begin(), m_links.end(),
-                                     [](const std::weak_ptr<Link> &l) { return l.expired(); }), m_links.end());
+            [](const std::weak_ptr<Link>& l) { return l.expired(); }), m_links.end());
 
         // Clearing recursion blacklist
         m_pinRecursionBlacklist.clear();
