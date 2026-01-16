@@ -14,17 +14,14 @@ GameObject::~GameObject()
     //! 親から外す
     setParent(nullptr);
 
-    //! 子を全てルートに戻す
+    //! 子をルートに戻す
     for (auto* child : m_children)
     {
         child->m_parent = nullptr;
     }
     m_children.clear();
 
-    //! 登録解除
-    GameObjectRegistry::Instance().unregister(this);
-
-    //! コンポーネント削除
+    //! コンポーネント破棄
     for (auto& c : m_components)
     {
         if (c)
@@ -39,6 +36,20 @@ void GameObject::start()
     for (auto& c : m_components)
         c->start();
     m_started = true;
+}
+
+void GameObject::destroy()
+{
+    if (m_destroyed)
+        return;
+
+    m_destroyed = true;
+
+    //! 子も再帰的に削除予約
+    for (auto* child : m_children)
+    {
+        child->destroy();
+    }
 }
 
 void GameObject::update()

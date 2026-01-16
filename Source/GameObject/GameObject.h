@@ -46,6 +46,9 @@ public:
     //! ゲーム開始時に一度だけ呼ばれる
     void start();
 
+    //! 削除予約
+    void destroy();
+
     //! 毎フレーム呼ばれる
     void update();
 
@@ -64,9 +67,13 @@ public:
     //! 子オブジェクト一覧の取得
     const std::vector<GameObject*>& getChildren() const { return m_children; }
 
+    //! 削除予約されているか
+    bool isDestroyed() const { return m_destroyed; }
+
 private:
 
     bool m_started = false;
+    bool m_destroyed = false;   //!< 削除予約フラグ
     std::vector<std::unique_ptr<Component>> m_components; //!< 実体保持
     std::unordered_map<std::type_index, Component*> m_componentMap; //!< 高速検索用
     GameObject* m_parent = nullptr;

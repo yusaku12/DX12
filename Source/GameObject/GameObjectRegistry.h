@@ -25,6 +25,9 @@ public:
     //! 登録されたゲームオブジェクトを更新
     void update();
 
+    //! 削除予約されたオブジェクトを破棄
+    void destroyMarkedObjects();
+
     //! 全ての登録オブジェクト取得
     const std::vector<GameObject*>& getAll() const { return m_objects; }
 

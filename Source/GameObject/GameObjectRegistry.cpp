@@ -27,4 +27,25 @@ void GameObjectRegistry::update()
     {
         obj->lateUpdate();
     }
+
+    //! 削除予約オブジェクトの破棄
+    destroyMarkedObjects();
+}
+
+void GameObjectRegistry::destroyMarkedObjects()
+{
+    auto it = m_objects.begin();
+    while (it != m_objects.end())
+    {
+        GameObject* obj = *it;
+        if (obj->isDestroyed())
+        {
+            delete obj;
+            it = m_objects.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
