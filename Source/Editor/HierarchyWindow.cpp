@@ -99,11 +99,10 @@ void drawHierarchyWindow()
     }
 
     //! 空白右クリック（ルート作成）
-    if (g_editor.selectedObject == nullptr &&
-        ImGui::BeginPopupContextWindow(
-            nullptr,
-            ImGuiPopupFlags_NoOpenOverItems |
-            ImGuiPopupFlags_MouseButtonRight))
+    if (ImGui::BeginPopupContextWindow(
+        nullptr,
+        ImGuiPopupFlags_NoOpenOverItems |
+        ImGuiPopupFlags_MouseButtonRight))
     {
         if (ImGui::MenuItem("Create Empty"))
         {
