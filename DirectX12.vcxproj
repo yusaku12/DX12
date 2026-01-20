@@ -67,6 +67,7 @@
     <ClCompile Include="Source\Graphics\RootSignatureManager.cpp" />
     <ClCompile Include="Source\Graphics\ShaderManager.cpp" />
     <ClCompile Include="Source\Graphics\TextureManager.cpp" />
+    <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
     <ClCompile Include="Source\Model\PmxActor.cpp" />
@@ -123,6 +124,7 @@
     <ClInclude Include="Source\Graphics\RootSignatureManager.h" />
     <ClInclude Include="Source\Graphics\ShaderManager.h" />
     <ClInclude Include="Source\Graphics\TextureManager.h" />
+    <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\Math\SimpleMath.h" />
     <ClInclude Include="Source\Model\PmxActor.h" />
     <ClInclude Include="Source\Model\PmxLoad.h" />

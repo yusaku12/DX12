@@ -30,6 +30,9 @@ public:
     //! imgui
     void imgui();
 
+    //! 経過時間取得 (スケール有り)
+    float getDeltaTime() const { return m_deltaTime; }
+
 private:
 
     TimeManager() = default;

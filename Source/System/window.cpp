@@ -41,6 +41,9 @@ void Window::update()
     //! imgui更新
     IMGUI_CTRL_UPDATE();
 
+    //! InputManager更新
+    InputManager::Instance().update();
+
     //! SceneManager更新
     SceneManager::Instance().update();
 
@@ -150,6 +153,10 @@ LRESULT Window::processMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
 
     case WM_DESTROY:
         PostQuitMessage(0);
+        break;
+
+    case WM_ACTIVATE:
+        InputManager::Instance().setWindowFocused(LOWORD(wparam) != WA_INACTIVE);
         break;
 
     default:

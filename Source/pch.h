@@ -54,6 +54,7 @@
 #include "Camera\CameraManager.h"
 #include "GameObject\GameObjectRegistry.h"
 #include "Editor\EditorManager.h"
+#include "Input\InputManager.h"
 
 //! 省略系
 using namespace DirectX;
