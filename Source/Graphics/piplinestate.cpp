@@ -101,7 +101,7 @@ void PiplineState::initSamplerState()
 
     //! RootSignatureに登録
     auto& rsm = RootSignatureManager::Instance();
-    rsm.begin("DefaultRootSignature");
+    rsm.begin(RootSignatureType::Standard);
     for (const auto& sampler : m_samplerState)
     {
         rsm.addStaticSampler(sampler);

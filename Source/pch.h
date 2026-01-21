@@ -59,4 +59,3 @@
 //! 省略系
 using namespace DirectX;
 using namespace SimpleMath;
-using namespace Microsoft::WRL;

@@ -1,5 +1,12 @@
 ﻿#pragma once
 
+//! RootSignature の種類
+enum class RootSignatureType
+{
+    Standard,
+    Count
+};
+
 //====================================================
 // RootSignature管理シングルトン
 //====================================================
@@ -15,7 +22,7 @@ public:
     }
 
     //!　RootSignature 作成開始
-    void begin(const std::string& name);
+    void begin(RootSignatureType type);
 
     //!　パラメータ追加
     void addParameter(const D3D12_ROOT_PARAMETER& param);
@@ -27,13 +34,10 @@ public:
     void build();
 
     //!　指定した名前で RootSignature 作成開始(初期化時だけ有効)
-    void addParameterTo(const std::string& name, const D3D12_ROOT_PARAMETER& param);
+    void addParameterTo(RootSignatureType type, const D3D12_ROOT_PARAMETER& param);
 
     //! 指定した名前の RootSignature を取得
-    ID3D12RootSignature* getRootSignature(const std::string& name) const;
-
-    //! 指定した名前の RootSignature が存在するか
-    bool exists(const std::string& name) const;
+    ID3D12RootSignature* getRootSignature(RootSignatureType type) const;
 
     //! 全ての RootSignature を破棄
     void clear();
@@ -51,10 +55,10 @@ private:
     };
 
     //! 指定した名前で RootSignature を再構築
-    void rebuild(const std::string& name);
+    void rebuild(RootSignatureType type);
 
-    std::string m_buildingName;
+    RootSignatureType m_buildingType = RootSignatureType::Count;
 
-    std::unordered_map<std::string, RootSignatureDefinition> m_definitions;
-    std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12RootSignature>> m_rootSignatures;
+    std::array<RootSignatureDefinition, static_cast<size_t>(RootSignatureType::Count)> m_definitions;
+    std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, static_cast<size_t>(RootSignatureType::Count)> m_rootSignatures;
 };

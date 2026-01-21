@@ -18,5 +18,5 @@ void PmxRender::beforeDrawAtFowardPipline()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
     cmd->SetPipelineState(PiplineState::Instance().getPipelineState().Get());
-    cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature("DefaultRootSignature"));
+    cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::Standard));
 }

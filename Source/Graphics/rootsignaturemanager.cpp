@@ -1,65 +1,63 @@
 ﻿#include "pch.h"
 
-void RootSignatureManager::begin(const std::string& name)
+void RootSignatureManager::begin(RootSignatureType type)
 {
-    m_buildingName = name;
-
-    auto& def = m_definitions[name];
+    auto& def = m_definitions[static_cast<size_t>(type)];
     def.parameters.clear();
     def.samplers.clear();
     def.flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+    m_buildingType = type;
 }
 
 void RootSignatureManager::addParameter(const D3D12_ROOT_PARAMETER& param)
 {
-    assert(!m_buildingName.empty());
-    m_definitions[m_buildingName].parameters.push_back(param);
+    assert(m_buildingType != RootSignatureType::Count);
+    m_definitions[static_cast<size_t>(m_buildingType)].parameters.push_back(param);
 }
 
 void RootSignatureManager::addStaticSampler(const D3D12_STATIC_SAMPLER_DESC& sampler)
 {
-    assert(!m_buildingName.empty());
-    m_definitions[m_buildingName].samplers.push_back(sampler);
+    assert(m_buildingType != RootSignatureType::Count);
+    m_definitions[static_cast<size_t>(m_buildingType)].samplers.push_back(sampler);
 }
 
 void RootSignatureManager::build()
 {
-    assert(!m_buildingName.empty());
-    rebuild(m_buildingName);
-    m_buildingName.clear();
+    assert(m_buildingType != RootSignatureType::Count);
+    rebuild(m_buildingType);
+    m_buildingType = RootSignatureType::Count;
 }
 
-void RootSignatureManager::addParameterTo(const std::string& name, const D3D12_ROOT_PARAMETER& param)
+void RootSignatureManager::addParameterTo(RootSignatureType type, const D3D12_ROOT_PARAMETER& param)
 {
-    auto& def = m_definitions[name]; //!< なければ新規
+    auto& def = m_definitions[static_cast<size_t>(type)];
     def.parameters.push_back(param);
-    rebuild(name);
+    rebuild(type);
 }
 
-ID3D12RootSignature* RootSignatureManager::getRootSignature(const std::string& name) const
+ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
 {
-    auto it = m_rootSignatures.find(name);
-    assert(it != m_rootSignatures.end());
-    return it->second.Get();
-}
-
-bool RootSignatureManager::exists(const std::string& name) const
-{
-    return m_rootSignatures.find(name) != m_rootSignatures.end();
+    return m_rootSignatures[static_cast<size_t>(type)].Get();
 }
 
 void RootSignatureManager::clear()
 {
-    m_rootSignatures.clear();
-    m_definitions.clear();
+    for (auto& rs : m_rootSignatures)
+    {
+        rs.Reset();
+    }
+
+    for (auto& def : m_definitions)
+    {
+        def.parameters.clear();
+        def.samplers.clear();
+    }
 }
 
-void RootSignatureManager::rebuild(const std::string& name)
+void RootSignatureManager::rebuild(RootSignatureType type)
 {
-    auto it = m_definitions.find(name);
-    assert(it != m_definitions.end());
-
-    const auto& def = it->second;
+    const auto& def = m_definitions[static_cast<size_t>(type)];
 
     CD3DX12_ROOT_SIGNATURE_DESC desc;
     desc.Init(
@@ -86,20 +84,16 @@ void RootSignatureManager::rebuild(const std::string& name)
         {
             OutputDebugStringA(static_cast<const char*>(error->GetBufferPointer()));
         }
-        assert(false && "Failed to serialize RootSignature");
+        assert(false);
         return;
     }
 
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSig;
     hr = DX12::Instance().getDevice()->CreateRootSignature(
         0,
         blob->GetBufferPointer(),
         blob->GetBufferSize(),
-        IID_PPV_ARGS(&rootSig)
+        IID_PPV_ARGS(&m_rootSignatures[static_cast<size_t>(type)])
     );
 
     assert(SUCCEEDED(hr));
-
-    //! 同名は差し替え
-    m_rootSignatures[name] = rootSig;
 }

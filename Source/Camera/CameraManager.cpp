@@ -44,5 +44,5 @@ void CameraManager::createRootSignature()
     auto& rsm = RootSignatureManager::Instance();
 
     //! カメラ定数バッファを b0 に登録
-    rsm.addParameterTo("DefaultRootSignature", m_cameraCB.createRootParameter(0));
+    rsm.addParameterTo(RootSignatureType::Standard, m_cameraCB.createRootParameter(0));
 }
