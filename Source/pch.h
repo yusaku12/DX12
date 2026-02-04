@@ -55,6 +55,7 @@
 #include "GameObject\GameObjectRegistry.h"
 #include "Editor\EditorManager.h"
 #include "Input\InputManager.h"
+#include "Audio\AudioManager.h"
 
 //! 省略系
 using namespace DirectX;

@@ -22,6 +22,15 @@ Window::Window(HWND hwnd)
 
     //! PMXモデル読み込み
     m_pmxActor = std::make_unique<PmxActor>(L"Data/Model/Kazusa_ByPOWER_v1.0/Kazusa_ByPOWER.pmx");
+
+    //! オーディオマネージャー初期化
+    AudioManager::Instance().initialize();
+
+    //! 試しに読み込み
+    AudioManager::Instance().load("bgm", "Data/Audio/a.wav");
+    AudioManager::Instance().play("bgm", true);
+
+    AudioManager::Instance().setMasterVolume(0.05f);
 }
 
 Window::~Window()
@@ -31,6 +40,9 @@ Window::~Window()
 
     //! ImGui がある場合は先に終了処理
     IMGUI_CTRL_FINALIZE();
+
+    //! オーディオマネージャー終了処理
+    AudioManager::Instance().shutdown();
 }
 
 void Window::update()
@@ -52,6 +64,9 @@ void Window::update()
 
     //! ゲームオブジェクト更新
     GameObjectRegistry::Instance().update();
+
+    //! オーディオマネージャー更新
+    AudioManager::Instance().update(TimeManager::Instance().getDeltaTime());
 }
 
 void Window::render()
