@@ -10,6 +10,7 @@
 #include <mutex>
 #include <vector>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <iostream>
 #include <tchar.h>
 #include <stdexcept>
@@ -33,6 +34,7 @@
 #include <array>
 #include <d3dx12.h>
 #include <typeindex>
+#include <algorithm>
 
 #undef ERROR
 #undef OPAQUE

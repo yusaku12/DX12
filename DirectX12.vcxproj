@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="External\imgui\ImCurveEdit.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="External\imgui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -89,6 +92,7 @@
   <ItemGroup>
     <ClInclude Include="External\imgui\context_wrapper.h" />
     <ClInclude Include="External\imgui\imconfig.h" />
+    <ClInclude Include="External\imgui\ImCurveEdit.h" />
     <ClInclude Include="External\imgui\imgui.h" />
     <ClInclude Include="External\imgui\imgui_bezier_math.h" />
     <ClInclude Include="External\imgui\imgui_extra_math.h" />
