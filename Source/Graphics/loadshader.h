@@ -36,7 +36,7 @@ class LoadShader
 {
 public:
 
-    LoadShader(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline);
+    LoadShader(const std::wstring& filePath, ShaderType shaderType);
 
     //! エラーメッセージを取得
     std::string getErrorString() const;
@@ -44,10 +44,10 @@ public:
     //! result取得
     HRESULT getResult() const { return m_result; }
 
-private:
+    //! シェーダBlob取得
+    ID3DBlob* getShaderBlob() const { return m_shaderBlob.Get(); }
 
-    //! シェーダーをセットする
-    void setShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline);
+private:
 
     //! シェーダ読み込み
     HRESULT loadShader();

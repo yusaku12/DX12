@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Model\PmxActor.h"
+#include "Test\TestPolygon.h"
 
 //=====================================================
 // windowの管理を行うクラス
@@ -32,5 +32,5 @@ private:
 
     const HWND m_hwnd;
     DX12 m_dx12;
-    std::unique_ptr<PmxActor> m_pmxActor;
+    std::unique_ptr<TestPolygon> m_testPolygon;
 };

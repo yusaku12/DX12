@@ -8,38 +8,38 @@ class VertexBuffer
 {
 public:
 
-    //! コンストラクタで頂点バッファ生成
+    //! コンストラクタで頂点バッファ生成（std::vector版）
     VertexBuffer(const std::vector<T>& vertices)
+        : VertexBuffer(vertices.data(), static_cast<UINT>(vertices.size()))
     {
-        auto device = DX12::Instance().getDevice();
+    }
 
-        m_vertexCount = static_cast<UINT>(vertices.size());
+    //! コンストラクタで頂点バッファ生成（配列版）
+    template<size_t N>
+    VertexBuffer(const T(&vertices)[N])
+        : VertexBuffer(vertices, static_cast<UINT>(N))
+    {
+    }
+
+    //! コンストラクタで頂点バッファ生成
+    VertexBuffer(const T* vertices, UINT count)
+    {
+        m_vertexCount = count;
         m_bufferSize = sizeof(T) * m_vertexCount;
 
-        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(m_bufferSize);
-
-        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
-
-        HRESULT hr = device->CreateCommittedResource(
-            &heapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(m_vertexBuffer.ReleaseAndGetAddressOf())
-        );
-        LOG_HR(hr, "failed CreateCommittedResource");
+        //! バッファ作成
+        m_uploadBuffer = std::make_unique<UploadBuffer>(m_bufferSize);
 
         //! Map → Copy → Unmap
         void* mapped = nullptr;
-        hr = m_vertexBuffer->Map(0, nullptr, &mapped);
+        HRESULT hr = m_uploadBuffer->getResource()->Map(0, nullptr, &mapped);
         LOG_HR(hr, "failed Map");
 
-        memcpy(mapped, vertices.data(), m_bufferSize);
-        m_vertexBuffer->Unmap(0, nullptr);
+        memcpy(mapped, vertices, m_bufferSize);
+        m_uploadBuffer->getResource()->Unmap(0, nullptr);
 
         //! VertexBufferView 作成
-        m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+        m_vertexBufferView.BufferLocation = m_uploadBuffer->getResource()->GetGPUVirtualAddress();
         m_vertexBufferView.SizeInBytes = m_bufferSize;
         m_vertexBufferView.StrideInBytes = sizeof(T);
     }
@@ -61,7 +61,6 @@ private:
 
     UINT m_vertexCount = 0;
     UINT m_bufferSize = 0;
-
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;
     D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView = {};
+    std::unique_ptr<UploadBuffer>m_uploadBuffer;
 };

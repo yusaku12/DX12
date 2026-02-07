@@ -84,9 +84,6 @@
     <ClCompile Include="Source\Graphics\ShaderManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Model\PmxActor.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Source\System\TimeManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -103,9 +100,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\Camera\CameraManager.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Render\PmxRender.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Source\GameObject\GameObject.cpp">
@@ -142,6 +136,12 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="External\imgui\ImCurveEdit.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Graphics\UploadBuffer.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Test\TestPolygon.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -230,9 +230,6 @@
     <ClInclude Include="Source\Graphics\ShaderManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Model\PmxActor.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\System\TimeManager.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -269,13 +266,7 @@
     <ClInclude Include="Source\Camera\CameraBehaviour.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Render\PmxRender.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="Source\System\LoggerMacros.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Graphics\CreateResource.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameObject\GameObject.h">
@@ -329,12 +320,18 @@
     <ClInclude Include="External\imgui\ImCurveEdit.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Graphics\UploadBuffer.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Test\TestPolygon.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="HLSL\polygonVS.hlsl" />
-    <FxCompile Include="HLSL\polygonPS.hlsl" />
+    <None Include="HLSL\Polygon.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="HLSL\polygon.hlsli" />
+    <FxCompile Include="HLSL\PolygonVS.hlsl" />
+    <FxCompile Include="HLSL\PolygonPS.hlsl" />
   </ItemGroup>
 </Project>

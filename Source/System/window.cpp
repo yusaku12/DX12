@@ -17,14 +17,17 @@ Window::Window(HWND hwnd)
     //! DescriptorHeapManager初期化
     DescriptorHeapManager::Instance().initialize();
 
+    //! RootSignatureManager初期化
+    RootSignatureManager::Instance().initialize();
+
     //! CameraManager初期化
     CameraManager::Instance().initialize();
 
-    //! PMXモデル読み込み
-    m_pmxActor = std::make_unique<PmxActor>(L"Data/Model/Kazusa_ByPOWER_v1.0/Kazusa_ByPOWER.pmx");
-
     //! オーディオマネージャー初期化
     AudioManager::Instance().initialize();
+
+    //! テストポリゴン生成
+    m_testPolygon = std::make_unique<TestPolygon>();
 
     //! 試しに読み込み
     AudioManager::Instance().load("bgm", "Data/Audio/a.wav");
@@ -80,8 +83,8 @@ void Window::render()
     //! 画面をクリア
     m_dx12.screenClear();
 
-    //! PMXモデル描画
-    m_pmxActor->render();
+    //! テストポリゴン描画
+    m_testPolygon->render();
 
     //! シーンマネージャ描画
     SceneManager::Instance().draw();

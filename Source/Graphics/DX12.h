@@ -76,6 +76,9 @@ public:
     //! フェンスを待つ
     void safeGPUWait();
 
+    //! コマンドリスト実行
+    void executeCommandList();
+
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
 

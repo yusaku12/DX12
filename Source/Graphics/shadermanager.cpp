@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 
-LoadShader* ShaderManager::load(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline)
+LoadShader* ShaderManager::load(const std::wstring& filePath, ShaderType shaderType)
 {
     ShaderKey key{ filePath, shaderType };
     auto it = m_shaderCache.find(key);
@@ -10,7 +10,7 @@ LoadShader* ShaderManager::load(const std::wstring& filePath, ShaderType shaderT
     }
 
     //! 新規ロード
-    auto newShader = std::make_unique<LoadShader>(filePath, shaderType, gpipeline);
+    auto newShader = std::make_unique<LoadShader>(filePath, shaderType);
     LoadShader* shaderPtr = newShader.get();
 
     if (FAILED(newShader->getResult()))

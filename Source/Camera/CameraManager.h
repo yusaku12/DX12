@@ -35,9 +35,6 @@ private:
     //! GPUに送るカメラ定数バッファ
     void uploadCameraBufferToGPU();
 
-    //! ルートシグネチャ作成
-    void createRootSignature();
-
     //! 定数バッファ構造体
     struct GPUCameraBuffer
     {
@@ -46,6 +43,6 @@ private:
         Vector3 cameraPos;  //!< カメラ座標
     };
 
-    ConstantBuffer<GPUCameraBuffer> m_cameraCB; //!< カメラ定数バッファ
+    std::unique_ptr<ConstantBuffer<GPUCameraBuffer>> m_cameraCB; //!< カメラ定数バッファ
     std::unique_ptr<CameraBehaviour> m_behaviour;
 };

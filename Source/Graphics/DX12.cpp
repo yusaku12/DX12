@@ -203,9 +203,7 @@ void DX12::renderTargetUndo()
     m_graphicsCommandList->ResourceBarrier(1, &m_barrierDesc);
 
     //! コマンドリストを閉じて実行
-    m_graphicsCommandList->Close();
-    ID3D12CommandList* lists[] = { m_graphicsCommandList.Get() };
-    m_commandQueue->ExecuteCommandLists(_countof(lists), lists);
+    executeCommandList();
 }
 
 void DX12::screenClearCleanup()
@@ -303,6 +301,14 @@ void DX12::safeGPUWait()
         WaitForSingleObject(event, INFINITE);
         CloseHandle(event);
     }
+}
+
+void DX12::executeCommandList()
+{
+    //! コマンドリストを閉じて実行
+    m_graphicsCommandList->Close();
+    ID3D12CommandList* lists[] = { m_graphicsCommandList.Get() };
+    m_commandQueue->ExecuteCommandLists(_countof(lists), lists);
 }
 
 void DX12::commandReset()

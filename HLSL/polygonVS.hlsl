@@ -1,4 +1,4 @@
-#include "polygon.hlsli"
+#include "Polygon.hlsli"
 
 VS_OUT VS(float4 pos : POSITION, float2 uv : TEXCOORD)
 {

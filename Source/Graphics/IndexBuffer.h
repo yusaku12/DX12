@@ -1,46 +1,47 @@
 ﻿#pragma once
 
 //=====================================================
-// インデックスデータ作成クラス（テンプレート版）
+// インデックスバッファ作成クラス（テンプレート版）
 //=====================================================
 template<typename T>
 class IndexBuffer
 {
 public:
 
-    //! コンストラクタでインデックスバッファ生成
-    IndexBuffer(const std::vector<T>& indices, DXGI_FORMAT format)
+    //! コンストラクタでインデックスバッファ生成（std::vector版）
+    IndexBuffer(const std::vector<T>& indices)
+        : IndexBuffer(indices.data(), static_cast<UINT>(indices.size()))
     {
-        auto device = DX12::Instance().getDevice();
+    }
 
-        m_indexCount = static_cast<UINT>(indices.size());
+    //! コンストラクタでインデックスバッファ生成（配列版）
+    template<size_t N>
+    IndexBuffer(const T(&indices)[N])
+        : IndexBuffer(indices, static_cast<UINT>(N))
+    {
+    }
+
+    //! コンストラクタでインデックスバッファ生成
+    IndexBuffer(const T* indices, UINT count)
+    {
+        m_indexCount = count;
         m_bufferSize = sizeof(T) * m_indexCount;
 
-        CD3DX12_RESOURCE_DESC resourceDesc =
-            CD3DX12_RESOURCE_DESC::Buffer(m_bufferSize);
+        //! UploadBuffer 作成
+        m_uploadBuffer = std::make_unique<UploadBuffer>(m_bufferSize);
 
-        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
-
-        HRESULT hr = device->CreateCommittedResource(
-            &heapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(m_indexBuffer.ReleaseAndGetAddressOf())
-        );
-        LOG_HR(hr, "Failed to create index buffer.");
-
-        //! Map → Copy → Unmap
         void* mapped = nullptr;
-        hr = m_indexBuffer->Map(0, nullptr, &mapped);
+        HRESULT hr = m_uploadBuffer->getResource()->Map(0, nullptr, &mapped);
         LOG_HR(hr, "Failed Map");
 
-        memcpy(mapped, indices.data(), m_bufferSize);
-        m_indexBuffer->Unmap(0, nullptr);
+        memcpy(mapped, indices, m_bufferSize);
+        m_uploadBuffer->getResource()->Unmap(0, nullptr);
 
-        //! IndexBufferView 作成
-        m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+        //! Format 自動判定
+        DXGI_FORMAT format = (sizeof(T) == 2) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+
+        //! IB View
+        m_indexBufferView.BufferLocation = m_uploadBuffer->getResource()->GetGPUVirtualAddress();
         m_indexBufferView.SizeInBytes = m_bufferSize;
         m_indexBufferView.Format = format;
     }
@@ -62,7 +63,6 @@ private:
 
     UINT m_indexCount = 0;
     UINT m_bufferSize = 0;
-
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;
     D3D12_INDEX_BUFFER_VIEW m_indexBufferView = {};
+    std::unique_ptr<UploadBuffer>m_uploadBuffer;
 };

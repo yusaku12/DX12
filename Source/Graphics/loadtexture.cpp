@@ -70,44 +70,73 @@ bool LoadTexture::loadFromFile(const std::wstring& filePath)
 void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const DirectX::ScratchImage& img)
 {
     auto device = DX12::Instance().getDevice();
+    auto cmd = DX12::Instance().getGraphicsCommandList();
 
-    D3D12_HEAP_PROPERTIES heapProp{};
-    heapProp.Type = D3D12_HEAP_TYPE_CUSTOM;
-    heapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-    heapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+    //! GPU側テクスチャ作成（DEFAULT HEAP）
+    CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+        meta.format,
+        meta.width,
+        (UINT)meta.height,
+        (UINT16)meta.arraySize,
+        (UINT16)meta.mipLevels
+    );
 
-    D3D12_RESOURCE_DESC desc{};
-    desc.Dimension = (D3D12_RESOURCE_DIMENSION)meta.dimension;
-    desc.Format = meta.format;
-    desc.Width = meta.width;
-    desc.Height = (UINT)meta.height;
-    desc.DepthOrArraySize = (UINT16)meta.arraySize;
-    desc.MipLevels = (UINT16)meta.mipLevels;
-    desc.SampleDesc.Count = 1;
+    CD3DX12_HEAP_PROPERTIES heapProp(D3D12_HEAP_TYPE_DEFAULT);
 
     device->CreateCommittedResource(
         &heapProp,
         D3D12_HEAP_FLAG_NONE,
-        &desc,
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        &texDesc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr,
         IID_PPV_ARGS(m_texture.GetAddressOf())
     );
 
-    const DirectX::Image* image = img.GetImage(0, 0, 0);
-    m_texture->WriteToSubresource(
-        0, nullptr,
-        image->pixels,
-        (UINT)image->rowPitch,
-        (UINT)image->slicePitch
+    //! サブリソース準備（全Mip）
+    std::vector<D3D12_SUBRESOURCE_DATA> subresources;
+
+    const DirectX::Image* images = img.GetImages();
+    size_t imageCount = img.GetImageCount();
+
+    subresources.resize(imageCount);
+
+    for (size_t i = 0; i < imageCount; ++i)
+    {
+        subresources[i].pData = images[i].pixels;
+        subresources[i].RowPitch = images[i].rowPitch;
+        subresources[i].SlicePitch = images[i].slicePitch;
+    }
+
+    //! UploadBuffer作成
+    UINT64 uploadSize = GetRequiredIntermediateSize(m_texture.Get(), 0, (UINT)subresources.size());
+
+    m_upload = std::make_unique<UploadBuffer>(uploadSize);
+
+    //! GPUへコピー
+    UpdateSubresources(
+        cmd,
+        m_texture.Get(),
+        m_upload->getResource(),
+        0, 0,
+        (UINT)subresources.size(),
+        subresources.data()
     );
 
+    //! SRV用に状態遷移
+    CD3DX12_RESOURCE_BARRIER barrier =
+        CD3DX12_RESOURCE_BARRIER::Transition(
+            m_texture.Get(),
+            D3D12_RESOURCE_STATE_COPY_DEST,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    cmd->ResourceBarrier(1, &barrier);
+
+    //! SRV作成（DescriptorHeapManager）
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
     srvDesc.Format = meta.format;
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Texture2D.MipLevels = desc.MipLevels;
+    srvDesc.Texture2D.MipLevels = (UINT)meta.mipLevels;
 
-    //! DescriptorHeapManager経由でSRV作成
     m_srvIndex = DescriptorHeapManager::Instance().createSRV(m_texture.Get(), srvDesc);
 }

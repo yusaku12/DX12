@@ -32,6 +32,9 @@ public:
     //! UAV作成
     UINT createUAV(ID3D12Resource* resource, ID3D12Resource* counterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
 
+    //! 複数分のインデックス割り当て
+    UINT allocateRange(UINT count);
+
     //! DescriptorHeapとGPUハンドル取得
     ID3D12DescriptorHeap* getHeap() { return m_heap.Get(); }
     D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index);

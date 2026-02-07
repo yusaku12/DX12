@@ -98,15 +98,6 @@ void PiplineState::initSamplerState()
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.ShaderRegister = 5; //!< s5
     }
-
-    //! RootSignatureに登録
-    auto& rsm = RootSignatureManager::Instance();
-    rsm.begin(RootSignatureType::Standard);
-    for (const auto& sampler : m_samplerState)
-    {
-        rsm.addStaticSampler(sampler);
-    }
-    rsm.build();
 }
 
 void PiplineState::initBlendState()

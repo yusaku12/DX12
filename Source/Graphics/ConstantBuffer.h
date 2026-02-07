@@ -8,81 +8,46 @@ class ConstantBuffer
 {
 public:
 
-    //! コンストラクタでCB生成
     ConstantBuffer(UINT elementCount = 1)
         : m_elementCount(elementCount)
     {
-        auto device = DX12::Instance().getDevice();
-
         m_elementSize = (sizeof(T) + 255) & ~255;
         m_bufferSize = m_elementSize * m_elementCount;
 
-        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(m_bufferSize);
-        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+        m_uploadBuffer = std::make_unique<UploadBuffer>(m_bufferSize);
 
-        HRESULT hr = device->CreateCommittedResource(
-            &heapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(m_buffer.ReleaseAndGetAddressOf())
-        );
-        LOG_HR(hr, "[ConstantBuffer] Failed to create constant buffer resource.");
+        auto res = m_uploadBuffer->getResource();
+        res->Map(0, nullptr, reinterpret_cast<void**>(&m_mapped));
 
-        hr = m_buffer->Map(0, nullptr, reinterpret_cast<void**>(&m_mapped));
-        if (FAILED(hr))
+        //! elementごとにCBV作成
+        for (UINT i = 0; i < m_elementCount; ++i)
         {
-            m_mapped = nullptr;
-            return;
+            D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{};
+            cbvDesc.BufferLocation = res->GetGPUVirtualAddress() + i * m_elementSize;
+            cbvDesc.SizeInBytes = m_elementSize;
+
+            m_cbvIndices.push_back(DescriptorHeapManager::Instance().createCBV(cbvDesc));
         }
-
-        //! CBV 作成
-        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{};
-        cbvDesc.BufferLocation = m_buffer->GetGPUVirtualAddress();
-        cbvDesc.SizeInBytes = m_bufferSize;
-
-        m_cbvIndex = DescriptorHeapManager::Instance().createCBV(cbvDesc);
     }
 
-    //! RootSignature用 RootParameter を生成
-    D3D12_ROOT_PARAMETER createRootParameter(UINT shaderRegister, UINT registerSpace = 0, D3D12_SHADER_VISIBILITY visibility = D3D12_SHADER_VISIBILITY_ALL) const
-    {
-        D3D12_ROOT_PARAMETER param{};
-        param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-        param.ShaderVisibility = visibility;
-        param.Descriptor.ShaderRegister = shaderRegister;
-        param.Descriptor.RegisterSpace = registerSpace;
-        return param;
-    }
+    // コピー禁止
+    ConstantBuffer(const ConstantBuffer&) = delete;
+    ConstantBuffer& operator=(const ConstantBuffer&) = delete;
 
-    //! デストラクタ
-    ~ConstantBuffer()
-    {
-        //! 何故かデストラクタでUnmapすると落ちるのでコメントアウト
-        //if (m_buffer && m_mapped)
-        //{
-        //    m_buffer->Unmap(0, nullptr);
-        //    m_mapped = nullptr;
-        //}
-    }
+    // ムーブ
+    ConstantBuffer(ConstantBuffer&&) noexcept = default;
+    ConstantBuffer& operator=(ConstantBuffer&&) noexcept = default;
 
-    //! 単体用（index = 0）
-    void update(const T& data)
-    {
-        memcpy(m_mapped, &data, sizeof(T));
-    }
-
-    //! 配列用
+    //! データ更新
     void update(UINT index, const T& data)
     {
         memcpy(m_mapped + index * m_elementSize, &data, sizeof(T));
     }
 
-    //! GPUハンドル取得（描画時用）
-    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const
+    //! ルートパラメータ作成
+    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index = 0) const
     {
-        return DescriptorHeapManager::Instance().getGPUHandle(m_cbvIndex);
+        return DescriptorHeapManager::Instance().getGPUHandle(m_cbvIndices[index]);
     }
 
 private:
@@ -90,9 +55,7 @@ private:
     UINT m_elementCount = 0;
     UINT m_elementSize = 0;
     UINT m_bufferSize = 0;
-
-    UINT m_cbvIndex = 0;
-
     uint8_t* m_mapped = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_buffer;
+    std::unique_ptr<UploadBuffer> m_uploadBuffer;
+    std::vector<UINT> m_cbvIndices;
 };

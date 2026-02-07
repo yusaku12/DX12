@@ -74,20 +74,20 @@
     <ClCompile Include="Source\Graphics\RootSignatureManager.cpp" />
     <ClCompile Include="Source\Graphics\ShaderManager.cpp" />
     <ClCompile Include="Source\Graphics\TextureManager.cpp" />
+    <ClCompile Include="Source\Graphics\UploadBuffer.cpp" />
     <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
-    <ClCompile Include="Source\Model\PmxActor.cpp" />
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Source\Render\PmxRender.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
     <ClCompile Include="Source\System\Logger.cpp" />
     <ClCompile Include="Source\System\TimeManager.cpp" />
     <ClCompile Include="Source\System\Window.cpp" />
+    <ClCompile Include="Source\Test\TestPolygon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="External\imgui\context_wrapper.h" />
@@ -126,8 +126,8 @@
     <ClInclude Include="Source\GameObject\GameObject.h" />
     <ClInclude Include="Source\GameObject\GameObjectRegistry.h" />
     <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
-    <ClInclude Include="Source\Graphics\CreateResource.h" />
     <ClInclude Include="Source\Graphics\IndexBuffer.h" />
+    <ClInclude Include="Source\Graphics\UploadBuffer.h" />
     <ClInclude Include="Source\Graphics\VertexBuffer.h" />
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h" />
     <ClInclude Include="Source\Graphics\DX12.h" />
@@ -139,10 +139,8 @@
     <ClInclude Include="Source\Graphics\TextureManager.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\Math\SimpleMath.h" />
-    <ClInclude Include="Source\Model\PmxActor.h" />
     <ClInclude Include="Source\Model\PmxLoad.h" />
     <ClInclude Include="Source\pch.h" />
-    <ClInclude Include="Source\Render\PmxRender.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
@@ -151,30 +149,28 @@
     <ClInclude Include="Source\System\Stringformat.h" />
     <ClInclude Include="Source\System\TimeManager.h" />
     <ClInclude Include="Source\System\Window.h" />
+    <ClInclude Include="Source\Test\TestPolygon.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="HLSL\polygonPS.hlsl">
+    <None Include="HLSL\Polygon.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="HLSL\PolygonPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Effect</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
     </FxCompile>
-    <FxCompile Include="HLSL\polygonVS.hlsl">
+    <FxCompile Include="HLSL\PolygonVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Effect</ShaderType>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shader\%(Filename).cso</ObjectFileOutput>
-      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">AssemblyCode</AssemblerOutput>
-      <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shader\%(Filename).cod</AssemblerOutputFile>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
     </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="HLSL\polygon.hlsli" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -282,7 +278,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>C:\Users\2210359\Desktop\DirectX12\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -312,7 +308,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>

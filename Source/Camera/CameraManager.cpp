@@ -8,10 +8,7 @@ void CameraManager::setBehaviour(std::unique_ptr<CameraBehaviour> behaviour)
 void CameraManager::initialize()
 {
     //! カメラ定数バッファ作成
-    m_cameraCB = ConstantBuffer<GPUCameraBuffer>();
-
-    //! RootSignature 作成
-    createRootSignature();
+    m_cameraCB = std::make_unique<ConstantBuffer<GPUCameraBuffer>>();
 
     //! カメラ定数バッファをGPUにアップロード
     uploadCameraBufferToGPU();
@@ -36,13 +33,6 @@ void CameraManager::uploadCameraBufferToGPU()
     camera.projection = m_camera.getProjection();
     camera.cameraPos = m_camera.getPosition();
 
-    m_cameraCB.update(camera);
-}
-
-void CameraManager::createRootSignature()
-{
-    auto& rsm = RootSignatureManager::Instance();
-
-    //! カメラ定数バッファを b0 に登録
-    rsm.addParameterTo(RootSignatureType::Standard, m_cameraCB.createRootParameter(0));
+    //! 定数バッファ更新(1:シェーダーに登録する番号)
+    m_cameraCB->update(1, camera);
 }

@@ -3,34 +3,10 @@
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
 
-LoadShader::LoadShader(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline)
+LoadShader::LoadShader(const std::wstring& filePath, ShaderType shaderType)
     : m_filePath(filePath), m_shaderType(shaderType), m_result(E_FAIL)
 {
     m_result = loadShader();
-
-    //! シェーダーをセット
-    setShader(gpipeline);
-}
-
-void LoadShader::setShader(D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline)
-{
-    if (!m_shaderBlob)
-    {
-        LOG_ASSERT_NO_JUDGE("Shader blob is null.");
-        return;
-    }
-
-    switch (m_shaderType)
-    {
-    case ShaderType::VS:
-        gpipeline.VS.pShaderBytecode = m_shaderBlob->GetBufferPointer();
-        gpipeline.VS.BytecodeLength = m_shaderBlob->GetBufferSize();
-        break;
-    case ShaderType::PS:
-        gpipeline.PS.pShaderBytecode = m_shaderBlob->GetBufferPointer();
-        gpipeline.PS.BytecodeLength = m_shaderBlob->GetBufferSize();
-        break;
-    }
 }
 
 std::string LoadShader::getErrorString() const

@@ -17,7 +17,7 @@ public:
     }
 
     //! シェーダ読み込み
-    LoadShader* load(const std::wstring& filePath, ShaderType shaderType, D3D12_GRAPHICS_PIPELINE_STATE_DESC& gpipeline);
+    LoadShader* load(const std::wstring& filePath, ShaderType shaderType);
 
     //! 個別アンロード
     void unload(const std::wstring& filePath, ShaderType shaderType);

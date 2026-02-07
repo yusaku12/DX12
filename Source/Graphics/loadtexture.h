@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "DescriptorHeapManager.h"
+#include "UploadBuffer.h"
 #include <DirectXTex.h>
 #pragma comment(lib, "DirectXTex.lib")
 
@@ -43,4 +44,5 @@ private:
     std::unordered_map<std::wstring, LoaderFunc> m_loaderTable; //!< ローダーテーブル
     Microsoft::WRL::ComPtr<ID3D12Resource> m_texture; //!< テクスチャリソース
     UINT m_srvIndex = 0;
+    std::unique_ptr<UploadBuffer> m_upload;
 };

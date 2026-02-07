@@ -50,7 +50,7 @@ dcl_temps 2
 //   o1.x <- <VS return value>.texcoord.x; o1.y <- <VS return value>.texcoord.y; 
 //   o0.x <- <VS return value>.position.x; o0.y <- <VS return value>.position.y; o0.z <- <VS return value>.position.z; o0.w <- <VS return value>.position.w
 //
-#line 6 "C:\Users\2210359\Desktop\DirectX12\HLSL\polygonVS.hlsl"
+#line 6 "C:\Users\2210359\Desktop\DirectX12\HLSL\PolygonVS.hlsl"
 dp4 r0.x, cb0[0].xyzw, v0.xyzw  // r0.x <- output.position.x
 dp4 r0.y, cb0[1].xyzw, v0.xyzw  // r0.y <- output.position.y
 dp4 r0.z, cb0[2].xyzw, v0.xyzw  // r0.z <- output.position.z

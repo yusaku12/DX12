@@ -44,6 +44,32 @@ UINT DescriptorHeapManager::createUAV(ID3D12Resource* resource, ID3D12Resource* 
     return index;
 }
 
+UINT DescriptorHeapManager::allocateRange(UINT count)
+{
+    for (UINT i = 0; i <= m_maxCount - count; ++i)
+    {
+        bool free = true;
+        for (UINT j = 0; j < count; ++j)
+        {
+            if (m_used[i + j])
+            {
+                free = false;
+                break;
+            }
+        }
+
+        if (free)
+        {
+            for (UINT j = 0; j < count; ++j)
+                m_used[i + j] = true;
+
+            return i;
+        }
+    }
+
+    return UINT_MAX;
+}
+
 D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getGPUHandle(UINT index)
 {
     D3D12_GPU_DESCRIPTOR_HANDLE h = m_heap->GetGPUDescriptorHandleForHeapStart();
