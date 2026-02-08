@@ -1,19 +1,11 @@
 ﻿#pragma once
 
 //=====================================================
-// パイプラインステート管理シングルトン
+// パイプラインステート作成クラス
 //=====================================================
-
-class PSOManager
+class PSOCreator
 {
 public:
-
-    //! インスタンス取得
-    static PSOManager& Instance()
-    {
-        static PSOManager instance;
-        return instance;
-    }
 
     //! PSOデータ構造体
     struct PSOData
@@ -24,21 +16,20 @@ public:
         RasterizerState rasterizerState = RasterizerState::CULL_NONE;
         BlendState blendState = BlendState::OPAQUE;
         DepthStencilState depthStencilState = DepthStencilState::DEPTH_DEFALT;
+        std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
     };
 
+    explicit PSOCreator(const PSOData& data);
+    ~PSOCreator() {}
+
     //! PSO作成
-    void createPSO(const PSOData& psoData);
+    void createPSO();
 
     //! PSO設定
     void setPSO();
 
 private:
 
-    //! コンストラクタ・デストラクタ
-    PSOManager() = default;
-    ~PSOManager() = default;
-    PSOManager(const PSOManager&) = delete;
-    PSOManager& operator=(const PSOManager&) = delete;
-
+    PSOData m_psoData = {};
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pPipelineState = nullptr;
 };

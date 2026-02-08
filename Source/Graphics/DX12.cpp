@@ -89,7 +89,7 @@ DX12::DX12(HWND hwnd)
     DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
     swapchainDesc.Width = screenWidth;
     swapchainDesc.Height = screenHeight;
-    swapchainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;  //!< HDR の場合は DXGI_FORMAT_R16G16B16A16_FLOAT
+    swapchainDesc.Format = m_backBufferFormat;  //!< HDR の場合は DXGI_FORMAT_R16G16B16A16_FLOAT
     swapchainDesc.Stereo = false;
     swapchainDesc.SampleDesc.Count = 1;
     swapchainDesc.SampleDesc.Quality = 0;

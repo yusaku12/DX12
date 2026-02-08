@@ -94,6 +94,9 @@ public:
     //! コマンドリスト取得
     ID3D12GraphicsCommandList* getGraphicsCommandList() const { return m_graphicsCommandList.Get(); }
 
+    //! バックバッファ取得
+    DXGI_FORMAT getBackBufferFormat() const { return m_backBufferFormat; }
+
     //! imgui一時的なアロケータ
     ExampleDescriptorHeapAllocator getExampleDescriptorHeapAllocator() const { return m_exampleDescriptorHeapAllocator; }
 
@@ -128,4 +131,5 @@ private:
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
     D3D12_RESOURCE_BARRIER m_barrierDesc = {};
     UINT64 m_fenceVall = 0;
+    DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 };

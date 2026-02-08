@@ -2,6 +2,7 @@
 
 #include "Graphics\VertexBuffer.h"
 #include "Graphics\IndexBuffer.h"
+#include "Graphics\PSOCreator.h"
 
 class TestPolygon
 {
@@ -23,4 +24,5 @@ private:
 
     std::unique_ptr<VertexBuffer<Vertex>>m_vertexBuffer;
     std::unique_ptr<IndexBuffer<unsigned short>> m_indexBuffer;
+    std::unique_ptr<PSOCreator>m_psoCreator;
 };
