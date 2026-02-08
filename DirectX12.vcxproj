@@ -68,9 +68,9 @@
     <ClCompile Include="Source\GameObject\GameObjectRegistry.cpp" />
     <ClCompile Include="Source\Graphics\DescriptorHeapManager.cpp" />
     <ClCompile Include="Source\Graphics\DX12.cpp" />
-    <ClCompile Include="Source\Graphics\LoadShader.cpp" />
     <ClCompile Include="Source\Graphics\LoadTexture.cpp" />
     <ClCompile Include="Source\Graphics\PiplineState.cpp" />
+    <ClCompile Include="Source\Graphics\PSOManager.cpp" />
     <ClCompile Include="Source\Graphics\RootSignatureManager.cpp" />
     <ClCompile Include="Source\Graphics\ShaderManager.cpp" />
     <ClCompile Include="Source\Graphics\TextureManager.cpp" />
@@ -127,11 +127,12 @@
     <ClInclude Include="Source\GameObject\GameObjectRegistry.h" />
     <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
     <ClInclude Include="Source\Graphics\IndexBuffer.h" />
+    <ClInclude Include="Source\Graphics\PSOManager.h" />
+    <ClInclude Include="Source\Graphics\ShaderData.h" />
     <ClInclude Include="Source\Graphics\UploadBuffer.h" />
     <ClInclude Include="Source\Graphics\VertexBuffer.h" />
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h" />
     <ClInclude Include="Source\Graphics\DX12.h" />
-    <ClInclude Include="Source\Graphics\LoadShader.h" />
     <ClInclude Include="Source\Graphics\LoadTexture.h" />
     <ClInclude Include="Source\Graphics\PiplineState.h" />
     <ClInclude Include="Source\Graphics\RootSignatureManager.h" />

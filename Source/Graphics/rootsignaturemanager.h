@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 //! RootSignature の種類
-enum class RootSignatureType
+enum class RootSignatureType : int
 {
     Standard,
     Max

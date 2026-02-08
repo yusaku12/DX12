@@ -8,6 +8,9 @@ Window::Window(HWND hwnd)
     //! imgui初期化
     IMGUI_CTRL_INITIALIZE();
 
+    //! シェーダーマネージャー初期化
+    ShaderManager::Instance().initialize();
+
     //! TimeManager初期化
     TimeManager::Instance().initialize();
 

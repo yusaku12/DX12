@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 //! ログレベル
-enum class LogLevel
+enum class LogLevel : int
 {
     INFO,
     WARN,

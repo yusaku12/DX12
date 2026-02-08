@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 //! ブレンドステート
-enum class BlendState
+enum class BlendState : int
 {
     OPAQUE,
     ALPHA,
@@ -11,7 +11,7 @@ enum class BlendState
 };
 
 //! デプスステンシルステート
-enum class DepthStencilState
+enum class DepthStencilState : int
 {
     DEPTH_NONE,
     DEPTH_DEFALT,
@@ -22,7 +22,7 @@ enum class DepthStencilState
 };
 
 //! ラスタライザステート
-enum class RasterizerState
+enum class RasterizerState : int
 {
     CULL_NONE,
     CULL_CLOCKWISE,
@@ -32,7 +32,7 @@ enum class RasterizerState
 };
 
 //! サンプラーステート
-enum class SamplerState
+enum class SamplerState : int
 {
     POINT_WRAP,
     POINT_CLAMP,
@@ -60,8 +60,11 @@ public:
     //! 初期化
     void initialize();
 
-    //! 各種ステート取得
-    const Microsoft::WRL::ComPtr<ID3D12PipelineState>& getPipelineState() const { return m_pipelineState; }
+    //! 各種パイプラインステート取得
+    const D3D12_STATIC_SAMPLER_DESC& getSamplerState(SamplerState state) const { return m_samplerState[static_cast<int>(state)]; };
+    const D3D12_BLEND_DESC& getBlendState(BlendState state) const { return m_blendState[static_cast<int>(state)]; };
+    const D3D12_DEPTH_STENCIL_DESC& getDepthStencilState(DepthStencilState state) const { return m_depthStencilState[static_cast<int>(state)]; };
+    const D3D12_RASTERIZER_DESC& getRasterizerState(RasterizerState state) const { return m_rasterizerState[static_cast<int>(state)]; };
 
 private:
 
@@ -85,5 +88,4 @@ private:
     D3D12_BLEND_DESC m_blendState[static_cast<int>(BlendState::MAX)] = {};
     D3D12_DEPTH_STENCIL_DESC m_depthStencilState[static_cast<int>(DepthStencilState::MAX)] = {};
     D3D12_RASTERIZER_DESC m_rasterizerState[static_cast<int>(RasterizerState::MAX)] = {};
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineState = nullptr;
 };
