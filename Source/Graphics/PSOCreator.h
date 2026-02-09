@@ -17,6 +17,7 @@ public:
         BlendState blendState = BlendState::OPAQUE;
         DepthStencilState depthStencilState = DepthStencilState::DEPTH_DEFALT;
         std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
+        D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = {};
     };
 
     explicit PSOCreator(const PSOData& data);

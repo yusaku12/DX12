@@ -24,11 +24,11 @@ TestPolygon::TestPolygon()
             D3D12_APPEND_ALIGNED_ELEMENT,
             D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
         },
-        //{
-        //    "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
-        //    D3D12_APPEND_ALIGNED_ELEMENT,
-        //    D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
-        //},
+        {
+            "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+            D3D12_APPEND_ALIGNED_ELEMENT,
+            D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+        },
     };
 
     //! 頂点バッファ生成
@@ -36,6 +36,9 @@ TestPolygon::TestPolygon()
 
     //! インデックスバッファ生成
     m_indexBuffer = std::make_unique<IndexBuffer<unsigned short>>(indices);
+
+    //! テクスチャ読み込み
+    m_loadTexture = TextureManager::Instance().load(L"Data/Texture/test.jpg");
 
     //! PSO生成
     PSOCreator::PSOData psoData;
@@ -45,10 +48,11 @@ TestPolygon::TestPolygon()
     psoData.rasterizerState = RasterizerState::CULL_NONE;
     psoData.blendState = BlendState::OPAQUE;
     psoData.depthStencilState = DepthStencilState::DEPTH_NONE;
+    psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     psoData.inputLayout =
     {
         inputLayout[0],
-        //inputLayout[1],
+        inputLayout[1],
     };
     m_psoCreator = std::make_unique<PSOCreator>(psoData);
 }
@@ -57,16 +61,29 @@ void TestPolygon::render()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
 
-    //! PSO設定
+    //! DescriptorHeap
+    ID3D12DescriptorHeap* heaps[] =
+    {
+        DescriptorHeapManager::Instance().getHeap()
+    };
+    cmd->SetDescriptorHeaps(_countof(heaps), heaps);
+
+    //! RootSignature
+    cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::Standard));
+
+    //! PSO
     m_psoCreator->setPSO();
 
-    //! プリミティブトポロジー設定
+    //! IA
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    //! バッファバインド
+    //! VB/IB
     m_vertexBuffer->bind();
     m_indexBuffer->bind();
 
-    //! 描画
+    //! DescriptorTable
+    cmd->SetGraphicsRootDescriptorTable(0, m_loadTexture->getGPUHandle());
+
+    //! Draw
     cmd->DrawIndexedInstanced(6, 1, 0, 0, 0);
 }

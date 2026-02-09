@@ -5,23 +5,26 @@ Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
     , m_dx12(hwnd)
 {
+    //! DescriptorHeapManager初期化
+    DescriptorHeapManager::Instance().initialize();
+
+    //! DX12初期化
+    m_dx12.initialize();
+
     //! imgui初期化
     IMGUI_CTRL_INITIALIZE();
 
     //! シェーダーマネージャー初期化
     ShaderManager::Instance().initialize();
 
-    //! TimeManager初期化
-    TimeManager::Instance().initialize();
-
     //! PiplineState初期化
     PiplineState::Instance().initialize();
 
-    //! DescriptorHeapManager初期化
-    DescriptorHeapManager::Instance().initialize();
-
     //! RootSignatureManager初期化
     RootSignatureManager::Instance().initialize();
+
+    //! TimeManager初期化
+    TimeManager::Instance().initialize();
 
     //! CameraManager初期化
     CameraManager::Instance().initialize();
@@ -33,10 +36,10 @@ Window::Window(HWND hwnd)
     m_testPolygon = std::make_unique<TestPolygon>();
 
     //! 試しに読み込み
-    AudioManager::Instance().load("bgm", "Data/Audio/a.wav");
-    AudioManager::Instance().play("bgm", true);
+    //AudioManager::Instance().load("bgm", "Data/Audio/a.wav");
+    //AudioManager::Instance().play("bgm", true);
 
-    AudioManager::Instance().setMasterVolume(0.05f);
+    //AudioManager::Instance().setMasterVolume(0.05f);
 }
 
 Window::~Window()

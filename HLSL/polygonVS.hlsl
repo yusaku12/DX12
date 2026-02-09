@@ -1,9 +1,9 @@
 #include "Polygon.hlsli"
 
-VS_OUT VS(float4 pos : POSITION/*, float2 uv : TEXCOORD*/)
+VS_OUT VS(float4 pos : POSITION, float2 uv : TEXCOORD)
 {
     VS_OUT output;
     output.position = pos/*mul(viewProjection, pos)*/;
-    //output.texcoord = uv;
+    output.texcoord = uv;
     return output;
 }

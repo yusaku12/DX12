@@ -61,6 +61,9 @@ public:
     //! シングルトン取得
     static DX12& Instance() { return *m_instance; };
 
+    //! 初期化
+    void initialize();
+
     //! 画面をクリア
     void screenClear();
 
@@ -87,9 +90,6 @@ public:
 
     //! レンダーターゲットのディスクリプタヒープ
     ID3D12DescriptorHeap* getRTVDiscriptorHeap() const { return m_rtvHeaps.Get(); }
-
-    //! シェーダーリソースのディスクリプタヒープ
-    ID3D12DescriptorHeap* getSRVDiscriptorHeap() const { return m_srvHeaps.Get(); }
 
     //! コマンドリスト取得
     ID3D12GraphicsCommandList* getGraphicsCommandList() const { return m_graphicsCommandList.Get(); }
@@ -125,7 +125,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain4;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeaps;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeaps;
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_backBuffers[BUFFER_COUNT];
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;

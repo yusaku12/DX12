@@ -62,6 +62,7 @@ public:
 
     //! 各種パイプラインステート取得
     const D3D12_STATIC_SAMPLER_DESC& getSamplerState(SamplerState state) const { return m_samplerState[static_cast<int>(state)]; };
+    const D3D12_STATIC_SAMPLER_DESC* getSamplerStates() const { return m_samplerState; }
     const D3D12_BLEND_DESC& getBlendState(BlendState state) const { return m_blendState[static_cast<int>(state)]; };
     const D3D12_DEPTH_STENCIL_DESC& getDepthStencilState(DepthStencilState state) const { return m_depthStencilState[static_cast<int>(state)]; };
     const D3D12_RASTERIZER_DESC& getRasterizerState(RasterizerState state) const { return m_rasterizerState[static_cast<int>(state)]; };

@@ -1,4 +1,4 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
 namespace ImGuiCtrl
 {
@@ -41,55 +41,55 @@ namespace ImGuiCtrl
         ImVec4* colors = style.Colors;
         const float alpha = 1.0f;
 
-        // Šî–{”wŒi
+        // åŸºæœ¬èƒŒæ™¯
         colors[ImGuiCol_WindowBg] = ImVec4(0.18f, 0.18f, 0.18f, alpha);
         colors[ImGuiCol_ChildBg] = ImVec4(0.16f, 0.16f, 0.16f, alpha);
         colors[ImGuiCol_PopupBg] = ImVec4(0.16f, 0.16f, 0.16f, alpha);
 
-        // ƒtƒŒ[ƒ€iƒ{ƒ^ƒ“AƒXƒ‰ƒCƒ_[“™j
+        // ãƒ•ãƒ¬ãƒ¼ãƒ ï¼ˆãƒœã‚¿ãƒ³ã€ã‚¹ãƒ©ã‚¤ãƒ€ãƒ¼ç­‰ï¼‰
         colors[ImGuiCol_FrameBg] = ImVec4(0.22f, 0.22f, 0.22f, 1.0f);
         colors[ImGuiCol_FrameBgHovered] = ImVec4(0.28f, 0.28f, 0.28f, 1.0f);
         colors[ImGuiCol_FrameBgActive] = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
 
-        // ƒ{ƒ^ƒ“
+        // ãƒœã‚¿ãƒ³
         colors[ImGuiCol_Button] = ImVec4(0.22f, 0.22f, 0.22f, 1.0f);
         colors[ImGuiCol_ButtonHovered] = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
         colors[ImGuiCol_ButtonActive] = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
 
-        // ƒ^ƒCƒgƒ‹ƒo[
+        // ã‚¿ã‚¤ãƒˆãƒ«ãƒãƒ¼
         colors[ImGuiCol_TitleBg] = ImVec4(0.14f, 0.14f, 0.14f, alpha);
         colors[ImGuiCol_TitleBgActive] = ImVec4(0.20f, 0.20f, 0.20f, alpha);
         colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.10f, 0.10f, 0.10f, alpha);
 
-        // ƒwƒbƒ_[iƒcƒŠ[ƒm[ƒhAÜ‚è‚½‚½‚İ‚È‚Çj
+        // ãƒ˜ãƒƒãƒ€ãƒ¼ï¼ˆãƒ„ãƒªãƒ¼ãƒãƒ¼ãƒ‰ã€æŠ˜ã‚ŠãŸãŸã¿ãªã©ï¼‰
         colors[ImGuiCol_Header] = ImVec4(0.22f, 0.22f, 0.22f, 1.0f);
         colors[ImGuiCol_HeaderHovered] = ImVec4(0.28f, 0.28f, 0.28f, 1.0f);
         colors[ImGuiCol_HeaderActive] = ImVec4(0.30f, 0.30f, 0.30f, 1.0f);
 
-        // ƒ^ƒu
+        // ã‚¿ãƒ–
         colors[ImGuiCol_Tab] = ImVec4(0.18f, 0.18f, 0.18f, alpha);
         colors[ImGuiCol_TabHovered] = ImVec4(0.28f, 0.28f, 0.28f, alpha);
         colors[ImGuiCol_TabActive] = ImVec4(0.22f, 0.22f, 0.22f, alpha);
         colors[ImGuiCol_TabUnfocused] = ImVec4(0.15f, 0.15f, 0.15f, alpha);
         colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.18f, 0.18f, 0.18f, alpha);
 
-        // ƒXƒNƒ[ƒ‹ƒo[
+        // ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«ãƒãƒ¼
         colors[ImGuiCol_ScrollbarBg] = ImVec4(0.14f, 0.14f, 0.14f, alpha);
         colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.35f, 0.35f, 0.35f, 1.0f);
         colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.40f, 0.40f, 0.40f, 1.0f);
         colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
 
-        // ‹«ŠEü
+        // å¢ƒç•Œç·š
         colors[ImGuiCol_Border] = ImVec4(0.10f, 0.10f, 0.10f, alpha);
         colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 
-        // ‘I‘ğ
+        // é¸æŠ
         colors[ImGuiCol_CheckMark] = ImVec4(0.90f, 0.90f, 0.90f, 1.0f);
         colors[ImGuiCol_SliderGrab] = ImVec4(0.33f, 0.33f, 0.33f, 1.0f);
         colors[ImGuiCol_SliderGrabActive] = ImVec4(0.45f, 0.45f, 0.45f, 1.0f);
         colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 0.50f, 0.90f, 0.35f);
 
-        // ƒrƒ…[ƒ|[ƒg‘Î‰
+        // ãƒ“ãƒ¥ãƒ¼ãƒãƒ¼ãƒˆå¯¾å¿œ
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
             style.WindowRounding = 0.0f;
@@ -103,7 +103,7 @@ namespace ImGuiCtrl
         init_info.NumFramesInFlight = 3;
         init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
         init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
-        init_info.SrvDescriptorHeap = DX12::Instance().getSRVDiscriptorHeap();
+        init_info.SrvDescriptorHeap = DescriptorHeapManager::Instance().getHeap();
         init_info.UserData = &DX12::Instance();
         init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) {auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData); return dx12Imgui->getExampleDescriptorHeapAllocator().Alloc(out_cpu_handle, out_gpu_handle); };
         init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) {auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData); return dx12Imgui->getExampleDescriptorHeapAllocator().Free(cpu_handle, gpu_handle); };

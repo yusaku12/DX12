@@ -36,16 +36,13 @@ void PSOCreator::createPSO()
     gpipeline.InputLayout.pInputElementDescs = m_psoData.inputLayout.data();
     gpipeline.InputLayout.NumElements = (UINT)m_psoData.inputLayout.size();
 
-    //! サンプルマスク設定
+    //! その他設定
     gpipeline.SampleMask = UINT_MAX;
+    gpipeline.PrimitiveTopologyType = m_psoData.topologyType;
 
     // ここのコードは改善必須
     {
-        //!
-        gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-        gpipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-
-        //!
+        //! レンダーターゲット設定
         gpipeline.NumRenderTargets = 1;
         gpipeline.RTVFormats[0] = DX12::Instance().getBackBufferFormat();
 

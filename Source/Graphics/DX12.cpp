@@ -106,26 +106,20 @@ DX12::DX12(HWND hwnd)
         nullptr,
         reinterpret_cast<IDXGISwapChain1**>(m_dxgiSwapChain4.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateSwapChainForHwnd");
+}
 
+void DX12::initialize()
+{
     //! RTVのディスクリプタヒープを作成
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;  //! レンダーターゲットビューなのでRTV
     heapDesc.NodeMask = 0;
     heapDesc.NumDescriptors = BUFFER_COUNT;          //! BufferCountの数に合わせる
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;//! シェーダーからデータを読み取るわけでは無いのでNONE
-    hr = m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_rtvHeaps.GetAddressOf()));
+    HRESULT hr = m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_rtvHeaps.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateDescriptorHeap");
 
-    //! SRVのディスクリプタヒープを作成
-    D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-    desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    desc.NumDescriptors = 64;
-    desc.NodeMask = 0;
-    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    hr = m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(m_srvHeaps.GetAddressOf()));
-    LOG_HR(hr, "Failed to SRV CreateDescriptorHeap");
-
-    m_exampleDescriptorHeapAllocator.Create(m_device.Get(), m_srvHeaps.Get());  // @todo imgui用一時的なアロケータ
+    m_exampleDescriptorHeapAllocator.Create(m_device.Get(), DescriptorHeapManager::Instance().getHeap());  // @todo imgui用一時的なアロケータ
 
     //! スワップチェインに紐づけて RTV を作成
     DXGI_SWAP_CHAIN_DESC swcDesc = {};
@@ -169,7 +163,7 @@ void DX12::screenClear()
     m_graphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
     //! ディスクリプタヒープを渡す
-    ID3D12DescriptorHeap* heaps[] = { m_srvHeaps.Get() };
+    ID3D12DescriptorHeap* heaps[] = { DescriptorHeapManager::Instance().getHeap() };
     m_graphicsCommandList->SetDescriptorHeaps(1, heaps);
 
     //! 画面をクリア
