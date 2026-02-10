@@ -30,6 +30,9 @@ public:
 
 private:
 
+    //! タイトルバー更新
+    void updateTitleBar();
+
     const HWND m_hwnd;
     DX12 m_dx12;
     std::unique_ptr<TestPolygon> m_testPolygon;

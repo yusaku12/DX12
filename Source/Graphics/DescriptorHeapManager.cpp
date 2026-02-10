@@ -17,6 +17,18 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     m_incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
+void DescriptorHeapManager::setDiscriptorHeap()
+{
+    auto cmd = DX12::Instance().getGraphicsCommandList();
+
+    //! ディスクリプタヒープを渡す
+    ID3D12DescriptorHeap* heaps[] =
+    {
+        m_heap.Get()
+    };
+    cmd->SetDescriptorHeaps(_countof(heaps), heaps);
+}
+
 UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 {
     const auto device = DX12::Instance().getDevice();

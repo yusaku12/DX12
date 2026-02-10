@@ -23,6 +23,9 @@ public:
     //! 初期化（アプリ開始時に1回呼ぶ）
     void initialize(UINT maxCount = 1024);
 
+    //! ディスクリプタヒープ設定
+    void setDiscriptorHeap();
+
     //! SRV作成
     UINT createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
 
@@ -35,9 +38,11 @@ public:
     //! 複数分のインデックス割り当て
     UINT allocateRange(UINT count);
 
-    //! DescriptorHeapとGPUハンドル取得
-    ID3D12DescriptorHeap* getHeap() { return m_heap.Get(); }
+    //! GPUハンドル取得
     D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index);
+
+    //! DescriptorHeap取得
+    ID3D12DescriptorHeap* getHeap() { return m_heap.Get(); }
 
     //! 解放（使わなくなった Descriptor を返却）
     void free(UINT index);

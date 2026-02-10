@@ -119,6 +119,7 @@ void DX12::initialize()
     HRESULT hr = m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_rtvHeaps.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateDescriptorHeap");
 
+    //! imgui用一時的なアロケータを作成
     m_exampleDescriptorHeapAllocator.Create(m_device.Get(), DescriptorHeapManager::Instance().getHeap());  // @todo imgui用一時的なアロケータ
 
     //! スワップチェインに紐づけて RTV を作成
@@ -162,9 +163,8 @@ void DX12::screenClear()
     //! レンダーターゲットを設定
     m_graphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
-    //! ディスクリプタヒープを渡す
-    ID3D12DescriptorHeap* heaps[] = { DescriptorHeapManager::Instance().getHeap() };
-    m_graphicsCommandList->SetDescriptorHeaps(1, heaps);
+    //! DescriptorHeap
+    DescriptorHeapManager::Instance().setDiscriptorHeap();
 
     //! 画面をクリア
     FLOAT clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
@@ -187,6 +187,21 @@ void DX12::screenClear()
     scissorrect.right = scissorrect.left + m_width;
     scissorrect.bottom = scissorrect.top + m_height;
     m_graphicsCommandList->RSSetScissorRects(1, &scissorrect);
+}
+
+void DX12::sceneImguiRender()
+{
+    ImGui::Begin("Scene");
+
+    //! ウィンドウ内の利用可能サイズを取得
+    ImVec2 size = ImGui::GetContentRegionAvail();
+
+    ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(1).ptr;
+
+    //! ウィンドウサイズにフィットさせて表示
+    ImGui::Image(texID, size);
+
+    ImGui::End();
 }
 
 void DX12::renderTargetUndo()

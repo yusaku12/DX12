@@ -67,6 +67,9 @@ public:
     //! 画面をクリア
     void screenClear();
 
+    //! シーンのimgui描画
+    void sceneImguiRender();
+
     //! レンダーターゲットを元に戻し、コマンド終了
     void renderTargetUndo();
 

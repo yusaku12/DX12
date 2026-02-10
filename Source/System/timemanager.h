@@ -33,6 +33,9 @@ public:
     //! 経過時間取得 (スケール有り)
     float getDeltaTime() const { return m_deltaTime; }
 
+    //! FPS取得
+    int getFPS() const { return m_fps; }
+
 private:
 
     TimeManager() = default;

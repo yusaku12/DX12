@@ -125,6 +125,9 @@ void Window::imguiRender()
     //! EditorManagerのimgui描画
     EditorManager::Instance().imgui();
 
+    //! DX12のシーンimgui描画
+    m_dx12.sceneImguiRender();
+
     //! imgui描画
     IMGUI_CTRL_RENDER();
 }
@@ -144,6 +147,7 @@ int Window::run()
             //! 更新、描画
             update();
             render();
+            updateTitleBar();
         }
     }
     return static_cast<int>(msg.wParam);
@@ -167,7 +171,6 @@ LRESULT Window::processMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
     case WM_SIZE:
         if (wparam != SIZE_MINIMIZED)
         {
-            Logger::Instance().logCall(LogLevel::INFO, "resize");
             int width = LOWORD(lparam);
             int height = HIWORD(lparam);
             m_dx12.screenResize(width, height);
@@ -188,4 +191,22 @@ LRESULT Window::processMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
     }
 
     return 0;
+}
+
+void Window::updateTitleBar()
+{
+    RECT rc{};
+    GetClientRect(m_hwnd, &rc);
+
+    const int width = rc.right - rc.left;
+    const int height = rc.bottom - rc.top;
+
+    wchar_t text[256];
+    swprintf_s(text,
+        L"DX12 | %dx%d | FPS: %.1f",
+        width,
+        height,
+        static_cast<float>(TimeManager::Instance().getFPS()));
+
+    SetWindowTextW(m_hwnd, text);
 }
