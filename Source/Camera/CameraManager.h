@@ -30,6 +30,12 @@ public:
     //! カメラ更新
     void update();
 
+    //! デバック機能
+    void debugImgui();
+
+    //! カメラ定数バッファのGPUアドレス取得
+    D3D12_GPU_VIRTUAL_ADDRESS getGPUAddress() const { return m_cameraCB->getGPUAddress(); }
+
 private:
 
     //! GPUに送るカメラ定数バッファ
@@ -39,8 +45,8 @@ private:
     struct GPUCameraBuffer
     {
         Matrix view;        //!< ビュー行列
-        Matrix projection;  //!< プロジェクション行列
-        Vector3 cameraPos;  //!< カメラ座標
+        //Matrix projection;  //!< プロジェクション行列
+        //Vector3 cameraPos;  //!< カメラ座標
     };
 
     std::unique_ptr<ConstantBuffer<GPUCameraBuffer>> m_cameraCB; //!< カメラ定数バッファ

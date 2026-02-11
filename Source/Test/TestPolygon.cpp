@@ -77,8 +77,11 @@ void TestPolygon::render()
     m_vertexBuffer->bind();
     m_indexBuffer->bind();
 
+    //! CBV(カメラ)
+    cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
+
     //! DescriptorTable
-    cmd->SetGraphicsRootDescriptorTable(0, m_loadTexture->getGPUHandle());
+    cmd->SetGraphicsRootDescriptorTable(1, m_loadTexture->getGPUHandle());
 
     //! Draw
     cmd->DrawIndexedInstanced(6, 1, 0, 0, 0);

@@ -14,20 +14,20 @@ void RootSignatureManager::buildStandard()
 {
     auto device = DX12::Instance().getDevice();
 
-    //! テクスチャ用のディスクリプタレンジ
-    CD3DX12_DESCRIPTOR_RANGE texRange;
-    texRange.Init
-    (
-        D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-        1,      // とりあえず1
-        0       // t0
-    );
+    //! ディスクリプタレンジ
+    CD3DX12_DESCRIPTOR_RANGE range = {};
+
+    //! テクスチャ(ディスクリプタレンジ)
+    range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
     //! ルートパラメータ
-    CD3DX12_ROOT_PARAMETER params[1] = {};
+    CD3DX12_ROOT_PARAMETER params[2] = {};
 
-    //! テクスチャ用SRV
-    params[0].InitAsDescriptorTable(1, &texRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    //! 定数バッファ(カメラ)
+    params[0].InitAsConstantBufferView(0);
+
+    //! テクスチャ(ルートパラメータ)
+    params[1].InitAsDescriptorTable(1, &range);
 
     //! RootSignature生成
     CD3DX12_ROOT_SIGNATURE_DESC desc;

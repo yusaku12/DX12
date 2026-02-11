@@ -14,17 +14,50 @@ public:
     {
         Vector3 forward = Vector3::Transform(Vector3::Forward, m_rotation);
         Vector3 up = Vector3::Transform(Vector3::Up, m_rotation);
+
         return Matrix::CreateLookAt(m_position, m_position + forward, up);
     }
 
     //! プロジェクション行列の取得
     Matrix getProjection() const
     {
-        return Matrix::CreatePerspectiveFieldOfView(m_fov, m_aspect, m_nearZ, m_farZ);
+        return Matrix::CreatePerspectiveFieldOfView(
+            m_fov,
+            m_aspect,
+            m_nearZ,
+            m_farZ
+        );
     }
 
     // カメラ座標取得
-    const Vector3& getPosition() const { return m_position; }
+    Vector3& getPosition() { return m_position; }
+
+    //! カメラ座標設定
+    void setPosition(const Vector3& pos) { m_position = pos; }
+
+    //! カメラ回転取得
+    Quaternion& getRotation() { return m_rotation; }
+
+    //! カメラ回転設定
+    void setRotation(const Quaternion& rot) { m_rotation = rot; }
+
+    //! 前ベクトル
+    Vector3 getForward() const { return Vector3::Transform(Vector3::Forward, m_rotation); }
+
+    //! 右ベクトル
+    Vector3 getRight() const { return Vector3::Transform(Vector3::Right, m_rotation); }
+
+    //! 上ベクトル
+    Vector3 getUp() const { return Vector3::Transform(Vector3::Up, m_rotation); }
+
+    //! 視野角の取得
+    float& getFov() { return m_fov; }
+
+    //! ニアクリップの取得
+    float& getNear() { return m_nearZ; }
+
+    //! ファークリップ距離の取得
+    float& getFar() { return m_farZ; }
 
 private:
 

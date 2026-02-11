@@ -35,7 +35,7 @@ void SceneManager::draw()
 
 void SceneManager::debugOption()
 {
-    ImGui::Begin("Scene Debug");
+    ImGui::Begin("SceneL");
 
     ImGui::Text("Current Scene: %s", m_currentSceneName.c_str());
     ImGui::Separator();

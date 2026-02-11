@@ -125,6 +125,9 @@ void Window::imguiRender()
     //! EditorManagerのimgui描画
     EditorManager::Instance().imgui();
 
+    //! カメラマネージャーのimgui描画
+    CameraManager::Instance().debugImgui();
+
     //! DX12のシーンimgui描画
     m_dx12.sceneImguiRender();
 
@@ -177,6 +180,12 @@ LRESULT Window::processMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam
             IMGUI_CTRL_RESIZE(width, height);
         }
         break;
+
+    case WM_MOUSEWHEEL:
+    {
+        InputManager::Instance().addMouseWheel(GET_WHEEL_DELTA_WPARAM(wparam));
+    }
+    break;
 
     case WM_DESTROY:
         PostQuitMessage(0);

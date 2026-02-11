@@ -58,6 +58,7 @@
     <ClCompile Include="Source\Audio\SoundBuffer.cpp" />
     <ClCompile Include="Source\Audio\SoundVoice.cpp" />
     <ClCompile Include="Source\Camera\CameraManager.cpp" />
+    <ClCompile Include="Source\Camera\FreeCameraBehaviour.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -115,6 +116,7 @@
     <ClInclude Include="Source\Camera\Camera.h" />
     <ClInclude Include="Source\Camera\CameraBehaviour.h" />
     <ClInclude Include="Source\Camera\CameraManager.h" />
+    <ClInclude Include="Source\Camera\FreeCameraBehaviour.h" />
     <ClInclude Include="Source\Component\Behaviour.h" />
     <ClInclude Include="Source\Component\Component.h" />
     <ClInclude Include="Source\Component\Object.h" />

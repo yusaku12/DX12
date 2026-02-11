@@ -39,7 +39,7 @@ public:
     ConstantBuffer& operator=(ConstantBuffer&&) noexcept = default;
 
     //! データ更新
-    void update(UINT index, const T& data)
+    void update(const T& data, UINT index = 0)
     {
         memcpy(m_mapped + index * m_elementSize, &data, sizeof(T));
     }
@@ -48,6 +48,12 @@ public:
     D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index = 0) const
     {
         return DescriptorHeapManager::Instance().getGPUHandle(m_cbvIndices[index]);
+    }
+
+    //! GPU仮想アドレス取得
+    D3D12_GPU_VIRTUAL_ADDRESS getGPUAddress(UINT index = 0) const
+    {
+        return m_uploadBuffer->getResource()->GetGPUVirtualAddress() + index * m_elementSize;
     }
 
 private:

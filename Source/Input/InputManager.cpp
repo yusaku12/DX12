@@ -9,6 +9,9 @@ void InputManager::update()
     updateKeyboard();
     updateMouse();
     updateBuffer();
+
+    //! フレームの最後でリセット
+    //m_mouseWheel = 0;
 }
 
 void InputManager::setWindowFocused(bool focused)
@@ -22,6 +25,11 @@ void InputManager::setWindowFocused(bool focused)
         ZeroMemory(m_currMouse, sizeof(m_currMouse));
         ZeroMemory(m_prevMouse, sizeof(m_prevMouse));
     }
+}
+
+void InputManager::addMouseWheel(int delta)
+{
+    m_mouseWheel += delta;
 }
 
 void InputManager::updateImGuiBlock()
@@ -75,6 +83,8 @@ void InputManager::updateMouse()
 
     m_mouseDelta.x = m_mousePos.x - m_prevMousePos.x;
     m_mouseDelta.y = m_mousePos.y - m_prevMousePos.y;
+
+    m_mouseWheel = 0;
 }
 
 void InputManager::updateBuffer()

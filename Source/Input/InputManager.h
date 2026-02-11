@@ -38,6 +38,9 @@ public:
     //! ウィンドウフォーカス設定
     void setWindowFocused(bool focused);
 
+    //! マウスホイール追加
+    void addMouseWheel(int delta);
+
     //! キーが押されたか
     bool isKeyPressed(uint8_t key) const;
 
