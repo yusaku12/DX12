@@ -129,10 +129,6 @@ namespace ImGuiCtrl
     void render()
     {
         ImGui::Render();
-    }
-
-    void renderInfo()
-    {
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), DX12::Instance().getGraphicsCommandList());
     }
 

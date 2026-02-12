@@ -59,9 +59,6 @@ void Window::update()
     //! TimeManager更新
     TimeManager::Instance().update();
 
-    //! imgui更新
-    IMGUI_CTRL_UPDATE();
-
     //! InputManager更新
     InputManager::Instance().update();
 
@@ -83,9 +80,6 @@ void Window::render()
     //! フレーム開始処理
     TimeManager::Instance().frameStart(m_dx12.getGraphicsCommandList());
 
-    //! imgui描画
-    imguiRender();
-
     //! 画面をクリア
     m_dx12.screenClear();
 
@@ -95,8 +89,8 @@ void Window::render()
     //! シーンマネージャ描画
     SceneManager::Instance().draw();
 
-    //! imguiの描画情報を設定
-    IMGUI_CTRL_RENDER_INFO();
+    //! imgui描画
+    imguiRender();
 
     //! TimeManagerフレーム終了処理
     TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
@@ -113,6 +107,9 @@ void Window::render()
 
 void Window::imguiRender()
 {
+    //! imgui更新
+    IMGUI_CTRL_UPDATE();
+
     //! ログ描画
     Logger::Instance().renderLog();
 

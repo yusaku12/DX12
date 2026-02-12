@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx12.h"
@@ -7,29 +7,26 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wparam
 
 namespace ImGuiCtrl
 {
-    //! ‰Šú‰»
+    //! åˆæœŸåŒ–
     void initialize();
 
-    //! I—¹ˆ—
+    //! çµ‚äº†å‡¦ç†
     void finalize();
 
-    //! XV
+    //! æ›´æ–°
     void update();
 
-    //! •`‰æ
+    //! æç”»
     void render();
 
-    //! •`‰æî•ñ‚ğƒZƒbƒg
-    void renderInfo();
-
-    //! ƒvƒ‰ƒbƒgƒtƒH[ƒ€‚ğ’Ç‰Á‚µ‚ÄƒEƒBƒ“ƒhƒEXV
+    //! ãƒ—ãƒ©ãƒƒãƒˆãƒ•ã‚©ãƒ¼ãƒ ã‚’è¿½åŠ ã—ã¦ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦æ›´æ–°
     void updateRender();
 
-    //! ƒŠƒTƒCƒY
+    //! ãƒªã‚µã‚¤ã‚º
     void resize(int width, int height);
 }
 
-//! imguig—p‚·‚é‚½‚ß‚Ìƒ}ƒNƒ
+//! imguiä½¿ç”¨ã™ã‚‹ãŸã‚ã®ãƒã‚¯ãƒ­
 #define IMGUI_CTRL_WND_PRC_HANDLER(hwnd, msg, wParam, lParam) \
 if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam)) return true
 #define IMGUI_CTRL_INITIALIZE() ImGuiCtrl::initialize()
@@ -37,5 +34,4 @@ if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam)) return true
 #define IMGUI_CTRL_FINALIZE() ImGuiCtrl::finalize()
 #define IMGUI_CTRL_RESIZE(width,height) ImGuiCtrl::resize(width,height)
 #define IMGUI_CTRL_RENDER() ImGuiCtrl::render()
-#define IMGUI_CTRL_RENDER_INFO() ImGuiCtrl::renderInfo()
 #define IMGUI_CTRL_UPDATE_RENDER() ImGuiCtrl::updateRender()

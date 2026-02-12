@@ -114,7 +114,7 @@ void DX12::initialize()
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;  //! レンダーターゲットビューなのでRTV
     heapDesc.NodeMask = 0;
-    heapDesc.NumDescriptors = BUFFER_COUNT;          //! BufferCountの数に合わせる
+    heapDesc.NumDescriptors = BUFFER_COUNT + 1;      //! BufferCountの数に合わせる
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;//! シェーダーからデータを読み取るわけでは無いのでNONE
     HRESULT hr = m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_rtvHeaps.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateDescriptorHeap");
