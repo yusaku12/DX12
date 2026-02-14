@@ -11,6 +11,9 @@ Window::Window(HWND hwnd)
     //! DescriptorHeapManager初期化
     DescriptorHeapManager::Instance().initialize();
 
+    //! DX12初期化
+    m_dx12.initialize();
+
     //! シェーダーマネージャー初期化
     ShaderManager::Instance().initialize();
 
@@ -28,9 +31,6 @@ Window::Window(HWND hwnd)
 
     //! オーディオマネージャー初期化
     AudioManager::Instance().initialize();
-
-    //! DX12初期化
-    m_dx12.initialize();
 
     //! テストポリゴン生成
     m_testPolygon = std::make_unique<TestPolygon>();

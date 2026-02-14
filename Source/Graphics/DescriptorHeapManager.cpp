@@ -96,7 +96,8 @@ void DescriptorHeapManager::free(UINT index)
 
 UINT DescriptorHeapManager::allocate()
 {
-    for (UINT i = 0; i < m_maxCount; i++)
+    //! 0はimguiが使用するため、1から検索する
+    for (UINT i = 1; i < m_maxCount; i++)
     {
         if (!m_used[i])
         {
