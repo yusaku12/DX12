@@ -185,8 +185,10 @@ void DX12::initialize()
         srvDesc.Texture2D.MipLevels = 1;
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-        //! DescriptorHeapManager を使って SRV を作成し、インデックスを取得
-        m_sceneSrvIndex = DescriptorHeapManager::Instance().createSRV(m_sceneRenderTarget.Get(), srvDesc);
+        //! SRVのインデックスを DescriptorHeapManager に割り当てて作成
+        m_sceneSrvIndex = DescriptorHeapManager::Instance().allocate();
+        auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
+        m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
     }
 
     //! フェンスを作成(GPU側の処理が完了したか知るための仕組み)
@@ -203,6 +205,9 @@ void DX12::screenClear()
         D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     m_graphicsCommandList->ResourceBarrier(1, &barrier);
+
+    //! DescriptorHeap
+    DescriptorHeapManager::Instance().setDiscriptorHeap();
 
     //! SceneRTVをセット
     m_graphicsCommandList->OMSetRenderTargets(1, &m_sceneRTVHandle, FALSE, nullptr);
@@ -399,7 +404,8 @@ void DX12::screenResize(int width, int height)
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
     //! DescriptorHeapManager を使って SRV を作成し、インデックスを取得
-    m_sceneSrvIndex = DescriptorHeapManager::Instance().createSRV(m_sceneRenderTarget.Get(), srvDesc);
+    auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
+    m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
 
     //! コマンドリセット
     commandReset();

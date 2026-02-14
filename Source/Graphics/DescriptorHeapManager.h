@@ -47,15 +47,15 @@ public:
     //! 解放（使わなくなった Descriptor を返却）
     void free(UINT index);
 
-private:
-
-    DescriptorHeapManager() {}
-
     // ! インデックス割り当て
     UINT allocate();
 
     // ! CPU ハンドル取得
     D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index);
+
+private:
+
+    DescriptorHeapManager() {}
 
 private:
 

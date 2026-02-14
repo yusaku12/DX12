@@ -142,6 +142,6 @@ private:
     DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_sceneRenderTarget;
     D3D12_CPU_DESCRIPTOR_HANDLE m_sceneRTVHandle{};
-    UINT m_sceneSrvIndex = 1;
+    UINT m_sceneSrvIndex = 0;
     bool m_isSceneActive = false;
 };
