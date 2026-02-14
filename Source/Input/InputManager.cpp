@@ -9,6 +9,7 @@ void InputManager::update()
     m_prevMouseWheel = m_mouseWheel;
     m_mouseWheel = 0;
 
+    updateKeyboard();
     updateMouse();
     updateBuffer();
 }
