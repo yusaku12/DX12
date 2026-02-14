@@ -82,8 +82,8 @@ public:
     //! フェンスを待つ
     void safeGPUWait();
 
-    //! コマンドリスト実行
-    void executeCommandList();
+    //! バックバッファをimgui用に準備
+    void prepareBackBufferForImGui();
 
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
@@ -106,6 +106,9 @@ public:
     //! ハンドル取得
     HWND getHwnd() const { return m_hwnd; }
 
+    //! シーンがアクティブか
+    bool isSceneActive() const { return m_isSceneActive; }
+
     //! スクリーンサイズ取得
     const int& getScreenWidth()const { return m_width; }
     const int& getScreenHeight()const { return m_height; }
@@ -117,6 +120,9 @@ private:
 
     //! コマンドリセット
     void commandReset();
+
+    //! コマンドリスト実行
+    void executeCommandList();
 
     static DX12* m_instance;
     const HWND m_hwnd;
@@ -134,4 +140,8 @@ private:
     D3D12_RESOURCE_BARRIER m_barrierDesc = {};
     UINT64 m_fenceVall = 0;
     DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_sceneRenderTarget;
+    D3D12_CPU_DESCRIPTOR_HANDLE m_sceneRTVHandle{};
+    UINT m_sceneSrvIndex = 1;
+    bool m_isSceneActive = false;
 };

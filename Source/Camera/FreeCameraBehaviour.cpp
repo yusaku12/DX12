@@ -3,6 +3,9 @@
 
 void FreeCameraBehaviour::update(Camera& camera)
 {
+    if (!DX12::Instance().isSceneActive())
+        return;
+
     auto& input = InputManager::Instance();
     float dt = TimeManager::Instance().getDeltaTime();
 

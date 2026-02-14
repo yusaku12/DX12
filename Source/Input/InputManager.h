@@ -66,7 +66,7 @@ public:
     POINT getMouseDelta() const { return m_mouseDelta; }
 
     //! マウスホイール取得
-    int getMouseWheel() const { return m_mouseWheel; }
+    int getMouseWheel() const { return m_prevMouseWheel; }
 
     //! アクションマッピング
     void bindAction(const std::string& actionName, uint8_t key, float bufferTime);
@@ -109,9 +109,6 @@ private:
         float bufferTime = 0.15f;   //!< アクション固有
     };
 
-    //! ImGui入力ブロック更新
-    void updateImGuiBlock();
-
     //! キーボード更新
     void updateKeyboard();
 
@@ -136,6 +133,7 @@ private:
 
     //! マウスホイール
     int m_mouseWheel = 0;
+    int m_prevMouseWheel = 0;
 
     //! 軸入力
     std::unordered_map<std::string, InputAxis> m_axes;
@@ -145,10 +143,6 @@ private:
 
     //! Buffer
     std::unordered_map<std::string, InputBufferEntry> m_actionBuffers;
-
-    //! 入力ブロックフラグ
-    bool m_blockKeyboard = false;
-    bool m_blockMouse = false;
 
     //! ウィンドウフォーカス状態
     bool m_windowFocused = true;

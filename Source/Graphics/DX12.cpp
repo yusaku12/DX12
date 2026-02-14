@@ -137,6 +137,58 @@ void DX12::initialize()
         handle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     }
 
+    //! シーン描画用 RenderTarget 作成
+    {
+        D3D12_RESOURCE_DESC desc = {};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        desc.Width = m_width;
+        desc.Height = m_height;
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = 1;
+        desc.Format = m_backBufferFormat;
+        desc.SampleDesc.Count = 1;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+        D3D12_CLEAR_VALUE clearValue = {};
+        clearValue.Format = m_backBufferFormat;
+        clearValue.Color[0] = 0.0f;
+        clearValue.Color[1] = 0.2f;
+        clearValue.Color[2] = 0.4f;
+        clearValue.Color[3] = 1.0f;
+
+        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+
+        m_device->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &desc,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+            &clearValue,
+            IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf())
+        );
+
+        //! RTVヒープの最後を Scene 用に使う
+        m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+        m_sceneRTVHandle.ptr += BUFFER_COUNT * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+        m_device->CreateRenderTargetView(
+            m_sceneRenderTarget.Get(),
+            nullptr,
+            m_sceneRTVHandle
+        );
+
+        //! Scene を ImGui に渡すための SRV 作成
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format = swcDesc.BufferDesc.Format;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = 1;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+        //! DescriptorHeapManager を使って SRV を作成し、インデックスを取得
+        m_sceneSrvIndex = DescriptorHeapManager::Instance().createSRV(m_sceneRenderTarget.Get(), srvDesc);
+    }
+
     //! フェンスを作成(GPU側の処理が完了したか知るための仕組み)
     hr = m_device->CreateFence(m_fenceVall, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateFence");
@@ -144,31 +196,25 @@ void DX12::initialize()
 
 void DX12::screenClear()
 {
-    //! 現在のバックバッファのインデックスを取得
-    UINT bbIdx = m_dxgiSwapChain4->GetCurrentBackBufferIndex();
+    //! Scene用バリア
+    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_sceneRenderTarget.Get(),
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-    //! 現在のRTVハンドルを取得
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
-    rtvHandle.ptr += bbIdx * m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_graphicsCommandList->ResourceBarrier(1, &barrier);
 
-    //! リソースバリア: Present → RenderTarget に変更
-    m_barrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    m_barrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    m_barrierDesc.Transition.pResource = m_backBuffers[bbIdx].Get();
-    m_barrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    m_barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    m_barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    m_graphicsCommandList->ResourceBarrier(1, &m_barrierDesc);
+    //! SceneRTVをセット
+    m_graphicsCommandList->OMSetRenderTargets(1, &m_sceneRTVHandle, FALSE, nullptr);
 
-    //! レンダーターゲットを設定
-    m_graphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
-
-    //! DescriptorHeap
-    DescriptorHeapManager::Instance().setDiscriptorHeap();
-
-    //! 画面をクリア
+    //! Sceneクリア
     FLOAT clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
-    m_graphicsCommandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+    m_graphicsCommandList->ClearRenderTargetView(
+        m_sceneRTVHandle,
+        clearColor,
+        0,
+        nullptr
+    );
 
     //! ビューポート設定
     D3D12_VIEWPORT viewport = {};
@@ -193,93 +239,167 @@ void DX12::sceneImguiRender()
 {
     ImGui::Begin("Scene");
 
-    //! ウィンドウ内の利用可能サイズを取得
-    ImVec2 size = ImGui::GetContentRegionAvail();
+    //! シーンウィンドウがアクティブかどうか
+    m_isSceneActive =
+        ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+        ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
 
-    ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(1).ptr;
+    ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(m_sceneSrvIndex).ptr;
 
     //! ウィンドウサイズにフィットさせて表示
-    ImGui::Image(texID, size);
+    ImGui::Image(texID, ImGui::GetContentRegionAvail());
 
     ImGui::End();
 }
 
 void DX12::renderTargetUndo()
 {
-    //! リソースバリア: RenderTarget → Present に戻す
-    m_barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    m_barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-    m_graphicsCommandList->ResourceBarrier(1, &m_barrierDesc);
+    //! Scene を SRV に戻す
+    auto sceneBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_sceneRenderTarget.Get(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-    //! コマンドリストを閉じて実行
-    executeCommandList();
+    m_graphicsCommandList->ResourceBarrier(1, &sceneBarrier);
+
+    //! BackBuffer を PRESENT に戻す
+    UINT bbIdx = m_dxgiSwapChain4->GetCurrentBackBufferIndex();
+
+    auto backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_backBuffers[bbIdx].Get(),
+        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        D3D12_RESOURCE_STATE_PRESENT);
+
+    m_graphicsCommandList->ResourceBarrier(1, &backBarrier);
 }
 
 void DX12::screenClearCleanup()
 {
+    //! コマンドリストを閉じて実行
+    executeCommandList();
+
+    //! フリップ処理
+    m_dxgiSwapChain4->Present(1, 0);
+
     //! GPU待機
     safeGPUWait();
 
     //! コマンドリセット
     commandReset();
-
-    //! フリップ処理
-    m_dxgiSwapChain4->Present(1, 0);
 }
 
 void DX12::screenResize(int width, int height)
 {
-    if (!m_device || !m_dxgiSwapChain4) return;
+    if (!m_device || !m_dxgiSwapChain4)
+        return;
 
-    //! コマンドリストを Close（記録中なら必ず閉じる）
-    m_graphicsCommandList->Close();
+    if (width == 0 || height == 0)
+        return;
 
     //! GPU待機
     safeGPUWait();
 
-    //! バックバッファを解放
+    //! コマンドリストを閉じる
+    m_graphicsCommandList->Close();
+
+    //! 既存バックバッファ解放
     for (UINT i = 0; i < BUFFER_COUNT; ++i)
-    {
         m_backBuffers[i].Reset();
-    }
 
-    //! バッファをリサイズ
-    DXGI_SWAP_CHAIN_DESC oldDesc = {};
-    HRESULT hr = m_dxgiSwapChain4->GetDesc(&oldDesc);
-    LOG_HR(hr, "GetDesc failed before ResizeBuffers");
+    //! SceneRenderTarget 解放
+    m_sceneRenderTarget.Reset();
 
-    hr = m_dxgiSwapChain4->ResizeBuffers(
-        oldDesc.BufferCount,
+    //! SwapChain Resize
+    DXGI_SWAP_CHAIN_DESC desc = {};
+    m_dxgiSwapChain4->GetDesc(&desc);
+
+    HRESULT hr = m_dxgiSwapChain4->ResizeBuffers(
+        desc.BufferCount,
         width,
         height,
-        oldDesc.BufferDesc.Format,
-        oldDesc.Flags
+        desc.BufferDesc.Format,
+        desc.Flags
     );
     LOG_HR(hr, "ResizeBuffers failed");
 
-    //! Resize 後に再取得して最新情報を反映
-    DXGI_SWAP_CHAIN_DESC newDesc = {};
-    hr = m_dxgiSwapChain4->GetDesc(&newDesc);
-    LOG_HR(hr, "GetDesc failed after ResizeBuffers");
-
-    //! 内部保持するサイズを更新
+    //! サイズ更新
     m_width = width;
     m_height = height;
 
-    //! RTV再生成（スワップチェインのフォーマットを使用）
+    //! BackBuffer 再取得 + RTV再生成
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
-    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-    rtvDesc.Format = newDesc.BufferDesc.Format;
-    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
-    for (UINT i = 0; i < newDesc.BufferCount; ++i)
+    UINT rtvSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    for (UINT i = 0; i < BUFFER_COUNT; ++i)
     {
-        hr = m_dxgiSwapChain4->GetBuffer(i, IID_PPV_ARGS(m_backBuffers[i].ReleaseAndGetAddressOf()));
-        LOG_HR(hr, "GetBuffer failed after ResizeBuffers");
+        hr = m_dxgiSwapChain4->GetBuffer(
+            i,
+            IID_PPV_ARGS(m_backBuffers[i].ReleaseAndGetAddressOf())
+        );
+        LOG_HR(hr, "GetBuffer failed after Resize");
 
-        m_device->CreateRenderTargetView(m_backBuffers[i].Get(), &rtvDesc, handle);
-        handle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        m_device->CreateRenderTargetView(
+            m_backBuffers[i].Get(),
+            nullptr,
+            handle
+        );
+
+        handle.ptr += rtvSize;
     }
+
+    //! SceneRenderTarget 再生成
+    {
+        D3D12_RESOURCE_DESC rtDesc = {};
+        rtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        rtDesc.Width = m_width;
+        rtDesc.Height = m_height;
+        rtDesc.DepthOrArraySize = 1;
+        rtDesc.MipLevels = 1;
+        rtDesc.Format = desc.BufferDesc.Format;
+        rtDesc.SampleDesc.Count = 1;
+        rtDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        rtDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+        D3D12_CLEAR_VALUE clearValue = {};
+        clearValue.Format = desc.BufferDesc.Format;
+        clearValue.Color[0] = 0.0f;
+        clearValue.Color[1] = 0.2f;
+        clearValue.Color[2] = 0.4f;
+        clearValue.Color[3] = 1.0f;
+
+        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+
+        hr = m_device->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &rtDesc,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+            &clearValue,
+            IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf())
+        );
+        LOG_HR(hr, "SceneRenderTarget recreate failed");
+    }
+
+    //! Scene RTV 再作成
+    m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+    m_sceneRTVHandle.ptr += BUFFER_COUNT * rtvSize;
+
+    m_device->CreateRenderTargetView(
+        m_sceneRenderTarget.Get(),
+        nullptr,
+        m_sceneRTVHandle
+    );
+
+    //! Scene SRV 再作成
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = desc.BufferDesc.Format;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    //! DescriptorHeapManager を使って SRV を作成し、インデックスを取得
+    m_sceneSrvIndex = DescriptorHeapManager::Instance().createSRV(m_sceneRenderTarget.Get(), srvDesc);
 
     //! コマンドリセット
     commandReset();
@@ -310,6 +430,34 @@ void DX12::safeGPUWait()
         WaitForSingleObject(event, INFINITE);
         CloseHandle(event);
     }
+}
+
+void DX12::prepareBackBufferForImGui()
+{
+    UINT bbIdx = m_dxgiSwapChain4->GetCurrentBackBufferIndex();
+
+    //! PRESENT → RENDER_TARGET
+    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_backBuffers[bbIdx].Get(),
+        D3D12_RESOURCE_STATE_PRESENT,
+        D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+
+    //! RTV取得
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+    UINT rtvSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    rtvHandle.ptr += bbIdx * rtvSize;
+
+    FLOAT clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+    m_graphicsCommandList->ClearRenderTargetView(
+        rtvHandle,
+        clearColor,
+        0,
+        nullptr
+    );
+
+    m_graphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 }
 
 void DX12::executeCommandList()

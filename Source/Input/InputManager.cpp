@@ -5,13 +5,12 @@ void InputManager::update()
     if (!m_windowFocused)
         return;
 
-    updateImGuiBlock();
-    updateKeyboard();
+    //! フレーム開始時にホイールリセット
+    m_prevMouseWheel = m_mouseWheel;
+    m_mouseWheel = 0;
+
     updateMouse();
     updateBuffer();
-
-    //! フレームの最後でリセット
-    //m_mouseWheel = 0;
 }
 
 void InputManager::setWindowFocused(bool focused)
@@ -24,20 +23,14 @@ void InputManager::setWindowFocused(bool focused)
         ZeroMemory(m_prevKeys, 256);
         ZeroMemory(m_currMouse, sizeof(m_currMouse));
         ZeroMemory(m_prevMouse, sizeof(m_prevMouse));
+        m_mouseWheel = 0;
+        m_prevMouseWheel = 0;
     }
 }
 
 void InputManager::addMouseWheel(int delta)
 {
     m_mouseWheel += delta;
-}
-
-void InputManager::updateImGuiBlock()
-{
-    ImGuiIO& io = ImGui::GetIO();
-
-    m_blockKeyboard = io.WantCaptureKeyboard;
-    m_blockMouse = io.WantCaptureMouse;
 }
 
 void InputManager::updateKeyboard()
@@ -48,25 +41,16 @@ void InputManager::updateKeyboard()
 
 bool InputManager::isKeyPressed(uint8_t key) const
 {
-    if (m_blockKeyboard)
-        return false;
-
     return !(m_prevKeys[key] & 0x80) && (m_currKeys[key] & 0x80);
 }
 
 bool InputManager::isKeyHeld(uint8_t key) const
 {
-    if (m_blockKeyboard)
-        return false;
-
     return (m_currKeys[key] & 0x80);
 }
 
 bool InputManager::isKeyReleased(uint8_t key) const
 {
-    if (m_blockKeyboard)
-        return false;
-
     return (m_prevKeys[key] & 0x80) && !(m_currKeys[key] & 0x80);
 }
 
@@ -83,8 +67,6 @@ void InputManager::updateMouse()
 
     m_mouseDelta.x = m_mousePos.x - m_prevMousePos.x;
     m_mouseDelta.y = m_mousePos.y - m_prevMousePos.y;
-
-    m_mouseWheel = 0;
 }
 
 void InputManager::updateBuffer()
@@ -119,25 +101,16 @@ void InputManager::updateBuffer()
 
 bool InputManager::isMousePressed(uint8_t button) const
 {
-    if (m_blockMouse)
-        return false;
-
     return !m_prevMouse[button] && m_currMouse[button];
 }
 
 bool InputManager::isMouseHeld(uint8_t button) const
 {
-    if (m_blockMouse)
-        return false;
-
     return m_currMouse[button];
 }
 
 bool InputManager::isMouseReleased(uint8_t button) const
 {
-    if (m_blockMouse)
-        return false;
-
     return m_prevMouse[button] && !m_currMouse[button];
 }
 

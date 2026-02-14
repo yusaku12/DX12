@@ -5,14 +5,11 @@ Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
     , m_dx12(hwnd)
 {
-    //! DescriptorHeapManager初期化
-    DescriptorHeapManager::Instance().initialize();
-
-    //! DX12初期化
-    m_dx12.initialize();
-
     //! imgui初期化
     IMGUI_CTRL_INITIALIZE();
+
+    //! DescriptorHeapManager初期化
+    DescriptorHeapManager::Instance().initialize();
 
     //! シェーダーマネージャー初期化
     ShaderManager::Instance().initialize();
@@ -31,6 +28,9 @@ Window::Window(HWND hwnd)
 
     //! オーディオマネージャー初期化
     AudioManager::Instance().initialize();
+
+    //! DX12初期化
+    m_dx12.initialize();
 
     //! テストポリゴン生成
     m_testPolygon = std::make_unique<TestPolygon>();
@@ -88,6 +88,9 @@ void Window::render()
 
     //! シーンマネージャ描画
     SceneManager::Instance().draw();
+
+    //! バックバッファをimgui用に準備
+    m_dx12.prepareBackBufferForImGui();
 
     //! imgui描画
     imguiRender();
