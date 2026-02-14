@@ -5,14 +5,14 @@ Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
     , m_dx12(hwnd)
 {
-    //! imgui初期化
-    IMGUI_CTRL_INITIALIZE();
-
     //! DescriptorHeapManager初期化
     DescriptorHeapManager::Instance().initialize();
 
     //! DX12初期化
     m_dx12.initialize();
+
+    //! imgui初期化
+    IMGUI_CTRL_INITIALIZE();
 
     //! シェーダーマネージャー初期化
     ShaderManager::Instance().initialize();
