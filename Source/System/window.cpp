@@ -95,17 +95,14 @@ void Window::render()
     //! imgui描画
     imguiRender();
 
-    //! TimeManagerフレーム終了処理
-    TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
-
     //! レンダーターゲットを元に戻し、コマンド終了
     m_dx12.renderTargetUndo();
 
-    //! プラットフォームを追加してウィンドウ更新
-    IMGUI_CTRL_UPDATE_RENDER();
-
     //! 画面クリア後の後処理
     m_dx12.screenClearCleanup();
+
+    //! TimeManagerフレーム終了処理
+    TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
 }
 
 void Window::imguiRender()

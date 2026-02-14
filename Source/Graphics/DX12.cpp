@@ -120,7 +120,9 @@ void DX12::initialize()
     LOG_HR(hr, "Failed to CreateDescriptorHeap");
 
     //! imgui用一時的なアロケータを作成
-    m_exampleDescriptorHeapAllocator.Create(m_device.Get(), DescriptorHeapManager::Instance().getHeap());  // @todo imgui用一時的なアロケータ
+    {
+        m_exampleDescriptorHeapAllocator.Create(m_device.Get(), DescriptorHeapManager::Instance().getHeap());  // @todo imgui用一時的なアロケータ
+    }
 
     //! スワップチェインに紐づけて RTV を作成
     DXGI_SWAP_CHAIN_DESC swcDesc = {};
@@ -198,6 +200,9 @@ void DX12::initialize()
 
 void DX12::screenClear()
 {
+    //! DescriptorHeap
+    DescriptorHeapManager::Instance().setDiscriptorHeap();
+
     //! Scene用バリア
     auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
         m_sceneRenderTarget.Get(),
@@ -205,9 +210,6 @@ void DX12::screenClear()
         D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     m_graphicsCommandList->ResourceBarrier(1, &barrier);
-
-    //! DescriptorHeap
-    DescriptorHeapManager::Instance().setDiscriptorHeap();
 
     //! SceneRTVをセット
     m_graphicsCommandList->OMSetRenderTargets(1, &m_sceneRTVHandle, FALSE, nullptr);

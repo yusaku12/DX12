@@ -19,9 +19,6 @@ namespace ImGuiCtrl
     //! 描画
     void render();
 
-    //! プラットフォームを追加してウィンドウ更新
-    void updateRender();
-
     //! リサイズ
     void resize(int width, int height);
 }
@@ -34,4 +31,3 @@ if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam)) return true
 #define IMGUI_CTRL_FINALIZE() ImGuiCtrl::finalize()
 #define IMGUI_CTRL_RESIZE(width,height) ImGuiCtrl::resize(width,height)
 #define IMGUI_CTRL_RENDER() ImGuiCtrl::render()
-#define IMGUI_CTRL_UPDATE_RENDER() ImGuiCtrl::updateRender()
