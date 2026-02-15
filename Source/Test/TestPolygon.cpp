@@ -78,7 +78,7 @@ void TestPolygon::render()
     m_indexBuffer->bind();
 
     //! CBV(カメラ)
-    cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
+    cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
 
     //! DescriptorTable
     cmd->SetGraphicsRootDescriptorTable(1, m_loadTexture->getGPUHandle());

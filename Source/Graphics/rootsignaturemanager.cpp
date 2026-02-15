@@ -24,7 +24,7 @@ void RootSignatureManager::buildStandard()
     CD3DX12_ROOT_PARAMETER params[2] = {};
 
     //! 定数バッファ(カメラ)
-    params[0].InitAsConstantBufferView(0);
+    params[0].InitAsConstantBufferView(static_cast<int>(CBVType::Camera));
 
     //! テクスチャ(ルートパラメータ)
     params[1].InitAsDescriptorTable(1, &range);

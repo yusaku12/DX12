@@ -7,6 +7,12 @@ enum class RootSignatureType : int
     Max
 };
 
+//! 固定CBVの種類
+enum class CBVType : int
+{
+    Camera,
+};
+
 //====================================================
 // RootSignature管理シングルトン
 //====================================================
