@@ -44,9 +44,6 @@ Window::Window(HWND hwnd)
 
 Window::~Window()
 {
-    //! GPU 完了待ち
-    m_dx12.safeGPUWait();
-
     //! ImGui がある場合は先に終了処理
     IMGUI_CTRL_FINALIZE();
 
@@ -94,9 +91,6 @@ void Window::render()
 
     //! imgui描画
     imguiRender();
-
-    //! レンダーターゲットを元に戻し、コマンド終了
-    m_dx12.renderTargetUndo();
 
     //! 画面クリア後の後処理
     m_dx12.screenClearCleanup();

@@ -259,7 +259,7 @@ void DX12::sceneImguiRender()
     ImGui::End();
 }
 
-void DX12::renderTargetUndo()
+void DX12::screenClearCleanup()
 {
     //! Scene を SRV に戻す
     auto sceneBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -278,10 +278,7 @@ void DX12::renderTargetUndo()
         D3D12_RESOURCE_STATE_PRESENT);
 
     m_graphicsCommandList->ResourceBarrier(1, &backBarrier);
-}
 
-void DX12::screenClearCleanup()
-{
     //! コマンドリストを閉じて実行
     executeCommandList();
 

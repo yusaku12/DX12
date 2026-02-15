@@ -70,17 +70,11 @@ public:
     //! シーンのimgui描画
     void sceneImguiRender();
 
-    //! レンダーターゲットを元に戻し、コマンド終了
-    void renderTargetUndo();
-
     //! 画面クリアの後処理
     void screenClearCleanup();
 
     //! 画面をリサイズ
     void screenResize(int width, int height);
-
-    //! フェンスを待つ
-    void safeGPUWait();
 
     //! バックバッファをimgui用に準備
     void prepareBackBufferForImGui();
@@ -123,6 +117,9 @@ private:
 
     //! コマンドリスト実行
     void executeCommandList();
+
+    //! フェンスを待つ
+    void safeGPUWait();
 
     static DX12* m_instance;
     const HWND m_hwnd;
