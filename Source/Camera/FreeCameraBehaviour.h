@@ -9,8 +9,14 @@ class FreeCameraBehaviour : public CameraBehaviour
 {
 public:
 
+    //! コンストラクタ
+    FreeCameraBehaviour(Camera& camera)
+    {
+        m_camera = &camera;
+    }
+
     //! カメラの更新
-    void update(Camera& camera) override;
+    void update() override;
 
 private:
 

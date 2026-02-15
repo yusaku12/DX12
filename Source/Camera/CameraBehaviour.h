@@ -12,5 +12,9 @@ public:
     virtual ~CameraBehaviour() = default;
 
     //! カメラの更新
-    virtual void update(Camera& camera) = 0;
+    virtual void update() = 0;
+
+protected:
+
+    Camera* m_camera = nullptr;
 };

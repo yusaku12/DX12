@@ -9,7 +9,7 @@ void CameraManager::setBehaviour(std::unique_ptr<CameraBehaviour> behaviour)
 void CameraManager::initialize()
 {
     //! デフォルトでフリーカメラ挙動を設定
-    setBehaviour(std::make_unique<FreeCameraBehaviour>());
+    setBehaviour(std::make_unique<FreeCameraBehaviour>(m_camera));
 
     //! カメラ定数バッファ作成
     m_cameraCB = std::make_unique<ConstantBuffer<GPUCameraBuffer>>();
@@ -22,7 +22,7 @@ void CameraManager::update()
 {
     if (m_behaviour)
     {
-        m_behaviour->update(m_camera);
+        m_behaviour->update();
 
         //! カメラ定数バッファをGPUにアップロード
         uploadCameraBufferToGPU();

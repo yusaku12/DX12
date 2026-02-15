@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "FreeCameraBehaviour.h"
 
-void FreeCameraBehaviour::update(Camera& camera)
+void FreeCameraBehaviour::update()
 {
     if (!DX12::Instance().isSceneActive())
         return;
@@ -29,32 +29,32 @@ void FreeCameraBehaviour::update(Camera& camera)
         Quaternion qYaw = Quaternion::CreateFromAxisAngle(Vector3::Up, m_yaw);
         Quaternion qPitch = Quaternion::CreateFromAxisAngle(Vector3::Right, m_pitch);
 
-        camera.setRotation(qPitch * qYaw);
+        m_camera->setRotation(qPitch * qYaw);
     }
 
     //! 移動（カメラ基準）
     Vector3 move = Vector3::Zero;
 
-    if (input.isKeyHeld('W')) move += camera.getForward();
-    if (input.isKeyHeld('S')) move -= camera.getForward();
-    if (input.isKeyHeld('D')) move += camera.getRight();
-    if (input.isKeyHeld('A')) move -= camera.getRight();
-    if (input.isKeyHeld('E')) move += camera.getUp();
-    if (input.isKeyHeld('Q')) move -= camera.getUp();
+    if (input.isKeyHeld('W')) move += m_camera->getForward();
+    if (input.isKeyHeld('S')) move -= m_camera->getForward();
+    if (input.isKeyHeld('D')) move += m_camera->getRight();
+    if (input.isKeyHeld('A')) move -= m_camera->getRight();
+    if (input.isKeyHeld('E')) move += m_camera->getUp();
+    if (input.isKeyHeld('Q')) move -= m_camera->getUp();
 
     if (move.LengthSquared() > 0)
     {
         move.Normalize();
-        camera.setPosition(camera.getPosition() + move * speed);
+        m_camera->setPosition(m_camera->getPosition() + move * speed);
     }
 
     //! ホイールドリー
     int wheel = input.getMouseWheel();
     if (wheel != 0)
     {
-        camera.setPosition(
-            camera.getPosition() +
-            camera.getForward() * (wheel * 0.002f)
+        m_camera->setPosition(
+            m_camera->getPosition() +
+            m_camera->getForward() * (wheel * 0.002f)
         );
     }
 }
