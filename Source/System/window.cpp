@@ -32,8 +32,8 @@ Window::Window(HWND hwnd)
     //! オーディオマネージャー初期化
     AudioManager::Instance().initialize();
 
-    //! テストポリゴン生成
-    m_testPolygon = std::make_unique<TestPolygon>();
+    //! シーンマネージャー初期化
+    SceneManager::Instance().initialize();
 
     //! 試しに読み込み
     //AudioManager::Instance().load("bgm", "Data/Audio/a.wav");
@@ -79,9 +79,6 @@ void Window::render()
 
     //! 画面をクリア
     m_dx12.screenClear();
-
-    //! テストポリゴン描画
-    m_testPolygon->render();
 
     //! シーンマネージャ描画
     SceneManager::Instance().draw();

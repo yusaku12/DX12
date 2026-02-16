@@ -18,9 +18,6 @@ public:
         return inst;
     }
 
-    //! カメラ取得
-    Camera m_camera;
-
     //! カメラ挙動設定
     void setBehaviour(std::unique_ptr<CameraBehaviour> behaviour);
 
@@ -48,6 +45,9 @@ private:
         //Matrix projection;  //!< プロジェクション行列
         //Vector3 cameraPos;  //!< カメラ座標
     };
+
+    //! カメラ取得
+    Camera m_camera;
 
     std::unique_ptr<ConstantBuffer<GPUCameraBuffer>> m_cameraCB; //!< カメラ定数バッファ
     std::unique_ptr<CameraBehaviour> m_behaviour;

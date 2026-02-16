@@ -2,6 +2,13 @@
 
 #include "Scene.h"
 
+//! シーンID
+enum class SceneId : int
+{
+    TEST,
+    MAX
+};
+
 //=======================
 // SceneManager
 //=======================
@@ -18,18 +25,21 @@ public:
 
     //! シーン登録
     template<typename T>
-    void registerScene(const std::string& name)
+    void registerScene(SceneId id)
     {
         static_assert(std::is_base_of<Scene, T>::value, "T must derive from Scene");
-        m_sceneNames.push_back(name);
-        m_sceneFactory[name] = []()
+
+        m_sceneFactory[static_cast<size_t>(id)] = []()
             {
                 return std::make_unique<T>();
             };
     }
 
+    //! 初期化
+    void initialize();
+
     //! シーン切り替え
-    void loadScene(const std::string& name);
+    void loadScene(SceneId id);
 
     //! 毎フレーム更新（GameLoopから呼ぶ）
     void update();
@@ -40,8 +50,8 @@ public:
     //! デバック機能
     void debugOption();
 
-    //! 現在のシーン名取得
-    const std::string& getCurrentSceneName() const { return m_currentSceneName; }
+    //! 現在シーン取得
+    SceneId getCurrentSceneID() const { return m_currentSceneID; }
 
 private:
 
@@ -54,16 +64,12 @@ private:
     //! 実際のシーン切り替え処理
     void changeSceneInternal();
 
-    //! 登録済みシーン名一覧取得（デバッグ用）
-    const std::vector<std::string>& getRegisteredSceneNames() const { return m_sceneNames; }
-
     //! メンバ変数
-    using SceneFactory = std::unique_ptr<Scene>(*)(); //!< シーン生成関数型
-    std::unordered_map<std::string, SceneFactory> m_sceneFactory; //!< シーン生成関数マップ
-    std::unique_ptr<Scene> m_currentScene; //!< 現在のシーン
-    std::unique_ptr<Scene> m_nextScene;    //!< 次のシーン
-    std::string m_currentSceneName;        //!< 現在のシーン名
-    std::string m_nextSceneName;           //!< 次のシーン名
-    std::vector<std::string> m_sceneNames; //!< 登録済みシーン名一覧（デバッグ用）
-    bool m_requestChange = false;          //!< シーン切り替え要求フラグ
+    using SceneFactory = std::function<std::unique_ptr<Scene>()>;
+    std::array<SceneFactory, magic_enum::enum_count<SceneId>()> m_sceneFactory{};
+    std::unique_ptr<Scene> m_currentScene;
+    std::unique_ptr<Scene> m_nextScene;
+    SceneId m_currentSceneID = SceneId::TEST;
+    SceneId m_nextSceneID = SceneId::TEST;
+    bool m_requestChange = false;
 };

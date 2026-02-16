@@ -1,13 +1,22 @@
 ﻿#include "pch.h"
+#include "TestScene.h"
 
-void SceneManager::loadScene(const std::string& name)
+void SceneManager::initialize()
 {
-    auto it = m_sceneFactory.find(name);
-    assert(it != m_sceneFactory.end());
+    //! シーン登録
+    registerScene<TestScene>(SceneId::TEST);
 
-    //! 次のシーンを生成（即切り替えせず一旦保持）
-    m_nextScene = it->second();
-    m_nextSceneName = name;
+    //! 最初のシーンを読み込み
+    loadScene(SceneId::TEST);
+}
+
+void SceneManager::loadScene(SceneId id)
+{
+    size_t index = static_cast<size_t>(id);
+    assert(m_sceneFactory[index]);
+
+    m_nextScene = m_sceneFactory[index]();
+    m_nextSceneID = id;
     m_requestChange = true;
 }
 
@@ -35,21 +44,30 @@ void SceneManager::draw()
 
 void SceneManager::debugOption()
 {
-    ImGui::Begin("SceneL");
+    ImGui::Begin("UnityScene");
 
-    ImGui::Text("Current Scene: %s", m_currentSceneName.c_str());
+    //! 現在シーン表示
+    ImGui::Text("Current Scene: %s", magic_enum::enum_name(m_currentSceneID).data());
+
     ImGui::Separator();
 
-    for (const auto& name : m_sceneNames)
+    //! enum 全列挙
+    for (auto id : magic_enum::enum_values<SceneId>())
     {
-        bool isCurrent = (name == m_currentSceneName);
+        if (id == SceneId::MAX) // Countは除外
+            continue;
+
+        bool isCurrent = (id == m_currentSceneID);
+
+        const char* name = magic_enum::enum_name(id).data();
+
         if (isCurrent)
         {
-            ImGui::Text("* %s", name.c_str());
+            ImGui::Text("* %s", name);
         }
-        else if (ImGui::Button(name.c_str()))
+        else if (ImGui::Button(name))
         {
-            loadScene(name);
+            loadScene(id);
         }
     }
 
@@ -64,7 +82,7 @@ void SceneManager::changeSceneInternal()
     }
 
     m_currentScene = std::move(m_nextScene);
-    m_currentSceneName = m_nextSceneName;
+    m_currentSceneID = m_nextSceneID;
 
     if (m_currentScene)
     {
@@ -72,6 +90,5 @@ void SceneManager::changeSceneInternal()
     }
 
     m_nextScene.reset();
-    m_nextSceneName.clear();
     m_requestChange = false;
 }

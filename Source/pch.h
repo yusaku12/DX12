@@ -35,6 +35,7 @@
 #include <d3dx12.h>
 #include <typeindex>
 #include <algorithm>
+#include <magic_enum.hpp>
 
 #undef ERROR
 #undef OPAQUE

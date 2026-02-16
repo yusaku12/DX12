@@ -84,6 +84,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
+    <ClCompile Include="Source\Scene\TestScene.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
     <ClCompile Include="Source\System\Logger.cpp" />
     <ClCompile Include="Source\System\TimeManager.cpp" />
@@ -108,6 +109,15 @@
     <ClInclude Include="External\imgui\imstb_rectpack.h" />
     <ClInclude Include="External\imgui\imstb_textedit.h" />
     <ClInclude Include="External\imgui\imstb_truetype.h" />
+    <ClInclude Include="External\magic_enum\magic_enum.hpp" />
+    <ClInclude Include="External\magic_enum\magic_enum_all.hpp" />
+    <ClInclude Include="External\magic_enum\magic_enum_containers.hpp" />
+    <ClInclude Include="External\magic_enum\magic_enum_flags.hpp" />
+    <ClInclude Include="External\magic_enum\magic_enum_format.hpp" />
+    <ClInclude Include="External\magic_enum\magic_enum_fuse.hpp" />
+    <ClInclude Include="External\magic_enum\magic_enum_iostream.hpp" />
+    <ClInclude Include="External\magic_enum\magic_enum_switch.hpp" />
+    <ClInclude Include="External\magic_enum\magic_enum_utility.hpp" />
     <ClInclude Include="Source\Audio\AudioEngine.h" />
     <ClInclude Include="Source\Audio\AudioManager.h" />
     <ClInclude Include="Source\Audio\miniaudio.h" />
@@ -146,6 +156,7 @@
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
+    <ClInclude Include="Source\Scene\TestScene.h" />
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
     <ClInclude Include="Source\System\Logger.h" />
     <ClInclude Include="Source\System\LoggerMacros.h" />
@@ -270,7 +281,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;C:\Users\2210359\Desktop\DirectX12\External\DirectXTex-main\DirectXTex;C:\Users\2210359\Desktop\DirectX12\External\DirectXTex-main\Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;C:\Users\2210359\Desktop\DirectX12\External\DirectXTex-main\DirectXTex;C:\Users\2210359\Desktop\DirectX12\External\DirectXTex-main\Common;.\External.\magic_enum;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
@@ -301,7 +312,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\magic_enum;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
