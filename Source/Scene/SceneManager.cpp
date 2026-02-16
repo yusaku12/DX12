@@ -44,7 +44,7 @@ void SceneManager::draw()
 
 void SceneManager::debugOption()
 {
-    ImGui::Begin("UnityScene");
+    ImGui::Begin("GameScene");
 
     //! 現在シーン表示
     ImGui::Text("Current Scene: %s", magic_enum::enum_name(m_currentSceneID).data());
@@ -54,7 +54,7 @@ void SceneManager::debugOption()
     //! enum 全列挙
     for (auto id : magic_enum::enum_values<SceneId>())
     {
-        if (id == SceneId::MAX) // Countは除外
+        if (id == SceneId::MAX) //!< Countは除外
             continue;
 
         bool isCurrent = (id == m_currentSceneID);
