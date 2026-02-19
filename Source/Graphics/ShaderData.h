@@ -8,6 +8,8 @@ enum class ShaderID : int
 {
     TestPolygonVS,
     TestPolygonPS,
+    PMXVS,
+    PMXPS,
     MAX
 };
 
@@ -24,4 +26,6 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
 {
     ShaderDesc{ L"Shader/PolygonVS.hlsl",  "VS", "vs_5_0" }, //!< TestPolygonVS
     ShaderDesc{ L"Shader/PolygonPS.hlsl",  "PS", "ps_5_0" }, //!< TestPolygonPS
+    ShaderDesc{ L"Shader/PMXVS.hlsl",  "VS", "vs_5_0" },     //!< PMXVS
+    ShaderDesc{ L"Shader/PMXPS.hlsl",  "PS", "ps_5_0" },     //!< PMXPS
 };

@@ -3,8 +3,18 @@
 
 PMXRender::PMXRender(const std::wstring& filePath)
 {
+    //! モデルの基準パスを設定
+    m_modelBasePath = std::filesystem::path(filePath).parent_path();
+
     //! PMXファイルの読み込み
     m_pmxLoad = std::make_unique<PmxLoad>(filePath, m_pmxFileData);
+
+    //! モデルCBVの作成
+    m_modelCB = std::make_unique<ConstantBuffer<Model>>();
+    m_modelCB->update(Model{});
+
+    //! テクスチャの読み込み
+    createTextures();
 
     //! 頂点バッファの作成
     createVertexBuffer();
@@ -33,11 +43,11 @@ void PMXRender::createVertexBuffer()
         gv.normal = v.normal;
         gv.uv = v.uv;
 
-        for (int i = 0; i < 4; ++i)
-        {
-            gv.boneIndex[i] = v.boneIndices[i];
-            gv.boneWeight[i] = v.boneWeights[i];
-        }
+        //for (int i = 0; i < 4; ++i)
+        //{
+        //    gv.boneIndex[i] = v.boneIndices[i];
+        //    gv.boneWeight[i] = v.boneWeights[i];
+        //}
 
         vertices.push_back(gv);
     }
@@ -74,7 +84,7 @@ void PMXRender::createMaterialCBV()
         Material material{};
         material.diffuse = m.diffuse;
         material.specular = m.specular;
-        material.specularPower = m.specularPower;
+        //material.specularPower = m.specularPower;
         material.ambient = m.ambient;
         m_materialCB->update(material, i);
     }
@@ -90,6 +100,7 @@ void PMXRender::createSubsets()
         s.startIndex = start;
         s.indexCount = m_pmxFileData.materials[i].numFaceVertices;
         s.materialIndex = (UINT)i;
+        s.textureIndex = m_pmxFileData.materials[i].textureIndex;
 
         start += s.indexCount;
 
@@ -97,25 +108,37 @@ void PMXRender::createSubsets()
     }
 }
 
+void PMXRender::createTextures()
+{
+    for (auto texName : m_pmxFileData.textures)
+    {
+        std::replace(texName.textureName.begin(), texName.textureName.end(), L'\\', L'/');
+        std::filesystem::path fullPath = m_modelBasePath / texName.textureName;
+        fullPath = std::filesystem::weakly_canonical(fullPath);
+        auto texture = TextureManager::Instance().load(fullPath.wstring());
+        m_textures.push_back(texture);
+    }
+}
+
 void PMXRender::createPSO()
 {
-    //PSOCreator::PSOData psoData{};
-    //psoData.rootSignatureType = RootSignatureType::Standard;
-    //psoData.vsShaderId = ShaderID::PMXVS;
-    //psoData.psShaderId = ShaderID::PMXPS;
-    //psoData.rasterizerState = RasterizerState::CULL_BACK;
-    //psoData.blendState = BlendState::OPAQUE;
-    //psoData.depthStencilState = DepthStencilState::DEPTH_DEFAULT;
-    //psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    //psoData.inputLayout =
-    //{
-    //    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //    { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //    { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //    { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //};
-    //m_psoCreator = std::make_unique<PSOCreator>(psoData);
+    PSOCreator::PSOData psoData{};
+    psoData.rootSignatureType = RootSignatureType::PMXStandard;
+    psoData.vsShaderId = ShaderID::PMXVS;
+    psoData.psShaderId = ShaderID::PMXPS;
+    psoData.rasterizerState = RasterizerState::CULL_CLOCKWISE;
+    psoData.blendState = BlendState::ALPHA;
+    psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
+    psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoData.inputLayout =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        //{ "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        //{ "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    };
+    m_psoCreator = std::make_unique<PSOCreator>(psoData);
 }
 
 void PMXRender::render()
@@ -126,10 +149,10 @@ void PMXRender::render()
     DescriptorHeapManager::Instance().setDiscriptorHeap();
 
     //! RootSignature
-    //cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::Standard));
+    cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::PMXStandard));
 
     //! PSO
-    //m_psoCreator->setPSO();
+    m_psoCreator->setPSO();
 
     //! IA
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -139,10 +162,23 @@ void PMXRender::render()
     m_indexBuffer->bind();
 
     //! CBV(カメラ)
-    //cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
+    cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
+
+    //! DescriptorTable(モデル行列)
+    cmd->SetGraphicsRootDescriptorTable(2, m_modelCB->getGPUHandle());
 
     for (const auto& subset : m_subsets)
     {
+        //! DescriptorTable(テクスチャ)
+        if (subset.textureIndex >= 0 && subset.textureIndex < m_textures.size())
+        {
+            cmd->SetGraphicsRootDescriptorTable(1, m_textures[subset.textureIndex]->getGPUHandle());
+        }
+
+        //! DescriptorTable(マテリアル)
+        cmd->SetGraphicsRootDescriptorTable(3, m_materialCB->getGPUHandle());
+
+        //! Draw
         cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
     }
 }

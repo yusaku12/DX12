@@ -4,6 +4,7 @@
 enum class RootSignatureType : int
 {
     Standard,
+    PMXStandard,
     Max
 };
 
@@ -39,6 +40,12 @@ private:
 
     //! Starndardをビルド
     void buildStandard();
+
+    //! PMXStandardをビルド
+    void buildPMXStandard();
+
+    //! テスト
+    void createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type);
 
     RootSignatureType m_buildingType = RootSignatureType::Max;
     std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, static_cast<size_t>(RootSignatureType::Max)> m_rootSignatures;

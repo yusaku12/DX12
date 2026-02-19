@@ -61,10 +61,10 @@ public:
 
 private:
 
-    Vector3 m_position = { 0,0,0 };                //!< カメラの位置
+    Vector3 m_position = { 0.0f, 10.0f, -30.0f };                //!< カメラの位置
     Quaternion m_rotation = Quaternion::Identity;  //!< カメラの回転(クォータニオン)
 
-    float m_fov = DirectX::XMConvertToRadians(30.0f); //!< 視野角
+    float m_fov = DirectX::XM_PIDIV4; //!< 視野角
     float m_aspect = static_cast<float>(DX12::Instance().getScreenWidth()) / static_cast<float>(DX12::Instance().getScreenHeight()); //!< アスペクト比
     float m_nearZ = 0.1f;   //!< ニアクリップ距離
     float m_farZ = 1000.0f; //!< ファークリップ距離

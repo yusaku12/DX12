@@ -3,6 +3,7 @@
 void RootSignatureManager::initialize()
 {
     buildStandard();
+    buildPMXStandard();
 }
 
 ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
@@ -12,8 +13,6 @@ ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType ty
 
 void RootSignatureManager::buildStandard()
 {
-    auto device = DX12::Instance().getDevice();
-
     //! ディスクリプタレンジ
     CD3DX12_DESCRIPTOR_RANGE range = {};
 
@@ -29,10 +28,41 @@ void RootSignatureManager::buildStandard()
     //! テクスチャ(ルートパラメータ)
     params[1].InitAsDescriptorTable(1, &range);
 
+    //! ルートシグネチャ生成
+    createRootSignature(params, _countof(params), RootSignatureType::Standard);
+}
+
+void RootSignatureManager::buildPMXStandard()
+{
+    //! ディスクリプタレンジ
+    CD3DX12_DESCRIPTOR_RANGE range[3] = {};
+
+    //! ディスクリプタレンジ(テクスチャ、モデル行列、マテリアル)
+    range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+    range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
+
+    //! ルートパラメータ
+    CD3DX12_ROOT_PARAMETER params[4] = {};
+
+    //! パラメータ設定(カメラ、テクスチャ、モデル行列、マテリアル)
+    params[0].InitAsConstantBufferView(static_cast<int>(CBVType::Camera));
+    params[1].InitAsDescriptorTable(1, &range[0]);
+    params[2].InitAsDescriptorTable(1, &range[1]);
+    params[3].InitAsDescriptorTable(1, &range[2]);
+
+    //! ルートシグネチャ生成
+    createRootSignature(params, _countof(params), RootSignatureType::PMXStandard);
+}
+
+void RootSignatureManager::createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type)
+{
+    auto device = DX12::Instance().getDevice();
+
     //! RootSignature生成
     CD3DX12_ROOT_SIGNATURE_DESC desc;
     desc.Init(
-        _countof(params),
+        paramCount,
         params,
         static_cast<int>(SamplerState::MAX),
         PiplineState::Instance().getSamplerStates(),
@@ -55,12 +85,12 @@ void RootSignatureManager::buildStandard()
         assert(false);
     }
 
-    //! Standardのルートシグネチャを生成
+    //! ルートシグネチャを生成
     hr = device->CreateRootSignature(
         0,
         blob->GetBufferPointer(),
         blob->GetBufferSize(),
-        IID_PPV_ARGS(&m_rootSignatures[static_cast<size_t>(RootSignatureType::Standard)])
+        IID_PPV_ARGS(&m_rootSignatures[static_cast<size_t>(type)])
     );
 
     assert(SUCCEEDED(hr));

@@ -377,9 +377,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\Polygon.hlsli" />
+    <None Include="HLSL\PMX.hlsli" />
+    <None Include="HLSL\CommonConstants.hlsli" />
+    <None Include="HLSL\Common.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\PolygonVS.hlsl" />
     <FxCompile Include="HLSL\PolygonPS.hlsl" />
+    <FxCompile Include="HLSL\PMXVS.hlsl" />
+    <FxCompile Include="HLSL\PMXPS.hlsl" />
   </ItemGroup>
 </Project>

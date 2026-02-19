@@ -39,6 +39,7 @@ void PSOCreator::createPSO()
     //! その他設定
     gpipeline.SampleMask = UINT_MAX;
     gpipeline.PrimitiveTopologyType = m_psoData.topologyType;
+    gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
 
     // ここのコードは改善必須
     {

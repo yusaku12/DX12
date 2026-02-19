@@ -41,9 +41,10 @@ private:
     //! 定数バッファ構造体
     struct GPUCameraBuffer
     {
-        Matrix view;        //!< ビュー行列
-        //Matrix projection;  //!< プロジェクション行列
-        //Vector3 cameraPos;  //!< カメラ座標
+        Matrix view;           //!< ビュー行列
+        Matrix projection;     //!< プロジェクション行列
+        Matrix viewProjection; //!< ビュー×プロジェクション行列
+        Vector3 cameraPos;     //!< カメラ座標
     };
 
     //! カメラ取得

@@ -27,8 +27,8 @@ private:
         Vector3 normal;
         Vector2 uv;
 
-        uint32_t boneIndex[4];
-        float    boneWeight[4];
+        //uint32_t boneIndex[4];
+        //float    boneWeight[4];
     };
 
     //! マテリアルCBV構造体
@@ -36,9 +36,8 @@ private:
     {
         Vector4 diffuse;
         Vector3 specular;
-        float specularPower;
+        //float specularPower;
         Vector3 ambient;
-        float pad;
     };
 
     //! サブセット構造体
@@ -47,6 +46,13 @@ private:
         UINT indexCount;
         UINT startIndex;
         UINT materialIndex;
+        UINT textureIndex;
+    };
+
+    //! モデル構造体
+    struct Model
+    {
+        Matrix world = {};
     };
 
     //! 頂点バッファの作成
@@ -61,6 +67,9 @@ private:
     //! サブセットの作成
     void createSubsets();
 
+    //! テクスチャ読み込み
+    void createTextures();
+
     //! PSOの作成
     void createPSO();
 
@@ -69,6 +78,9 @@ private:
     std::unique_ptr<VertexBuffer<Vertex>> m_vertexBuffer;
     std::unique_ptr<IndexBuffer<unsigned int>> m_indexBuffer;
     std::unique_ptr<ConstantBuffer<Material>> m_materialCB;
+    std::unique_ptr<ConstantBuffer<Model>> m_modelCB;
     std::unique_ptr<PSOCreator>m_psoCreator;
+    std::vector<LoadTexture*> m_textures;
     std::vector<Subset> m_subsets;
+    std::filesystem::path m_modelBasePath;
 };
