@@ -96,9 +96,9 @@ public:
     //! PMXモデル情報構造体
     struct PMXModelInfo
     {
-        std::wstring modelName = {};
+        std::string modelName = {};
         std::string  englishModelName = {};
-        std::wstring comment = {};
+        std::string comment = {};
         std::string  englishComment = {};
     };
 
@@ -129,13 +129,13 @@ public:
     //! テクスチャ構造体
     struct PMXTexture
     {
-        std::wstring textureName = {};
+        std::string textureName = {};
     };
 
     //! マテリアル構造体
     struct PMXMaterial
     {
-        std::wstring name = {};
+        std::string name = {};
         std::string englishName = {};
 
         Vector4 diffuse = {};
@@ -148,9 +148,9 @@ public:
         Vector4 edgeColor = {};
         float edgeSize = {};
 
-        std::wstring texturePath = {};
-        std::wstring sphereTexturePath = {};
-        std::wstring toonTexturePath = {};
+        std::string texturePath = {};
+        std::string sphereTexturePath = {};
+        std::string toonTexturePath = {};
 
         unsigned int textureIndex = {};
         unsigned int sphereTextureIndex = {};
@@ -159,7 +159,7 @@ public:
         PMXToonMode toonMode = {};
         unsigned int toonTextureIndex = {};
 
-        std::wstring memo = {};
+        std::string memo = {};
 
         unsigned int numFaceVertices = {};
     };
@@ -177,7 +177,7 @@ public:
     //! Bone構造体
     struct PMXBone
     {
-        std::wstring name = {};
+        std::string name = {};
         std::string englishName = {};
 
         Vector3 position = {};
@@ -208,7 +208,7 @@ public:
     //! モーフ構造体
     struct PMXMorph
     {
-        std::wstring name = {};
+        std::string name = {};
         std::string englishName = {};
 
         unsigned char controlPanel = {};
@@ -286,7 +286,7 @@ public:
     //! 表示パネルらしい
     struct PMXDisplayFrame
     {
-        std::wstring name = {};
+        std::string name = {};
         std::string englishName = {};
 
         enum class TargetType : uint8_t
@@ -313,7 +313,7 @@ public:
     //! 剛体読み込み
     struct PMXRigidBody
     {
-        std::wstring name = {};
+        std::string name = {};
         std::string englishName = {};
 
         unsigned int boneIndex = {};
@@ -350,7 +350,7 @@ public:
     //! ジョイント構造体
     struct PMXJoint
     {
-        std::wstring name = {};
+        std::string name = {};
         std::string englishName = {};
 
         enum class JointType : uint8_t
@@ -381,7 +381,7 @@ public:
     //! ソフトボディ構造体
     struct PMXSoftBody
     {
-        std::wstring name = {};
+        std::string name = {};
         std::string englishName = {};
 
         enum class SoftBodyType : uint8_t
@@ -482,7 +482,7 @@ public:
 private:
 
     //! UTF16の文字列をstd::wstringに変換
-    bool getPMXStringUTF16(std::ifstream& _file, std::wstring& output);
+    bool getPMXStringUTF16(std::ifstream& _file, std::string& output);
 
     //! UTF8の文字列はstd::stringに保存
     bool getPMXStringUTF8(std::ifstream& _file, std::string& output);

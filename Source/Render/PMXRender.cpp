@@ -112,7 +112,7 @@ void PMXRender::createTextures()
 {
     for (auto texName : m_pmxFileData.textures)
     {
-        std::replace(texName.textureName.begin(), texName.textureName.end(), L'\\', L'/');
+        std::replace(texName.textureName.begin(), texName.textureName.end(), '\\', '/');
         std::filesystem::path fullPath = m_modelBasePath / texName.textureName;
         fullPath = std::filesystem::weakly_canonical(fullPath);
         auto texture = TextureManager::Instance().load(fullPath.wstring());
@@ -176,7 +176,7 @@ void PMXRender::render()
         }
 
         //! DescriptorTable(マテリアル)
-        cmd->SetGraphicsRootDescriptorTable(3, m_materialCB->getGPUHandle());
+        cmd->SetGraphicsRootDescriptorTable(3, m_materialCB->getGPUHandle(subset.materialIndex));
 
         //! Draw
         cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);

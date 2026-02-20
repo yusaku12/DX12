@@ -193,6 +193,60 @@ void DX12::initialize()
         m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
     }
 
+    //! DSVヒープ作成
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+        dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        dsvHeapDesc.NumDescriptors = 1;
+        dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+        hr = m_device->CreateDescriptorHeap(
+            &dsvHeapDesc,
+            IID_PPV_ARGS(m_dsvHeap.GetAddressOf())
+        );
+        LOG_HR(hr, "Failed to Create DSV Heap");
+
+        m_dsvHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+    }
+
+    //! 深度ステンシルバッファ作成
+    {
+        D3D12_RESOURCE_DESC desc = {};
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        desc.Width = m_width;
+        desc.Height = m_height;
+        desc.DepthOrArraySize = 1;
+        desc.MipLevels = 1;
+        desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        desc.SampleDesc.Count = 1;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+        D3D12_CLEAR_VALUE clearValue = {};
+        clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        clearValue.DepthStencil.Depth = 1.0f;
+        clearValue.DepthStencil.Stencil = 0;
+
+        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+
+        hr = m_device->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &desc,
+            D3D12_RESOURCE_STATE_DEPTH_WRITE,
+            &clearValue,
+            IID_PPV_ARGS(m_depthStencil.GetAddressOf())
+        );
+        LOG_HR(hr, "Failed to Create DepthStencil");
+
+        //! DSV作成
+        m_device->CreateDepthStencilView(
+            m_depthStencil.Get(),
+            nullptr,
+            m_dsvHandle
+        );
+    }
+
     //! フェンスを作成(GPU側の処理が完了したか知るための仕組み)
     hr = m_device->CreateFence(m_fenceVall, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateFence");
@@ -212,13 +266,23 @@ void DX12::screenClear()
     m_graphicsCommandList->ResourceBarrier(1, &barrier);
 
     //! SceneRTVをセット
-    m_graphicsCommandList->OMSetRenderTargets(1, &m_sceneRTVHandle, FALSE, nullptr);
+    m_graphicsCommandList->OMSetRenderTargets(1, &m_sceneRTVHandle, FALSE, &m_dsvHandle);
 
     //! Sceneクリア
     FLOAT clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
     m_graphicsCommandList->ClearRenderTargetView(
         m_sceneRTVHandle,
         clearColor,
+        0,
+        nullptr
+    );
+
+    //! 深度ステンシルビューをセット
+    m_graphicsCommandList->ClearDepthStencilView(
+        m_dsvHandle,
+        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+        1.0f,
+        0,
         0,
         nullptr
     );
@@ -385,6 +449,45 @@ void DX12::screenResize(int width, int height)
         LOG_HR(hr, "SceneRenderTarget recreate failed");
     }
 
+    //! 深度バッファ再生成
+    {
+        m_depthStencil.Reset();
+
+        D3D12_RESOURCE_DESC Ddesc = {};
+        Ddesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        Ddesc.Width = m_width;
+        Ddesc.Height = m_height;
+        Ddesc.DepthOrArraySize = 1;
+        Ddesc.MipLevels = 1;
+        Ddesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        Ddesc.SampleDesc.Count = 1;
+        Ddesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        Ddesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+        D3D12_CLEAR_VALUE clearValue = {};
+        clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        clearValue.DepthStencil.Depth = 1.0f;
+        clearValue.DepthStencil.Stencil = 0;
+
+        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+
+        hr = m_device->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &Ddesc,
+            D3D12_RESOURCE_STATE_DEPTH_WRITE,
+            &clearValue,
+            IID_PPV_ARGS(m_depthStencil.GetAddressOf())
+        );
+        LOG_HR(hr, "Depth recreate failed");
+
+        m_device->CreateDepthStencilView(
+            m_depthStencil.Get(),
+            nullptr,
+            m_dsvHandle
+        );
+    }
+
     //! Scene RTV 再作成
     m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
     m_sceneRTVHandle.ptr += BUFFER_COUNT * rtvSize;
@@ -462,7 +565,7 @@ void DX12::prepareBackBufferForImGui()
         nullptr
     );
 
-    m_graphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+    m_graphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
 }
 
 void DX12::executeCommandList()

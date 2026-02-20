@@ -82,6 +82,7 @@ void PiplineState::initSamplerState()
     //! ANISOTROPIC_WRAP
     {
         auto& desc = m_samplerState[static_cast<int>(SamplerState::ANISOTROPIC_WRAP)];
+        desc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
         desc.Filter = D3D12_FILTER_ANISOTROPIC;
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -92,6 +93,7 @@ void PiplineState::initSamplerState()
     //! ANISOTROPIC_CLAMP
     {
         auto& desc = m_samplerState[static_cast<int>(SamplerState::ANISOTROPIC_CLAMP)];
+        desc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
         desc.Filter = D3D12_FILTER_ANISOTROPIC;
         desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -154,10 +156,10 @@ void PiplineState::initBlendState()
     {
         auto& rt = m_blendState[static_cast<int>(BlendState::MULTIPLIE)].RenderTarget[0];
         rt.BlendEnable = TRUE;
-        rt.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-        rt.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-        rt.SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
-        rt.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+        rt.SrcBlend = D3D12_BLEND_ZERO;
+        rt.DestBlend = D3D12_BLEND_SRC_COLOR;
+        rt.SrcBlendAlpha = D3D12_BLEND_ZERO;
+        rt.DestBlendAlpha = D3D12_BLEND_ONE;
     }
 }
 

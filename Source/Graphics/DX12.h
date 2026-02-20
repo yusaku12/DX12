@@ -131,14 +131,17 @@ private:
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain4;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeaps;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_backBuffers[BUFFER_COUNT];
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencil;
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
     D3D12_RESOURCE_BARRIER m_barrierDesc = {};
     UINT64 m_fenceVall = 0;
     DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_sceneRenderTarget;
     D3D12_CPU_DESCRIPTOR_HANDLE m_sceneRTVHandle{};
+    D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle = {};
     UINT m_sceneSrvIndex = 0;
     bool m_isSceneActive = false;
 };
