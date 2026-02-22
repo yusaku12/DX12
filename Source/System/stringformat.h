@@ -38,3 +38,39 @@ static std::string wstringToString(std::wstring oWString)
     //! 変換結果を返す
     return(oRet);
 }
+
+//! string（SJIS）→ wstring
+static std::wstring stringToWstring(const std::string& str)
+{
+    if (str.empty())
+        return {};
+
+    //! 必要バッファサイズ取得
+    int sizeNeeded = MultiByteToWideChar(
+        CP_OEMCP,
+        0,
+        str.c_str(),
+        -1,
+        nullptr,
+        0
+    );
+
+    if (sizeNeeded <= 0)
+        throw std::runtime_error("stringToWstring conversion failed.");
+
+    //! バッファ確保
+    std::vector<wchar_t> buffer(sizeNeeded);
+
+    //! 変換
+    MultiByteToWideChar(
+        CP_OEMCP,
+        0,
+        str.c_str(),
+        -1,
+        buffer.data(),
+        sizeNeeded
+    );
+
+    //! NULL終端を除いてwstring生成
+    return std::wstring(buffer.data(), buffer.data() + sizeNeeded - 1);
+}

@@ -3,9 +3,6 @@
 
 PMXRender::PMXRender(const std::wstring& filePath)
 {
-    //! モデルの基準パスを設定
-    m_modelBasePath = std::filesystem::path(filePath).parent_path();
-
     //! PMXファイルの読み込み
     m_pmxLoad = std::make_unique<PmxLoad>(filePath, m_pmxFileData);
 
@@ -112,11 +109,11 @@ void PMXRender::createTextures()
 {
     for (auto texName : m_pmxFileData.textures)
     {
-        std::replace(texName.textureName.begin(), texName.textureName.end(), '\\', '/');
-        std::filesystem::path fullPath = m_modelBasePath / texName.textureName;
-        fullPath = std::filesystem::weakly_canonical(fullPath);
-        auto texture = TextureManager::Instance().load(fullPath.wstring());
+        std::wstring fullPath = L"Data/Texture/dummyWhite.jpg";
+        auto texture = TextureManager::Instance().load(fullPath);
+
         m_textures.push_back(texture);
+        m_texturePaths.push_back(fullPath);
     }
 }
 
@@ -181,4 +178,64 @@ void PMXRender::render()
         //! Draw
         cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
     }
+}
+
+void PMXRender::debugRender()
+{
+    if (ImGui::Begin("PMX Editor"))
+    {
+        for (size_t i = 0; i < m_subsets.size(); ++i)
+        {
+            //auto& subset = m_subsets[i];
+            //const auto& pmxMat = m_pmxFileData.materials[i];
+
+            //ImGui::Separator();
+
+            ////! マテリアル名表示
+            //std::string matName = std::string(pmxMat.name.begin(), pmxMat.name.end());
+
+            //ImGui::Text("Material %d", (int)i);
+            //ImGui::Text("Name : %s", matName.c_str());
+
+            ////! テクスチャプレビュー
+            //if (subset.textureIndex >= 0 && subset.textureIndex < m_textures.size())
+            //{
+            //    ImTextureID texID = (ImTextureID)m_textures[subset.textureIndex]->getGPUHandle().ptr;
+
+            //    ImGui::Image(texID, ImVec2(100, 100));
+            //}
+
+            ////! テクスチャ選択
+            //std::vector<std::string> displayNames;
+            //std::vector<const char*> items;
+
+            //for (auto& path : m_texturePaths)
+            //{
+            //    std::string name(path.begin(), path.end());
+
+            //    //! ファイル名だけ抽出
+            //    size_t pos = name.find_last_of("/\\");
+            //    if (pos != std::string::npos)
+            //        name = name.substr(pos + 1);
+
+            //    displayNames.push_back(name);
+            //}
+
+            //for (auto& s : displayNames)
+            //    items.push_back(s.c_str());
+
+            //int current = subset.textureIndex;
+
+            //if (ImGui::Combo(
+            //    ("Texture##" + std::to_string(i)).c_str(),
+            //    &current,
+            //    items.data(),
+            //    (int)items.size()))
+            //{
+            //    subset.textureIndex = current;
+            //}
+        }
+    }
+
+    ImGui::End();
 }

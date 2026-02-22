@@ -20,4 +20,7 @@ public:
 
     //! 描画
     virtual void draw() = 0;
+
+    //! シーン毎のデバック描画
+    virtual void debugDraw() = 0;
 };

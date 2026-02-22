@@ -19,6 +19,8 @@ public:
 
     void draw() override;
 
+    void debugDraw() override;
+
 private:
 
     std::unique_ptr<TestPolygon> m_testPolygon;

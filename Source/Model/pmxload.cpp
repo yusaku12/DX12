@@ -182,28 +182,31 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
 
 bool PmxLoad::readHeader(PMXFileData& data, std::ifstream& file)
 {
-    //! magic
-    if (!file.read(reinterpret_cast<char*>(data.header.magic.data()), data.header.magic.size()))
-    {
-        LOG_ASSERT_NO_JUDGE("PMX magic read failed");
+    // magic (4 bytes)
+    if (!file.read(reinterpret_cast<char*>(data.header.magic.data()), 4))
         return false;
-    }
 
     if (data.header.magic != PMX_MAGIC_NUMBER)
+        return false;
+
+    // version
+    if (!file.read(reinterpret_cast<char*>(&data.header.version), sizeof(float)))
+        return false;
+
+    // data length
+    if (!file.read(reinterpret_cast<char*>(&data.header.dataLength), 1))
+        return false;
+
+    if (data.header.dataLength != 8)
     {
-        LOG_ASSERT_NO_JUDGE("Not PMX file");
+        LOG_ASSERT_NO_JUDGE("Invalid PMX header length");
         return false;
     }
 
-    //! version
-    file.read(reinterpret_cast<char*>(&data.header.version), sizeof(float));
+    uint8_t headerData[8];
 
-    //! data length
-    file.read(reinterpret_cast<char*>(&data.header.dataLength), 1);
-
-    //! 可変ヘッダ
-    std::vector<uint8_t> headerData(data.header.dataLength);
-    file.read(reinterpret_cast<char*>(headerData.data()), data.header.dataLength);
+    if (!file.read(reinterpret_cast<char*>(headerData), 8))
+        return false;
 
     data.header.textEncoding = headerData[0];
     data.header.addUVNum = headerData[1];
@@ -213,6 +216,18 @@ bool PmxLoad::readHeader(PMXFileData& data, std::ifstream& file)
     data.header.boneIndexSize = headerData[5];
     data.header.morphIndexSize = headerData[6];
     data.header.rigidBodyIndexSize = headerData[7];
+
+    //! indexSizeチェック
+    auto checkIndexSize = [](uint8_t size)
+        {
+            return size == 1 || size == 2 || size == 4;
+        };
+
+    if (!checkIndexSize(data.header.vertexIndexSize))
+    {
+        LOG_ASSERT_NO_JUDGE("Invalid vertexIndexSize");
+        return false;
+    }
 
     return true;
 }
@@ -321,9 +336,14 @@ bool PmxLoad::readFace(PMXFileData& data, std::ifstream& file)
     {
         for (int v = 0; v < 3; ++v)
         {
-            int index = readIndex(file, data.header.vertexIndexSize);
-            if (index >= data.vertices.size())
+            int index;
+            readIndex(file, data.header.vertexIndexSize, index);
+
+            if (index < 0 || index >= static_cast<int>(data.vertices.size()))
+            {
+                LOG_ASSERT_NO_JUDGE("Invalid vertex index");
                 return false;
+            }
 
             data.faces[i].vertices[v] = static_cast<uint32_t>(index);
         }
@@ -873,16 +893,16 @@ void PmxLoad::readIndex(std::ifstream& file, int indexSize, int& out)
     {
     case 1:
     {
-        int8_t v;
+        uint8_t v;
         file.read(reinterpret_cast<char*>(&v), 1);
         out = v;
         break;
     }
     case 2:
     {
-        int16_t v;
+        uint16_t v;
         file.read(reinterpret_cast<char*>(&v), 2);
-        out = v;
+        out = static_cast<int>(v);
         break;
     }
     case 4:
@@ -900,23 +920,28 @@ void PmxLoad::readIndex(std::ifstream& file, int indexSize, int& out)
 
 int PmxLoad::readIndex(std::ifstream& file, uint8_t indexSize)
 {
-    if (indexSize == 1)
+    switch (indexSize)
+    {
+    case 1:
     {
         int8_t v;
         file.read(reinterpret_cast<char*>(&v), 1);
         return v;
     }
-    else if (indexSize == 2)
+    case 2:
     {
         int16_t v;
         file.read(reinterpret_cast<char*>(&v), 2);
         return v;
     }
-    else
+    case 4:
     {
         int32_t v;
         file.read(reinterpret_cast<char*>(&v), 4);
         return v;
+    }
+    default:
+        return -1;
     }
 }
 

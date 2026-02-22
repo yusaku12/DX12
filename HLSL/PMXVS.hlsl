@@ -8,6 +8,7 @@ VS_OUT VS(VS_IN input)
     input.pos = mul(world, input.pos);
     output.svpos = mul(mul(projection, view), input.pos);
     output.uv = input.uv;
+    output.normal = input.normal;
     return output;
 
     return output;

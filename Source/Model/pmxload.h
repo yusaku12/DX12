@@ -10,11 +10,11 @@ public:
     //! PMXのボーンウェイトタイプ
     enum class PMXVertexWeight : uint8_t
     {
-        BDEF1,
-        BDEF2,
-        BDEF4,
-        QDEF,
-        SDEF
+        BDEF1 = 0,
+        BDEF2 = 1,
+        BDEF4 = 2,
+        SDEF = 3,
+        QDEF = 4
     };
 
     //! PMXファイルのマテリアル「描画モード（Draw flags）」
@@ -80,17 +80,17 @@ public:
     //! PMXファイルのヘッダー情報
     struct PMXHeader
     {
-        std::array<unsigned char, 4> magic = {};
+        std::array<char, 4> magic = {};
         float version = {};
-        unsigned char dataLength = {};
-        unsigned char textEncoding = {};      // 0 = utf-16, 1= utf - 8
-        unsigned char addUVNum = {};          // 0 - 4
-        unsigned char vertexIndexSize = {};   // 1 = byte, 2 = short, 4 = int
-        unsigned char textureIndexSize = {};  // 1 = byte, 2 = short, 4 = int
-        unsigned char materialIndexSize = {};
-        unsigned char boneIndexSize = {};
-        unsigned char morphIndexSize = {};
-        unsigned char rigidBodyIndexSize = {};
+        uint8_t dataLength = {};
+        uint8_t textEncoding = {};      // 0 = utf-16, 1= utf - 8
+        uint8_t addUVNum = {};          // 0 - 4
+        uint8_t vertexIndexSize = {};   // 1 = byte, 2 = short, 4 = int
+        uint8_t textureIndexSize = {};  // 1 = byte, 2 = short, 4 = int
+        uint8_t materialIndexSize = {};
+        uint8_t boneIndexSize = {};
+        uint8_t morphIndexSize = {};
+        uint8_t rigidBodyIndexSize = {};
     };
 
     //! PMXモデル情報構造体
@@ -123,7 +123,7 @@ public:
     //! フェイス構造体
     struct PMXFace
     {
-        int vertices[3] = {};
+        uint32_t vertices[3] = {};
     };
 
     //! テクスチャ構造体
@@ -531,5 +531,5 @@ private:
     //! ボーンフラグの判定
     inline bool hasBoneFlag(PMXBoneFlags flags, PMXBoneFlags test);
 
-    static constexpr std::array<unsigned char, 4> PMX_MAGIC_NUMBER{ 0x50, 0x4d, 0x58, 0x20 };  //!< PMXファイルのマジックナンバー
+    static constexpr std::array<char, 4> PMX_MAGIC_NUMBER{ 0x50, 0x4d, 0x58, 0x20 };  //!< PMXファイルのマジックナンバー
 };

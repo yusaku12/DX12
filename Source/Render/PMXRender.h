@@ -16,7 +16,11 @@ public:
     explicit PMXRender(const std::wstring& filePath);
     ~PMXRender() {};
 
+    //! 描画
     void render();
+
+    //! デバック描画
+    void debugRender();
 
 private:
 
@@ -82,5 +86,5 @@ private:
     std::unique_ptr<PSOCreator>m_psoCreator;
     std::vector<LoadTexture*> m_textures;
     std::vector<Subset> m_subsets;
-    std::filesystem::path m_modelBasePath;
+    std::vector<std::wstring> m_texturePaths;
 };

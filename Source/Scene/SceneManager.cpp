@@ -72,6 +72,9 @@ void SceneManager::debugOption()
     }
 
     ImGui::End();
+
+    //! 現在シーンのデバック描画
+    m_currentScene->debugDraw();
 }
 
 void SceneManager::changeSceneInternal()

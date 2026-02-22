@@ -7,7 +7,7 @@ void TestScene::onEnter()
     //m_testPolygon = std::make_unique<TestPolygon>();
 
     //! PMXモデルの描画
-    m_pmxRender = std::make_unique<PMXRender>(L"Data/Model/Kazusa_ByPOWER_v1.0/Kazusa_ByPOWER.pmx");
+    m_pmxRender = std::make_unique<PMXRender>(L"Data/Model/千夏/千夏皮肤.pmx");
 }
 
 void TestScene::onExit()
@@ -25,4 +25,9 @@ void TestScene::draw()
 
     //! PMXモデルの描画
     m_pmxRender->render();
+}
+
+void TestScene::debugDraw()
+{
+    m_pmxRender->debugRender();
 }
