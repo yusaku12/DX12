@@ -41,6 +41,7 @@
 #undef OPAQUE
 
 //! 自作の機能
+#include "System\Dialog.h"
 #include "System\stringformat.h"
 #include "Graphics\DX12.h"
 #include "System\Logger.h"

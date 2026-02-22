@@ -98,6 +98,7 @@ void PMXRender::createSubsets()
         s.indexCount = m_pmxFileData.materials[i].numFaceVertices;
         s.materialIndex = (UINT)i;
         s.textureIndex = m_pmxFileData.materials[i].textureIndex;
+        s.visible = true;
 
         start += s.indexCount;
 
@@ -176,7 +177,10 @@ void PMXRender::render()
         cmd->SetGraphicsRootDescriptorTable(3, m_materialCB->getGPUHandle(subset.materialIndex));
 
         //! Draw
-        cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
+        if (subset.visible)
+        {
+            cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
+        }
     }
 }
 
@@ -186,54 +190,52 @@ void PMXRender::debugRender()
     {
         for (size_t i = 0; i < m_subsets.size(); ++i)
         {
-            //auto& subset = m_subsets[i];
-            //const auto& pmxMat = m_pmxFileData.materials[i];
+            auto& subset = m_subsets[i];
+            const auto& pmxMat = m_pmxFileData.materials[i];
 
-            //ImGui::Separator();
+            ImGui::Separator();
 
-            ////! マテリアル名表示
-            //std::string matName = std::string(pmxMat.name.begin(), pmxMat.name.end());
+            //! マテリアル名
+            std::string matName = std::string(pmxMat.name.begin(), pmxMat.name.end());
+            ImGui::Text("Name : %s", matName.c_str());
 
-            //ImGui::Text("Material %d", (int)i);
-            //ImGui::Text("Name : %s", matName.c_str());
+            ImGui::Checkbox(("Visible##" + std::to_string(i)).c_str(), &subset.visible);
 
-            ////! テクスチャプレビュー
-            //if (subset.textureIndex >= 0 && subset.textureIndex < m_textures.size())
-            //{
-            //    ImTextureID texID = (ImTextureID)m_textures[subset.textureIndex]->getGPUHandle().ptr;
+            //! テクスチャプレビュー
+            if (subset.textureIndex >= 0 && subset.textureIndex < m_textures.size())
+            {
+                ImTextureID texID = (ImTextureID)m_textures[subset.textureIndex]->getGPUHandle().ptr;
+                ImGui::Image(texID, ImVec2(100, 100));
+            }
 
-            //    ImGui::Image(texID, ImVec2(100, 100));
-            //}
+            //! テクスチャ変更ボタン
+            std::string buttonLabel = "Change Texture##" + std::to_string(i);
 
-            ////! テクスチャ選択
-            //std::vector<std::string> displayNames;
-            //std::vector<const char*> items;
+            if (ImGui::Button(buttonLabel.c_str()))
+            {
+                std::vector<std::wstring> paths;
 
-            //for (auto& path : m_texturePaths)
-            //{
-            //    std::string name(path.begin(), path.end());
+                if (Dialog::openFile(
+                    paths,
+                    L"テクスチャを選択",
+                    L"Data/Model",
+                    false) == DialogResult::OK)
+                {
+                    std::wstring newPath = paths[0];
 
-            //    //! ファイル名だけ抽出
-            //    size_t pos = name.find_last_of("/\\");
-            //    if (pos != std::string::npos)
-            //        name = name.substr(pos + 1);
+                    //! テクスチャロード
+                    auto newTexture = TextureManager::Instance().load(newPath);
 
-            //    displayNames.push_back(name);
-            //}
+                    if (newTexture)
+                    {
+                        //! 既存テクスチャ差し替え
+                        subset.textureIndex = (int)m_textures.size();
 
-            //for (auto& s : displayNames)
-            //    items.push_back(s.c_str());
-
-            //int current = subset.textureIndex;
-
-            //if (ImGui::Combo(
-            //    ("Texture##" + std::to_string(i)).c_str(),
-            //    &current,
-            //    items.data(),
-            //    (int)items.size()))
-            //{
-            //    subset.textureIndex = current;
-            //}
+                        m_textures.push_back(newTexture);
+                        m_texturePaths.push_back(newPath);
+                    }
+                }
+            }
         }
     }
 

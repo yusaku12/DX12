@@ -13,7 +13,7 @@ float4 PS(VS_OUT input) : SV_TARGET
 
     float4 color = tex.Sample(samplerStates[POINT_WRAP], input.uv);
 
-    color.rgb = color.rgb * diffuseB;
+    color.rgb = color.rgb /** diffuseB*/;
 
     return color;
 }

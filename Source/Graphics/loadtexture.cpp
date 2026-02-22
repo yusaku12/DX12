@@ -58,8 +58,7 @@ bool LoadTexture::loadFromFile(const std::wstring& filePath)
     HRESULT hr = it->second(filePath, &metadata, scratchImg);
     if (FAILED(hr))
     {
-        //LOG_ASSERT_NO_JUDGE("Texture load failed");
-        LOG_ERROR("Texture load failed");
+        LOG_ASSERT_NO_JUDGE("Texture load failed");
         return false;
     }
 

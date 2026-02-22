@@ -51,6 +51,7 @@ private:
         UINT startIndex;
         UINT materialIndex;
         UINT textureIndex;
+        bool visible = true;
     };
 
     //! モデル構造体

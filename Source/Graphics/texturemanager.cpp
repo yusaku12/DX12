@@ -15,7 +15,7 @@ LoadTexture* TextureManager::load(const std::wstring& filePath)
 
     m_textureCache[filePath] = std::move(newTex);
 
-    std::wstring filename = L"[TextureManager] Loaded:" + filePath + L"\n";
+    std::wstring filename = L"Texture Loaded:" + filePath + L"\n";
     LOG_INFO(wstringToString(filename));
     return texPtr;
 }

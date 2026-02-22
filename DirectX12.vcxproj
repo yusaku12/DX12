@@ -87,6 +87,7 @@
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\TestScene.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
+    <ClCompile Include="Source\System\Dialog.cpp" />
     <ClCompile Include="Source\System\Logger.cpp" />
     <ClCompile Include="Source\System\TimeManager.cpp" />
     <ClCompile Include="Source\System\Window.cpp" />
@@ -160,6 +161,7 @@
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\Scene\TestScene.h" />
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
+    <ClInclude Include="Source\System\Dialog.h" />
     <ClInclude Include="Source\System\Logger.h" />
     <ClInclude Include="Source\System\LoggerMacros.h" />
     <ClInclude Include="Source\System\Stringformat.h" />
