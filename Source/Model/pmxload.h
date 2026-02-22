@@ -148,10 +148,6 @@ public:
         Vector4 edgeColor = {};
         float edgeSize = {};
 
-        std::string texturePath = {};
-        std::string sphereTexturePath = {};
-        std::string toonTexturePath = {};
-
         unsigned int textureIndex = {};
         unsigned int sphereTextureIndex = {};
         PMXSphereMode sphereMode = {};

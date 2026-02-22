@@ -384,38 +384,23 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
         file.read(reinterpret_cast<char*>(&mat.edgeSize), 4);
 
         //! texture indices
-        int textureIndex = readIndex(file, data.header.textureIndexSize);
-        int sphereTextureIndex = readIndex(file, data.header.textureIndexSize);
-
+        file.read(reinterpret_cast<char*>(&mat.textureIndex), data.header.textureIndexSize);
+        file.read(reinterpret_cast<char*>(&mat.sphereTextureIndex), data.header.textureIndexSize);
         file.read(reinterpret_cast<char*>(&mat.sphereMode), 1);
         file.read(reinterpret_cast<char*>(&mat.toonMode), 1);
 
-        int toonTextureIndex = -1;
-
         if (mat.toonMode == PMXToonMode::Separate)
         {
-            toonTextureIndex = readIndex(file, data.header.textureIndexSize);
+            file.read(reinterpret_cast<char*>(&mat.toonTextureIndex), data.header.textureIndexSize);
         }
         else if (mat.toonMode == PMXToonMode::Common)
         {
-            uint8_t commonIndex;
-            file.read(reinterpret_cast<char*>(&commonIndex), 1);
-            toonTextureIndex = commonIndex;
+            file.read(reinterpret_cast<char*>(&mat.toonTextureIndex), 1);
         }
         else
         {
             return false;
         }
-
-        //! resolve texture path
-        if (textureIndex >= 0 && textureIndex < (int)data.textures.size())
-            mat.texturePath = data.textures[textureIndex].textureName;
-
-        if (sphereTextureIndex >= 0 && sphereTextureIndex < (int)data.textures.size())
-            mat.sphereTexturePath = data.textures[sphereTextureIndex].textureName;
-
-        if (toonTextureIndex >= 0 && toonTextureIndex < (int)data.textures.size())
-            mat.toonTexturePath = data.textures[toonTextureIndex].textureName;
 
         //! memo
         if (data.header.textEncoding == 0)
