@@ -37,15 +37,15 @@ void RootSignatureManager::buildPMXStandard()
     //! ディスクリプタレンジ
     CD3DX12_DESCRIPTOR_RANGE range[3] = {};
 
-    //! ディスクリプタレンジ(テクスチャ、モデル行列、マテリアル)
-    range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-    range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-    range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
+    //! ディスクリプタレンジ(モデル行列、マテリアル、テクスチャ)
+    range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+    range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
+    range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0);
 
     //! ルートパラメータ
     CD3DX12_ROOT_PARAMETER params[4] = {};
 
-    //! パラメータ設定(カメラ、テクスチャ、モデル行列、マテリアル)
+    //! パラメータ設定(カメラ、モデル行列、マテリアル、テクスチャ)
     params[0].InitAsConstantBufferView(static_cast<int>(CBVType::Camera));
     params[1].InitAsDescriptorTable(1, &range[0]);
     params[2].InitAsDescriptorTable(1, &range[1]);

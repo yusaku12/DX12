@@ -50,7 +50,7 @@ private:
         UINT indexCount;
         UINT startIndex;
         UINT materialIndex;
-        UINT textureIndex;
+        std::vector<int> textureIndices;
         bool visible = true;
     };
 
@@ -78,6 +78,12 @@ private:
     //! PSOの作成
     void createPSO();
 
+    // ! 設定の読み込み
+    void loadSetting();
+
+    //! 設定の保存
+    void saveSetting();
+
     PmxLoad::PMXFileData m_pmxFileData;
     std::unique_ptr<PmxLoad>m_pmxLoad;
     std::unique_ptr<VertexBuffer<Vertex>> m_vertexBuffer;
@@ -88,4 +94,5 @@ private:
     std::vector<LoadTexture*> m_textures;
     std::vector<Subset> m_subsets;
     std::vector<std::wstring> m_texturePaths;
+    std::wstring m_settingPath;
 };

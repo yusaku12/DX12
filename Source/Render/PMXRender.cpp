@@ -3,6 +3,8 @@
 
 PMXRender::PMXRender(const std::wstring& filePath)
 {
+    m_settingPath = filePath + L".texture";
+
     //! PMXファイルの読み込み
     m_pmxLoad = std::make_unique<PmxLoad>(filePath, m_pmxFileData);
 
@@ -27,6 +29,9 @@ PMXRender::PMXRender(const std::wstring& filePath)
 
     //! PSOの作成
     createPSO();
+
+    //! 設定の読み込み
+    loadSetting();
 }
 
 void PMXRender::createVertexBuffer()
@@ -97,7 +102,11 @@ void PMXRender::createSubsets()
         s.startIndex = start;
         s.indexCount = m_pmxFileData.materials[i].numFaceVertices;
         s.materialIndex = (UINT)i;
-        s.textureIndex = m_pmxFileData.materials[i].textureIndex;
+        int texIndex = m_pmxFileData.materials[i].textureIndex;
+        if (texIndex >= 0)
+        {
+            s.textureIndices.push_back(texIndex);
+        }
         s.visible = true;
 
         start += s.indexCount;
@@ -139,6 +148,101 @@ void PMXRender::createPSO()
     m_psoCreator = std::make_unique<PSOCreator>(psoData);
 }
 
+void PMXRender::loadSetting()
+{
+    std::ifstream file(m_settingPath, std::ios::binary);
+    if (!file) return;
+
+    size_t subsetCount = 0;
+    file.read(reinterpret_cast<char*>(&subsetCount), sizeof(size_t));
+
+    if (subsetCount != m_subsets.size())
+        return;
+
+    for (size_t i = 0; i < subsetCount; ++i)
+    {
+        auto& subset = m_subsets[i];
+
+        //! visible読込
+        file.read(reinterpret_cast<char*>(&subset.visible), sizeof(bool));
+
+        //! テクスチャ数読込
+        size_t texCount = 0;
+        file.read(reinterpret_cast<char*>(&texCount), sizeof(size_t));
+
+        subset.textureIndices.clear();
+
+        for (size_t t = 0; t < texCount; ++t)
+        {
+            size_t len = 0;
+            file.read(reinterpret_cast<char*>(&len), sizeof(size_t));
+
+            std::wstring path;
+            path.resize(len);
+
+            if (len > 0)
+            {
+                file.read(reinterpret_cast<char*>(path.data()), len * sizeof(wchar_t));
+
+                auto tex = TextureManager::Instance().load(path);
+
+                if (tex)
+                {
+                    int newIndex = (int)m_textures.size();
+                    m_textures.push_back(tex);
+                    m_texturePaths.push_back(path);
+
+                    subset.textureIndices.push_back(newIndex);
+                }
+                else
+                {
+                    subset.textureIndices.push_back(-1);
+                }
+            }
+            else
+            {
+                subset.textureIndices.push_back(-1);
+            }
+        }
+    }
+}
+
+void PMXRender::saveSetting()
+{
+    std::ofstream file(m_settingPath, std::ios::binary);
+    if (!file) return;
+
+    size_t subsetCount = m_subsets.size();
+    file.write(reinterpret_cast<char*>(&subsetCount), sizeof(size_t));
+
+    for (const auto& subset : m_subsets)
+    {
+        //! visible保存
+        file.write(reinterpret_cast<const char*>(&subset.visible), sizeof(bool));
+
+        //! テクスチャ数保存
+        size_t texCount = subset.textureIndices.size();
+        file.write(reinterpret_cast<const char*>(&texCount), sizeof(size_t));
+
+        for (size_t t = 0; t < texCount; ++t)
+        {
+            int texIndex = subset.textureIndices[t];
+
+            std::wstring path;
+            if (texIndex >= 0 && texIndex < m_texturePaths.size())
+                path = m_texturePaths[texIndex];
+
+            size_t len = path.size();
+            file.write(reinterpret_cast<const char*>(&len), sizeof(size_t));
+
+            if (len > 0)
+            {
+                file.write(reinterpret_cast<const char*>(path.c_str()), len * sizeof(wchar_t));
+            }
+        }
+    }
+}
+
 void PMXRender::render()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
@@ -163,18 +267,22 @@ void PMXRender::render()
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
 
     //! DescriptorTable(モデル行列)
-    cmd->SetGraphicsRootDescriptorTable(2, m_modelCB->getGPUHandle());
+    cmd->SetGraphicsRootDescriptorTable(1, m_modelCB->getGPUHandle());
 
     for (const auto& subset : m_subsets)
     {
         //! DescriptorTable(テクスチャ)
-        if (subset.textureIndex >= 0 && subset.textureIndex < m_textures.size())
+        for (int i = 0; i < subset.textureIndices.size(); ++i)
         {
-            cmd->SetGraphicsRootDescriptorTable(1, m_textures[subset.textureIndex]->getGPUHandle());
+            int texIndex = subset.textureIndices[i];
+            if (texIndex >= 0 && texIndex < m_textures.size())
+            {
+                cmd->SetGraphicsRootDescriptorTable(3, m_textures[texIndex]->getGPUHandle());
+            }
         }
 
         //! DescriptorTable(マテリアル)
-        cmd->SetGraphicsRootDescriptorTable(3, m_materialCB->getGPUHandle(subset.materialIndex));
+        cmd->SetGraphicsRootDescriptorTable(2, m_materialCB->getGPUHandle(subset.materialIndex));
 
         //! Draw
         if (subset.visible)
@@ -193,51 +301,93 @@ void PMXRender::debugRender()
             auto& subset = m_subsets[i];
             const auto& pmxMat = m_pmxFileData.materials[i];
 
+            ImGui::PushID((int)i);
+
             ImGui::Separator();
 
             //! マテリアル名
-            std::string matName = std::string(pmxMat.name.begin(), pmxMat.name.end());
+            std::string matName(pmxMat.name.begin(), pmxMat.name.end());
             ImGui::Text("Name : %s", matName.c_str());
 
-            ImGui::Checkbox(("Visible##" + std::to_string(i)).c_str(), &subset.visible);
-
-            //! テクスチャプレビュー
-            if (subset.textureIndex >= 0 && subset.textureIndex < m_textures.size())
+            if (ImGui::Checkbox("Visible", &subset.visible))
             {
-                ImTextureID texID = (ImTextureID)m_textures[subset.textureIndex]->getGPUHandle().ptr;
-                ImGui::Image(texID, ImVec2(100, 100));
+                saveSetting();
             }
 
-            //! テクスチャ変更ボタン
-            std::string buttonLabel = "Change Texture##" + std::to_string(i);
+            ImGui::Spacing();
 
-            if (ImGui::Button(buttonLabel.c_str()))
+            //! テクスチャ一覧
+            for (size_t t = 0; t < subset.textureIndices.size(); ++t)
             {
-                std::vector<std::wstring> paths;
+                ImGui::PushID((int)t);
+                int texIndex = subset.textureIndices[t];
+                ImGui::Text("Texture %d", (int)t);
 
-                if (Dialog::openFile(
-                    paths,
-                    L"テクスチャを選択",
-                    L"Data/Model",
-                    false) == DialogResult::OK)
+                //! プレビュー
+                if (texIndex >= 0 && texIndex < m_textures.size())
                 {
-                    std::wstring newPath = paths[0];
+                    ImTextureID texID = (ImTextureID)m_textures[texIndex]->getGPUHandle().ptr;
+                    ImGui::Image(texID, ImVec2(80, 80));
+                }
+                else
+                {
+                    ImGui::Text("No Texture");
+                }
 
-                    //! テクスチャロード
-                    auto newTexture = TextureManager::Instance().load(newPath);
+                //! Change
+                if (ImGui::Button("Change"))
+                {
+                    std::vector<std::wstring> paths;
 
-                    if (newTexture)
+                    if (Dialog::openFile(
+                        paths,
+                        L"テクスチャを選択",
+                        L"Data/Model",
+                        false) == DialogResult::OK)
                     {
-                        //! 既存テクスチャ差し替え
-                        subset.textureIndex = (int)m_textures.size();
+                        auto newTex =
+                            TextureManager::Instance().load(paths[0]);
 
-                        m_textures.push_back(newTexture);
-                        m_texturePaths.push_back(newPath);
+                        if (newTex)
+                        {
+                            int newIndex = (int)m_textures.size();
+
+                            m_textures.push_back(newTex);
+                            m_texturePaths.push_back(paths[0]);
+
+                            subset.textureIndices[t] = newIndex;
+
+                            saveSetting();
+                        }
                     }
                 }
+
+                ImGui::SameLine();
+
+                //! Remove
+                if (ImGui::Button("Remove"))
+                {
+                    subset.textureIndices.erase(subset.textureIndices.begin() + t);
+
+                    saveSetting();
+
+                    ImGui::PopID();
+                    break;
+                }
+
+                ImGui::Separator();
+                ImGui::PopID();
             }
+
+            //! Add Texture
+            if (ImGui::Button("Add Texture"))
+            {
+                subset.textureIndices.push_back(-1);
+                saveSetting();
+            }
+
+            ImGui::PopID();
         }
     }
-
     ImGui::End();
 }
