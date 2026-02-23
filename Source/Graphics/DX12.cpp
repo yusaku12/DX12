@@ -188,7 +188,7 @@ void DX12::initialize()
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
         //! SRVのインデックスを DescriptorHeapManager に割り当てて作成
-        m_sceneSrvIndex = DescriptorHeapManager::Instance().allocate();
+        m_sceneSrvIndex = DescriptorHeapManager::Instance().allocateRange();
         auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
         m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
     }

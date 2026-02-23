@@ -29,35 +29,33 @@ public:
     //! SRV作成
     UINT createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
 
+    //! SRV複数作成
+    UINT createSRVArray(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc, UINT arrayCount);
+
     //! CBV作成
     UINT createCBV(const D3D12_CONSTANT_BUFFER_VIEW_DESC& desc);
 
     //! UAV作成
     UINT createUAV(ID3D12Resource* resource, ID3D12Resource* counterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
 
-    //! 複数分のインデックス割り当て
-    UINT allocateRange(UINT count);
-
     //! GPUハンドル取得
     D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index);
+
+    // ! CPU ハンドル取得
+    D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index);
 
     //! DescriptorHeap取得
     ID3D12DescriptorHeap* getHeap() { return m_heap.Get(); }
 
     //! 解放（使わなくなった Descriptor を返却）
-    void free(UINT index);
+    void free(UINT index, UINT count);
 
-    // ! インデックス割り当て
-    UINT allocate();
-
-    // ! CPU ハンドル取得
-    D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index);
+    //! 複数のインデックス割り当て
+    UINT allocateRange(UINT count = 1);
 
 private:
 
     DescriptorHeapManager() {}
-
-private:
 
     std::vector<bool> m_used;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;

@@ -32,54 +32,47 @@ void DescriptorHeapManager::setDiscriptorHeap()
 UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 {
     const auto device = DX12::Instance().getDevice();
-    UINT index = allocate();
+    UINT index = allocateRange();
+    if (index == UINT_MAX) return UINT_MAX;
+    device->CreateShaderResourceView(resource, &desc, getCPUHandle(index));
+    return index;
+}
+
+UINT DescriptorHeapManager::createSRVArray(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc, UINT arrayCount)
+{
+    const auto device = DX12::Instance().getDevice();
+
+    UINT index = allocateRange(arrayCount);
+    if (index == UINT_MAX) return UINT_MAX;
+
     auto cpuHandle = getCPUHandle(index);
-    device->CreateShaderResourceView(resource, &desc, cpuHandle);
+    D3D12_SHADER_RESOURCE_VIEW_DESC arrayDesc = desc;
+
+    for (UINT i = 0; i < arrayCount; i++)
+    {
+        device->CreateShaderResourceView(resource, &desc, cpuHandle);
+        cpuHandle.ptr += m_incrementSize;
+    }
+
     return index;
 }
 
 UINT DescriptorHeapManager::createCBV(const D3D12_CONSTANT_BUFFER_VIEW_DESC& desc)
 {
     const auto device = DX12::Instance().getDevice();
-    UINT index = allocate();
-    auto cpuHandle = getCPUHandle(index);
-    device->CreateConstantBufferView(&desc, cpuHandle);
+    UINT index = allocateRange();
+    if (index == UINT_MAX) return UINT_MAX;
+    device->CreateConstantBufferView(&desc, getCPUHandle(index));
     return index;
 }
 
 UINT DescriptorHeapManager::createUAV(ID3D12Resource* resource, ID3D12Resource* counterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
 {
     const auto device = DX12::Instance().getDevice();
-    UINT index = allocate();
-    auto cpuHandle = getCPUHandle(index);
-    device->CreateUnorderedAccessView(resource, counterResource, &desc, cpuHandle);
+    UINT index = allocateRange();
+    if (index == UINT_MAX) return UINT_MAX;
+    device->CreateUnorderedAccessView(resource, counterResource, &desc, getCPUHandle(index));
     return index;
-}
-
-UINT DescriptorHeapManager::allocateRange(UINT count)
-{
-    for (UINT i = 0; i <= m_maxCount - count; ++i)
-    {
-        bool free = true;
-        for (UINT j = 0; j < count; ++j)
-        {
-            if (m_used[i + j])
-            {
-                free = false;
-                break;
-            }
-        }
-
-        if (free)
-        {
-            for (UINT j = 0; j < count; ++j)
-                m_used[i + j] = true;
-
-            return i;
-        }
-    }
-
-    return UINT_MAX;
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getGPUHandle(UINT index)
@@ -89,28 +82,50 @@ D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getGPUHandle(UINT index)
     return h;
 }
 
-void DescriptorHeapManager::free(UINT index)
-{
-    if (index < m_maxCount) m_used[index] = false;
-}
-
-UINT DescriptorHeapManager::allocate()
-{
-    //! 0はimguiが使用するため、1から検索する
-    for (UINT i = 1; i < m_maxCount; i++)
-    {
-        if (!m_used[i])
-        {
-            m_used[i] = true;
-            return i;
-        }
-    }
-    return UINT_MAX; // 空きがない
-}
-
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getCPUHandle(UINT index)
 {
     D3D12_CPU_DESCRIPTOR_HANDLE h = m_heap->GetCPUDescriptorHandleForHeapStart();
     h.ptr += index * m_incrementSize;
     return h;
+}
+
+void DescriptorHeapManager::free(UINT index, UINT count)
+{
+    if (index == UINT_MAX) return;
+
+    for (UINT i = 0; i < count && index + i < m_maxCount; i++)
+    {
+        m_used[index + i] = false;
+    }
+}
+
+UINT DescriptorHeapManager::allocateRange(UINT count)
+{
+    if (count == 0) return UINT_MAX;
+
+    for (UINT start = 1; start + count <= m_maxCount; ++start)
+    {
+        bool freeBlock = true;
+
+        for (UINT offset = 0; offset < count; ++offset)
+        {
+            if (m_used[start + offset])
+            {
+                freeBlock = false;
+                break;
+            }
+        }
+
+        if (freeBlock)
+        {
+            for (UINT offset = 0; offset < count; ++offset)
+            {
+                m_used[start + offset] = true;
+            }
+
+            return start;
+        }
+    }
+
+    return UINT_MAX;
 }

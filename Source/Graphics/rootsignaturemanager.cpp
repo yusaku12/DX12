@@ -40,7 +40,7 @@ void RootSignatureManager::buildPMXStandard()
     //! ディスクリプタレンジ(モデル行列、マテリアル、テクスチャ)
     range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
     range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
-    range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0);
+    range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
     //! ルートパラメータ
     CD3DX12_ROOT_PARAMETER params[4] = {};
