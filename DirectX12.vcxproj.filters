@@ -156,6 +156,9 @@
     <ClCompile Include="Source\System\Dialog.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\System\DebugPrimitive.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -380,17 +383,23 @@
     <ClInclude Include="Source\System\Dialog.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\System\DebugPrimitive.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\Polygon.hlsli" />
     <None Include="HLSL\PMX.hlsli" />
     <None Include="HLSL\CommonConstants.hlsli" />
     <None Include="HLSL\Common.hlsli" />
+    <None Include="HLSL\DebugPrimitive.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\PolygonVS.hlsl" />
     <FxCompile Include="HLSL\PolygonPS.hlsl" />
     <FxCompile Include="HLSL\PMXVS.hlsl" />
     <FxCompile Include="HLSL\PMXPS.hlsl" />
+    <FxCompile Include="HLSL\DebugPrimitiveVS.hlsl" />
+    <FxCompile Include="HLSL\DebugPrimitivePS.hlsl" />
   </ItemGroup>
 </Project>

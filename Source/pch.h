@@ -60,6 +60,7 @@
 #include "Editor\EditorManager.h"
 #include "Input\InputManager.h"
 #include "Audio\AudioManager.h"
+#include "System\DebugPrimitive.h"
 
 //! 省略系
 using namespace DirectX;

@@ -5,6 +5,7 @@ enum class RootSignatureType : int
 {
     Standard,
     PMXStandard,
+    DebugPrimitive,
     Max
 };
 
@@ -43,6 +44,9 @@ private:
 
     //! PMXStandardをビルド
     void buildPMXStandard();
+
+    //! DebugPrimitiveをビルド
+    void buildDebugPrimitive();
 
     //! テスト
     void createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type);

@@ -1,5 +1,4 @@
 ﻿#pragma once
-#pragma once
 
 #include <array>
 
@@ -10,6 +9,8 @@ enum class ShaderID : int
     TestPolygonPS,
     PMXVS,
     PMXPS,
+    DebugPrimitiveVS,
+    DebugPrimitivePS,
     MAX
 };
 
@@ -24,8 +25,10 @@ struct ShaderDesc
 //! シェーダーテーブル
 static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTable =
 {
-    ShaderDesc{ L"Shader/PolygonVS.hlsl",  "VS", "vs_5_0" }, //!< TestPolygonVS
-    ShaderDesc{ L"Shader/PolygonPS.hlsl",  "PS", "ps_5_0" }, //!< TestPolygonPS
-    ShaderDesc{ L"Shader/PMXVS.hlsl",  "VS", "vs_5_0" },     //!< PMXVS
-    ShaderDesc{ L"Shader/PMXPS.hlsl",  "PS", "ps_5_0" },     //!< PMXPS
+    ShaderDesc{ L"Shader/PolygonVS.hlsl",  "VS", "vs_5_0" },          //!< TestPolygonVS
+    ShaderDesc{ L"Shader/PolygonPS.hlsl",  "PS", "ps_5_0" },          //!< TestPolygonPS
+    ShaderDesc{ L"Shader/PMXVS.hlsl",  "VS", "vs_5_0" },              //!< PMXVS
+    ShaderDesc{ L"Shader/PMXPS.hlsl",  "PS", "ps_5_0" },              //!< PMXPS
+    ShaderDesc{ L"Shader/DebugPrimitiveVS.hlsl",  "VS", "vs_5_0" },   //!< DebugVS
+    ShaderDesc{ L"Shader/DebugPrimitivePS.hlsl",  "PS", "ps_5_0" },   //!< DebugPS
 };

@@ -4,6 +4,7 @@ void RootSignatureManager::initialize()
 {
     buildStandard();
     buildPMXStandard();
+    buildDebugPrimitive();
 }
 
 ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
@@ -53,6 +54,18 @@ void RootSignatureManager::buildPMXStandard()
 
     //! ルートシグネチャ生成
     createRootSignature(params, _countof(params), RootSignatureType::PMXStandard);
+}
+
+void RootSignatureManager::buildDebugPrimitive()
+{
+    //! ルートパラメータ
+    CD3DX12_ROOT_PARAMETER params[1] = {};
+
+    //! 定数バッファ(カメラ)
+    params[0].InitAsConstantBufferView(static_cast<int>(CBVType::Camera));
+
+    //! ルートシグネチャ生成
+    createRootSignature(params, _countof(params), RootSignatureType::DebugPrimitive);
 }
 
 void RootSignatureManager::createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type)

@@ -35,6 +35,9 @@ Window::Window(HWND hwnd)
     //! シーンマネージャー初期化
     SceneManager::Instance().initialize();
 
+    //! デバックプリミティブ描画初期化
+    DebugPrimitive::Instance().initialize();
+
     //! 試しに読み込み
     //AudioManager::Instance().load("bgm", "Data/Audio/a.wav");
     //AudioManager::Instance().play("bgm", true);
@@ -49,6 +52,9 @@ Window::~Window()
 
     //! オーディオマネージャー終了処理
     AudioManager::Instance().shutdown();
+
+    //! デバックプリミティブ描画終了処理
+    DebugPrimitive::Instance().shutdown();
 }
 
 void Window::update()
@@ -70,6 +76,9 @@ void Window::update()
 
     //! オーディオマネージャー更新
     AudioManager::Instance().update(TimeManager::Instance().getDeltaTime());
+
+    //! デバックプリミティブ更新
+    DebugPrimitive::Instance().update(TimeManager::Instance().getDeltaTime());
 }
 
 void Window::render()
@@ -79,6 +88,9 @@ void Window::render()
 
     //! 画面をクリア
     m_dx12.screenClear();
+
+    //! デバックプリミティブ描画
+    DebugPrimitive::Instance().render();
 
     //! シーンマネージャ描画
     SceneManager::Instance().draw();
