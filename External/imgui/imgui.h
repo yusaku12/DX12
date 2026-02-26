@@ -155,7 +155,7 @@ Index of this file:
 //-----------------------------------------------------------------------------
 
 // Scalar data types
-typedef unsigned int        ImGuiID;// A unique ID used by widgets (typically the result of hashing a stack of string)
+typedef  int        ImGuiID;// A unique ID used by widgets (typically the result of hashing a stack of string)
 typedef signed char         ImS8;   // 8-bit signed integer
 typedef unsigned char       ImU8;   // 8-bit unsigned integer
 typedef signed short        ImS16;  // 16-bit signed integer

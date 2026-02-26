@@ -107,6 +107,13 @@ public:
     const int& getScreenWidth()const { return m_width; }
     const int& getScreenHeight()const { return m_height; }
 
+    //! Scene ウィンドウ内の描画矩形（スクリーン座標）
+    ImVec2 getSceneWindowPos() const { return m_sceneWindowPos; }
+    ImVec2 getSceneWindowSize() const { return m_sceneWindowSize; }
+
+    //! Scene ウィンドウの ImDrawList（ImGuizmo が入力判定で参照するため）
+    ImDrawList* getSceneDrawList() const { return m_sceneDrawList; }
+
 private:
 
     //! DX12で使用するデバッグ機能
@@ -144,4 +151,7 @@ private:
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle = {};
     UINT m_sceneSrvIndex = 0;
     bool m_isSceneActive = false;
+    ImVec2 m_sceneWindowPos = ImVec2(0, 0);
+    ImVec2 m_sceneWindowSize = ImVec2(0, 0);
+    ImDrawList* m_sceneDrawList = nullptr;
 };

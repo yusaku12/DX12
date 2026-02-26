@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "TransformComponent.h"
+#include "ImGuizmo.h"
 
 Matrix TransformComponent::getLocalMatrix() const
 {
@@ -44,69 +45,106 @@ Matrix TransformComponent::getWorldMatrix() const
 
 void TransformComponent::onInspectorGUI()
 {
-    //! Position
+    //! Reset ボタンのみ（Inspector 内の UI）
+    if (ImGui::Button("Reset"))
     {
-        float pos[3] = { m_position.x, m_position.y, m_position.z };
-        if (ImGui::DragFloat3("Position", pos, 0.1f))
-        {
-            m_position = Vector3(pos[0], pos[1], pos[2]);
-            m_dirty = true;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Reset Pos"))
-        {
-            m_position = Vector3::Zero;
-            m_dirty = true;
-        }
+        m_position = Vector3::Zero;
+        m_rotation = Quaternion::Identity;
+        m_scale = Vector3::One;
+        m_dirty = true;
     }
 
-    ImGui::Separator();
+    ImGui::SameLine();
 
-    //! Rotation (表示は度、内部はクォータニオン)
+    //! ギズモ操作モード切替（Inspector が閉じても m_gizmoOp を保持しておく）
+    if (ImGui::RadioButton("T", m_gizmoOp == 0)) m_gizmoOp = 0; ImGui::SameLine();
+    if (ImGui::RadioButton("R", m_gizmoOp == 1)) m_gizmoOp = 1; ImGui::SameLine();
+    if (ImGui::RadioButton("S", m_gizmoOp == 2)) m_gizmoOp = 2;
+}
+
+void TransformComponent::onGizmo()
+{
+    //! ImGuizmo フレーム開始（毎フレーム必須）
+    ImGuizmo::BeginFrame();
+
+    //! 現在の ImGui コンテキストを使用
+    ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
+
+    //! カメラ行列取得
+    Matrix view = CameraManager::Instance().getView();
+    Matrix proj = CameraManager::Instance().getProjection();
+
+    //! 描画設定
+    ImGuizmo::SetDrawlist(DX12::Instance().getSceneDrawList());
+    ImGuizmo::SetOrthographic(false);
+
+    //! シーン描画領域を設定（ImGuiのImage表示領域）
+    const ImVec2 scenePos = DX12::Instance().getSceneWindowPos();
+    const ImVec2 sceneSize = DX12::Instance().getSceneWindowSize();
+    if (sceneSize.x > 1.0f && sceneSize.y > 1.0f)
     {
-        //! Quaternion -> Euler (ラジアン) -> 度に変換して表示
-        Vector3 eulerRad = m_rotation.ToEuler(); // ラジアン想定
-        float rotDeg[3] = {
-            DirectX::XMConvertToDegrees(eulerRad.x),
-            DirectX::XMConvertToDegrees(eulerRad.y),
-            DirectX::XMConvertToDegrees(eulerRad.z)
-        };
-
-        if (ImGui::DragFloat3("Rotation (deg)", rotDeg, 1.0f))
-        {
-            //! UIでは (X=pitch, Y=yaw, Z=roll) として扱う
-            float pitch = DirectX::XMConvertToRadians(rotDeg[0]);
-            float yaw = DirectX::XMConvertToRadians(rotDeg[1]);
-            float roll = DirectX::XMConvertToRadians(rotDeg[2]);
-
-            //! CreateFromYawPitchRoll のシグネチャは (yaw, pitch, roll)
-            m_rotation = Quaternion::CreateFromYawPitchRoll(yaw, pitch, roll);
-            m_dirty = true;
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Reset Rot"))
-        {
-            m_rotation = Quaternion::Identity;
-            m_dirty = true;
-        }
+        ImGuizmo::SetRect(scenePos.x, scenePos.y, sceneSize.x, sceneSize.y);
+    }
+    else
+    {
+        //! フォールバック：メインビューポート全体
+        ImGuiViewport* vp = ImGui::GetMainViewport();
+        ImGuizmo::SetRect(vp->Pos.x, vp->Pos.y, vp->Size.x, vp->Size.y);
     }
 
-    ImGui::Separator();
+    //! 操作対象ローカル行列
+    Matrix localMat = getLocalMatrix();
 
-    //! Scale
+    //!Q 操作モード決定
+    ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
+    switch (m_gizmoOp)
     {
-        float scale[3] = { m_scale.x, m_scale.y, m_scale.z };
-        if (ImGui::DragFloat3("Scale", scale, 0.01f, 0.001f))
-        {
-            m_scale = Vector3(scale[0], scale[1], scale[2]);
-            m_dirty = true;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Reset Scale"))
-        {
-            m_scale = Vector3::One;
-            m_dirty = true;
-        }
+    case 1: operation = ImGuizmo::ROTATE; break;
+    case 2: operation = ImGuizmo::SCALE;  break;
+    default: break;
+    }
+
+    //! ギズモ操作実行
+    bool manipulated = ImGuizmo::Manipulate(
+        &view._11,
+        &proj._11,
+        operation,
+        ImGuizmo::LOCAL,
+        &localMat._11
+    );
+
+    //! 変更があった場合のみ Transform へ反映
+    if (manipulated)
+    {
+        float translation[3];
+        float rotationDeg[3];
+        float scale[3];
+
+        //! 行列を分解（回転は degree で返る）
+        ImGuizmo::DecomposeMatrixToComponents(
+            &localMat._11,
+            translation,
+            rotationDeg,
+            scale
+        );
+
+        //! 位置更新
+        m_position = Vector3(
+            translation[0],
+            translation[1],
+            translation[2]
+        );
+
+        //! 回転更新（degree → radian → Quaternion）
+        const float pitch = DirectX::XMConvertToRadians(rotationDeg[0]);
+        const float yaw = DirectX::XMConvertToRadians(rotationDeg[1]);
+        const float roll = DirectX::XMConvertToRadians(rotationDeg[2]);
+
+        m_rotation = Quaternion::CreateFromYawPitchRoll(yaw, pitch, roll);
+
+        //! スケール更新
+        m_scale = Vector3(scale[0], scale[1], scale[2]);
+
+        m_dirty = true;
     }
 }

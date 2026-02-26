@@ -315,10 +315,20 @@ void DX12::sceneImguiRender()
         ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
         ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
 
+    //! 現在のウィンドウの DrawList を保存（ImGuizmo の入力判定に使う）
+    m_sceneDrawList = ImGui::GetWindowDrawList();
+
     ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(m_sceneSrvIndex).ptr;
 
     //! ウィンドウサイズにフィットさせて表示
     ImGui::Image(texID, ImGui::GetContentRegionAvail());
+
+    //! Image のスクリーン座標を保存（ImGuizmo の SetRect に使う）
+    //! GetItemRectMin/Max はスクリーン座標 (ImGuiIO::DisplayPos を含む) を返します
+    ImVec2 itemMin = ImGui::GetItemRectMin();
+    ImVec2 itemMax = ImGui::GetItemRectMax();
+    m_sceneWindowPos = itemMin;
+    m_sceneWindowSize = ImVec2(itemMax.x - itemMin.x, itemMax.y - itemMin.y);
 
     ImGui::End();
 }

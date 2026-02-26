@@ -30,6 +30,12 @@ public:
     //! デバック機能
     void debugImgui();
 
+    //! ビュー行列取得
+    DirectX::SimpleMath::Matrix getView() const { return m_camera.getView(); }
+
+    //! プロジェクション行列取得
+    DirectX::SimpleMath::Matrix getProjection() const { return m_camera.getProjection(); }
+
     //! カメラ定数バッファのGPUアドレス取得
     D3D12_GPU_VIRTUAL_ADDRESS getGPUAddress() const { return m_cameraCB->getGPUAddress(); }
 

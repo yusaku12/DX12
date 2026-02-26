@@ -25,6 +25,9 @@
     <ClCompile Include="External\imgui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="External\imgui\ImGuizmo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="External\imgui\imgui_draw.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -100,6 +103,7 @@
     <ClInclude Include="External\imgui\imconfig.h" />
     <ClInclude Include="External\imgui\ImCurveEdit.h" />
     <ClInclude Include="External\imgui\imgui.h" />
+    <ClInclude Include="External\imgui\ImGuizmo.h" />
     <ClInclude Include="External\imgui\imgui_bezier_math.h" />
     <ClInclude Include="External\imgui\imgui_extra_math.h" />
     <ClInclude Include="External\imgui\imgui_impl_dx12.h" />

@@ -7,6 +7,7 @@
 // Transform コンポーネント
 // - 位置 / 回転(Quaternion) / スケール を管理
 // - ローカル行列 / ワールド行列を取得（親の Transform があれば考慮）
+// - Inspector GUI と Gizmo 更新を分離して、Inspector を閉じても Gizmo が動作するようにする
 //=====================================================
 class TransformComponent : public Component
 {
@@ -23,6 +24,9 @@ public:
 
     //! インスペクタ表示
     void onInspectorGUI() override;
+
+    //! Gizmo の更新（Inspector が閉じていても毎フレーム実行される）
+    void onGizmo();
 
     //! 位置
     Vector3& getPosition() { return m_position; }
@@ -58,13 +62,17 @@ public:
 
     //! 外部から dirty を立てる（親変更などで使用）
     void markDirty() { m_dirty = true; }
+
 private:
 
     Vector3 m_position = Vector3::Zero;
     Quaternion m_rotation = Quaternion::Identity;
     Vector3 m_scale = Vector3::One;
 
-    // キャッシュ
+    //! ギズモモード（0=Translate,1=Rotate,2=Scale）を保持しておく
+    int m_gizmoOp = 0;
+
+    //! キャッシュ
     mutable Matrix m_localMatrix = Matrix::Identity;
     mutable Matrix m_worldMatrix = Matrix::Identity;
     mutable bool m_dirty = true;

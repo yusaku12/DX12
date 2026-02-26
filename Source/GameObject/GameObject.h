@@ -29,7 +29,14 @@ public:
 
         auto comp = std::make_unique<T>(std::forward<Args>(args)...);
         comp->m_gameObject = this;
-        comp->setName(typeid(T).name());
+        std::string typeName = typeid(T).name();
+        const std::string classPrefix = "class ";
+        const std::string structPrefix = "struct ";
+        if (typeName.rfind(classPrefix, 0) == 0)
+            typeName = typeName.substr(classPrefix.size());
+        else if (typeName.rfind(structPrefix, 0) == 0)
+            typeName = typeName.substr(structPrefix.size());
+        comp->setName(typeName);
 
         T* ptr = comp.get();
         m_componentMap[typeid(T)] = ptr;

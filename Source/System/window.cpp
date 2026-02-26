@@ -122,14 +122,14 @@ void Window::imguiRender()
     //! SceneManagerのimgui描画
     SceneManager::Instance().debugOption();
 
-    //! EditorManagerのimgui描画
-    EditorManager::Instance().imgui();
-
     //! カメラマネージャーのimgui描画
     CameraManager::Instance().debugImgui();
 
     //! DX12のシーンimgui描画
     m_dx12.sceneImguiRender();
+
+    //! EditorManagerのimgui描画
+    EditorManager::Instance().imgui();
 
     //! imgui描画
     IMGUI_CTRL_RENDER();

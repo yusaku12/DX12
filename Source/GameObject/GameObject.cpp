@@ -96,6 +96,12 @@ void GameObject::drawInspector()
         ImGui::PopID();
         ImGui::Separator();
     }
+
+    //! TransformComponent のギズモ更新は Inspector の開閉に依存せず毎フレーム行う
+    if (auto tf = getComponent<TransformComponent>())
+    {
+        tf->onGizmo();
+    }
 }
 
 void GameObject::setParent(GameObject* parent)
@@ -121,7 +127,7 @@ void GameObject::setParent(GameObject* parent)
         m_parent->m_children.push_back(this);
     }
 
-    // 親が変わるとワールド行列に依存する子孫の Transform が変化するため再計算フラグを立てる
+    //! 親が変わるとワールド行列に依存する子孫の Transform が変化するため再計算フラグを立てる
     std::function<void(GameObject*)> markDirtyRec = [&](GameObject* node)
         {
             if (!node) return;
