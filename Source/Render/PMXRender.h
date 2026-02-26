@@ -6,6 +6,8 @@
 #include "Graphics\ConstantBuffer.h"
 #include "Graphics\PSOCreator.h"
 
+class TransformComponent; // 前方宣言
+
 //----------------------------------------------------------------------------
 // PMXRender
 //----------------------------------------------------------------------------
@@ -21,6 +23,9 @@ public:
 
     //! デバック描画
     void debugRender();
+
+    //! このレンダラに TransformComponent を紐付ける（nullptr で解除）
+    void setTransform(TransformComponent* tf) { m_transform = tf; }
 
 private:
 
@@ -95,4 +100,6 @@ private:
     std::vector<Subset> m_subsets;
     std::vector<std::wstring> m_texturePaths;
     std::wstring m_settingPath;
+
+    TransformComponent* m_transform = nullptr; // 紐付けられた Transform (または nullptr)
 };

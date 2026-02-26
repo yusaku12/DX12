@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "PMXRender.h"
+#include "Component\TransformComponent.h"
 
 PMXRender::PMXRender(const std::wstring& filePath)
 {
@@ -213,7 +214,7 @@ void PMXRender::saveSetting()
     if (!file) return;
 
     size_t subsetCount = m_subsets.size();
-    file.write(reinterpret_cast<char*>(&subsetCount), sizeof(size_t));
+    file.write(reinterpret_cast<const char*>(&subsetCount), sizeof(size_t));
 
     for (const auto& subset : m_subsets)
     {
@@ -265,6 +266,17 @@ void PMXRender::render()
 
     //! CBV(カメラ)
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
+
+    // モデル行列を更新（Transform が紐付いていればそれを使用）
+    Matrix world = Matrix::Identity;
+    if (m_transform)
+    {
+        world = m_transform->getWorldMatrix();
+    }
+    // シェーダー側の行列扱い（カメラ側と合わせるため転置して渡す）
+    Model modelData{};
+    modelData.world = world.Transpose();
+    m_modelCB->update(modelData);
 
     //! DescriptorTable(モデル行列)
     cmd->SetGraphicsRootDescriptorTable(1, m_modelCB->getGPUHandle());

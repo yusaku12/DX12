@@ -20,6 +20,13 @@ public:
     {
         static_assert(std::is_base_of_v<Component, T>);
 
+        //! 同一型のコンポーネントが既に存在する場合は既存を返す（現在の実装は型1つにつき1コンポーネント扱い）
+        auto it = m_componentMap.find(typeid(T));
+        if (it != m_componentMap.end())
+        {
+            return static_cast<T*>(it->second);
+        }
+
         auto comp = std::make_unique<T>(std::forward<Args>(args)...);
         comp->m_gameObject = this;
         comp->setName(typeid(T).name());
@@ -29,7 +36,7 @@ public:
         m_components.push_back(std::move(comp));
 
         ptr->awake();
-        if (m_started) ptr->Start();
+        if (m_started) ptr->start();
         return ptr;
     }
 

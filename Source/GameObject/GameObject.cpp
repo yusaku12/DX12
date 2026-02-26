@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "GameObject\GameObject.h"
+#include "Component\TransformComponent.h"
 
 GameObject::GameObject(const std::string& name)
 {
@@ -119,4 +120,18 @@ void GameObject::setParent(GameObject* parent)
     {
         m_parent->m_children.push_back(this);
     }
+
+    // 親が変わるとワールド行列に依存する子孫の Transform が変化するため再計算フラグを立てる
+    std::function<void(GameObject*)> markDirtyRec = [&](GameObject* node)
+        {
+            if (!node) return;
+            if (auto tf = node->getComponent<TransformComponent>())
+            {
+                tf->markDirty();
+            }
+            for (auto* child : node->m_children)
+                markDirtyRec(child);
+        };
+
+    markDirtyRec(this);
 }

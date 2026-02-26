@@ -123,7 +123,7 @@ void Window::imguiRender()
     SceneManager::Instance().debugOption();
 
     //! EditorManagerのimgui描画
-    //EditorManager::Instance().imgui();
+    EditorManager::Instance().imgui();
 
     //! カメラマネージャーのimgui描画
     CameraManager::Instance().debugImgui();
