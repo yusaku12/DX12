@@ -62,7 +62,7 @@ void TestPolygon::render()
     auto cmd = DX12::Instance().getGraphicsCommandList();
 
     //! DescriptorHeap
-    DescriptorHeapManager::Instance().setDiscriptorHeap();
+    DescriptorHeapManager::Instance().setDescriptorHeap();
 
     //! RootSignature
     cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::Standard));

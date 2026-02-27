@@ -3,60 +3,73 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
-//@todo 一時的にimgui専用のアロケータを作っているが後々ちゃんとしたのを制作予定
+// 一時的な ImGui 用アロケータ
 struct ExampleDescriptorHeapAllocator
 {
+    struct DescriptorAllocation
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle{};
+        D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle{};
+        UINT index = DescriptorIndexInvalid;
+
+        bool IsValid() const { return index != DescriptorIndexInvalid; }
+        static constexpr UINT DescriptorIndexInvalid = UINT_MAX;
+    };
+
     ID3D12DescriptorHeap* Heap = nullptr;
-    D3D12_DESCRIPTOR_HEAP_TYPE  HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
-    D3D12_CPU_DESCRIPTOR_HANDLE HeapStartCpu;
-    D3D12_GPU_DESCRIPTOR_HANDLE HeapStartGpu;
-    UINT                        HeapHandleIncrement;
-    ImVector<int>               FreeIndices;
+    D3D12_DESCRIPTOR_HEAP_TYPE HeapType = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
+    D3D12_CPU_DESCRIPTOR_HANDLE HeapStartCpu{};
+    D3D12_GPU_DESCRIPTOR_HANDLE HeapStartGpu{};
+    UINT HeapHandleIncrement = 0;
+    std::vector<UINT> FreeIndices;
 
     void Create(ID3D12Device* device, ID3D12DescriptorHeap* heap)
     {
-        IM_ASSERT(Heap == nullptr && FreeIndices.empty());
+        assert(Heap == nullptr && FreeIndices.empty());
         Heap = heap;
         D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
         HeapType = desc.Type;
         HeapStartCpu = Heap->GetCPUDescriptorHandleForHeapStart();
         HeapStartGpu = Heap->GetGPUDescriptorHandleForHeapStart();
         HeapHandleIncrement = device->GetDescriptorHandleIncrementSize(HeapType);
-        FreeIndices.reserve((int)desc.NumDescriptors);
-        for (int n = desc.NumDescriptors; n > 0; n--)
-            FreeIndices.push_back(n - 1);
+        FreeIndices.reserve(desc.NumDescriptors);
+        for (int n = (int)desc.NumDescriptors - 1; n >= 0; --n)
+            FreeIndices.push_back(static_cast<UINT>(n));
     }
+
     void Destroy()
     {
         Heap = nullptr;
         FreeIndices.clear();
     }
-    void Alloc(D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_desc_handle)
+
+    DescriptorAllocation Allocate()
     {
-        IM_ASSERT(FreeIndices.Size > 0);
-        int idx = FreeIndices.back();
+        assert(!FreeIndices.empty());
+        DescriptorAllocation out;
+        out.index = FreeIndices.back();
         FreeIndices.pop_back();
-        out_cpu_desc_handle->ptr = HeapStartCpu.ptr + (idx * HeapHandleIncrement);
-        out_gpu_desc_handle->ptr = HeapStartGpu.ptr + (idx * HeapHandleIncrement);
+        out.cpuHandle.ptr = HeapStartCpu.ptr + (static_cast<SIZE_T>(out.index) * HeapHandleIncrement);
+        out.gpuHandle.ptr = HeapStartGpu.ptr + (static_cast<SIZE_T>(out.index) * HeapHandleIncrement);
+        return out;
     }
-    void Free(D3D12_CPU_DESCRIPTOR_HANDLE out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE out_gpu_desc_handle)
+
+    void FreeByIndex(UINT index)
     {
-        int cpu_idx = (int)((out_cpu_desc_handle.ptr - HeapStartCpu.ptr) / HeapHandleIncrement);
-        int gpu_idx = (int)((out_gpu_desc_handle.ptr - HeapStartGpu.ptr) / HeapHandleIncrement);
-        IM_ASSERT(cpu_idx == gpu_idx);
-        FreeIndices.push_back(cpu_idx);
+        // 簡易検査（ここは追加の検査を入れると堅牢）
+        FreeIndices.push_back(index);
     }
 };
 
 //=====================================================
-// DX12管理シングルトン
+// DX12 管理クラス（アプリ内シングルトンとして使用）
 //=====================================================
 class DX12
 {
 public:
 
     DX12(HWND hwnd);
-    ~DX12() {};
+    ~DX12() = default;
 
     //! シングルトン取得
     static DX12& Instance() { return *m_instance; };
@@ -64,13 +77,13 @@ public:
     //! 初期化
     void initialize();
 
-    //! 画面をクリア
+    //! 画面をクリア（Scene 用レンダーターゲットへ）
     void screenClear();
 
     //! シーンのimgui描画
     void sceneImguiRender();
 
-    //! 画面クリアの後処理
+    //! 画面クリアの後処理（SRVに戻してPresentなど）
     void screenClearCleanup();
 
     //! 画面をリサイズ
@@ -86,7 +99,7 @@ public:
     ID3D12CommandQueue* getCommandQueue() const { return m_commandQueue.Get(); }
 
     //! レンダーターゲットのディスクリプタヒープ
-    ID3D12DescriptorHeap* getRTVDiscriptorHeap() const { return m_rtvHeaps.Get(); }
+    ID3D12DescriptorHeap* getRTVDescriptorHeap() const { return m_rtvHeaps.Get(); }
 
     //! コマンドリスト取得
     ID3D12GraphicsCommandList* getGraphicsCommandList() const { return m_graphicsCommandList.Get(); }
@@ -95,7 +108,7 @@ public:
     DXGI_FORMAT getBackBufferFormat() const { return m_backBufferFormat; }
 
     //! imgui一時的なアロケータ
-    ExampleDescriptorHeapAllocator getExampleDescriptorHeapAllocator() const { return m_exampleDescriptorHeapAllocator; }
+    ExampleDescriptorHeapAllocator& getExampleDescriptorHeapAllocator() { return m_exampleDescriptorHeapAllocator; }
 
     //! ハンドル取得
     HWND getHwnd() const { return m_hwnd; }
@@ -104,8 +117,8 @@ public:
     bool isSceneActive() const { return m_isSceneActive; }
 
     //! スクリーンサイズ取得
-    const int& getScreenWidth()const { return m_width; }
-    const int& getScreenHeight()const { return m_height; }
+    const int& getScreenWidth() const { return m_width; }
+    const int& getScreenHeight() const { return m_height; }
 
     //! Scene ウィンドウ内の描画矩形（スクリーン座標）
     ImVec2 getSceneWindowPos() const { return m_sceneWindowPos; }
@@ -130,7 +143,7 @@ private:
 
     static DX12* m_instance;
     const HWND m_hwnd;
-    int m_width = 1280, m_height = 720;     //!< 画面の立幅、横幅
+    int m_width = 1280, m_height = 720;     //!< 画面の縦幅、横幅
     static constexpr int BUFFER_COUNT = 3;  //!< バックバッファの数
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
@@ -144,7 +157,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Resource> m_depthStencil;
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
     D3D12_RESOURCE_BARRIER m_barrierDesc = {};
-    UINT64 m_fenceVall = 0;
+    UINT64 m_fenceValue = 0;
     DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_sceneRenderTarget;
     D3D12_CPU_DESCRIPTOR_HANDLE m_sceneRTVHandle{};

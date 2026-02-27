@@ -24,7 +24,7 @@ public:
     void initialize(UINT maxCount = 1024);
 
     //! ディスクリプタヒープ設定
-    void setDiscriptorHeap();
+    void setDescriptorHeap();
 
     //! SRV作成
     UINT createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
@@ -39,16 +39,19 @@ public:
     UINT createUAV(ID3D12Resource* resource, ID3D12Resource* counterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
 
     //! GPUハンドル取得
-    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index);
+    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index) const;
 
-    // ! CPU ハンドル取得
-    D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index);
+    //! CPU ハンドル取得
+    D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index) const;
 
     //! DescriptorHeap取得
-    ID3D12DescriptorHeap* getHeap() { return m_heap.Get(); }
+    ID3D12DescriptorHeap* getHeap() const { return m_heap.Get(); }
+
+    //! インクリメントサイズ取得
+    UINT getIncrementSize() const { return m_incrementSize; }
 
     //! 解放（使わなくなった Descriptor を返却）
-    void free(UINT index, UINT count);
+    void free(UINT index, UINT count = 1);
 
     //! 複数のインデックス割り当て
     UINT allocateRange(UINT count = 1);
@@ -57,8 +60,10 @@ private:
 
     DescriptorHeapManager() {}
 
+    static constexpr UINT InvalidIndex = UINT_MAX;
     std::vector<bool> m_used;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;
     UINT m_maxCount = 0;
     UINT m_incrementSize = 0;
+    mutable std::mutex m_mutex;
 };

@@ -105,8 +105,29 @@ namespace ImGuiCtrl
         init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
         init_info.SrvDescriptorHeap = DescriptorHeapManager::Instance().getHeap();
         init_info.UserData = &DX12::Instance();
-        init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) {auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData); return dx12Imgui->getExampleDescriptorHeapAllocator().Alloc(out_cpu_handle, out_gpu_handle); };
-        init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle) {auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData); return dx12Imgui->getExampleDescriptorHeapAllocator().Free(cpu_handle, gpu_handle); };
+
+        // ImGui_ImplDX12 が期待するシグネチャ:
+        init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_desc_handle) -> void
+            {
+                auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData);
+                auto allocation = dx12Imgui->getExampleDescriptorHeapAllocator().Allocate();
+                if (out_cpu_desc_handle) *out_cpu_desc_handle = allocation.cpuHandle;
+                if (out_gpu_desc_handle) *out_gpu_desc_handle = allocation.gpuHandle;
+            };
+
+        init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE /*gpu_desc_handle*/) -> void
+            {
+                auto dx12Imgui = reinterpret_cast<DX12*>(info->UserData);
+                auto& alloc = dx12Imgui->getExampleDescriptorHeapAllocator();
+                // CPUハンドルからインデックスを復元して解放
+                UINT index = 0;
+                if (alloc.HeapHandleIncrement != 0)
+                {
+                    index = static_cast<UINT>((cpu_desc_handle.ptr - alloc.HeapStartCpu.ptr) / alloc.HeapHandleIncrement);
+                }
+                alloc.FreeByIndex(index);
+            };
+
         ImGui_ImplDX12_Init(&init_info);
     }
 
@@ -129,7 +150,7 @@ namespace ImGuiCtrl
     void render()
     {
         //! DescriptorHeap
-        DescriptorHeapManager::Instance().setDiscriptorHeap();
+        DescriptorHeapManager::Instance().setDescriptorHeap();
 
         ImGui::Render();
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), DX12::Instance().getGraphicsCommandList());

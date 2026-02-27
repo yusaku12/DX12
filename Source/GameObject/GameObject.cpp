@@ -35,7 +35,11 @@ GameObject::~GameObject()
 void GameObject::start()
 {
     for (auto& c : m_components)
-        c->start();
+    {
+        //! GameObject とコンポーネントの双方が有効な場合のみ start を呼ぶ
+        if (c && c->isEnabled() && isEnabled())
+            c->start();
+    }
     m_started = true;
 }
 
@@ -55,23 +59,38 @@ void GameObject::destroy()
 
 void GameObject::update()
 {
+    //! GameObject 自体が無効なら何もしない（所属コンポーネントの実行を停止する）
+    if (!isEnabled()) return;
+
     for (auto& c : m_components)
     {
-        c->update();
+        c->onUpdate();
     }
 }
 
 void GameObject::lateUpdate()
 {
+    if (!isEnabled()) return;
+
     for (auto& c : m_components)
     {
-        c->lateUpdate();
+        c->onLateUpdate();
     }
 }
 
 void GameObject::drawInspector()
 {
     ImGui::InputText("Name", m_name.data(), m_name.capacity() + 1);
+
+    ImGui::SameLine();
+
+    //! GameObject の有効/無効
+    bool enabled = isEnabled();
+    if (ImGui::Checkbox("Enabled", &enabled))
+    {
+        setEnabled(enabled);
+    }
+
     ImGui::Separator();
 
     //! 親表示（読み取り専用）
@@ -140,4 +159,24 @@ void GameObject::setParent(GameObject* parent)
         };
 
     markDirtyRec(this);
+}
+
+void GameObject::setEnabled(bool value)
+{
+    if (m_enabled == value) return;
+    m_enabled = value;
+
+    //! GameObject の有効/無効が変わったとき、所属コンポーネントのうち
+    //! コンポーネント自身が有効なものに対して onEnable/onDisable を発行する。
+    for (auto& c : m_components)
+    {
+        if (!c) continue;
+        if (c->isEnabled())
+        {
+            if (m_enabled)
+                c->onEnable();
+            else
+                c->onDisable();
+        }
+    }
 }

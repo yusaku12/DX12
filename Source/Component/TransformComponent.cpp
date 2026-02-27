@@ -43,7 +43,7 @@ Matrix TransformComponent::getWorldMatrix() const
     return m_worldMatrix;
 }
 
-void TransformComponent::onInspectorGUI()
+void TransformComponent::inspectGUI()
 {
     //! Reset ボタンのみ（Inspector 内の UI）
     if (ImGui::Button("Reset"))

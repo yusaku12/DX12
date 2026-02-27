@@ -23,7 +23,7 @@ public:
     void start() override {}
 
     //! インスペクタ表示
-    void onInspectorGUI() override;
+    void inspectGUI() override;
 
     //! Gizmo の更新（Inspector が閉じていても毎フレーム実行される）
     void onGizmo();

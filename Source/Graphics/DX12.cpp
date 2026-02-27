@@ -3,13 +3,13 @@
 DX12* DX12::m_instance = nullptr;
 
 DX12::DX12(HWND hwnd)
-    :m_hwnd(hwnd)
+    : m_hwnd(hwnd)
 {
     //! インスタンス設定
     _ASSERT_EXPR(m_instance == nullptr, "already instantiated");
     m_instance = this;
 
-    // 画面のサイズを取得する。
+    //! 画面のサイズを取得する。
     RECT rc;
     GetClientRect(hwnd, &rc);
     UINT screenWidth = rc.right - rc.left;
@@ -37,8 +37,8 @@ DX12::DX12(HWND hwnd)
     HRESULT hr = CreateDXGIFactory2(0, IID_PPV_ARGS(m_dxgiFactory.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateDXGIFactory2");
 
-    //! NVIDIAのアダプタを探す
-    Microsoft::WRL::ComPtr<IDXGIAdapter>selectedAdapter;
+    //! NVIDIAのアダプタを探す（なければデフォルトアダプタ）
+    Microsoft::WRL::ComPtr<IDXGIAdapter> selectedAdapter;
     for (UINT i = 0; ; ++i)
     {
         Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
@@ -56,8 +56,8 @@ DX12::DX12(HWND hwnd)
         }
     }
 
-    //! Direct3Dデバイスの初期化
-    D3D_FEATURE_LEVEL featureLevel;
+    //! Direct3Dデバイスの初期化（順にトライ）
+    D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
     for (auto level : levels)
     {
         hr = D3D12CreateDevice(selectedAdapter.Get(), level, IID_PPV_ARGS(m_device.GetAddressOf()));
@@ -67,6 +67,7 @@ DX12::DX12(HWND hwnd)
             break;
         }
     }
+    LOG_HR(hr, "Failed to create D3D12 device for any feature level");
 
     //! コマンドアロケーターを作成
     hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf()));
@@ -78,10 +79,10 @@ DX12::DX12(HWND hwnd)
 
     //! コマンドキュー作成
     D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
-    cmdQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;         //!< タイムアウトなし
-    cmdQueueDesc.NodeMask = 0;                                  //!< アダプターを1つしか使わないときは0でいい
-    cmdQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;//!< プライオリティ特に指定なし
-    cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;         //!< ここはコマンドリストと合わせる
+    cmdQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    cmdQueueDesc.NodeMask = 0;
+    cmdQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+    cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     hr = m_device->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(m_commandQueue.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateCommandQueue");
 
@@ -89,7 +90,7 @@ DX12::DX12(HWND hwnd)
     DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
     swapchainDesc.Width = screenWidth;
     swapchainDesc.Height = screenHeight;
-    swapchainDesc.Format = m_backBufferFormat;  //!< HDR の場合は DXGI_FORMAT_R16G16B16A16_FLOAT
+    swapchainDesc.Format = m_backBufferFormat;
     swapchainDesc.Stereo = false;
     swapchainDesc.SampleDesc.Count = 1;
     swapchainDesc.SampleDesc.Quality = 0;
@@ -110,23 +111,26 @@ DX12::DX12(HWND hwnd)
 
 void DX12::initialize()
 {
+    if (!m_device) return;
+
     //! RTVのディスクリプタヒープを作成
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;  //! レンダーターゲットビューなのでRTV
+    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     heapDesc.NodeMask = 0;
-    heapDesc.NumDescriptors = BUFFER_COUNT + 1;      //! BufferCountの数に合わせる
-    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;//! シェーダーからデータを読み取るわけでは無いのでNONE
+    heapDesc.NumDescriptors = BUFFER_COUNT + 1;
+    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     HRESULT hr = m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_rtvHeaps.GetAddressOf()));
-    LOG_HR(hr, "Failed to CreateDescriptorHeap");
+    LOG_HR(hr, "Failed to CreateDescriptorHeap(RTV)");
 
     //! imgui用一時的なアロケータを作成
     {
-        m_exampleDescriptorHeapAllocator.Create(m_device.Get(), DescriptorHeapManager::Instance().getHeap());  // @todo imgui用一時的なアロケータ
+        m_exampleDescriptorHeapAllocator.Create(m_device.Get(), DescriptorHeapManager::Instance().getHeap());
     }
 
     //! スワップチェインに紐づけて RTV を作成
     DXGI_SWAP_CHAIN_DESC swcDesc = {};
     hr = m_dxgiSwapChain4->GetDesc(&swcDesc);
+    LOG_HR(hr, "GetDesc on swapchain failed");
 
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
     D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -135,6 +139,7 @@ void DX12::initialize()
     for (UINT i = 0; i < swcDesc.BufferCount; ++i)
     {
         hr = m_dxgiSwapChain4->GetBuffer(i, IID_PPV_ARGS(m_backBuffers[i].GetAddressOf()));
+        LOG_HR(hr, "GetBuffer failed for backbuffer");
         m_device->CreateRenderTargetView(m_backBuffers[i].Get(), &rtvDesc, handle);
         handle.ptr += m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     }
@@ -161,7 +166,7 @@ void DX12::initialize()
 
         CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
 
-        m_device->CreateCommittedResource(
+        hr = m_device->CreateCommittedResource(
             &heapProps,
             D3D12_HEAP_FLAG_NONE,
             &desc,
@@ -169,6 +174,7 @@ void DX12::initialize()
             &clearValue,
             IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf())
         );
+        LOG_HR(hr, "Failed to create scene render target");
 
         //! RTVヒープの最後を Scene 用に使う
         m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
@@ -248,14 +254,14 @@ void DX12::initialize()
     }
 
     //! フェンスを作成(GPU側の処理が完了したか知るための仕組み)
-    hr = m_device->CreateFence(m_fenceVall, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf()));
+    hr = m_device->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateFence");
 }
 
 void DX12::screenClear()
 {
     //! DescriptorHeap
-    DescriptorHeapManager::Instance().setDiscriptorHeap();
+    DescriptorHeapManager::Instance().setDescriptorHeap();
 
     //! Scene用バリア
     auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -297,7 +303,7 @@ void DX12::screenClear()
     viewport.MinDepth = 0.0f;
     m_graphicsCommandList->RSSetViewports(1, &viewport);
 
-    //! シーザーラクト設定
+    //! シザー矩形設定
     D3D12_RECT scissorrect = {};
     scissorrect.top = 0;
     scissorrect.left = 0;
@@ -324,7 +330,6 @@ void DX12::sceneImguiRender()
     ImGui::Image(texID, ImGui::GetContentRegionAvail());
 
     //! Image のスクリーン座標を保存（ImGuizmo の SetRect に使う）
-    //! GetItemRectMin/Max はスクリーン座標 (ImGuiIO::DisplayPos を含む) を返します
     ImVec2 itemMin = ImGui::GetItemRectMin();
     ImVec2 itemMax = ImGui::GetItemRectMax();
     m_sceneWindowPos = itemMin;
@@ -535,7 +540,7 @@ void DX12::enableDebugLayer()
 void DX12::safeGPUWait()
 {
     //! Signal により fence に値を設定
-    const UINT64 fenceValueToWait = ++m_fenceVall;
+    const UINT64 fenceValueToWait = ++m_fenceValue;
     m_commandQueue->Signal(m_fence.Get(), fenceValueToWait);
 
     //! 完了値が待ち値より小さい場合のみ待つ

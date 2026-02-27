@@ -108,7 +108,7 @@ void DebugPrimitive::render()
     if (m_lines.empty()) return;
 
     //! DescriptorHeap をセット（既存のコードに合わせる）
-    DescriptorHeapManager::Instance().setDiscriptorHeap();
+    DescriptorHeapManager::Instance().setDescriptorHeap();
 
     auto cmd = DX12::Instance().getGraphicsCommandList();
 

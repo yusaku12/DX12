@@ -13,27 +13,31 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     desc.NumDescriptors = maxCount;
     desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-    device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_heap));
+    HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_heap));
+    LOG_HR(hr, "DescriptorHeap CreateDescriptorHeap failed");
     m_incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // 既存コードの互換性を保つため、インデックス0を予約している既存実装の挙動を尊重
+    if (maxCount > 0)
+        m_used[0] = true;
 }
 
-void DescriptorHeapManager::setDiscriptorHeap()
+void DescriptorHeapManager::setDescriptorHeap()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
+    if (!cmd) return;
 
-    //! ディスクリプタヒープを渡す
-    ID3D12DescriptorHeap* heaps[] =
-    {
-        m_heap.Get()
-    };
+    ID3D12DescriptorHeap* heaps[] = { m_heap.Get() };
     cmd->SetDescriptorHeaps(_countof(heaps), heaps);
 }
 
 UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 {
     const auto device = DX12::Instance().getDevice();
+    if (!device || !resource) return InvalidIndex;
+
     UINT index = allocateRange();
-    if (index == UINT_MAX) return UINT_MAX;
+    if (index == InvalidIndex) return InvalidIndex;
     device->CreateShaderResourceView(resource, &desc, getCPUHandle(index));
     return index;
 }
@@ -41,13 +45,12 @@ UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHAD
 UINT DescriptorHeapManager::createSRVArray(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc, UINT arrayCount)
 {
     const auto device = DX12::Instance().getDevice();
+    if (!device || !resource || arrayCount == 0) return InvalidIndex;
 
     UINT index = allocateRange(arrayCount);
-    if (index == UINT_MAX) return UINT_MAX;
+    if (index == InvalidIndex) return InvalidIndex;
 
     auto cpuHandle = getCPUHandle(index);
-    D3D12_SHADER_RESOURCE_VIEW_DESC arrayDesc = desc;
-
     for (UINT i = 0; i < arrayCount; i++)
     {
         device->CreateShaderResourceView(resource, &desc, cpuHandle);
@@ -60,8 +63,10 @@ UINT DescriptorHeapManager::createSRVArray(ID3D12Resource* resource, const D3D12
 UINT DescriptorHeapManager::createCBV(const D3D12_CONSTANT_BUFFER_VIEW_DESC& desc)
 {
     const auto device = DX12::Instance().getDevice();
+    if (!device) return InvalidIndex;
+
     UINT index = allocateRange();
-    if (index == UINT_MAX) return UINT_MAX;
+    if (index == InvalidIndex) return InvalidIndex;
     device->CreateConstantBufferView(&desc, getCPUHandle(index));
     return index;
 }
@@ -69,31 +74,44 @@ UINT DescriptorHeapManager::createCBV(const D3D12_CONSTANT_BUFFER_VIEW_DESC& des
 UINT DescriptorHeapManager::createUAV(ID3D12Resource* resource, ID3D12Resource* counterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc)
 {
     const auto device = DX12::Instance().getDevice();
+    if (!device || !resource) return InvalidIndex;
+
     UINT index = allocateRange();
-    if (index == UINT_MAX) return UINT_MAX;
+    if (index == InvalidIndex) return InvalidIndex;
     device->CreateUnorderedAccessView(resource, counterResource, &desc, getCPUHandle(index));
     return index;
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getGPUHandle(UINT index)
+D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getGPUHandle(UINT index) const
 {
-    D3D12_GPU_DESCRIPTOR_HANDLE h = m_heap->GetGPUDescriptorHandleForHeapStart();
-    h.ptr += index * m_incrementSize;
+    D3D12_GPU_DESCRIPTOR_HANDLE h = {};
+    if (index == InvalidIndex || index >= m_maxCount || !m_heap)
+        return h;
+
+    h = m_heap->GetGPUDescriptorHandleForHeapStart();
+    h.ptr += static_cast<SIZE_T>(index) * m_incrementSize;
     return h;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getCPUHandle(UINT index)
+D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getCPUHandle(UINT index) const
 {
-    D3D12_CPU_DESCRIPTOR_HANDLE h = m_heap->GetCPUDescriptorHandleForHeapStart();
-    h.ptr += index * m_incrementSize;
+    D3D12_CPU_DESCRIPTOR_HANDLE h = {};
+    if (index == InvalidIndex || index >= m_maxCount || !m_heap)
+        return h;
+
+    h = m_heap->GetCPUDescriptorHandleForHeapStart();
+    h.ptr += static_cast<SIZE_T>(index) * m_incrementSize;
     return h;
 }
 
 void DescriptorHeapManager::free(UINT index, UINT count)
 {
-    if (index == UINT_MAX) return;
+    if (index == InvalidIndex || count == 0) return;
 
-    for (UINT i = 0; i < count && index + i < m_maxCount; i++)
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (index >= m_maxCount) return;
+    for (UINT i = 0; i < count && (index + i) < m_maxCount; ++i)
     {
         m_used[index + i] = false;
     }
@@ -101,12 +119,13 @@ void DescriptorHeapManager::free(UINT index, UINT count)
 
 UINT DescriptorHeapManager::allocateRange(UINT count)
 {
-    if (count == 0) return UINT_MAX;
+    if (count == 0) return InvalidIndex;
+    std::lock_guard<std::mutex> lock(m_mutex);
 
+    //! 既存実装はインデックス1から探索している挙動に合わせる
     for (UINT start = 1; start + count <= m_maxCount; ++start)
     {
         bool freeBlock = true;
-
         for (UINT offset = 0; offset < count; ++offset)
         {
             if (m_used[start + offset])
@@ -122,7 +141,6 @@ UINT DescriptorHeapManager::allocateRange(UINT count)
             {
                 m_used[start + offset] = true;
             }
-
             return start;
         }
     }

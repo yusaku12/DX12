@@ -43,7 +43,9 @@ public:
         m_components.push_back(std::move(comp));
 
         ptr->awake();
-        if (m_started) ptr->start();
+
+        //! すでに start 済みかつ GameObject とコンポーネント双方が有効な場合のみ start を呼ぶ
+        if (m_started && isEnabled() && ptr->isEnabled()) ptr->start();
         return ptr;
     }
 
@@ -75,19 +77,28 @@ public:
     //! 親子関係の設定
     void setParent(GameObject* parent);
 
+    //! GameObject の有効・無効設定
+    //! 有効/無効が切り替わると、所属コンポーネントのうちコンポーネント自身が有効なものに対して
+    //! onEnable/onDisable が発行される（Component::m_enabled が true のものだけ）。
+    void setEnabled(bool value);
+
+    //! 削除予約されているか
+    bool isDestroyed() const { return m_destroyed; }
+
+    //! GameObject 自体の有効・無効（GameObject が無効の場合、所属コンポーネントは実行されない）
+    bool isEnabled() const { return m_enabled; }
+
     //! 親オブジェクトの取得
     GameObject* getParent() const { return m_parent; }
 
     //! 子オブジェクト一覧の取得
     const std::vector<GameObject*>& getChildren() const { return m_children; }
 
-    //! 削除予約されているか
-    bool isDestroyed() const { return m_destroyed; }
-
 private:
 
     bool m_started = false;
     bool m_destroyed = false;   //!< 削除予約フラグ
+    bool m_enabled = true;      //!< GameObject の有効フラグ（デフォルト有効）
     std::vector<std::unique_ptr<Component>> m_components; //!< 実体保持
     std::unordered_map<std::type_index, Component*> m_componentMap; //!< 高速検索用
     GameObject* m_parent = nullptr;
