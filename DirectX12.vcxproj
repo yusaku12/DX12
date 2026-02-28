@@ -85,6 +85,7 @@
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
+    <ClCompile Include="Source\Model\VmdLoad.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
@@ -161,6 +162,7 @@
     <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\Math\SimpleMath.h" />
     <ClInclude Include="Source\Model\PmxLoad.h" />
+    <ClInclude Include="Source\Model\VmdLoad.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Render\PMXRender.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
