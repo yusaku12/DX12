@@ -25,7 +25,7 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     hr = device->CreateDescriptorHeap(&cpuDesc, IID_PPV_ARGS(&m_cpuHeap));
     LOG_HR(hr, "DescriptorHeap CreateDescriptorHeap (CPU-only) failed");
 
-    // 既存コードの互換性を保つため、インデックス0を予約している既存実装の挙動を尊重
+    //! 既存コードの互換性を保つため、インデックス0を予約している既存実装の挙動を尊重
     if (maxCount > 0)
         m_used[0] = true;
 }
@@ -47,11 +47,11 @@ UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHAD
     UINT index = allocateRange();
     if (index == InvalidIndex) return InvalidIndex;
 
-    // まず CPU-only ヒープに書く（読み取り可能なソースを作る）
+    //! まず CPU-only ヒープに書く（読み取り可能なソースを作る）
     D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = getCPUHandleCpuHeap(index);
     device->CreateShaderResourceView(resource, &desc, cpuHandle);
 
-    // CPU-only から shader-visible ヒープへコピー
+    //! CPU-only から shader-visible ヒープへコピー
     D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(index); // shader-visible の CPU ハンドル
     device->CopyDescriptorsSimple(
         1,
@@ -59,33 +59,6 @@ UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHAD
         cpuHandle,
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
     );
-
-    return index;
-}
-
-UINT DescriptorHeapManager::createSRVArray(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc, UINT arrayCount)
-{
-    const auto device = DX12::Instance().getDevice();
-    if (!device || !resource || arrayCount == 0) return InvalidIndex;
-
-    UINT index = allocateRange(arrayCount);
-    if (index == InvalidIndex) return InvalidIndex;
-
-    for (UINT i = 0; i < arrayCount; i++)
-    {
-        // CPU-only ヒープへ作成
-        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = getCPUHandleCpuHeap(index + i);
-        device->CreateShaderResourceView(resource, &desc, cpuHandle);
-
-        // コピーして shader-visible ヒープに配置
-        D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(index + i);
-        device->CopyDescriptorsSimple(
-            1,
-            dstHandle,
-            cpuHandle,
-            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-        );
-    }
 
     return index;
 }
@@ -196,14 +169,12 @@ bool DescriptorHeapManager::copyDescriptorsRange(UINT dstIndex, const std::vecto
     const auto device = DX12::Instance().getDevice();
     if (!device) return false;
 
-    // dstIndex + i must be within heap range
     for (size_t i = 0; i < srcIndices.size(); ++i)
     {
         UINT src = srcIndices[i];
         UINT dst = dstIndex + static_cast<UINT>(i);
         if (src == InvalidIndex || dst >= m_maxCount) return false;
 
-        // Copy from CPU-only heap (読み取り可能なソース)
         D3D12_CPU_DESCRIPTOR_HANDLE srcHandle = getCPUHandleCpuHeap(src);
         D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(dst);
 

@@ -29,9 +29,6 @@ public:
     //! SRV作成
     UINT createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
 
-    //! SRV複数作成（連続した領域に同一リソースで SRV を作成する）
-    UINT createSRVArray(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc, UINT arrayCount);
-
     //! CBV作成
     UINT createCBV(const D3D12_CONSTANT_BUFFER_VIEW_DESC& desc);
 
@@ -49,9 +46,6 @@ public:
 
     //! DescriptorHeap取得
     ID3D12DescriptorHeap* getHeap() const { return m_heap.Get(); }
-
-    //! インクリメントサイズ取得
-    UINT getIncrementSize() const { return m_incrementSize; }
 
     //! 解放（使わなくなった Descriptor を返却）
     void free(UINT index, UINT count = 1);
