@@ -61,6 +61,22 @@ void PSOCreator::setPSO()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
 
+    //! シェーダのホットリロード感知
+    bool vsDirty = ShaderManager::Instance().isDirty(m_psoData.vsShaderId);
+    bool psDirty = ShaderManager::Instance().isDirty(m_psoData.psShaderId);
+    if (vsDirty || psDirty)
+    {
+        m_pPipelineState.Reset();
+
+        createPSO();
+
+        if (vsDirty)
+            ShaderManager::Instance().clearDirty(m_psoData.vsShaderId);
+
+        if (psDirty)
+            ShaderManager::Instance().clearDirty(m_psoData.psShaderId);
+    }
+
     cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(m_psoData.rootSignatureType));
     cmd->SetPipelineState(m_pPipelineState.Get());
 }

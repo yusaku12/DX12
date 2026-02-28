@@ -62,6 +62,9 @@ void Window::update()
     //! TimeManager更新
     TimeManager::Instance().update();
 
+    //! shaderManager更新
+    ShaderManager::Instance().update();
+
     //! InputManager更新
     InputManager::Instance().update();
 

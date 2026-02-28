@@ -19,8 +19,15 @@ public:
     //! 初期化
     void initialize();
 
+    //! 更新
+    void update();
+
     //! シェーダ取得
-    ID3DBlob* getShaderBlob(ShaderID id) const { return m_shaderBlobs[static_cast<int>(id)].Get(); };
+    ID3DBlob* getShaderBlob(ShaderID id) const { return m_shaders[static_cast<size_t>(id)].blob.Get(); };
+
+    //! ホットリロード感知フラグ,PSOCreatorで使用
+    bool isDirty(ShaderID id) { return m_shaders[(size_t)id].dirty; }
+    void clearDirty(ShaderID id) { m_shaders[(size_t)id].dirty = false; }
 
 private:
 
@@ -32,5 +39,17 @@ private:
     //! シェーダ読み込み
     void loadShader(ShaderID id);
 
-    std::array<Microsoft::WRL::ComPtr<ID3DBlob>, static_cast<int>(ShaderID::MAX)> m_shaderBlobs;
+    //! シェーダホットリロード
+    void reloadShader(ShaderID id);
+
+    //! シェーダーのランタイムデータ
+    struct ShaderRuntimeData
+    {
+        ShaderDesc desc;
+        Microsoft::WRL::ComPtr<ID3DBlob> blob;
+        bool dirty = false;
+        std::filesystem::file_time_type lastWriteTime;
+    };
+
+    std::array<ShaderRuntimeData, static_cast<size_t>(ShaderID::MAX)> m_shaders;
 };
