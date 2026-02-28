@@ -95,22 +95,26 @@ void PMXRender::createMaterialCBV()
 
 void PMXRender::createSubsets()
 {
-    // マテリアルごとの描画単位を作成
     UINT start = 0;
+
     for (size_t i = 0; i < m_pmxFileData.materials.size(); ++i)
     {
         Subset s{};
         s.startIndex = start;
         s.indexCount = m_pmxFileData.materials[i].numFaceVertices;
         s.materialIndex = (UINT)i;
+
+        s.textureIndices.fill(-1);
+
         int texIndex = m_pmxFileData.materials[i].textureIndex;
         if (texIndex >= 0)
-        {
-            s.textureIndices.push_back(texIndex);
-        }
-        s.visible = true;
+            s.textureIndices[0] = texIndex;
 
         start += s.indexCount;
+
+        s.descriptorBase = DescriptorHeapManager::Instance().allocateRange(static_cast<int>(TextureType::Max));
+
+        rebuildSubsetDescriptors(s);
 
         m_subsets.push_back(s);
     }
@@ -152,96 +156,135 @@ void PMXRender::createPSO()
 void PMXRender::loadSetting()
 {
     std::ifstream file(m_settingPath, std::ios::binary);
-    if (!file) return;
+    if (!file)
+        return;
 
     size_t subsetCount = 0;
     file.read(reinterpret_cast<char*>(&subsetCount), sizeof(size_t));
 
-    if (subsetCount != m_subsets.size())
+    if (!file || subsetCount != m_subsets.size())
         return;
 
     for (size_t i = 0; i < subsetCount; ++i)
     {
         auto& subset = m_subsets[i];
 
-        //! visible読込
-        file.read(reinterpret_cast<char*>(&subset.visible), sizeof(bool));
+        uint8_t visible = 1;
+        file.read(reinterpret_cast<char*>(&visible), sizeof(uint8_t));
+        subset.visible = (visible != 0);
 
-        //! テクスチャ数読込
-        size_t texCount = 0;
-        file.read(reinterpret_cast<char*>(&texCount), sizeof(size_t));
-
-        subset.textureIndices.clear();
-
-        for (size_t t = 0; t < texCount; ++t)
+        //! texture slots (固定数)
+        for (UINT t = 0; t < static_cast<int>(TextureType::Max); ++t)
         {
             size_t len = 0;
             file.read(reinterpret_cast<char*>(&len), sizeof(size_t));
 
+            if (!file)
+                return;
+
+            if (len == 0)
+            {
+                subset.textureIndices[t] = -1;
+                continue;
+            }
+
             std::wstring path;
             path.resize(len);
 
-            if (len > 0)
-            {
-                file.read(reinterpret_cast<char*>(path.data()), len * sizeof(wchar_t));
+            file.read(reinterpret_cast<char*>(path.data()), len * sizeof(wchar_t));
 
+            if (!file)
+                return;
+
+            //! 既存テクスチャ検索
+            int foundIndex = -1;
+
+            for (size_t k = 0; k < m_texturePaths.size(); ++k)
+            {
+                if (m_texturePaths[k] == path)
+                {
+                    foundIndex = (int)k;
+                    break;
+                }
+            }
+
+            //! 無ければロード
+            if (foundIndex == -1)
+            {
                 auto tex = TextureManager::Instance().load(path);
 
                 if (tex)
                 {
-                    int newIndex = (int)m_textures.size();
+                    foundIndex = (int)m_textures.size();
                     m_textures.push_back(tex);
                     m_texturePaths.push_back(path);
+                }
+            }
 
-                    subset.textureIndices.push_back(newIndex);
-                }
-                else
-                {
-                    subset.textureIndices.push_back(-1);
-                }
-            }
-            else
-            {
-                subset.textureIndices.push_back(-1);
-            }
+            subset.textureIndices[t] = foundIndex;
         }
+
+        //! Descriptor再構築
+        rebuildSubsetDescriptors(subset);
     }
 }
 
 void PMXRender::saveSetting()
 {
-    std::ofstream file(m_settingPath, std::ios::binary);
-    if (!file) return;
+    std::ofstream file(m_settingPath, std::ios::binary | std::ios::trunc);
+
+    if (!file)
+        return;
 
     size_t subsetCount = m_subsets.size();
     file.write(reinterpret_cast<const char*>(&subsetCount), sizeof(size_t));
 
     for (const auto& subset : m_subsets)
     {
-        //! visible保存
-        file.write(reinterpret_cast<const char*>(&subset.visible), sizeof(bool));
+        uint8_t visible = subset.visible ? 1 : 0;
+        file.write(reinterpret_cast<const char*>(&visible), sizeof(uint8_t));
 
-        //! テクスチャ数保存
-        size_t texCount = subset.textureIndices.size();
-        file.write(reinterpret_cast<const char*>(&texCount), sizeof(size_t));
-
-        for (size_t t = 0; t < texCount; ++t)
+        //! texture slots (固定数)
+        for (UINT t = 0; t < static_cast<int>(TextureType::Max); ++t)
         {
             int texIndex = subset.textureIndices[t];
 
             std::wstring path;
-            if (texIndex >= 0 && texIndex < m_texturePaths.size())
+
+            if (texIndex >= 0 && texIndex < (int)m_texturePaths.size())
+            {
                 path = m_texturePaths[texIndex];
+            }
 
             size_t len = path.size();
             file.write(reinterpret_cast<const char*>(&len), sizeof(size_t));
 
             if (len > 0)
             {
-                file.write(reinterpret_cast<const char*>(path.c_str()), len * sizeof(wchar_t));
+                file.write(reinterpret_cast<const char*>(path.data()), len * sizeof(wchar_t));
             }
         }
     }
+}
+
+void PMXRender::rebuildSubsetDescriptors(Subset& subset)
+{
+    if (subset.descriptorBase == UINT_MAX)
+        return;
+
+    std::vector<UINT> srvIndices;
+
+    for (UINT i = 0; i < static_cast<int>(TextureType::Max); ++i)
+    {
+        int texIdx = subset.textureIndices[i];
+
+        if (texIdx >= 0 && texIdx < (int)m_textures.size())
+            srvIndices.push_back(m_textures[texIdx]->getSRVIndex());
+        else
+            srvIndices.push_back(TextureManager::Instance().getWhiteTextureSRVIndex());
+    }
+
+    DescriptorHeapManager::Instance().copyDescriptorsRange(subset.descriptorBase, srvIndices);
 }
 
 void PMXRender::render()
@@ -267,13 +310,13 @@ void PMXRender::render()
     //! CBV(カメラ)
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
 
-    // モデル行列を更新（Transform が紐付いていればそれを使用）
+    //! モデル行列を更新（Transform が紐付いていればそれを使用）
     Matrix world = Matrix::Identity;
     if (m_transform)
     {
         world = m_transform->getWorldMatrix();
     }
-    // シェーダー側の行列扱い（カメラ側と合わせるため転置して渡す）
+    //! シェーダー側の行列扱い（カメラ側と合わせるため転置して渡す）
     Model modelData{};
     modelData.world = world.Transpose();
     m_modelCB->update(modelData);
@@ -284,14 +327,8 @@ void PMXRender::render()
     for (const auto& subset : m_subsets)
     {
         //! DescriptorTable(テクスチャ)
-        for (int i = 0; i < subset.textureIndices.size(); ++i)
-        {
-            int texIndex = subset.textureIndices[i];
-            if (texIndex >= 0 && texIndex < m_textures.size())
-            {
-                cmd->SetGraphicsRootDescriptorTable(3, m_textures[texIndex]->getGPUHandle());
-            }
-        }
+        //! ルートパラメータ 3 は MaxTexturesPerMaterial 個分の SRV をまとめたテーブルを期待
+        cmd->SetGraphicsRootDescriptorTable(3, DescriptorHeapManager::Instance().getGPUHandle(subset.descriptorBase));
 
         //! DescriptorTable(マテリアル)
         cmd->SetGraphicsRootDescriptorTable(2, m_materialCB->getGPUHandle(subset.materialIndex));
@@ -306,69 +343,89 @@ void PMXRender::render()
 
 void PMXRender::debugRender()
 {
-    if (ImGui::Begin("PMX Editor"))
+    if (!ImGui::Begin("PMX Material Editor"))
     {
-        for (size_t i = 0; i < m_subsets.size(); ++i)
+        ImGui::End();
+        return;
+    }
+
+    static int selected = -1;
+
+    ImGui::Columns(2, nullptr, true);
+
+    //! Material List
+    ImGui::BeginChild("MaterialList");
+
+    for (int i = 0; i < (int)m_subsets.size(); ++i)
+    {
+        std::string name(m_pmxFileData.materials[i].name.begin(), m_pmxFileData.materials[i].name.end());
+
+        if (ImGui::Selectable(name.c_str(), selected == i))
+            selected = i;
+    }
+
+    ImGui::EndChild();
+
+    ImGui::NextColumn();
+
+    //! Inspector
+    ImGui::BeginChild("Inspector");
+
+    if (selected >= 0)
+    {
+        auto& subset = m_subsets[selected];
+
+        std::string name(m_pmxFileData.materials[selected].name.begin(), m_pmxFileData.materials[selected].name.end());
+
+        ImGui::Text("Material : %s", name.c_str());
+        ImGui::Separator();
+
+        if (ImGui::Checkbox("Visible", &subset.visible))
+            saveSetting();
+
+        ImGui::Spacing();
+        ImGui::Text("Textures");
+
+        if (ImGui::BeginTable("Textures", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
         {
-            auto& subset = m_subsets[i];
-            const auto& pmxMat = m_pmxFileData.materials[i];
-
-            ImGui::PushID((int)i);
-
-            ImGui::Separator();
-
-            //! マテリアル名
-            std::string matName(pmxMat.name.begin(), pmxMat.name.end());
-            ImGui::Text("Name : %s", matName.c_str());
-
-            if (ImGui::Checkbox("Visible", &subset.visible))
+            for (UINT i = 0; i < static_cast<int>(TextureType::Max); ++i)
             {
-                saveSetting();
-            }
+                ImGui::TableNextRow();
 
-            ImGui::Spacing();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text(magic_enum::enum_name(TextureType(i)).data(), i);
 
-            //! テクスチャ一覧
-            for (size_t t = 0; t < subset.textureIndices.size(); ++t)
-            {
-                ImGui::PushID((int)t);
-                int texIndex = subset.textureIndices[t];
-                ImGui::Text("Texture %d", (int)t);
+                ImGui::TableSetColumnIndex(1);
 
-                //! プレビュー
-                if (texIndex >= 0 && texIndex < m_textures.size())
-                {
-                    ImTextureID texID = (ImTextureID)m_textures[texIndex]->getGPUHandle().ptr;
-                    ImGui::Image(texID, ImVec2(80, 80));
-                }
+                int texIndex = subset.textureIndices[i];
+
+                ImTextureID texID;
+
+                if (texIndex >= 0 && texIndex < (int)m_textures.size())
+                    texID = (ImTextureID)m_textures[texIndex]->getGPUHandle().ptr;
                 else
                 {
-                    ImGui::Text("No Texture");
+                    auto handle = DescriptorHeapManager::Instance().getGPUHandle(TextureManager::Instance().getWhiteTextureSRVIndex());
+                    texID = (ImTextureID)handle.ptr;
                 }
 
-                //! Change
-                if (ImGui::Button("Change"))
+                if (ImGui::ImageButton(("TexBtn##" + std::to_string(i)).c_str(), texID, ImVec2(80, 80)))
                 {
                     std::vector<std::wstring> paths;
 
-                    if (Dialog::openFile(
-                        paths,
-                        L"テクスチャを選択",
-                        L"Data/Model",
-                        false) == DialogResult::OK)
+                    if (Dialog::openFile(paths, L"Select Texture", L"Data/Texture", false) == DialogResult::OK)
                     {
-                        auto newTex =
-                            TextureManager::Instance().load(paths[0]);
+                        auto tex = TextureManager::Instance().load(paths[0]);
 
-                        if (newTex)
+                        if (tex)
                         {
-                            int newIndex = (int)m_textures.size();
-
-                            m_textures.push_back(newTex);
+                            int idx = (int)m_textures.size();
+                            m_textures.push_back(tex);
                             m_texturePaths.push_back(paths[0]);
 
-                            subset.textureIndices[t] = newIndex;
+                            subset.textureIndices[i] = idx;
 
+                            rebuildSubsetDescriptors(subset);
                             saveSetting();
                         }
                     }
@@ -376,30 +433,21 @@ void PMXRender::debugRender()
 
                 ImGui::SameLine();
 
-                //! Remove
-                if (ImGui::Button("Remove"))
+                if (ImGui::Button(("Clear##" + std::to_string(i)).c_str()))
                 {
-                    subset.textureIndices.erase(subset.textureIndices.begin() + t);
-
+                    subset.textureIndices[i] = -1;
+                    rebuildSubsetDescriptors(subset);
                     saveSetting();
-
-                    ImGui::PopID();
-                    break;
                 }
-
-                ImGui::Separator();
-                ImGui::PopID();
             }
 
-            //! Add Texture
-            if (ImGui::Button("Add Texture"))
-            {
-                subset.textureIndices.push_back(-1);
-                saveSetting();
-            }
-
-            ImGui::PopID();
+            ImGui::EndTable();
         }
     }
+
+    ImGui::EndChild();
+
+    ImGui::Columns(1);
+
     ImGui::End();
 }

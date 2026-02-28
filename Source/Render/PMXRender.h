@@ -29,6 +29,14 @@ public:
 
 private:
 
+    //! マテリアルあたりの最大テクスチャ数
+    enum class TextureType : UINT
+    {
+        Diffuse,
+        Toon,
+        Max
+    };
+
     //! 頂点構造体
     struct Vertex
     {
@@ -55,8 +63,9 @@ private:
         UINT indexCount;
         UINT startIndex;
         UINT materialIndex;
-        std::vector<int> textureIndices;
         bool visible = true;
+        std::array<int, static_cast<int>(TextureType::Max)> textureIndices{};
+        UINT descriptorBase = UINT_MAX;
     };
 
     //! モデル構造体
@@ -88,6 +97,9 @@ private:
 
     //! 設定の保存
     void saveSetting();
+
+    //! サブセットのリビルド（テクスチャの追加・削除などで呼び出す）
+    void rebuildSubsetDescriptors(Subset& subset);
 
     PmxLoad::PMXFileData m_pmxFileData;
     std::unique_ptr<PmxLoad>m_pmxLoad;
