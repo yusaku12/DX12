@@ -14,6 +14,9 @@ public:
 
     explicit LoadTexture(const std::wstring& filePath);
 
+    //! メモリから直接テクスチャを作成するコンストラクタ（幅・高さ・フォーマット・ピクセルデータ）
+    LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void* pixelData, size_t pixelSize);
+
     //! テクスチャリソース取得
     ID3D12Resource* getResource() const { return m_texture.Get(); }
 

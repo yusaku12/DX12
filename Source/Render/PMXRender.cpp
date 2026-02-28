@@ -124,7 +124,7 @@ void PMXRender::createTextures()
 {
     for (auto texName : m_pmxFileData.textures)
     {
-        std::wstring fullPath = L"Data/Texture/dummyWhite.jpg";
+        std::wstring fullPath = L"";
         auto texture = TextureManager::Instance().load(fullPath);
 
         m_textures.push_back(texture);
@@ -281,7 +281,7 @@ void PMXRender::rebuildSubsetDescriptors(Subset& subset)
         if (texIdx >= 0 && texIdx < (int)m_textures.size())
             srvIndices.push_back(m_textures[texIdx]->getSRVIndex());
         else
-            srvIndices.push_back(TextureManager::Instance().getWhiteTextureSRVIndex());
+            srvIndices.push_back(m_textures[0]->getSRVIndex());
     }
 
     DescriptorHeapManager::Instance().copyDescriptorsRange(subset.descriptorBase, srvIndices);
@@ -402,11 +402,12 @@ void PMXRender::debugRender()
                 ImTextureID texID;
 
                 if (texIndex >= 0 && texIndex < (int)m_textures.size())
+                {
                     texID = (ImTextureID)m_textures[texIndex]->getGPUHandle().ptr;
+                }
                 else
                 {
-                    auto handle = DescriptorHeapManager::Instance().getGPUHandle(TextureManager::Instance().getWhiteTextureSRVIndex());
-                    texID = (ImTextureID)handle.ptr;
+                    texID = (ImTextureID)m_textures[0]->getGPUHandle().ptr;
                 }
 
                 if (ImGui::ImageButton(("TexBtn##" + std::to_string(i)).c_str(), texID, ImVec2(80, 80)))

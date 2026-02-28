@@ -11,8 +11,15 @@ LoadTexture* TextureManager::load(const std::wstring& filePath)
 
     //! 存在しない場合 → 新規ロード
     auto newTex = std::make_unique<LoadTexture>(filePath.c_str());
-    LoadTexture* texPtr = newTex.get();
 
+    //! 失敗した場合は白色テクスチャを返す
+    if (!newTex->isValid())
+    {
+        uint8_t whitePixel[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+        newTex = std::make_unique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel));
+    }
+
+    LoadTexture* texPtr = newTex.get();
     m_textureCache[filePath] = std::move(newTex);
 
     std::wstring filename = L"Texture Loaded:" + filePath + L"\n";
@@ -20,21 +27,8 @@ LoadTexture* TextureManager::load(const std::wstring& filePath)
     return texPtr;
 }
 
-UINT TextureManager::getWhiteTextureSRVIndex()
-{
-    //! まだ作られていなければロード
-    if (m_whiteTexture == nullptr)
-    {
-        //! ここはプロジェクト内に必ず存在する白テクスチャ
-        m_whiteTexture = load(L"Data/Texture/dummyWhite.jpg");
-    }
-
-    return m_whiteTexture->getSRVIndex();
-}
-
 void TextureManager::clear()
 {
     m_textureCache.clear();
-    m_whiteTexture = nullptr;
     LOG_INFO("[TextureManager] Cleared all textures");
 }
