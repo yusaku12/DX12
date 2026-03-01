@@ -40,7 +40,13 @@ private:
     void loadShader(ShaderID id);
 
     //! シェーダホットリロード
-    void reloadShader(ShaderID id);
+    bool reloadShader(ShaderID id);
+
+    //! シェーダーファイルのパス取得
+    std::wstring getHlslPath(const ShaderDesc& desc) const;
+
+    //! コンパイル済みシェーダーファイルのパス取得
+    std::wstring getCsoPath(const ShaderDesc& desc) const;
 
     //! シェーダーのランタイムデータ
     struct ShaderRuntimeData

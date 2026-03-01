@@ -10,57 +10,54 @@ void ShaderManager::initialize()
     }
 }
 
-void ShaderManager::loadShader(ShaderID id)
-{
-    const auto& desc = shaderTable[static_cast<size_t>(id)];
-    auto& shader = m_shaders[static_cast<size_t>(id)];
-
-    shader.desc = desc;
-
-    std::filesystem::path shaderPath = desc.path;
-    std::wstring filename = shaderPath.stem();
-    std::wstring csoPath = L"Shader/" + filename + L".cso";
-
-    if (std::filesystem::exists(csoPath))
-    {
-        HRESULT hrRead = D3DReadFileToBlob(csoPath.c_str(), shader.blob.ReleaseAndGetAddressOf());
-
-        if (SUCCEEDED(hrRead))
-        {
-            LOG_INFO(("Loaded CSO: " + wstringToString(csoPath) + " (" + std::to_string(shader.blob->GetBufferSize()) + " bytes)").c_str());
-            shader.lastWriteTime = std::filesystem::last_write_time(csoPath);
-        }
-    }
-}
-
 void ShaderManager::update()
 {
     for (int i = 0; i < static_cast<int>(ShaderID::MAX); ++i)
     {
-        auto id = static_cast<ShaderID>(i);
         auto& shader = m_shaders[i];
 
-        std::filesystem::path hlslShaderPath = shader.desc.path;
-        std::wstring hlslFileName = hlslShaderPath.stem();
-        std::wstring hlslPath = L"HLSL/" + hlslFileName + L".hlsl";
+        const std::wstring hlslPath = getHlslPath(shader.desc);
 
         if (!std::filesystem::exists(hlslPath))
             continue;
 
         auto currentWriteTime = std::filesystem::last_write_time(hlslPath);
 
-        if (currentWriteTime != shader.lastWriteTime)
+        if (currentWriteTime == shader.lastWriteTime)
+            continue;
+
+        LOG_INFO(("Auto Reload: " + wstringToString(hlslPath)).c_str());
+
+        if (reloadShader(static_cast<ShaderID>(i)))
         {
-            LOG_INFO(("Auto Reload: " + wstringToString(hlslPath)).c_str());
-
-            reloadShader(id);
-
             shader.lastWriteTime = currentWriteTime;
         }
     }
 }
 
-void ShaderManager::reloadShader(ShaderID id)
+void ShaderManager::loadShader(ShaderID id)
+{
+    auto& shader = m_shaders[static_cast<size_t>(id)];
+    shader.desc = shaderTable[static_cast<size_t>(id)];
+
+    const std::wstring csoPath = getCsoPath(shader.desc);
+
+    if (std::filesystem::exists(csoPath))
+    {
+        if (SUCCEEDED(D3DReadFileToBlob(csoPath.c_str(), shader.blob.ReleaseAndGetAddressOf())))
+        {
+            LOG_INFO(("Loaded CSO: " + wstringToString(csoPath) + " (" + std::to_string(shader.blob->GetBufferSize()) + " bytes)").c_str());
+        }
+    }
+
+    const std::wstring hlslPath = getHlslPath(shader.desc);
+    if (std::filesystem::exists(hlslPath))
+    {
+        shader.lastWriteTime = std::filesystem::last_write_time(hlslPath);
+    }
+}
+
+bool ShaderManager::reloadShader(ShaderID id)
 {
     auto& shader = m_shaders[static_cast<size_t>(id)];
     const auto& desc = shader.desc;
@@ -74,9 +71,7 @@ void ShaderManager::reloadShader(ShaderID id)
     Microsoft::WRL::ComPtr<ID3DBlob> newBlob;
     Microsoft::WRL::ComPtr<ID3DBlob> error;
 
-    std::filesystem::path hlslShaderPath = shader.desc.path;
-    std::wstring hlslFileName = hlslShaderPath.stem();
-    std::wstring hlslPath = L"HLSL/" + hlslFileName + L".hlsl";
+    const std::wstring hlslPath = getHlslPath(desc);
 
     HRESULT hr = D3DCompileFromFile(
         hlslPath.c_str(),
@@ -96,24 +91,33 @@ void ShaderManager::reloadShader(ShaderID id)
 
         if (error)
         {
-            std::string err(
-                static_cast<const char*>(error->GetBufferPointer()),
-                error->GetBufferSize()
-            );
+            std::string err(static_cast<const char*>(error->GetBufferPointer()), error->GetBufferSize());
             LOG_ERROR(err.c_str());
             OutputDebugStringA(err.c_str());
         }
-        return;
+
+        return false;
     }
 
     shader.blob = newBlob;
     shader.dirty = true;
 
-    std::filesystem::path shaderPath = desc.path;
-    std::wstring filename = shaderPath.stem();
-    std::wstring csoPath = L"Shader/" + filename + L".cso";
-
+    const std::wstring csoPath = getCsoPath(desc);
     D3DWriteBlobToFile(shader.blob.Get(), csoPath.c_str(), TRUE);
 
     LOG_INFO(("HotReload success: " + wstringToString(desc.path)).c_str());
+
+    return true;
+}
+
+std::wstring ShaderManager::getHlslPath(const ShaderDesc& desc) const
+{
+    std::filesystem::path p = desc.path;
+    return L"HLSL/" + p.stem().wstring() + L".hlsl";
+}
+
+std::wstring ShaderManager::getCsoPath(const ShaderDesc& desc) const
+{
+    std::filesystem::path p = desc.path;
+    return L"Shader/" + p.stem().wstring() + L".cso";
 }
