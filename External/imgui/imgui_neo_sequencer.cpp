@@ -52,28 +52,28 @@ namespace ImGui
 
         float Zoom = 1.0f;
 
-        ImGuiID Id;
+        ImGuiID Id = {};
 
         ImGuiID LastSelectedTimeline = 0;
         ImGuiID SelectedTimeline = 0;
         bool LastTimelineOpenned = false;
 
-        ImVector<ImGuiID> TimelineStack;
-        ImVector<ImGuiID> GroupStack;
+        ImVector<ImGuiID> TimelineStack = {};
+        ImVector<ImGuiID> GroupStack = {};
 
         FrameIndexType CurrentFrame = 0;
         bool HoldingCurrentFrame = false; // Are we draging current frame?
-        ImVec4 CurrentFrameColor; // Color of current frame, we have to save it because we render on EndNeoSequencer, but process at BeginneoSequencer
+        ImVec4 CurrentFrameColor = {}; // Color of current frame, we have to save it because we render on EndNeoSequencer, but process at BeginneoSequencer
 
         bool HoldingZoomSlider = false;
 
         //Selection
-        ImVector<ImGuiID> Selection; // Contains ids of keyframes
+        ImVector<ImGuiID> Selection = {}; // Contains ids of keyframes
         ImVec2 SelectionMouseStart = { 0, 0 };
         SelectionState StateOfSelection = SelectionState::Idle;
         ImVec2 DraggingMouseStart = { 0, 0 };
         bool StartDragging = true;
-        ImVector<int32_t> DraggingSelectionStart; // Contains start values of all selection elements
+        ImVector<int32_t> DraggingSelectionStart = {}; // Contains start values of all selection elements
         bool DraggingEnabled = true;
         bool SelectionEnabled = true;
         bool IsSelectionRightClicked = false;
@@ -86,7 +86,7 @@ namespace ImGui
         //Deletion
         bool DeleteDataDirty = false;
         bool DeleteEnabled = true;
-        ImVector<ImGuiNeoTimelineKeyframes> SelectionData;
+        ImVector<ImGuiNeoTimelineKeyframes> SelectionData = {};
     };
 
     static ImGuiNeoSequencerStyle style; // NOLINT(cert-err58-cpp)
@@ -1226,8 +1226,7 @@ namespace ImGui
     void NeoKeyframe(int32_t* value)
     {
         IM_ASSERT(inSequencer && "Not in active sequencer!");
-        auto& context = sequencerData[currentSequencer];
-        IM_ASSERT(!context.TimelineStack.empty() && "Not in timeline!");
+        IM_ASSERT(!sequencerData[currentSequencer].TimelineStack.empty() && "Not in timeline!");
 
         createKeyframe(value);
     }

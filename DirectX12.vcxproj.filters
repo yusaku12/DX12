@@ -401,6 +401,9 @@
     <ClInclude Include="Source\Model\VmdLoad.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Model\FBXLoad.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\Polygon.hlsli" />
