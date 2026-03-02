@@ -84,6 +84,7 @@
     <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
+    <ClCompile Include="Source\Model\FBXLoad.cpp" />
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\Model\VmdLoad.cpp" />
     <ClCompile Include="Source\pch.cpp">
@@ -342,8 +343,9 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>.\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug;.\External\FBX SDK\2020.3.9\lib\x64\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;xaudio2.lib;libfbxsdk-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug;.\External\FBX SDK\2020.3.9\lib\x64\debug;.\External\FBX SDK\2020.3.9\lib\arm64\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;xaudio2.lib;libfbxsdk-md.lib;libxml2-md.lib
+;zlib-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>

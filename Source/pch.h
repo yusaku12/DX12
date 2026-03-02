@@ -36,6 +36,7 @@
 #include <typeindex>
 #include <algorithm>
 #include <magic_enum.hpp>
+#include <map>
 
 #undef ERROR
 #undef OPAQUE
