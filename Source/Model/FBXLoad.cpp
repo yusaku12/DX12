@@ -158,21 +158,83 @@ bool FBXLoad::load(const std::string& path)
 
     importer->Destroy();
 
-    // 座標系を DirectX 向き（右手Y-Up）に変換
-    FbxAxisSystem directXAxis(FbxAxisSystem::eYAxis,
-        FbxAxisSystem::eParityOdd,
-        FbxAxisSystem::eLeftHanded);
-
-    if (m_scene->GetGlobalSettings().GetAxisSystem() != directXAxis)
-        directXAxis.ConvertScene(m_scene);
-
-    // 単位をセンチメートルに統一
-    FbxSystemUnit sceneUnit = m_scene->GetGlobalSettings().GetSystemUnit();
-    if (sceneUnit != FbxSystemUnit::cm)
-        FbxSystemUnit::cm.ConvertScene(m_scene);
+    //! ConvertScene は使わない（ジオメトリに反映されないため）
+    //! 代わりに元の座標系から DirectX 左手Y-Up への変換行列を算出し、
+    //! bakeNodeTransforms 内でジオメトリに直接適用する
 
     parseScene();
     return true;
+}
+
+void FBXLoad::bakeNodeTransforms(FbxNode* node)
+{
+    if (!node) return;
+
+    FbxMesh* mesh = node->GetMesh();
+    if (mesh)
+    {
+        FbxAMatrix globalTransform = node->EvaluateGlobalTransform();
+
+        //! ジオメトリオフセット（Geometric Transform）を取得
+        FbxVector4 geoT = node->GetGeometricTranslation(FbxNode::eSourcePivot);
+        FbxVector4 geoR = node->GetGeometricRotation(FbxNode::eSourcePivot);
+        FbxVector4 geoS = node->GetGeometricScaling(FbxNode::eSourcePivot);
+
+        FbxAMatrix geoMat;
+        geoMat.SetTRS(geoT, geoR, geoS);
+
+        //! 最終変換 = 座標系補正 × ノードグローバル変換 × ジオメトリオフセット
+        FbxAMatrix totalTransform = m_axisFixMatrix * globalTransform * geoMat;
+
+        //! コントロールポイント（頂点座標）を直接変換
+        FbxVector4* ctrlPoints = mesh->GetControlPoints();
+        int ctrlCount = mesh->GetControlPointsCount();
+
+        for (int i = 0; i < ctrlCount; ++i)
+        {
+            ctrlPoints[i] = totalTransform.MultT(ctrlPoints[i]);
+        }
+
+        //! 法線・タンジェント変換用（回転のみ）
+        FbxAMatrix normalTransform = totalTransform;
+        normalTransform.SetT(FbxVector4(0, 0, 0, 0));
+        normalTransform.SetS(FbxVector4(1, 1, 1, 1));
+
+        for (int layerIdx = 0; layerIdx < mesh->GetLayerCount(); ++layerIdx)
+        {
+            FbxLayerElementNormal* normalElem = mesh->GetLayer(layerIdx)->GetNormals();
+            if (normalElem)
+            {
+                int normalCount = normalElem->GetDirectArray().GetCount();
+                for (int i = 0; i < normalCount; ++i)
+                {
+                    FbxVector4 n = normalElem->GetDirectArray().GetAt(i);
+                    n = normalTransform.MultT(n);
+                    n.Normalize();
+                    normalElem->GetDirectArray().SetAt(i, n);
+                }
+            }
+
+            FbxLayerElementTangent* tangentElem = mesh->GetLayer(layerIdx)->GetTangents();
+            if (tangentElem)
+            {
+                int tangentCount = tangentElem->GetDirectArray().GetCount();
+                for (int i = 0; i < tangentCount; ++i)
+                {
+                    FbxVector4 t = tangentElem->GetDirectArray().GetAt(i);
+                    t = normalTransform.MultT(t);
+                    t.Normalize();
+                    tangentElem->GetDirectArray().SetAt(i, t);
+                }
+            }
+        }
+    }
+
+    //! 子ノードも再帰処理
+    for (int i = 0; i < node->GetChildCount(); ++i)
+    {
+        bakeNodeTransforms(node->GetChild(i));
+    }
 }
 
 void FBXLoad::parseScene()
@@ -183,8 +245,27 @@ void FBXLoad::parseScene()
     FbxGeometryConverter converter(m_manager);
     converter.Triangulate(m_scene, true);
 
-    //! タンジェント・バイノーマル生成（FBXにない場合）
+    //! マテリアル別メッシュ分割
     converter.SplitMeshesPerMaterial(m_scene, true);
+
+    //! 座標系補正行列を算出（元の座標系 → DirectX 左手Y-Up）
+    m_axisFixMatrix = computeAxisFixMatrix();
+
+    //! 単位スケールを補正行列に組み込む
+    //! GetScaleFactor() = 1シーン単位が何cmか
+    //!   例: Maya/Blender(m) → 100.0, 3dsMax(inch) → 2.54, cm → 1.0
+    //! PMXは概ね 1単位≒8cm（身長160cm ≒ 20単位）
+    double sceneFactor = m_scene->GetGlobalSettings().GetSystemUnit().GetScaleFactor();
+    double unitScale = sceneFactor * 0.125; //!< シーン単位→cm→PMX互換
+
+    FbxAMatrix scaleMat;
+    scaleMat.SetIdentity();
+    scaleMat.SetS(FbxVector4(unitScale, unitScale, unitScale));
+
+    m_axisFixMatrix = scaleMat * m_axisFixMatrix;
+
+    //! Triangulate / Split の後にベイク（順序が重要）
+    bakeNodeTransforms(m_scene->GetRootNode());
 
     FbxNode* root = m_scene->GetRootNode();
     if (!root) return;
@@ -222,7 +303,7 @@ void FBXLoad::parseNode(FbxNode* node, int parentBoneIndex)
         }
     }
 
-    // boneMap から現在ノードのインデックスを取得（メッシュノードの場合でも子に伝搬）
+    //! boneMap から現在ノードのインデックスを取得（メッシュノードの場合でも子に伝搬）
     auto it = m_model.skeleton.boneMap.find(node->GetName());
     if (it != m_model.skeleton.boneMap.end())
         boneIndex = it->second;
@@ -238,7 +319,7 @@ void FBXLoad::parseMesh(FbxNode* node)
 
     Mesh dst;
     dst.name = node->GetName();
-    dst.bindTransform = ToMatrix(node->EvaluateGlobalTransform());
+    dst.bindTransform = Matrix::Identity;
 
     FbxVector4* ctrlPoints = mesh->GetControlPoints();
     int polyCount = mesh->GetPolygonCount();
@@ -248,11 +329,11 @@ void FBXLoad::parseMesh(FbxNode* node)
     FbxLayerElementTangent* tanElem = mesh->GetElementTangent();
     FbxLayerElementMaterial* materialElem = mesh->GetElementMaterial();
 
-    // マテリアル別にインデックスを分類
-    // key = materialIndex, value = 三角形ごとのインデックスリスト
+    //! マテリアル別にインデックスを分類
+    //! key = materialIndex, value = 三角形ごとのインデックスリスト
     std::map<int, std::vector<uint32_t>> subMeshIndices;
 
-    // コントロールポイント → 展開後頂点のマッピング（スキニング用）
+    //! コントロールポイント → 展開後頂点のマッピング（スキニング用）
     std::unordered_map<int, std::vector<uint32_t>> ctrlToVertex;
 
     for (int i = 0; i < polyCount; ++i)
@@ -269,10 +350,10 @@ void FBXLoad::parseMesh(FbxNode* node)
             Vertex v;
             v.position = ToVector3(ctrlPoints[ctrlIndex]);
 
-            // Normal
+            //! Normal
             v.normal = ReadNormal(normalElem, ctrlIndex, vertexId);
 
-            // UV
+            //! UV
             if (uvElem)
             {
                 FbxVector2 uv;
@@ -281,7 +362,7 @@ void FBXLoad::parseMesh(FbxNode* node)
                 v.uv = { (float)uv[0], 1.0f - (float)uv[1] };
             }
 
-            // Tangent
+            //! Tangent
             v.tangent = ReadTangent(tanElem, ctrlIndex, vertexId);
 
             uint32_t newIndex = (uint32_t)dst.vertices.size();
@@ -290,12 +371,12 @@ void FBXLoad::parseMesh(FbxNode* node)
 
             subMeshIndices[materialIndex].push_back(newIndex);
 
-            // コントロールポイント → 展開後頂点のマッピングを記録
+            //! コントロールポイント → 展開後頂点のマッピングを記録
             ctrlToVertex[ctrlIndex].push_back(newIndex);
         }
     }
 
-    // サブメッシュ構築（マテリアル順にインデックスを再配置）
+    //! サブメッシュ構築（マテリアル順にインデックスを再配置）
     {
         std::vector<uint32_t> sortedIndices;
         sortedIndices.reserve(dst.indices.size());
@@ -314,10 +395,10 @@ void FBXLoad::parseMesh(FbxNode* node)
         dst.indices = std::move(sortedIndices);
     }
 
-    // スキニング情報の抽出
+    //! スキニング情報の抽出
     extractSkinning(mesh, dst, ctrlToVertex);
 
-    // タンジェントがFBXに存在しなかった場合は自動生成
+    //! タンジェントがFBXに存在しなかった場合は自動生成
     if (!tanElem)
         generateTangents(dst);
 
@@ -326,7 +407,7 @@ void FBXLoad::parseMesh(FbxNode* node)
 
 void FBXLoad::parseSkeleton(FbxNode* node, int parentIndex)
 {
-    // 既に登録済みならスキップ
+    //! 既に登録済みならスキップ
     if (m_model.skeleton.boneMap.contains(node->GetName()))
         return;
 
@@ -355,14 +436,14 @@ void FBXLoad::parseMaterials()
         Material mat;
         mat.name = fbxMat->GetName();
 
-        // --- Diffuse / BaseColor テクスチャ ---
+        //! --- Diffuse / BaseColor テクスチャ ---
         FbxProperty propDiffuse = fbxMat->FindProperty(FbxSurfaceMaterial::sDiffuse);
         if (!propDiffuse.IsValid())
             propDiffuse = fbxMat->FindProperty("BaseColor");
 
         if (propDiffuse.IsValid())
         {
-            // テクスチャ
+            //! テクスチャ
             int texCount = propDiffuse.GetSrcObjectCount<FbxFileTexture>();
             if (texCount > 0)
             {
@@ -371,7 +452,7 @@ void FBXLoad::parseMaterials()
                     mat.texturePath = tex->GetFileName();
             }
 
-            // Diffuse カラー
+            //! Diffuse カラー
             if (propDiffuse.GetPropertyDataType().GetType() == eFbxDouble3)
             {
                 FbxDouble3 c = propDiffuse.Get<FbxDouble3>();
@@ -379,7 +460,7 @@ void FBXLoad::parseMaterials()
             }
         }
 
-        // --- Normal Map テクスチャ ---
+        //! --- Normal Map テクスチャ ---
         FbxProperty propNormal = fbxMat->FindProperty(FbxSurfaceMaterial::sNormalMap);
         if (propNormal.IsValid())
         {
@@ -392,7 +473,7 @@ void FBXLoad::parseMaterials()
             }
         }
 
-        // --- Specular ---
+        //! --- Specular ---
         FbxProperty propSpec = fbxMat->FindProperty(FbxSurfaceMaterial::sSpecular);
         if (propSpec.IsValid() && propSpec.GetPropertyDataType().GetType() == eFbxDouble3)
         {
@@ -404,7 +485,7 @@ void FBXLoad::parseMaterials()
         if (propShininess.IsValid())
             mat.specularPower = (float)propShininess.Get<FbxDouble>();
 
-        // --- Ambient ---
+        //! --- Ambient ---
         FbxProperty propAmbient = fbxMat->FindProperty(FbxSurfaceMaterial::sAmbient);
         if (propAmbient.IsValid() && propAmbient.GetPropertyDataType().GetType() == eFbxDouble3)
         {
@@ -412,7 +493,7 @@ void FBXLoad::parseMaterials()
             mat.ambientColor = { (float)c[0], (float)c[1], (float)c[2] };
         }
 
-        // --- Emissive ---
+        //! --- Emissive ---
         FbxProperty propEmissive = fbxMat->FindProperty(FbxSurfaceMaterial::sEmissive);
         if (propEmissive.IsValid() && propEmissive.GetPropertyDataType().GetType() == eFbxDouble3)
         {
@@ -450,7 +531,7 @@ void FBXLoad::parseAnimations()
         size_t boneCount = m_model.skeleton.bones.size();
         clip.boneAnimations.resize(boneCount);
 
-        // ノードキャッシュ（毎フレーム FindNodeByName を呼ばない）
+        //! ノードキャッシュ（毎フレーム FindNodeByName を呼ばない）
         std::vector<FbxNode*> boneNodes(boneCount, nullptr);
         for (size_t b = 0; b < boneCount; ++b)
         {
@@ -499,7 +580,7 @@ void FBXLoad::extractSkinning(FbxMesh* mesh, Mesh& dstMesh, const std::unordered
         float weight;
     };
 
-    // 展開済み頂点ごとのウェイトリスト
+    //! 展開済み頂点ごとのウェイトリスト
     std::vector<std::vector<WeightData>> weightTable(dstMesh.vertices.size());
 
     for (int i = 0; i < skinCount; ++i)
@@ -518,7 +599,7 @@ void FBXLoad::extractSkinning(FbxMesh* mesh, Mesh& dstMesh, const std::unordered
             int boneIndex = m_model.skeleton.findBone(boneName);
             if (boneIndex < 0) continue;
 
-            // Inverse Bind Pose を Cluster から取得して上書き
+            //! Inverse Bind Pose を Cluster から取得して上書き
             FbxAMatrix meshBindPose, clusterBindPose;
             cluster->GetTransformMatrix(meshBindPose);
             cluster->GetTransformLinkMatrix(clusterBindPose);
@@ -536,7 +617,7 @@ void FBXLoad::extractSkinning(FbxMesh* mesh, Mesh& dstMesh, const std::unordered
 
                 if (w <= 0.0f) continue;
 
-                // コントロールポイントに対応する全展開済み頂点にウェイトを配分
+                //! コントロールポイントに対応する全展開済み頂点にウェイトを配分
                 auto it = ctrlToVertex.find(ctrlIndex);
                 if (it == ctrlToVertex.end()) continue;
 
@@ -548,12 +629,12 @@ void FBXLoad::extractSkinning(FbxMesh* mesh, Mesh& dstMesh, const std::unordered
         }
     }
 
-    // 上位4本に制限して正規化
+    //! 上位4本に制限して正規化
     for (size_t i = 0; i < dstMesh.vertices.size(); ++i)
     {
         auto& weights = weightTable[i];
 
-        // ウェイト降順ソート
+        //! ウェイト降順ソート
         std::sort(weights.begin(), weights.end(),
             [](const WeightData& a, const WeightData& b)
             { return a.weight > b.weight; });
@@ -568,11 +649,11 @@ void FBXLoad::extractSkinning(FbxMesh* mesh, Mesh& dstMesh, const std::unordered
             total += weights[j].weight;
         }
 
-        // 正規化
+        //! 正規化
         if (total > 0.0f)
         {
             float invTotal = 1.0f / total;
-            for (int j = 0; j < limit; ++j)
+            for (int j = 0; j < limit; j++)
                 dstMesh.vertices[i].boneWeights[j] *= invTotal;
         }
     }
@@ -623,11 +704,11 @@ void FBXLoad::generateTangents(Mesh& dstMesh)
         const Vector3& n = dstMesh.vertices[i].normal;
         const Vector3& t = tan1[i];
 
-        // Gram-Schmidt 直交化
+        //! Gram-Schmidt 直交化
         Vector3 tangent = t - n * n.Dot(t);
         tangent.Normalize();
 
-        // Handedness
+        //! Handedness
         float w = (n.Cross(t).Dot(tan2[i]) < 0.0f) ? -1.0f : 1.0f;
 
         dstMesh.vertices[i].tangent = { tangent.x, tangent.y, tangent.z, w };
@@ -652,4 +733,96 @@ std::unordered_map<int, std::vector<uint32_t>> FBXLoad::buildCtrlToVertexMap(Fbx
     }
 
     return result;
+}
+
+FbxAMatrix FBXLoad::computeAxisFixMatrix() const
+{
+    FbxAxisSystem sceneAxis = m_scene->GetGlobalSettings().GetAxisSystem();
+
+    //! ターゲット: DirectX 左手系 Y-Up
+    FbxAxisSystem targetAxis(FbxAxisSystem::eYAxis,
+        FbxAxisSystem::eParityOdd,
+        FbxAxisSystem::eLeftHanded);
+
+    //! 同じなら補正不要
+    if (sceneAxis == targetAxis)
+    {
+        FbxAMatrix identity;
+        identity.SetIdentity();
+        return identity;
+    }
+
+    //! シーン座標系の情報を取得
+    int upSign = 0;
+    FbxAxisSystem::EUpVector upVec = sceneAxis.GetUpVector(upSign);
+
+    int frontSign = 0;
+    FbxAxisSystem::EFrontVector frontVec = sceneAxis.GetFrontVector(frontSign);
+
+    FbxAxisSystem::ECoordSystem coordSys = sceneAxis.GetCoorSystem();
+
+    //! ソース座標系の Up 軸ベクトル
+    FbxVector4 srcUp(0, 0, 0, 0);
+    if (upVec == FbxAxisSystem::eXAxis) srcUp[0] = upSign;
+    else if (upVec == FbxAxisSystem::eYAxis) srcUp[1] = upSign;
+    else if (upVec == FbxAxisSystem::eZAxis) srcUp[2] = upSign;
+
+    //! ソース座標系の Front 軸ベクトル
+    FbxVector4 srcFront(0, 0, 0, 0);
+    if (upVec == FbxAxisSystem::eXAxis)
+    {
+        if (frontVec == FbxAxisSystem::eParityEven)
+            srcFront[1] = frontSign;
+        else
+            srcFront[2] = frontSign;
+    }
+    else if (upVec == FbxAxisSystem::eYAxis)
+    {
+        if (frontVec == FbxAxisSystem::eParityEven)
+            srcFront[0] = frontSign;
+        else
+            srcFront[2] = frontSign;
+    }
+    else
+    {
+        if (frontVec == FbxAxisSystem::eParityEven)
+            srcFront[0] = frontSign;
+        else
+            srcFront[1] = frontSign;
+    }
+
+    //! ソース座標系の Right 軸 = Up × Front（右手系）、左手系なら反転
+    FbxVector4 srcRight(
+        srcUp[1] * srcFront[2] - srcUp[2] * srcFront[1],
+        srcUp[2] * srcFront[0] - srcUp[0] * srcFront[2],
+        srcUp[0] * srcFront[1] - srcUp[1] * srcFront[0],
+        0
+    );
+
+    if (coordSys == FbxAxisSystem::eLeftHanded)
+    {
+        srcRight[0] = -srcRight[0];
+        srcRight[1] = -srcRight[1];
+        srcRight[2] = -srcRight[2];
+    }
+
+    //! 変換行列を構築
+    //! ソースの基底ベクトル → ターゲット（DirectX 左手系）の基底ベクトル
+    //!   ターゲット +X = srcRight
+    //!   ターゲット +Y = srcUp
+    //!   ターゲット +Z = -srcFront（DirectX 左手系の Forward は -Z）
+    //!
+    //! FbxAMatrix::MultT は列ベクトル v' = M * v として動作するため
+    //! 各列にターゲット基底を配置する
+    FbxAMatrix fixMat;
+    fixMat.SetIdentity();
+
+    //! Column 0 = ターゲット +X（Right）← srcRight がソースのどの方向か
+    fixMat[0][0] = srcRight[0]; fixMat[1][0] = srcRight[1]; fixMat[2][0] = srcRight[2];
+    //! Column 1 = ターゲット +Y（Up）← srcUp がソースのどの方向か
+    fixMat[0][1] = srcUp[0];    fixMat[1][1] = srcUp[1];    fixMat[2][1] = srcUp[2];
+    //! Column 2 = ターゲット +Z = -Front
+    fixMat[0][2] = -srcFront[0]; fixMat[1][2] = -srcFront[1]; fixMat[2][2] = -srcFront[2];
+
+    return fixMat;
 }

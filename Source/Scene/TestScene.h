@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "Scene.h"
-#include "Test\TestPolygon.h"
-#include "Render/PMXRender.h"
+#include "Render\PMXRender.h"
+#include "Render\FBXRender.h"
 
 //============================================================
 // テスト用シーン
@@ -23,6 +23,6 @@ public:
 
 private:
 
-    std::unique_ptr<TestPolygon> m_testPolygon;
     std::unique_ptr<PMXRender> m_pmxRender;
+    std::unique_ptr<FBXRender> m_fbxRender;
 };

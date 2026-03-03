@@ -172,6 +172,12 @@ private:
     //! FBX SDKのリソースを解放
     void destroyFbx();
 
+    //! 座標系補正行列を算出（元の座標系 → DirectX 左手Y-Up）
+    FbxAMatrix computeAxisFixMatrix() const;
+
+    //! ノード変換をジオメトリにベイクする（座標系・単位変換の確実な適用）
+    void bakeNodeTransforms(FbxNode* node);
+
     //! FBXファイルを読み込んでシーンを構築
     void parseScene();
 
@@ -202,4 +208,5 @@ private:
     Model m_model;
     FbxManager* m_manager = nullptr;
     FbxScene* m_scene = nullptr;
+    FbxAMatrix m_axisFixMatrix; //!< 座標系補正行列
 };

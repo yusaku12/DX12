@@ -174,6 +174,9 @@
     <ClCompile Include="Source\Model\FBXLoad.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Render\FBXRender.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -407,6 +410,9 @@
     <ClInclude Include="Source\Model\FBXLoad.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Render\FBXRender.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\Polygon.hlsli" />
@@ -414,6 +420,7 @@
     <None Include="HLSL\CommonConstants.hlsli" />
     <None Include="HLSL\Common.hlsli" />
     <None Include="HLSL\DebugPrimitive.hlsli" />
+    <None Include="HLSL\FBX.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\PolygonVS.hlsl" />
@@ -422,5 +429,7 @@
     <FxCompile Include="HLSL\PMXPS.hlsl" />
     <FxCompile Include="HLSL\DebugPrimitiveVS.hlsl" />
     <FxCompile Include="HLSL\DebugPrimitivePS.hlsl" />
+    <FxCompile Include="HLSL\FBXVS.hlsl" />
+    <FxCompile Include="HLSL\FBXPS.hlsl" />
   </ItemGroup>
 </Project>
