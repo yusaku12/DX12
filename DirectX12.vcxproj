@@ -347,12 +347,12 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External.\magic_enum;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External.\magic_enum;.\External\Physx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
@@ -362,9 +362,9 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>.\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug;.\External\FBX SDK\2020.3.9\lib\x64\debug;.\External\FBX SDK\2020.3.9\lib\arm64\debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>.\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug;.\External\FBX SDK\2020.3.9\lib\x64\debug;.\External\Physx.\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>d3d12.lib;dxguid.lib;xaudio2.lib;libfbxsdk-md.lib;libxml2-md.lib
-;zlib-md.lib;%(AdditionalDependencies)</AdditionalDependencies>
+;zlib-md.lib;LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -384,7 +384,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External.\magic_enum;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External.\magic_enum;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\Physx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
