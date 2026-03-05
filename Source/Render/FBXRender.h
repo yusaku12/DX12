@@ -4,7 +4,6 @@
 #include "Graphics\VertexBuffer.h"
 #include "Graphics\IndexBuffer.h"
 #include "Graphics\ConstantBuffer.h"
-#include "Graphics\PSOCreator.h"
 
 class TransformComponent; // 前方宣言
 
@@ -20,6 +19,9 @@ public:
 
     //! 描画
     void render();
+
+    //! 描画（指定コマンドリストに対して）
+    void render(ID3D12GraphicsCommandList* cmd);
 
     //! デバック描画
     void debugRender();
@@ -104,7 +106,7 @@ private:
     std::vector<MeshData> m_meshes;
     std::unique_ptr<ConstantBuffer<Material>> m_materialCB;
     std::unique_ptr<ConstantBuffer<ModelCB>> m_modelCB;
-    std::unique_ptr<PSOCreator> m_psoCreator;
+    size_t m_psoKey = 0;
     std::vector<LoadTexture*> m_textures;
     std::vector<std::wstring> m_texturePaths;
     std::string m_settingPath;

@@ -19,7 +19,7 @@ void DebugPrimitive::initialize(UINT maxLines)
         D3D12_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         D3D12_INPUT_ELEMENT_DESC{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     };
-    m_psoCreator = std::make_unique<PSOCreator>(pso);
+    m_psoKey = PSOCreator::Instance().registerPSO(pso);
 
     ensureBuffer();
 }
@@ -27,7 +27,6 @@ void DebugPrimitive::initialize(UINT maxLines)
 void DebugPrimitive::shutdown()
 {
     m_uploadBuffer.reset();
-    m_psoCreator.reset();
     m_lines.clear();
     m_mappedVertices = nullptr;
 }
@@ -113,7 +112,7 @@ void DebugPrimitive::render()
     auto cmd = DX12::Instance().getGraphicsCommandList();
 
     //! ルートシグネチャ & PSO
-    m_psoCreator->setPSO();
+    PSOCreator::Instance().setPSO(m_psoKey);
 
     //! Camera CBV をセット（既存プロジェクトの慣習に合わせる）
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());

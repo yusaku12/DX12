@@ -39,6 +39,14 @@ void DescriptorHeapManager::setDescriptorHeap()
     cmd->SetDescriptorHeaps(_countof(heaps), heaps);
 }
 
+void DescriptorHeapManager::setDescriptorHeap(ID3D12GraphicsCommandList* cmd)
+{
+    if (!cmd) return;
+
+    ID3D12DescriptorHeap* heaps[] = { m_heap.Get() };
+    cmd->SetDescriptorHeaps(_countof(heaps), heaps);
+}
+
 UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc)
 {
     const auto device = DX12::Instance().getDevice();

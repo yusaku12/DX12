@@ -73,6 +73,7 @@
     <ClCompile Include="Source\GameObject\GameObject.cpp" />
     <ClCompile Include="Source\GameObject\GameObjectRegistry.cpp" />
     <ClCompile Include="Source\Graphics\DescriptorHeapManager.cpp" />
+    <ClCompile Include="Source\Graphics\CommandListPool.cpp" />
     <ClCompile Include="Source\Graphics\DX12.cpp" />
     <ClCompile Include="Source\Graphics\LoadTexture.cpp" />
     <ClCompile Include="Source\Graphics\PiplineState.cpp" />
@@ -101,7 +102,6 @@
     <ClCompile Include="Source\System\Logger.cpp" />
     <ClCompile Include="Source\System\TimeManager.cpp" />
     <ClCompile Include="Source\System\Window.cpp" />
-    <ClCompile Include="Source\Test\TestPolygon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="External\imgui\context_wrapper.h" />
@@ -156,6 +156,7 @@
     <ClInclude Include="Source\Graphics\UploadBuffer.h" />
     <ClInclude Include="Source\Graphics\VertexBuffer.h" />
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h" />
+    <ClInclude Include="Source\Graphics\CommandListPool.h" />
     <ClInclude Include="Source\Graphics\DX12.h" />
     <ClInclude Include="Source\Graphics\LoadTexture.h" />
     <ClInclude Include="Source\Graphics\PiplineState.h" />
@@ -181,7 +182,6 @@
     <ClInclude Include="Source\System\Stringformat.h" />
     <ClInclude Include="Source\System\TimeManager.h" />
     <ClInclude Include="Source\System\Window.h" />
-    <ClInclude Include="Source\Test\TestPolygon.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\Common.hlsli" />

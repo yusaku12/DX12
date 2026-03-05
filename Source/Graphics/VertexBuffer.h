@@ -51,6 +51,12 @@ public:
         cmd->IASetVertexBuffers(0, 1, &m_vertexBufferView);
     }
 
+    //! バーテックスバッファをバインド（指定コマンドリスト）
+    void bind(ID3D12GraphicsCommandList* cmd) const
+    {
+        cmd->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+    }
+
     //! 頂点数取得
     UINT getVertexCount() const
     {

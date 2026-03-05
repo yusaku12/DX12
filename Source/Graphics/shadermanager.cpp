@@ -33,6 +33,9 @@ void ShaderManager::update()
             shader.lastWriteTime = currentWriteTime;
         }
     }
+
+    //! シェーダーの更新をPSOCreatorに通知
+    PSOCreator::Instance().refreshDirtyPSOs();
 }
 
 void ShaderManager::loadShader(ShaderID id)

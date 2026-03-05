@@ -11,6 +11,9 @@ Window::Window(HWND hwnd)
     //! DX12初期化
     m_dx12.initialize();
 
+    //! CommandListPool初期化（ワーカースレッド用）
+    CommandListPool::Instance().initialize(m_dx12.getDevice(), 4);
+
     //! imgui初期化
     IMGUI_CTRL_INITIALIZE();
 
@@ -89,14 +92,25 @@ void Window::render()
     //! フレーム開始処理
     TimeManager::Instance().frameStart(m_dx12.getGraphicsCommandList());
 
-    //! 画面をクリア
+    //! 画面をクリア（メインコマンドリストにバリア・クリア・ビューポート・シザーを記録）
     m_dx12.screenClear();
 
-    //! デバックプリミティブ描画
+    //! デバックプリミティブ描画（メインコマンドリストで実行）
     DebugPrimitive::Instance().render();
 
-    //! シーンマネージャ描画
+    //! シーンマネージャ描画（マルチスレッドでワーカーコマンドリストに記録）
     SceneManager::Instance().draw();
+
+    //! メインコマンドリスト（pre-pass: バリア・クリア・デバッグ描画）を Close → Execute
+    m_dx12.getGraphicsCommandList()->Close();
+    ID3D12CommandList* preLists[] = { m_dx12.getGraphicsCommandList() };
+    m_dx12.getCommandQueue()->ExecuteCommandLists(1, preLists);
+
+    //! ワーカーコマンドリスト（描画コマンド）を Execute
+    m_dx12.executeWorkerCommandLists();
+
+    //! post-pass 用アロケータでメインコマンドリストをリセット（GPU Wait 不要）
+    m_dx12.resetCommandListOnly();
 
     //! バックバッファをimgui用に準備
     m_dx12.prepareBackBufferForImGui();

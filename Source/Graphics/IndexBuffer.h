@@ -53,6 +53,12 @@ public:
         cmd->IASetIndexBuffer(&m_indexBufferView);
     }
 
+    //! インデックスバッファをバインド（指定コマンドリスト）
+    void bind(ID3D12GraphicsCommandList* cmd) const
+    {
+        cmd->IASetIndexBuffer(&m_indexBufferView);
+    }
+
     //! インデックス数取得
     UINT getIndexCount() const
     {

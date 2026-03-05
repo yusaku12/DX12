@@ -38,7 +38,7 @@ void SceneManager::draw()
 {
     if (m_currentScene)
     {
-        m_currentScene->draw();
+        m_currentScene->drawMultiThreaded();
     }
 }
 

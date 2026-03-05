@@ -37,6 +37,8 @@
 #include <algorithm>
 #include <magic_enum.hpp>
 #include <map>
+#include <thread>
+#include <future>
 
 #undef ERROR
 #undef OPAQUE
@@ -54,6 +56,7 @@
 #include "Graphics\ShaderManager.h"
 #include "Graphics\RootsignatureManager.h"
 #include "Graphics\DescriptorHeapManager.h"
+#include "Graphics\PSOCreator.h"
 #include "System\TimeManager.h"
 #include "Scene\SceneManager.h"
 #include "Camera\CameraManager.h"
@@ -62,6 +65,7 @@
 #include "Input\InputManager.h"
 #include "Audio\AudioManager.h"
 #include "System\DebugPrimitive.h"
+#include "Graphics\CommandListPool.h"
 
 //! 省略系
 using namespace DirectX;

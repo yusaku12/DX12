@@ -208,7 +208,7 @@ void FBXRender::createPSO()
         { "TANGENT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     };
-    m_psoCreator = std::make_unique<PSOCreator>(psoData);
+    m_psoKey = PSOCreator::Instance().registerPSO(psoData);
 }
 
 void FBXRender::rebuildSubsetDescriptors(Subset& subset)
@@ -362,15 +362,19 @@ void FBXRender::saveSetting()
 void FBXRender::render()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
+    render(cmd);
+}
 
+void FBXRender::render(ID3D12GraphicsCommandList* cmd)
+{
     //! DescriptorHeap
-    DescriptorHeapManager::Instance().setDescriptorHeap();
+    DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
 
     //! RootSignature
     cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::PMXStandard));
 
     //! PSO
-    m_psoCreator->setPSO();
+    PSOCreator::Instance().setPSO(m_psoKey, cmd);
 
     //! IA
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -397,8 +401,8 @@ void FBXRender::render()
     for (const auto& mesh : m_meshes)
     {
         //! VB/IB
-        mesh.vertexBuffer->bind();
-        mesh.indexBuffer->bind();
+        mesh.vertexBuffer->bind(cmd);
+        mesh.indexBuffer->bind(cmd);
 
         for (const auto& subset : mesh.subsets)
         {

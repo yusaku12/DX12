@@ -92,6 +92,6 @@ private:
     UINT m_vertexBufferSize = 0;
     D3D12_VERTEX_BUFFER_VIEW m_vbv = {};
 
-    //! PSO/リソース
-    std::unique_ptr<PSOCreator> m_psoCreator;
+    //! PSOインデックス
+    size_t m_psoKey = 0;
 };

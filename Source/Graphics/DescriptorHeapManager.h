@@ -26,6 +26,9 @@ public:
     //! ディスクリプタヒープ設定
     void setDescriptorHeap();
 
+    //! ディスクリプタヒープ設定（指定コマンドリストに対して）
+    void setDescriptorHeap(ID3D12GraphicsCommandList* cmd);
+
     //! SRV作成
     UINT createSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC& desc);
 

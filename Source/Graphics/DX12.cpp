@@ -69,9 +69,18 @@ DX12::DX12(HWND hwnd)
     }
     LOG_HR(hr, "Failed to create D3D12 device for any feature level");
 
+#ifdef _DEBUG
+    //! Info Queue 設定（デバイス作成後）
+    setupInfoQueue();
+#endif
+
     //! コマンドアロケーターを作成
     hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateCommandAllocator");
+
+    //! post-pass 用コマンドアロケーターを作成
+    hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_postCommandAllocator.GetAddressOf()));
+    LOG_HR(hr, "Failed to CreateCommandAllocator (post)");
 
     //! コマンドリスト作成
     hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_graphicsCommandList.GetAddressOf()));
@@ -338,16 +347,18 @@ void DX12::sceneImguiRender()
     ImGui::End();
 }
 
-void DX12::screenClearCleanup()
+void DX12::transitionSceneToSRV()
 {
-    //! Scene を SRV に戻す
-    auto sceneBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
         m_sceneRenderTarget.Get(),
         D3D12_RESOURCE_STATE_RENDER_TARGET,
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-    m_graphicsCommandList->ResourceBarrier(1, &sceneBarrier);
+    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+}
 
+void DX12::screenClearCleanup()
+{
     //! BackBuffer を PRESENT に戻す
     UINT bbIdx = m_dxgiSwapChain4->GetCurrentBackBufferIndex();
 
@@ -366,6 +377,11 @@ void DX12::screenClearCleanup()
 
     //! GPU待機
     safeGPUWait();
+
+#ifdef _DEBUG
+    //! DebugLayer の警告をフラッシュ
+    flushDebugMessages();
+#endif
 
     //! コマンドリセット
     commandReset();
@@ -534,7 +550,79 @@ void DX12::enableDebugLayer()
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugLayer.GetAddressOf()))))
     {
         debugLayer->EnableDebugLayer();
+
+        //! GPU-Based Validation を有効化（重いがバグ発見に非常に有効）
+        //! 必要に応じてコメントアウトしてください
+        Microsoft::WRL::ComPtr<ID3D12Debug3> debug3;
+        if (SUCCEEDED(debugLayer.As(&debug3)))
+        {
+            debug3->SetEnableGPUBasedValidation(TRUE);
+        }
     }
+}
+
+void DX12::setupInfoQueue()
+{
+#ifdef _DEBUG
+    if (SUCCEEDED(m_device.As(&m_infoQueue)))
+    {
+        //! ERROR と CORRUPTION は例外で停止（致命的な問題を即座に検出）
+        m_infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+        m_infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+
+        //! 不要な警告を抑制するフィルタ（必要に応じてIDを追加）
+        D3D12_MESSAGE_ID denyIds[] =
+        {
+            //! リソースバリアの冗長な遷移警告（ImGui等で頻出）
+            D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE,
+        };
+
+        D3D12_INFO_QUEUE_FILTER filter = {};
+        filter.DenyList.NumIDs = _countof(denyIds);
+        filter.DenyList.pIDList = denyIds;
+        m_infoQueue->AddStorageFilterEntries(&filter);
+    }
+#endif
+}
+
+void DX12::flushDebugMessages()
+{
+#ifdef _DEBUG
+    if (!m_infoQueue) return;
+
+    UINT64 messageCount = m_infoQueue->GetNumStoredMessages();
+    for (UINT64 i = 0; i < messageCount; ++i)
+    {
+        SIZE_T messageLength = 0;
+        m_infoQueue->GetMessage(i, nullptr, &messageLength);
+
+        std::vector<char> buffer(messageLength);
+        auto* message = reinterpret_cast<D3D12_MESSAGE*>(buffer.data());
+        m_infoQueue->GetMessage(i, message, &messageLength);
+
+        //! 重大度に応じて出力
+        switch (message->Severity)
+        {
+        case D3D12_MESSAGE_SEVERITY_CORRUPTION:
+        case D3D12_MESSAGE_SEVERITY_ERROR:
+            OutputDebugStringA("[DX12 ERROR] ");
+            break;
+        case D3D12_MESSAGE_SEVERITY_WARNING:
+            OutputDebugStringA("[DX12 WARNING] ");
+            break;
+        case D3D12_MESSAGE_SEVERITY_INFO:
+            OutputDebugStringA("[DX12 INFO] ");
+            break;
+        default:
+            OutputDebugStringA("[DX12] ");
+            break;
+        }
+        OutputDebugStringA(message->pDescription);
+        OutputDebugStringA("\n");
+    }
+
+    m_infoQueue->ClearStoredMessages();
+#endif
 }
 
 void DX12::safeGPUWait()
@@ -557,6 +645,9 @@ void DX12::safeGPUWait()
 
 void DX12::prepareBackBufferForImGui()
 {
+    //! Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
+    transitionSceneToSRV();
+
     UINT bbIdx = m_dxgiSwapChain4->GetCurrentBackBufferIndex();
 
     //! PRESENT → RENDER_TARGET
@@ -591,9 +682,53 @@ void DX12::executeCommandList()
     m_commandQueue->ExecuteCommandLists(_countof(lists), lists);
 }
 
+void DX12::executeWorkerCommandLists()
+{
+    auto workerLists = CommandListPool::Instance().getClosedCommandLists();
+    if (!workerLists.empty())
+    {
+        m_commandQueue->ExecuteCommandLists(
+            static_cast<UINT>(workerLists.size()),
+            workerLists.data());
+    }
+    CommandListPool::Instance().resetAll();
+}
+
+void DX12::resetCommandListOnly()
+{
+    //! post-pass 用のアロケータでリセット（pre-pass アロケータは GPU 使用中のため触らない）
+    m_postCommandAllocator->Reset();
+    m_graphicsCommandList->Reset(m_postCommandAllocator.Get(), nullptr);
+}
+
+void DX12::applyViewportAndScissor(ID3D12GraphicsCommandList* cmd) const
+{
+    D3D12_VIEWPORT viewport = {};
+    viewport.Width = static_cast<FLOAT>(m_width);
+    viewport.Height = static_cast<FLOAT>(m_height);
+    viewport.TopLeftX = 0;
+    viewport.TopLeftY = 0;
+    viewport.MaxDepth = 1.0f;
+    viewport.MinDepth = 0.0f;
+    cmd->RSSetViewports(1, &viewport);
+
+    D3D12_RECT scissorrect = {};
+    scissorrect.top = 0;
+    scissorrect.left = 0;
+    scissorrect.right = scissorrect.left + m_width;
+    scissorrect.bottom = scissorrect.top + m_height;
+    cmd->RSSetScissorRects(1, &scissorrect);
+}
+
+void DX12::applySceneRenderTargets(ID3D12GraphicsCommandList* cmd) const
+{
+    cmd->OMSetRenderTargets(1, &m_sceneRTVHandle, FALSE, &m_dsvHandle);
+}
+
 void DX12::commandReset()
 {
     //! 領域をクリア、次フレーム用に命令を積める状態にする
     m_commandAllocator->Reset();
+    m_postCommandAllocator->Reset();
     m_graphicsCommandList->Reset(m_commandAllocator.Get(), nullptr);
 }

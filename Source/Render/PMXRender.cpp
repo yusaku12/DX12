@@ -150,7 +150,7 @@ void PMXRender::createPSO()
         //{ "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         //{ "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     };
-    m_psoCreator = std::make_unique<PSOCreator>(psoData);
+    m_psoKey = PSOCreator::Instance().registerPSO(psoData);
 }
 
 void PMXRender::loadSetting()
@@ -290,22 +290,26 @@ void PMXRender::rebuildSubsetDescriptors(Subset& subset)
 void PMXRender::render()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
+    render(cmd);
+}
 
+void PMXRender::render(ID3D12GraphicsCommandList* cmd)
+{
     //! DescriptorHeap
-    DescriptorHeapManager::Instance().setDescriptorHeap();
+    DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
 
     //! RootSignature
     cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::PMXStandard));
 
     //! PSO
-    m_psoCreator->setPSO();
+    PSOCreator::Instance().setPSO(m_psoKey, cmd);
 
     //! IA
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     //! VB/IB
-    m_vertexBuffer->bind();
-    m_indexBuffer->bind();
+    m_vertexBuffer->bind(cmd);
+    m_indexBuffer->bind(cmd);
 
     //! CBV(カメラ)
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());

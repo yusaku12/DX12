@@ -104,6 +104,21 @@ public:
     //! コマンドリスト取得
     ID3D12GraphicsCommandList* getGraphicsCommandList() const { return m_graphicsCommandList.Get(); }
 
+    //! ワーカーコマンドリストをメインの前に実行
+    void executeWorkerCommandLists();
+
+    //! メインコマンドリストのみリセット（アロケータもリセット）
+    void resetCommandListOnly();
+
+    //! GPU の処理完了を待つ（public版）
+    void waitForGpu() { safeGPUWait(); }
+
+    //! 現在のビューポートとシザー矩形をコマンドリストに設定
+    void applyViewportAndScissor(ID3D12GraphicsCommandList* cmd) const;
+
+    //! 現在の RenderTarget（Scene RT + DSV）をコマンドリストに設定
+    void applySceneRenderTargets(ID3D12GraphicsCommandList* cmd) const;
+
     //! バックバッファ取得
     DXGI_FORMAT getBackBufferFormat() const { return m_backBufferFormat; }
 
@@ -132,6 +147,9 @@ private:
     //! DX12で使用するデバッグ機能
     void enableDebugLayer();
 
+    //! Info Queue 設定（警告フィルタリング）
+    void setupInfoQueue();
+
     //! コマンドリセット
     void commandReset();
 
@@ -141,12 +159,19 @@ private:
     //! フェンスを待つ
     void safeGPUWait();
 
+    //! Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
+    void transitionSceneToSRV();
+
+    //! Debug Layer の警告を出力ウィンドウにフラッシュ
+    void flushDebugMessages();
+
     static DX12* m_instance;
     const HWND m_hwnd;
     int m_width = 1280, m_height = 720;     //!< 画面の縦幅、横幅
     static constexpr int BUFFER_COUNT = 3;  //!< バックバッファの数
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_postCommandAllocator;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_graphicsCommandList;
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain4;
@@ -167,4 +192,8 @@ private:
     ImVec2 m_sceneWindowPos = ImVec2(0, 0);
     ImVec2 m_sceneWindowSize = ImVec2(0, 0);
     ImDrawList* m_sceneDrawList = nullptr;
+
+#ifdef _DEBUG
+    Microsoft::WRL::ComPtr<ID3D12InfoQueue> m_infoQueue;
+#endif
 };
