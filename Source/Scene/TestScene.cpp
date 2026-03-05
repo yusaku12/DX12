@@ -2,6 +2,8 @@
 #include "TestScene.h"
 #include "GameObject\GameObject.h"
 #include "Component\TransformComponent.h"
+#include "Component\RigidbodyComponent.h"
+#include "Component\ColliderComponent.h"
 
 void TestScene::onEnter()
 {
@@ -31,6 +33,52 @@ void TestScene::onEnter()
         //! PMXモデルの描画（レンダラに Transform を設定）
         m_fbxRender = std::make_unique<FBXRender>("Data/Model/Jammo/Jammo.fbx");
         m_fbxRender->setTransform(tf);
+    }
+
+    //! ========================================
+    //! 物理オブジェクトのテスト
+    //! ========================================
+
+    //! 地面（Static + PlaneCollider）
+    {
+        GameObject* ground = new GameObject("Ground");
+        TransformComponent* tf = ground->addComponent<TransformComponent>();
+        tf->setPosition(Vector3::Zero);
+        tf->setRotation(Quaternion::Identity);
+
+        ColliderComponent* col = ground->addComponent<ColliderComponent>();
+        col->setPlaneShape();
+
+        RigidbodyComponent* rb = ground->addComponent<RigidbodyComponent>();
+        rb->setType(RigidbodyType::Static);
+    }
+
+    //! 落下する球体（Dynamic + SphereCollider）
+    {
+        GameObject* sphere = new GameObject("Physics_Sphere");
+        TransformComponent* tf = sphere->addComponent<TransformComponent>();
+        tf->setPosition(Vector3(0.0f, 10.0f, 0.0f));
+
+        ColliderComponent* col = sphere->addComponent<ColliderComponent>();
+        col->setSphereShape(0.5f);
+
+        RigidbodyComponent* rb = sphere->addComponent<RigidbodyComponent>();
+        rb->setMass(1.0f);
+        rb->setUseGravity(true);
+    }
+
+    //! 落下するボックス（Dynamic + BoxCollider）
+    {
+        GameObject* box = new GameObject("Physics_Box");
+        TransformComponent* tf = box->addComponent<TransformComponent>();
+        tf->setPosition(Vector3(2.0f, 8.0f, 0.0f));
+        tf->setRotation(Quaternion::CreateFromYawPitchRoll(0.3f, 0.5f, 0.1f));
+
+        ColliderComponent* col = box->addComponent<ColliderComponent>();
+        col->setBoxShape(tf->getPosition());
+
+        RigidbodyComponent* rb = box->addComponent<RigidbodyComponent>();
+        rb->setMass(2.0f);
     }
 
     //! デバック描画

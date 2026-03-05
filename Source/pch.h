@@ -66,6 +66,7 @@
 #include "Audio\AudioManager.h"
 #include "System\DebugPrimitive.h"
 #include "Graphics\CommandListPool.h"
+#include "Physics\PhysicsWorld.h"
 
 //! 省略系
 using namespace DirectX;

@@ -215,7 +215,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <OpenMPSupport>true</OpenMPSupport>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalIncludeDirectories>$(ProjectDir);..\Common;..\DirectXTex;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -303,6 +303,7 @@
       <ConformanceMode>true</ConformanceMode>
       <DisableSpecificWarnings>26812</DisableSpecificWarnings>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ole32.lib;windowscodecs.lib;uuid.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>

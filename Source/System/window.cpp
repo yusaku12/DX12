@@ -41,6 +41,9 @@ Window::Window(HWND hwnd)
     //! デバックプリミティブ描画初期化
     DebugPrimitive::Instance().initialize();
 
+    //! 物理マネージャー初期化
+    PhysicsWorld::Instance().initialize();
+
     //! 試しに読み込み
     //AudioManager::Instance().load("bgm", "Data/Audio/a.wav");
     //AudioManager::Instance().play("bgm", true);
@@ -58,12 +61,20 @@ Window::~Window()
 
     //! デバックプリミティブ描画終了処理
     DebugPrimitive::Instance().shutdown();
+
+    //! 物理マネージャー終了処理
+    PhysicsWorld::Instance().shutdown();
 }
 
 void Window::update()
 {
     //! TimeManager更新
     TimeManager::Instance().update();
+
+    //! 物理シミュレーション更新
+    float dt = TimeManager::Instance().getDeltaTime();
+    PhysicsWorld::Instance().simulate(dt);
+    PhysicsWorld::Instance().fetchResults();
 
     //! shaderManager更新
     ShaderManager::Instance().update();

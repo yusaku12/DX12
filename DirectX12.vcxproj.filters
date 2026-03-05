@@ -1,417 +1,316 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="ƒ\[ƒX ƒtƒ@ƒCƒ‹">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹">
+    <Filter Include="ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="ƒŠƒ\[ƒX ƒtƒ@ƒCƒ‹">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Graphics\DX12.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Main.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\System\Logger.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\System\Window.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_draw.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_impl_dx12.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_impl_win32.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_tables.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_widgets.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_render.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_widget_flamegraph.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Math\SimpleMath.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\pch.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\LoadTexture.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Model\PmxLoad.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_neo_internal.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\imgui_neo_sequencer.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\ImNodeFlow.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\PiplineState.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\TextureManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\ShaderManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\System\TimeManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\System\CpuGpuProfiler.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\RootSignatureManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\DescriptorHeapManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\CommandListPool.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Scene\SceneManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Camera\CameraManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameObject\GameObject.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\GameObject\GameObjectRegistry.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\EditorContext.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\HierarchyWindow.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\InspectorWindow.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\EditorManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Input\InputManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Audio\AudioEngine.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Audio\SoundBuffer.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Audio\AudioManager.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Audio\SoundVoice.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\ImCurveEdit.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\UploadBuffer.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Graphics\PSOCreator.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Camera\FreeCameraBehaviour.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Scene\TestScene.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Render\PMXRender.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\System\Dialog.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\System\DebugPrimitive.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\TransformComponent.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="External\imgui\ImGuizmo.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Component\Component.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Model\VmdLoad.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Model\FBXLoad.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Render\FBXRender.cpp">
-      <Filter>ƒ\[ƒX ƒtƒ@ƒCƒ‹</Filter>
-    </ClCompile>
+    <ClCompile Include="External\imgui\imgui.cpp" />
+    <ClCompile Include="External\imgui\ImGuizmo.cpp" />
+    <ClCompile Include="External\imgui\imgui_draw.cpp" />
+    <ClCompile Include="External\imgui\imgui_impl_dx12.cpp" />
+    <ClCompile Include="External\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="External\imgui\imgui_neo_internal.cpp" />
+    <ClCompile Include="External\imgui\imgui_neo_sequencer.cpp" />
+    <ClCompile Include="External\imgui\imgui_render.cpp" />
+    <ClCompile Include="External\imgui\imgui_tables.cpp" />
+    <ClCompile Include="External\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="External\imgui\imgui_widget_flamegraph.cpp" />
+    <ClCompile Include="External\imgui\ImNodeFlow.cpp" />
+    <ClCompile Include="Source\Audio\AudioEngine.cpp" />
+    <ClCompile Include="Source\Audio\AudioManager.cpp" />
+    <ClCompile Include="Source\Audio\SoundBuffer.cpp" />
+    <ClCompile Include="Source\Audio\SoundVoice.cpp" />
+    <ClCompile Include="Source\Camera\CameraManager.cpp" />
+    <ClCompile Include="Source\Camera\FreeCameraBehaviour.cpp" />
+    <ClCompile Include="Source\Component\Component.cpp" />
+    <ClCompile Include="Source\Component\TransformComponent.cpp" />
+    <ClCompile Include="Source\Editor\EditorContext.cpp" />
+    <ClCompile Include="Source\Editor\EditorManager.cpp" />
+    <ClCompile Include="Source\Editor\HierarchyWindow.cpp" />
+    <ClCompile Include="Source\Editor\InspectorWindow.cpp" />
+    <ClCompile Include="Source\GameObject\GameObject.cpp" />
+    <ClCompile Include="Source\GameObject\GameObjectRegistry.cpp" />
+    <ClCompile Include="Source\Graphics\DescriptorHeapManager.cpp" />
+    <ClCompile Include="Source\Graphics\CommandListPool.cpp" />
+    <ClCompile Include="Source\Graphics\DX12.cpp" />
+    <ClCompile Include="Source\Graphics\LoadTexture.cpp" />
+    <ClCompile Include="Source\Graphics\PiplineState.cpp" />
+    <ClCompile Include="Source\Graphics\PSOCreator.cpp" />
+    <ClCompile Include="Source\Graphics\RootSignatureManager.cpp" />
+    <ClCompile Include="Source\Graphics\ShaderManager.cpp" />
+    <ClCompile Include="Source\Graphics\TextureManager.cpp" />
+    <ClCompile Include="Source\Graphics\UploadBuffer.cpp" />
+    <ClCompile Include="Source\Input\InputManager.cpp" />
+    <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\Math\SimpleMath.cpp" />
+    <ClCompile Include="Source\Model\FBXLoad.cpp" />
+    <ClCompile Include="Source\Model\PmxLoad.cpp" />
+    <ClCompile Include="Source\Model\VmdLoad.cpp" />
+    <ClCompile Include="Source\pch.cpp" />
+    <ClCompile Include="Source\Render\FBXRender.cpp" />
+    <ClCompile Include="Source\Render\PMXRender.cpp" />
+    <ClCompile Include="Source\Scene\SceneManager.cpp" />
+    <ClCompile Include="Source\Scene\TestScene.cpp" />
+    <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
+    <ClCompile Include="Source\System\DebugPrimitive.cpp" />
+    <ClCompile Include="Source\System\Dialog.cpp" />
+    <ClCompile Include="Source\System\Logger.cpp" />
+    <ClCompile Include="Source\System\TimeManager.cpp" />
+    <ClCompile Include="Source\System\Window.cpp" />
+    <ClCompile Include="Source\Physics\PhysicsWorld.cpp" />
+    <ClCompile Include="Source\Component\ColliderComponent.cpp" />
+    <ClCompile Include="Source\Component\RigidbodyComponent.cpp" />
+    <ClCompile Include="External\imgui\ImCurveEdit.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\Logger.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\Stringformat.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\Window.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imconfig.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_impl_dx12.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_impl_win32.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_internal.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imstb_rectpack.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imstb_textedit.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imstb_truetype.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_render.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_widget_flamegraph.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Math\SimpleMath.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\pch.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\PiplineState.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\LoadTexture.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Model\PmxLoad.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_neo_sequencer.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_neo_internal.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\ImNodeFlow.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_bezier_math.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_extra_math.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\context_wrapper.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\TextureManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\ShaderManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\TimeManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\CpuGpuProfiler.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\RootSignatureManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\DescriptorHeapManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\CommandListPool.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\ConstantBuffer.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\VertexBuffer.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\IndexBuffer.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Scene.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\SceneManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Camera\Camera.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Camera\CameraManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Camera\CameraBehaviour.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\LoggerMacros.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameObject\GameObject.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\Component.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\Object.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameObject\GameObjectRegistry.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\EditorContext.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\EditorManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\HierarchyWindow.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\InspectorWindow.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Input\InputManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Audio\miniaudio.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Audio\AudioEngine.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Audio\SoundBuffer.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Audio\AudioManager.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Audio\SoundVoice.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
-    </ClInclude>
-    <ClInclude Include="External\imgui\ImCurveEdit.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\UploadBuffer.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\PSOCreator.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\ShaderData.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Camera\FreeCameraBehaviour.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum_all.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum_containers.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum_flags.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum_format.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum_fuse.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum_iostream.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum_switch.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum_utility.hpp">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\TestScene.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\PMXRender.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\Dialog.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\DebugPrimitive.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\TransformComponent.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\ImGuizmo.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Model\VmdLoad.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Model\FBXLoad.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\FBXRender.h">
-      <Filter>ƒwƒbƒ_[ ƒtƒ@ƒCƒ‹</Filter>
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½@ï¿½Cï¿½ï¿½</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\PhysicsWorld.h">
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½%40ï¿½Cï¿½ï¿½</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\ColliderComponent.h">
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½%40ï¿½Cï¿½ï¿½</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\RigidbodyComponent.h">
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½%40ï¿½Cï¿½ï¿½</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Physics\PhysXHelper.h">
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½%40ï¿½Cï¿½ï¿½</Filter>
+    </ClInclude>
+    <ClInclude Include="External\imgui\ImCurveEdit.h">
+      <Filter>ï¿½wï¿½bï¿½_ï¿½[ ï¿½tï¿½%40ï¿½Cï¿½ï¿½</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
