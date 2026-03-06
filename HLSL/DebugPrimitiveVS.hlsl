@@ -1,11 +1,12 @@
 #include "DebugPrimitive.hlsli"
 #include "CommonConstants.hlsli"
 
-VSOUT VS(VSIN input)
+VS_OUT VS(VS_IN input)
 {
-    VSOUT o;
+    VS_OUT o;
     float4 pos = float4(input.position, 1.0f);
-    o.position = mul(mul(projection, view), pos);
+    float4 worldPos = mul(world, pos);
+    o.position = mul(mul(projection, view), worldPos);
     o.color = input.color;
     return o;
 }

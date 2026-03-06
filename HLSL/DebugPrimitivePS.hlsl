@@ -1,6 +1,6 @@
 #include "DebugPrimitive.hlsli"
 
-float4 PS(VSOUT input) : SV_Target
+float4 PS(VS_OUT input) : SV_Target
 {
-    return input.color;
+    return input.color * meshColor;
 }

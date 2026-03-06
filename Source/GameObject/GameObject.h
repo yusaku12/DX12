@@ -88,6 +88,9 @@ public:
     //! GameObject 自体の有効・無効（GameObject が無効の場合、所属コンポーネントは実行されない）
     bool isEnabled() const { return m_enabled; }
 
+    //! GameObject が start 済みか
+    bool isStarted() const { return m_started; }
+
     //! 親オブジェクトの取得
     GameObject* getParent() const { return m_parent; }
 

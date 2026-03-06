@@ -16,7 +16,7 @@ class RigidbodyComponent;
 
 //=====================================================
 // PhysX をラップするシングルトン物理ワールド
-// - PhysX の Foundation / Physics / Scene を管理
+// - PhysX 5.x の Foundation / Physics / Scene を管理
 // - Unity の Physics クラス相当
 //=====================================================
 class PhysicsWorld
@@ -36,14 +36,8 @@ public:
     //! 終了処理
     void shutdown();
 
-    //! 物理シミュレーションを1ステップ進める
+    //! 物理シミュレーションを1ステップ進める（内部で固定タイムステップ + fetchResults + Transform同期）
     void simulate(float deltaTime);
-
-    //! シミュレーション結果を取得して Transform に反映
-    void fetchResults(bool block = true);
-
-    //! デバッグ描画（DebugPrimitive に PhysX のワイヤーフレームを描画）
-    void debugDraw();
 
     //! ImGui デバッグウィンドウ
     void imgui();
@@ -54,7 +48,9 @@ public:
 
     physx::PxPhysics* getPhysics() const { return m_physics; }
     physx::PxScene* getScene() const { return m_scene; }
-    physx::PxCookingParams* getCooking() const { return m_cooking; }
+
+    //! Cooking パラメータ取得（PhysX 5.x では PxPhysics に統合済み）
+    const physx::PxCookingParams& getCookingParams() const { return m_cookingParams; }
 
     //! デフォルトマテリアル（staticFriction, dynamicFriction, restitution）
     physx::PxMaterial* getDefaultMaterial() const { return m_defaultMaterial; }
@@ -84,10 +80,6 @@ public:
     void setGravity(const Vector3& gravity);
     Vector3 getGravity() const;
 
-    //! デバッグ描画の有効・無効
-    void setDebugDrawEnabled(bool enabled) { m_debugDrawEnabled = enabled; }
-    bool isDebugDrawEnabled() const { return m_debugDrawEnabled; }
-
 private:
 
     PhysicsWorld() = default;
@@ -95,18 +87,22 @@ private:
     PhysicsWorld(const PhysicsWorld&) = delete;
     PhysicsWorld& operator=(const PhysicsWorld&) = delete;
 
+    //! シミュレーション結果を RigidbodyComponent に反映（simulate 内部から呼ばれる）
+    void syncTransforms();
+
     physx::PxDefaultAllocator m_allocator;
     physx::PxDefaultErrorCallback m_errorCallback;
 
     physx::PxFoundation* m_foundation = nullptr;
     physx::PxPhysics* m_physics = nullptr;
     physx::PxScene* m_scene = nullptr;
-    physx::PxCookingParams* m_cooking = nullptr;
     physx::PxMaterial* m_defaultMaterial = nullptr;
     physx::PxDefaultCpuDispatcher* m_dispatcher = nullptr;
     physx::PxPvd* m_pvd = nullptr;
 
-    bool m_debugDrawEnabled = false;
+    //! PhysX 5.x では Cooking はオブジェクトではなくパラメータのみ保持
+    physx::PxCookingParams m_cookingParams = physx::PxCookingParams(physx::PxTolerancesScale());
+
     bool m_initialized = false;
 
     //! 固定タイムステップ用

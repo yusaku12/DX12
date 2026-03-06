@@ -1,11 +1,31 @@
 ﻿#include "pch.h"
 
-void DebugPrimitive::initialize(UINT maxLines)
-{
-    m_maxLines = maxLines;
-    m_lines.reserve(m_maxLines);
+static constexpr float PI = 3.14159265358979323846f;
+static constexpr float PI2 = PI * 2.0f;
+static constexpr float PI_H = PI * 0.5f;
 
-    //! PSO 作成 (線描画用)
+void DebugPrimitive::initialize()
+{
+    //! メッシュ作成
+    createSphereMesh(16);
+    createHalfSphereMesh(16);
+    createCylinderMesh(16);
+    createBoxMesh();
+    createLineMesh();
+
+    //! メッシュ定数バッファ作成（ドローコールごとに個別エレメント）
+    m_meshCB = std::make_unique<ConstantBuffer<CbMesh>>(MAX_DRAW_CALLS);
+
+    //! グリッド用動的バッファ（最大 2048 ライン = 4096 頂点）
+    constexpr UINT gridMaxVerts = 4096;
+    m_gridUploadBuffer = std::make_unique<UploadBuffer>(sizeof(Vertex) * gridMaxVerts);
+    auto* res = m_gridUploadBuffer->getResource();
+    res->Map(0, nullptr, reinterpret_cast<void**>(&m_gridMapped));
+    m_gridVBV.BufferLocation = res->GetGPUVirtualAddress();
+    m_gridVBV.StrideInBytes = sizeof(Vertex);
+    m_gridVBV.SizeInBytes = sizeof(Vertex) * gridMaxVerts;
+
+    //! PSO 作成（メッシュ描画用：位置 + カラー）
     PSOCreator::PSOData pso;
     pso.rootSignatureType = RootSignatureType::DebugPrimitive;
     pso.vsShaderId = ShaderID::DebugPrimitiveVS;
@@ -16,223 +36,86 @@ void DebugPrimitive::initialize(UINT maxLines)
     pso.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
     pso.inputLayout =
     {
-        D3D12_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        D3D12_INPUT_ELEMENT_DESC{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        D3D12_INPUT_ELEMENT_DESC{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        D3D12_INPUT_ELEMENT_DESC{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     };
-    m_psoKey = PSOCreator::Instance().registerPSO(pso);
+    m_meshPsoKey = PSOCreator::Instance().registerPSO(pso);
 
-    ensureBuffer();
+    //! リクエスト予約
+    m_sphereRequests.reserve(64);
+    m_halfSphereRequests.reserve(128);
+    m_boxRequests.reserve(64);
+    m_cylinderRequests.reserve(64);
+    m_lineRequests.reserve(2048);
 }
 
 void DebugPrimitive::shutdown()
 {
-    m_uploadBuffer.reset();
-    m_lines.clear();
-    m_mappedVertices = nullptr;
-}
-
-void DebugPrimitive::ensureBuffer()
-{
-    //! 頂点数 = ライン数 * 2
-    UINT maxVertices = (m_maxLines == 0) ? 65536 * 2u : m_maxLines * 2u;
-    m_vertexBufferSize = sizeof(Vertex) * maxVertices;
-
-    m_uploadBuffer = std::make_unique<UploadBuffer>(m_vertexBufferSize);
-    auto res = m_uploadBuffer->getResource();
-    HRESULT hr = res->Map(0, nullptr, reinterpret_cast<void**>(&m_mappedVertices));
-    LOG_HR(hr, "DebugPrimitive: failed to Map upload buffer");
-
-    m_vbv.BufferLocation = res->GetGPUVirtualAddress();
-    m_vbv.StrideInBytes = sizeof(Vertex);
-    m_vbv.SizeInBytes = m_vertexBufferSize;
+    m_meshCB.reset();
+    m_gridUploadBuffer.reset();
+    m_sphereVB.Reset();
+    m_halfSphereVB.Reset();
+    m_cylinderVB.Reset();
+    m_boxVB.Reset();
+    m_lineVB.Reset();
 }
 
 void DebugPrimitive::beginFrame()
 {
-    //! フレーム開始時は特に何もしない（必要ならここで一時データのクリアを行う）
+    m_sphereRequests.clear();
+    m_halfSphereRequests.clear();
+    m_boxRequests.clear();
+    m_cylinderRequests.clear();
+    m_lineRequests.clear();
+    m_drawIndex = 0;
 }
 
-void DebugPrimitive::update(float deltaTime)
+void DebugPrimitive::drawSphere(const Matrix& world, float radius, const Vector4& color)
 {
-    //! 寿命付きラインの減算・削除
-    if (m_lines.empty()) return;
-
-    for (size_t i = 0; i < m_lines.size(); )
-    {
-        if (m_lines[i].remaining > 0.0f)
-        {
-            m_lines[i].remaining -= deltaTime;
-            if (m_lines[i].remaining <= 0.0f)
-            {
-                // erase
-                m_lines.erase(m_lines.begin() + static_cast<int>(i));
-                continue;
-            }
-        }
-        ++i;
-    }
+    m_sphereRequests.push_back({ world, radius, color });
 }
 
-void DebugPrimitive::buildVertexBuffer()
+void DebugPrimitive::drawBox(const Matrix& world, const Vector3& extents, const Vector4& color)
 {
-    if (m_lines.empty()) return;
-
-    //! 実際に書き込む頂点数
-    UINT vertexCount = static_cast<UINT>(m_lines.size()) * 2u;
-
-    //! 上限チェック
-    UINT maxVertices = m_vbv.SizeInBytes / m_vbv.StrideInBytes;
-    if (vertexCount > maxVertices)
-    {
-        //! 超過時は描画できる分だけ描く（先頭の方を優先）
-        vertexCount = maxVertices;
-    }
-
-    //! マップ済みメモリに書き込み（UploadBuffer は連続領域）
-    Vertex* dst = m_mappedVertices;
-    UINT idx = 0;
-    for (const auto& L : m_lines)
-    {
-        if (idx + 1 >= vertexCount) break;
-        dst[idx++] = Vertex{ L.a, L.color };
-        dst[idx++] = Vertex{ L.b, L.color };
-    }
-
-    //! VBView のサイズを実際の頂点数に合わせる
-    m_vbv.SizeInBytes = static_cast<UINT>(vertexCount * sizeof(Vertex));
+    m_boxRequests.push_back({ world, extents, color });
 }
 
-void DebugPrimitive::render()
+void DebugPrimitive::drawCylinder(const Matrix& world, float radius, float height, const Vector4& color)
 {
-    if (m_lines.empty()) return;
-
-    //! DescriptorHeap をセット（既存のコードに合わせる）
-    DescriptorHeapManager::Instance().setDescriptorHeap();
-
-    auto cmd = DX12::Instance().getGraphicsCommandList();
-
-    //! ルートシグネチャ & PSO
-    PSOCreator::Instance().setPSO(m_psoKey);
-
-    //! Camera CBV をセット（既存プロジェクトの慣習に合わせる）
-    cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
-
-    //! ビルド頂点バッファ
-    buildVertexBuffer();
-
-    //! VB バインド
-    cmd->IASetVertexBuffers(0, 1, &m_vbv);
-    cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-
-    //! Draw
-    UINT vertexCount = m_vbv.SizeInBytes / m_vbv.StrideInBytes;
-    if (vertexCount > 0)
-    {
-        cmd->DrawInstanced(vertexCount, 1, 0, 0);
-    }
+    m_cylinderRequests.push_back({ world, radius, height, color });
 }
 
-void DebugPrimitive::addLine(const Vector3& a, const Vector3& b, const Vector4& color, float duration)
+void DebugPrimitive::drawCapsule(const Matrix& world, float radius, float halfHeight, const Vector4& color)
 {
-    if (m_maxLines > 0 && m_lines.size() >= m_maxLines)
+    //! ワールド行列から平行移動を分離
+    Vector3 worldPos = world.Translation();
+
+    //! 回転部分のみの行列を作成（平行移動を除去）
+    Matrix rs = world;
+    rs._41 = 0.0f;
+    rs._42 = 0.0f;
+    rs._43 = 0.0f;
+
+    //! 上半球（Y-方向に凸 → X軸でPI回転して蓋にする）
     {
-        //! 上限到達時は最古を上書き（リング不要なら削る）
-        m_lines.erase(m_lines.begin());
+        Matrix rot = Matrix::CreateRotationX(PI);
+        Matrix w = rot * rs;
+        Vector3 position = Vector3::Transform(Vector3(0, -halfHeight, 0), world);
+        w.Translation(position);
+        m_halfSphereRequests.push_back({ w, radius, color });
     }
-    Line l;
-    l.a = a;
-    l.b = b;
-    l.color = color;
-    l.remaining = duration;
-    m_lines.push_back(l);
-}
-
-void DebugPrimitive::addBox(const Vector3& center, const Vector3& extents, const Vector4& color, float duration)
-{
-    //! 8頂点から 12 本の線を追加
-    Vector3 v[8];
-    Vector3 e = extents;
-    v[0] = center + Vector3(-e.x, -e.y, -e.z);
-    v[1] = center + Vector3(e.x, -e.y, -e.z);
-    v[2] = center + Vector3(e.x, e.y, -e.z);
-    v[3] = center + Vector3(-e.x, e.y, -e.z);
-    v[4] = center + Vector3(-e.x, -e.y, e.z);
-    v[5] = center + Vector3(e.x, -e.y, e.z);
-    v[6] = center + Vector3(e.x, e.y, e.z);
-    v[7] = center + Vector3(-e.x, e.y, e.z);
-
-    const int edges[12][2] =
+    //! 円柱
+    m_cylinderRequests.push_back({ world, radius, halfHeight * 2.0f, color });
+    //! 下半球（Y+方向に凸、そのまま）
     {
-        {0,1},{1,2},{2,3},{3,0},
-        {4,5},{5,6},{6,7},{7,4},
-        {0,4},{1,5},{2,6},{3,7}
-    };
-    for (int i = 0; i < 12; ++i)
-    {
-        addLine(v[edges[i][0]], v[edges[i][1]], color, duration);
+        Matrix w = rs;
+        Vector3 position = Vector3::Transform(Vector3(0, halfHeight, 0), world);
+        w.Translation(position);
+        m_halfSphereRequests.push_back({ w, radius, color });
     }
 }
 
-void DebugPrimitive::addTransform(const Matrix& transform, float size)
-{
-    Vector3 origin = transform.Translation();
-    Vector3 x = transform.Right() * size;
-    Vector3 y = transform.Up() * size;
-    Vector3 z = transform.Forward() * size;
-
-    addLine(origin, origin + x, Vector4(1, 0, 0, 1));
-    addLine(origin, origin + y, Vector4(0, 1, 0, 1));
-    addLine(origin, origin + z, Vector4(0, 0, 1, 1));
-}
-
-void DebugPrimitive::addSphere(const Vector3& center, float radius, int segments, int rings, const Vector4& color, float duration)
-{
-    if (radius <= 0.0f) return;
-    if (segments < 3) segments = 3;
-    if (rings < 2) rings = 2;
-
-    const float PI = 3.14159265358979323846f;
-    //! 緯線（latitude）の円（Y方向で高さを変えつつ XZ 平面に円を描く）
-    for (int r = 1; r < rings; ++r)
-    {
-        float theta = PI * static_cast<float>(r) / static_cast<float>(rings); //!< (0, PI)
-        float y = std::cos(theta) * radius;
-        float ringR = std::sin(theta) * radius;
-
-        //! 円を構成する線分
-        Vector3 prevPoint;
-        for (int s = 0; s <= segments; ++s)
-        {
-            float phi = 2.0f * PI * static_cast<float>(s) / static_cast<float>(segments);
-            float x = std::cos(phi) * ringR;
-            float z = std::sin(phi) * ringR;
-            Vector3 p = center + Vector3(x, y, z);
-            if (s > 0) addLine(prevPoint, p, color, duration);
-            prevPoint = p;
-        }
-    }
-
-    //! 子午線（longitude）: 各経度方向に沿って緯度点を繋ぐ
-    for (int s = 0; s < segments; ++s)
-    {
-        float phi = 2.0f * PI * static_cast<float>(s) / static_cast<float>(segments);
-        Vector3 prevPoint = center + Vector3(0.0f, radius, 0.0f); //!< 北極開始
-        //! 緯度に沿って下へ
-        for (int r = 1; r <= rings; ++r)
-        {
-            float theta = PI * static_cast<float>(r) / static_cast<float>(rings); // 0..PI
-            float y = std::cos(theta) * radius;
-            float ringR = std::sin(theta) * radius;
-            float x = std::cos(phi) * ringR;
-            float z = std::sin(phi) * ringR;
-            Vector3 p = center + Vector3(x, y, z);
-            addLine(prevPoint, p, color, duration);
-            prevPoint = p;
-        }
-    }
-}
-
-void DebugPrimitive::addGrid(const Vector3& center, float width, float depth, float step, const Vector4& color, float duration)
+void DebugPrimitive::drawGrid(const Vector3& center, float width, float depth, float step, const Vector4& color)
 {
     if (width <= 0.0f || depth <= 0.0f) return;
     if (step <= 0.0f) step = 1.0f;
@@ -240,42 +123,323 @@ void DebugPrimitive::addGrid(const Vector3& center, float width, float depth, fl
     float halfW = width * 0.5f;
     float halfD = depth * 0.5f;
 
-    //! X方向の等間隔線（Z軸に沿う線）
     int linesX = static_cast<int>(std::floor(width / step)) + 1;
-    //! Z方向の等間隔線（X軸に沿う線）
     int linesZ = static_cast<int>(std::floor(depth / step)) + 1;
 
-    //! 中心を基準に -half..+half を走査
     float startX = center.x - halfW;
     float startZ = center.z - halfD;
 
     for (int i = 0; i < linesX; ++i)
     {
         float x = startX + i * step;
-        Vector3 a = Vector3(x, center.y, center.z - halfD);
-        Vector3 b = Vector3(x, center.y, center.z + halfD);
-        addLine(a, b, color, duration);
+        m_lineRequests.push_back({ Vector3(x, center.y, center.z - halfD), Vector3(x, center.y, center.z + halfD), color });
     }
-
     for (int j = 0; j < linesZ; ++j)
     {
         float z = startZ + j * step;
-        Vector3 a = Vector3(center.x - halfW, center.y, z);
-        Vector3 b = Vector3(center.x + halfW, center.y, z);
-        addLine(a, b, color, duration);
+        m_lineRequests.push_back({ Vector3(center.x - halfW, center.y, z), Vector3(center.x + halfW, center.y, z), color });
     }
-
-    //! 中心線（X,Z軸）を目立たせる（オプション）：中心に赤/青
-    Vector3 cx1 = Vector3(center.x - halfW, center.y, center.z);
-    Vector3 cx2 = Vector3(center.x + halfW, center.y, center.z);
-    addLine(cx1, cx2, Vector4(0.75f, 0.75f, 0.75f, 1.0f), duration);
-
-    Vector3 cz1 = Vector3(center.x, center.y, center.z - halfD);
-    Vector3 cz2 = Vector3(center.x, center.y, center.z + halfD);
-    addLine(cz1, cz2, Vector4(0.75f, 0.75f, 0.75f, 1.0f), duration);
 }
 
-void DebugPrimitive::clear()
+void DebugPrimitive::render()
 {
-    m_lines.clear();
+    bool hasAnything = !m_sphereRequests.empty()
+        || !m_halfSphereRequests.empty()
+        || !m_boxRequests.empty()
+        || !m_cylinderRequests.empty()
+        || !m_lineRequests.empty();
+    if (!hasAnything) return;
+
+    DescriptorHeapManager::Instance().setDescriptorHeap();
+    PSOCreator::Instance().setPSO(m_meshPsoKey);
+
+    auto cmd = DX12::Instance().getGraphicsCommandList();
+    cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
+    cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+
+    renderSpheres();
+    renderBoxes();
+    renderCylinders();
+    renderCapsules();
+    renderGrid();
+}
+
+void DebugPrimitive::renderSpheres()
+{
+    for (const auto& req : m_sphereRequests)
+    {
+        Matrix s = Matrix::CreateScale(req.radius);
+        CbMesh cb;
+        cb.world = (s * req.world).Transpose();
+        cb.color = req.color;
+        drawMesh(m_sphereVBV, m_sphereVertexCount, cb);
+    }
+}
+
+void DebugPrimitive::renderBoxes()
+{
+    for (const auto& req : m_boxRequests)
+    {
+        Matrix s = Matrix::CreateScale(req.extents);
+        CbMesh cb;
+        cb.world = (s * req.world).Transpose();
+        cb.color = req.color;
+        drawMesh(m_boxVBV, m_boxVertexCount, cb);
+    }
+}
+
+void DebugPrimitive::renderCylinders()
+{
+    for (const auto& req : m_cylinderRequests)
+    {
+        Matrix s = Matrix::CreateScale(req.radius, req.height, req.radius);
+        CbMesh cb;
+        cb.world = (s * req.world).Transpose();
+        cb.color = req.color;
+        drawMesh(m_cylinderVBV, m_cylinderVertexCount, cb);
+    }
+}
+
+void DebugPrimitive::renderCapsules()
+{
+    for (const auto& req : m_halfSphereRequests)
+    {
+        Matrix s = Matrix::CreateScale(req.radius);
+        CbMesh cb;
+        cb.world = (s * req.world).Transpose();
+        cb.color = req.color;
+        drawMesh(m_halfSphereVBV, m_halfSphereVertexCount, cb);
+    }
+}
+
+void DebugPrimitive::renderGrid()
+{
+    if (m_lineRequests.empty()) return;
+    if (m_drawIndex >= MAX_DRAW_CALLS) return;
+
+    //! グリッドラインを動的バッファに書き込み
+    UINT maxVerts = m_gridVBV.SizeInBytes / m_gridVBV.StrideInBytes;
+    UINT vertCount = std::min(static_cast<UINT>(m_lineRequests.size()) * 2u, maxVerts);
+
+    UINT idx = 0;
+    for (const auto& L : m_lineRequests)
+    {
+        if (idx + 1 >= vertCount) break;
+        m_gridMapped[idx++] = { L.a, L.color };
+        m_gridMapped[idx++] = { L.b, L.color };
+    }
+
+    UINT cbIdx = m_drawIndex++;
+    CbMesh cb;
+    cb.world = Matrix::Identity;
+    cb.color = Vector4::One;
+    m_meshCB->update(cb, cbIdx);
+
+    auto cmd = DX12::Instance().getGraphicsCommandList();
+    cmd->SetGraphicsRootConstantBufferView(1, m_meshCB->getGPUAddress(cbIdx));
+
+    D3D12_VERTEX_BUFFER_VIEW vbv = m_gridVBV;
+    vbv.SizeInBytes = idx * sizeof(Vertex);
+    cmd->IASetVertexBuffers(0, 1, &vbv);
+    cmd->DrawInstanced(idx, 1, 0, 0);
+}
+
+void DebugPrimitive::drawMesh(const D3D12_VERTEX_BUFFER_VIEW& vbv, UINT vertexCount, const CbMesh& cb)
+{
+    if (m_drawIndex >= MAX_DRAW_CALLS) return;
+
+    UINT idx = m_drawIndex++;
+    m_meshCB->update(cb, idx);
+
+    auto cmd = DX12::Instance().getGraphicsCommandList();
+    cmd->SetGraphicsRootConstantBufferView(1, m_meshCB->getGPUAddress(idx));
+    cmd->IASetVertexBuffers(0, 1, &vbv);
+    cmd->DrawInstanced(vertexCount, 1, 0, 0);
+}
+
+void DebugPrimitive::createVertexBuffer(const Vertex* vertices, UINT count,
+    Microsoft::WRL::ComPtr<ID3D12Resource>& outBuffer,
+    D3D12_VERTEX_BUFFER_VIEW& outVBV)
+{
+    auto device = DX12::Instance().getDevice();
+    UINT bufferSize = sizeof(Vertex) * count;
+
+    //! デフォルトヒープに配置
+    auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+
+    HRESULT hr = device->CreateCommittedResource(
+        &heapProp,
+        D3D12_HEAP_FLAG_NONE,
+        &resDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(&outBuffer));
+    LOG_HR(hr, "DebugPrimitive: createVertexBuffer failed");
+
+    //! データ書き込み
+    void* mapped = nullptr;
+    outBuffer->Map(0, nullptr, &mapped);
+    memcpy(mapped, vertices, bufferSize);
+    outBuffer->Unmap(0, nullptr);
+
+    //! VBV
+    outVBV.BufferLocation = outBuffer->GetGPUVirtualAddress();
+    outVBV.StrideInBytes = sizeof(Vertex);
+    outVBV.SizeInBytes = bufferSize;
+}
+
+void DebugPrimitive::createSphereMesh(int subdivisions)
+{
+    static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
+    m_sphereVertexCount = subdivisions * 2 * 3;
+    auto verts = std::make_unique<Vertex[]>(m_sphereVertexCount);
+    Vertex* p = verts.get();
+    float step = PI2 / subdivisions;
+
+    // XZ平面
+    for (int i = 0; i < subdivisions; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float t = step * ((i + j) % subdivisions);
+            *p++ = { Vector3(sinf(t), 0.0f, cosf(t)), defaultColor };
+        }
+    }
+    // XY平面
+    for (int i = 0; i < subdivisions; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float t = step * ((i + j) % subdivisions);
+            *p++ = { Vector3(sinf(t), cosf(t), 0.0f), defaultColor };
+        }
+    }
+    // YZ平面
+    for (int i = 0; i < subdivisions; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float t = step * ((i + j) % subdivisions);
+            *p++ = { Vector3(0.0f, sinf(t), cosf(t)), defaultColor };
+        }
+    }
+
+    createVertexBuffer(verts.get(), m_sphereVertexCount, m_sphereVB, m_sphereVBV);
+}
+
+void DebugPrimitive::createHalfSphereMesh(int subdivisions)
+{
+    static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
+    int halfSub = subdivisions / 2;
+    m_halfSphereVertexCount = subdivisions * 2 + halfSub * 2 + halfSub * 2;
+    auto verts = std::make_unique<Vertex[]>(m_halfSphereVertexCount);
+    Vertex* p = verts.get();
+    float step = PI2 / subdivisions;
+
+    // XZ平面（全周）
+    for (int i = 0; i < subdivisions; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float t = step * ((i + j) % subdivisions);
+            *p++ = { Vector3(sinf(t), 0.0f, cosf(t)), defaultColor };
+        }
+    }
+    // XY平面（半分）
+    for (int i = 0; i < halfSub; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float t = step * ((i + j) % subdivisions) - PI_H;
+            *p++ = { Vector3(sinf(t), cosf(t), 0.0f), defaultColor };
+        }
+    }
+    // YZ平面（半分）
+    for (int i = 0; i < halfSub; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float t = step * ((i + j) % subdivisions);
+            *p++ = { Vector3(0.0f, sinf(t), cosf(t)), defaultColor };
+        }
+    }
+
+    createVertexBuffer(verts.get(), m_halfSphereVertexCount, m_halfSphereVB, m_halfSphereVBV);
+}
+
+void DebugPrimitive::createCylinderMesh(int subdivisions)
+{
+    static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
+    m_cylinderVertexCount = (subdivisions * 2 * 2) + (2 * 2 * 2);
+    auto verts = std::make_unique<Vertex[]>(m_cylinderVertexCount);
+    Vertex* p = verts.get();
+    float step = PI2 / subdivisions;
+
+    // 上リング
+    for (int i = 0; i < subdivisions; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float t = step * ((i + j) % subdivisions);
+            *p++ = { Vector3(sinf(t), -0.5f, cosf(t)), defaultColor };
+        }
+    }
+    // 下リング
+    for (int i = 0; i < subdivisions; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float t = step * ((i + j) % subdivisions);
+            *p++ = { Vector3(sinf(t), 0.5f, cosf(t)), defaultColor };
+        }
+    }
+    // 縦線 4本
+    *p++ = { Vector3(0, -0.5f, 1), defaultColor };   *p++ = { Vector3(0, 0.5f, 1), defaultColor };
+    *p++ = { Vector3(0, -0.5f, -1), defaultColor };  *p++ = { Vector3(0, 0.5f, -1), defaultColor };
+    *p++ = { Vector3(1, -0.5f, 0), defaultColor };   *p++ = { Vector3(1, 0.5f, 0), defaultColor };
+    *p++ = { Vector3(-1, -0.5f, 0), defaultColor };  *p++ = { Vector3(-1, 0.5f, 0), defaultColor };
+
+    createVertexBuffer(verts.get(), m_cylinderVertexCount, m_cylinderVB, m_cylinderVBV);
+}
+
+void DebugPrimitive::createBoxMesh()
+{
+    static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
+    //! 単位サイズ（-1 ～ +1）の箱
+    Vector3 positions[8] =
+    {
+        { -1,  1, -1 }, {  1,  1, -1 }, {  1,  1,  1 }, { -1,  1,  1 },
+        { -1, -1, -1 }, {  1, -1, -1 }, {  1, -1,  1 }, { -1, -1,  1 },
+    };
+
+    m_boxVertexCount = 24;
+    Vertex verts[24] =
+    {
+        // top
+        { positions[0], defaultColor }, { positions[1], defaultColor },
+        { positions[1], defaultColor }, { positions[2], defaultColor },
+        { positions[2], defaultColor }, { positions[3], defaultColor },
+        { positions[3], defaultColor }, { positions[0], defaultColor },
+        // bottom
+        { positions[4], defaultColor }, { positions[5], defaultColor },
+        { positions[5], defaultColor }, { positions[6], defaultColor },
+        { positions[6], defaultColor }, { positions[7], defaultColor },
+        { positions[7], defaultColor }, { positions[4], defaultColor },
+        // pillars
+        { positions[0], defaultColor }, { positions[4], defaultColor },
+        { positions[1], defaultColor }, { positions[5], defaultColor },
+        { positions[2], defaultColor }, { positions[6], defaultColor },
+        { positions[3], defaultColor }, { positions[7], defaultColor },
+    };
+
+    createVertexBuffer(verts, m_boxVertexCount, m_boxVB, m_boxVBV);
+}
+
+void DebugPrimitive::createLineMesh()
+{
+    static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
+    //! 単位ライン（0→1）
+    Vertex verts[2] = { { Vector3::Zero, defaultColor }, { Vector3(1, 0, 0), defaultColor } };
+    createVertexBuffer(verts, 2, m_lineVB, m_lineVBV);
 }

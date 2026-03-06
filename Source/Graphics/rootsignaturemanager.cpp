@@ -59,10 +59,12 @@ void RootSignatureManager::buildPMXStandard()
 void RootSignatureManager::buildDebugPrimitive()
 {
     //! ルートパラメータ
-    CD3DX12_ROOT_PARAMETER params[1] = {};
+    CD3DX12_ROOT_PARAMETER params[2] = {};
 
     //! 定数バッファ(カメラ)
     params[0].InitAsConstantBufferView(static_cast<int>(CBVType::Camera));
+    //! 定数バッファ(メッシュ)
+    params[1].InitAsConstantBufferView(1); //!< b1
 
     //! ルートシグネチャ生成
     createRootSignature(params, _countof(params), RootSignatureType::DebugPrimitive);

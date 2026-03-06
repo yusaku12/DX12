@@ -9,41 +9,33 @@ void TestScene::onEnter()
 {
     //! PMX
     {
-        //! GameObject 作成して TransformComponent を追加（PMXモデルに紐付ける）
         GameObject* modelObj = new GameObject("PMX_Model_Object");
         TransformComponent* tf = modelObj->addComponent<TransformComponent>();
         tf->setPosition(Vector3(-7.0f, 0.0f, 0.0f));
         tf->setRotation(Quaternion::Identity);
         tf->setScale(Vector3::One);
 
-        //! PMXモデルの描画（レンダラに Transform を設定）
         m_pmxRender = std::make_unique<PMXRender>(L"Data/Model/千夏/千夏皮肤.pmx");
         m_pmxRender->setTransform(tf);
     }
 
     //! FBX
     {
-        //! GameObject 作成して TransformComponent を追加（PMXモデルに紐付ける）
         GameObject* modelObj = new GameObject("FBX_Model_Object");
         TransformComponent* tf = modelObj->addComponent<TransformComponent>();
         tf->setPosition(Vector3(7.0f, 0.0f, 0.0f));
         tf->setRotation(Quaternion::Identity);
         tf->setScale(Vector3::One);
 
-        //! PMXモデルの描画（レンダラに Transform を設定）
         m_fbxRender = std::make_unique<FBXRender>("Data/Model/Jammo/Jammo.fbx");
         m_fbxRender->setTransform(tf);
     }
-
-    //! ========================================
-    //! 物理オブジェクトのテスト
-    //! ========================================
 
     //! 地面（Static + PlaneCollider）
     {
         GameObject* ground = new GameObject("Ground");
         TransformComponent* tf = ground->addComponent<TransformComponent>();
-        tf->setPosition(Vector3::Zero);
+        tf->setPosition({ 0, -2, 0 });
         tf->setRotation(Quaternion::Identity);
 
         ColliderComponent* col = ground->addComponent<ColliderComponent>();
@@ -62,27 +54,23 @@ void TestScene::onEnter()
         ColliderComponent* col = sphere->addComponent<ColliderComponent>();
         col->setSphereShape(0.5f);
 
-        RigidbodyComponent* rb = sphere->addComponent<RigidbodyComponent>();
-        rb->setMass(1.0f);
-        rb->setUseGravity(true);
+        /*RigidbodyComponent* rb =*/ sphere->addComponent<RigidbodyComponent>();
+        //rb->setMass(1.0f);
+        //rb->setUseGravity(false);
     }
 
     //! 落下するボックス（Dynamic + BoxCollider）
     {
         GameObject* box = new GameObject("Physics_Box");
         TransformComponent* tf = box->addComponent<TransformComponent>();
-        tf->setPosition(Vector3(2.0f, 8.0f, 0.0f));
-        tf->setRotation(Quaternion::CreateFromYawPitchRoll(0.3f, 0.5f, 0.1f));
+        tf->setPosition(Vector3(2.0f, 5.0f, 0.0f));
 
         ColliderComponent* col = box->addComponent<ColliderComponent>();
-        col->setBoxShape(tf->getPosition());
+        col->setBoxShape(Vector3(0.5f, 0.5f, 0.5f));
 
-        RigidbodyComponent* rb = box->addComponent<RigidbodyComponent>();
-        rb->setMass(2.0f);
+        /*RigidbodyComponent* rb =*/ box->addComponent<RigidbodyComponent>();
+        //rb->setMass(2.0f);
     }
-
-    //! デバック描画
-    DebugPrimitive::Instance().addGrid({ 0,0,0 }, 100.0f, 100.0f, 1.0f, { 0.5f,0.5f,0.5f,1.0f }, 0.0f);
 }
 
 void TestScene::onExit()
@@ -91,14 +79,13 @@ void TestScene::onExit()
 
 void TestScene::update()
 {
+    //! グリッドは毎フレーム描画リクエストを出す
+    DebugPrimitive::Instance().drawGrid({ 0.0f,0.0f,0.0f }, 100.0f, 100.0f, 1.0f, { 0.5f,0.5f,0.5f,1.0f });
 }
 
 void TestScene::draw()
 {
-    //! PMXモデルの描画
     m_pmxRender->render();
-
-    //! FBXモデルの描画
     m_fbxRender->render();
 }
 
@@ -112,17 +99,14 @@ void TestScene::drawMultiThreaded()
     m_frameStart = Clock::now();
     m_threadTimings.clear();
 
-    //! ワーカーコマンドリストを取得
     auto* cmdPmx = pool.acquire();
     auto* cmdFbx = pool.acquire();
 
-    //! ビューポート・シザー・RenderTarget を各コマンドリストに設定
     dx12.applyViewportAndScissor(cmdPmx);
     dx12.applySceneRenderTargets(cmdPmx);
     dx12.applyViewportAndScissor(cmdFbx);
     dx12.applySceneRenderTargets(cmdFbx);
 
-    //! マルチスレッドでコマンド記録（計測付き）
     auto futurePmx = std::async(std::launch::async, [this, cmdPmx]()
         {
             using Clock = std::chrono::high_resolution_clock;
@@ -153,19 +137,15 @@ void TestScene::drawMultiThreaded()
             m_threadTimings.push_back({ "FBX", startMs, durationMs, std::this_thread::get_id() });
         });
 
-    //! 両方の完了を待つ
     futurePmx.wait();
     futureFbx.wait();
 
-    //! 合計時間を記録
     m_totalMultiThreadMs = std::chrono::duration<float, std::milli>(Clock::now() - m_frameStart).count();
 
-    //! シングルスレッド推定値（各タスクの duration の合計）
     m_singleThreadEstimateMs = 0.0f;
     for (const auto& t : m_threadTimings)
         m_singleThreadEstimateMs += t.durationMs;
 
-    //! コマンドリストを Close して返却
     pool.release(cmdPmx);
     pool.release(cmdFbx);
 }
@@ -175,14 +155,12 @@ void TestScene::debugDraw()
     m_pmxRender->debugRender();
     m_fbxRender->debugRender();
 
-    //! === マルチスレッド デバッグウィンドウ ===
     if (!ImGui::Begin("MT Command Recording"))
     {
         ImGui::End();
         return;
     }
 
-    //! サマリー
     float speedup = (m_totalMultiThreadMs > 0.001f)
         ? m_singleThreadEstimateMs / m_totalMultiThreadMs
         : 0.0f;
@@ -192,7 +170,6 @@ void TestScene::debugDraw()
     ImGui::Text("Speedup            : %.2fx", speedup);
     ImGui::Separator();
 
-    //! タイムラインバー描画
     ImGui::Text("Thread Timeline:");
 
     float maxTime = m_totalMultiThreadMs;
@@ -204,13 +181,12 @@ void TestScene::debugDraw()
     float barHeight = 24.0f;
     float padding = 4.0f;
 
-    //! 色テーブル
     ImU32 colors[] =
     {
-        IM_COL32(66, 135, 245, 255),   //! 青
-        IM_COL32(245, 166, 35, 255),   //! オレンジ
-        IM_COL32(80, 200, 120, 255),   //! 緑
-        IM_COL32(220, 80, 80, 255),    //! 赤
+        IM_COL32(66, 135, 245, 255),
+        IM_COL32(245, 166, 35, 255),
+        IM_COL32(80, 200, 120, 255),
+        IM_COL32(220, 80, 80, 255),
     };
 
     for (size_t i = 0; i < m_threadTimings.size(); ++i)
@@ -224,10 +200,8 @@ void TestScene::debugDraw()
 
         ImU32 color = colors[i % 4];
 
-        //! バー
         drawList->AddRectFilled(ImVec2(x0, y0), ImVec2(x1, y1), color, 4.0f);
 
-        //! ラベル
         char label[128];
         std::snprintf(label, sizeof(label), "%s  %.2f ms (TID: %zu)",
             t.name, t.durationMs,
@@ -236,11 +210,9 @@ void TestScene::debugDraw()
         drawList->AddText(ImVec2(x0 + 4.0f, y0 + 4.0f), IM_COL32(255, 255, 255, 255), label);
     }
 
-    //! カーソルを進める
     float totalHeight = static_cast<float>(m_threadTimings.size()) * (barHeight + padding) + padding;
     ImGui::Dummy(ImVec2(canvasWidth, totalHeight));
 
-    //! 各スレッドの詳細テーブル
     ImGui::Separator();
     if (ImGui::BeginTable("ThreadDetails", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
     {

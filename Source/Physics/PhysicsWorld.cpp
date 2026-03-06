@@ -1,22 +1,6 @@
 ﻿#include "pch.h"
+#include "PhysXHelper.h"
 #include "Component\RigidbodyComponent.h"
-
-//=====================================================
-// ヘルパー: SimpleMath <-> PhysX 変換
-//=====================================================
-namespace PhysXHelper
-{
-    inline physx::PxVec3 toPx(const Vector3& v) { return physx::PxVec3(v.x, v.y, v.z); }
-    inline Vector3 toSM(const physx::PxVec3& v) { return Vector3(v.x, v.y, v.z); }
-
-    inline physx::PxQuat toPx(const Quaternion& q) { return physx::PxQuat(q.x, q.y, q.z, q.w); }
-    inline Quaternion toSM(const physx::PxQuat& q) { return Quaternion(q.x, q.y, q.z, q.w); }
-
-    inline physx::PxTransform toPx(const Vector3& pos, const Quaternion& rot)
-    {
-        return physx::PxTransform(toPx(pos), toPx(rot));
-    }
-}
 
 //=====================================================
 // 初期化
@@ -55,9 +39,8 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
     //! Extensions 初期化
     PxInitExtensions(*m_physics, m_pvd);
 
-    //! Cooking 作成
-    //m_cooking = PxCreateCooking(PX_PHYSICS_VERSION, *m_foundation,
-    //    physx::PxCookingParams(m_physics->getTolerancesScale()));
+    //! CookingParams 初期化（PhysX 5.x では PxCooking オブジェクトは廃止）
+    m_cookingParams = physx::PxCookingParams(m_physics->getTolerancesScale());
 
     //! CPU Dispatcher 作成（スレッド数はハードウェアに合わせる）
     UINT numThreads = std::max(1u, std::thread::hardware_concurrency() - 1);
@@ -92,7 +75,7 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
     m_defaultMaterial = m_physics->createMaterial(0.5f, 0.5f, 0.3f);
 
     m_initialized = true;
-    LOG_INFO("PhysX ワールド初期化完了 (threads: %u)", numThreads);
+    LOG_INFO("PhysX 5.x ワールド初期化完了 (threads: %u)", numThreads);
 }
 
 //=====================================================
@@ -104,10 +87,9 @@ void PhysicsWorld::shutdown()
 
     PxCloseExtensions();
 
-    if (m_scene) { m_scene->release(); m_scene = nullptr; }
-    //if (m_cooking) { m_cooking->release(); m_cooking = nullptr; }
+    if (m_scene) { m_scene->release();     m_scene = nullptr; }
     if (m_dispatcher) { m_dispatcher->release(); m_dispatcher = nullptr; }
-    if (m_physics) { m_physics->release(); m_physics = nullptr; }
+    if (m_physics) { m_physics->release();   m_physics = nullptr; }
 
     if (m_pvd)
     {
@@ -137,6 +119,10 @@ void PhysicsWorld::simulate(float deltaTime)
     {
         m_scene->simulate(m_fixedTimeStep);
         m_scene->fetchResults(true);
+
+        //! シミュレーション結果を TransformComponent に反映
+        syncTransforms();
+
         ++steps;
         m_accumulator -= m_fixedTimeStep;
     }
@@ -145,9 +131,9 @@ void PhysicsWorld::simulate(float deltaTime)
 //=====================================================
 // シミュレーション結果を RigidbodyComponent に反映
 //=====================================================
-void PhysicsWorld::fetchResults(bool /*block*/)
+void PhysicsWorld::syncTransforms()
 {
-    if (!m_initialized || !m_scene) return;
+    if (!m_scene) return;
 
     //! アクティブなアクターを取得して Transform に書き戻す
     physx::PxU32 numActiveActors = 0;
@@ -167,37 +153,6 @@ void PhysicsWorld::fetchResults(bool /*block*/)
     }
 }
 
-//=====================================================
-// デバッグ描画
-//=====================================================
-void PhysicsWorld::debugDraw()
-{
-    if (!m_initialized || !m_debugDrawEnabled || !m_scene) return;
-
-    const physx::PxRenderBuffer& rb = m_scene->getRenderBuffer();
-    auto& dbg = DebugPrimitive::Instance();
-
-    //! ライン描画
-    for (physx::PxU32 i = 0; i < rb.getNbLines(); ++i)
-    {
-        const physx::PxDebugLine& line = rb.getLines()[i];
-        Vector4 color(
-            static_cast<float>((line.color0 >> 16) & 0xFF) / 255.0f,
-            static_cast<float>((line.color0 >> 8) & 0xFF) / 255.0f,
-            static_cast<float>((line.color0 >> 0) & 0xFF) / 255.0f,
-            1.0f
-        );
-        dbg.addLine(
-            PhysXHelper::toSM(line.pos0),
-            PhysXHelper::toSM(line.pos1),
-            color
-        );
-    }
-}
-
-//=====================================================
-// ImGui デバッグウィンドウ
-//=====================================================
 void PhysicsWorld::imgui()
 {
     if (!ImGui::Begin("Physics World"))
@@ -215,7 +170,6 @@ void PhysicsWorld::imgui()
 
     ImGui::DragFloat("Fixed TimeStep", &m_fixedTimeStep, 0.001f, 0.001f, 0.1f, "%.4f");
     ImGui::DragInt("Max SubSteps", &m_maxSubSteps, 1, 1, 32);
-    ImGui::Checkbox("Debug Draw", &m_debugDrawEnabled);
 
     if (m_scene)
     {
@@ -230,25 +184,22 @@ void PhysicsWorld::imgui()
     ImGui::End();
 }
 
-//=====================================================
-// レイキャスト
-//=====================================================
 bool PhysicsWorld::raycast(const Vector3& origin, const Vector3& direction, float maxDistance, RaycastHit& outHit) const
 {
     if (!m_initialized || !m_scene) return false;
 
     physx::PxRaycastBuffer hit;
     bool status = m_scene->raycast(
-        PhysXHelper::toPx(origin),
-        PhysXHelper::toPx(direction),
+        PhysXHelper::ToPxVec3(origin),
+        PhysXHelper::ToPxVec3(direction),
         maxDistance,
         hit
     );
 
     if (status && hit.hasBlock)
     {
-        outHit.point = PhysXHelper::toSM(hit.block.position);
-        outHit.normal = PhysXHelper::toSM(hit.block.normal);
+        outHit.point = PhysXHelper::ToVector3(hit.block.position);
+        outHit.normal = PhysXHelper::ToVector3(hit.block.normal);
         outHit.distance = hit.block.distance;
 
         if (hit.block.actor && hit.block.actor->userData)
@@ -269,8 +220,8 @@ bool PhysicsWorld::raycastAll(const Vector3& origin, const Vector3& direction, f
     physx::PxRaycastBuffer buf(hitBuffer, MAX_HITS);
 
     bool status = m_scene->raycast(
-        PhysXHelper::toPx(origin),
-        PhysXHelper::toPx(direction),
+        PhysXHelper::ToPxVec3(origin),
+        PhysXHelper::ToPxVec3(direction),
         maxDistance,
         buf
     );
@@ -281,8 +232,8 @@ bool PhysicsWorld::raycastAll(const Vector3& origin, const Vector3& direction, f
     for (physx::PxU32 i = 0; i < buf.nbTouches; ++i)
     {
         RaycastHit rh;
-        rh.point = PhysXHelper::toSM(buf.touches[i].position);
-        rh.normal = PhysXHelper::toSM(buf.touches[i].normal);
+        rh.point = PhysXHelper::ToVector3(buf.touches[i].position);
+        rh.normal = PhysXHelper::ToVector3(buf.touches[i].normal);
         rh.distance = buf.touches[i].distance;
         if (buf.touches[i].actor && buf.touches[i].actor->userData)
         {
@@ -293,16 +244,13 @@ bool PhysicsWorld::raycastAll(const Vector3& origin, const Vector3& direction, f
     return !outHits.empty();
 }
 
-//=====================================================
-// 重力の設定・取得
-//=====================================================
 void PhysicsWorld::setGravity(const Vector3& gravity)
 {
-    if (m_scene) m_scene->setGravity(PhysXHelper::toPx(gravity));
+    if (m_scene) m_scene->setGravity(PhysXHelper::ToPxVec3(gravity));
 }
 
 Vector3 PhysicsWorld::getGravity() const
 {
     if (!m_scene) return Vector3(0.0f, -9.81f, 0.0f);
-    return PhysXHelper::toSM(m_scene->getGravity());
+    return PhysXHelper::ToVector3(m_scene->getGravity());
 }

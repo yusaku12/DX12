@@ -7,7 +7,6 @@
 // Transform コンポーネント
 // - 位置 / 回転(Quaternion) / スケール を管理
 // - ローカル行列 / ワールド行列を取得（親の Transform があれば考慮）
-// - Inspector GUI と Gizmo 更新を分離して、Inspector を閉じても Gizmo が動作するようにする
 //=====================================================
 class TransformComponent : public Component
 {
@@ -29,15 +28,15 @@ public:
     void onGizmo();
 
     //! 位置
-    Vector3& getPosition() { return m_position; }
+    const Vector3& getPosition() const { return m_position; }
     void setPosition(const Vector3& pos) { m_position = pos; m_dirty = true; }
 
     //! 回転（クォータニオン）
-    Quaternion& getRotation() { return m_rotation; }
+    const Quaternion& getRotation() const { return m_rotation; }
     void setRotation(const Quaternion& rot) { m_rotation = rot; m_dirty = true; }
 
     //! スケール
-    Vector3& getScale() { return m_scale; }
+    const Vector3& getScale() const { return m_scale; }
     void setScale(const Vector3& scale) { m_scale = scale; m_dirty = true; }
 
     //! 相対移動
@@ -55,10 +54,10 @@ public:
     void rotateAxisAngle(const Vector3& axis, float angleRad) { rotate(Quaternion::CreateFromAxisAngle(axis, angleRad)); }
 
     //! ローカル行列（スケール→回転→並進）
-    Matrix getLocalMatrix() const;
+    const Matrix& getLocalMatrix() const;
 
     //! ワールド行列（親の Transform があれば親のワールド行列を考慮）
-    Matrix getWorldMatrix() const;
+    const Matrix& getWorldMatrix() const;
 
     //! 外部から dirty を立てる（親変更などで使用）
     void markDirty() { m_dirty = true; }

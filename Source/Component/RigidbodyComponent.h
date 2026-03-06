@@ -38,45 +38,41 @@ public:
     //! 破棄時
     void onDestroy() override;
 
-    //========================================
-    // 力・トルク適用（Unity API 互換）
-    //========================================
-
     //! 力を加える（連続力 = Force モード）
     void addForce(const Vector3& force, physx::PxForceMode::Enum mode = physx::PxForceMode::eFORCE);
 
     //! トルクを加える
     void addTorque(const Vector3& torque, physx::PxForceMode::Enum mode = physx::PxForceMode::eFORCE);
 
-    //========================================
-    // 速度の取得・設定
-    //========================================
-
+    //! 線形速度の設定・取得
     void setLinearVelocity(const Vector3& vel);
     Vector3 getLinearVelocity() const;
 
+    //! 角速度の設定・取得
     void setAngularVelocity(const Vector3& vel);
     Vector3 getAngularVelocity() const;
 
-    //========================================
-    // プロパティ
-    //========================================
-
+    //! 質量の設定・取得
     void setMass(float mass);
     float getMass() const { return m_mass; }
 
+    //! 線形減衰の設定・取得
     void setLinearDrag(float drag);
     float getLinearDrag() const { return m_linearDrag; }
 
+    //! 角減衰の設定・取得
     void setAngularDrag(float drag);
     float getAngularDrag() const { return m_angularDrag; }
 
+    //! 重力の使用設定・取得
     void setUseGravity(bool use);
     bool getUseGravity() const { return m_useGravity; }
 
+    //! Kinematic 設定・取得
     void setKinematic(bool kinematic);
     bool isKinematic() const { return m_isKinematic; }
 
+    //! 剛体の種類設定・取得
     void setType(RigidbodyType type);
     RigidbodyType getType() const { return m_type; }
 
@@ -90,15 +86,9 @@ public:
     void setFreezePositionY(bool freeze);
     void setFreezePositionZ(bool freeze);
 
-    //========================================
-    // Kinematic 用：ターゲット位置を設定
-    //========================================
+    //! TransformComponent から位置・回転の移動
     void movePosition(const Vector3& pos);
     void moveRotation(const Quaternion& rot);
-
-    //========================================
-    // 内部（PhysicsWorld から呼ばれる）
-    //========================================
 
     //! PhysX -> TransformComponent への同期
     void syncFromPhysics();
@@ -128,11 +118,11 @@ private:
     physx::PxRigidActor* m_actor = nullptr;
 
     RigidbodyType m_type = RigidbodyType::Dynamic;
+    bool m_isKinematic = false;
     float m_mass = 1.0f;
     float m_linearDrag = 0.0f;
     float m_angularDrag = 0.05f;
     bool m_useGravity = true;
-    bool m_isKinematic = false;
 
     //! 軸ロック
     bool m_freezePosX = false, m_freezePosY = false, m_freezePosZ = false;

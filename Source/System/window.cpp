@@ -35,20 +35,14 @@ Window::Window(HWND hwnd)
     //! オーディオマネージャー初期化
     AudioManager::Instance().initialize();
 
-    //! シーンマネージャー初期化
-    SceneManager::Instance().initialize();
-
     //! デバックプリミティブ描画初期化
     DebugPrimitive::Instance().initialize();
 
-    //! 物理マネージャー初期化
+    //! 物理マネージャー初期化（SceneManager より前に初期化すること）
     PhysicsWorld::Instance().initialize();
 
-    //! 試しに読み込み
-    //AudioManager::Instance().load("bgm", "Data/Audio/a.wav");
-    //AudioManager::Instance().play("bgm", true);
-
-    //AudioManager::Instance().setMasterVolume(0.05f);
+    //! シーンマネージャー初期化（onEnter で ColliderComponent 等が PhysicsWorld を使うため最後）
+    SceneManager::Instance().initialize();
 }
 
 Window::~Window()
@@ -71,16 +65,14 @@ void Window::update()
     //! TimeManager更新
     TimeManager::Instance().update();
 
-    //! 物理シミュレーション更新
-    float dt = TimeManager::Instance().getDeltaTime();
-    PhysicsWorld::Instance().simulate(dt);
-    PhysicsWorld::Instance().fetchResults();
-
     //! shaderManager更新
     ShaderManager::Instance().update();
 
     //! InputManager更新
     InputManager::Instance().update();
+
+    //! デバックプリミティブ フレーム開始（前フレームの描画リクエストをクリア）
+    DebugPrimitive::Instance().beginFrame();
 
     //! SceneManager更新
     SceneManager::Instance().update();
@@ -88,14 +80,15 @@ void Window::update()
     //! CameraManager更新
     CameraManager::Instance().update();
 
+    //! 物理シミュレーション更新（内部で fetchResults + Transform 同期まで完結）
+    float dt = TimeManager::Instance().getDeltaTime();
+    PhysicsWorld::Instance().simulate(dt);
+
     //! ゲームオブジェクト更新
     GameObjectRegistry::Instance().update();
 
     //! オーディオマネージャー更新
-    AudioManager::Instance().update(TimeManager::Instance().getDeltaTime());
-
-    //! デバックプリミティブ更新
-    DebugPrimitive::Instance().update(TimeManager::Instance().getDeltaTime());
+    AudioManager::Instance().update(dt);
 }
 
 void Window::render()

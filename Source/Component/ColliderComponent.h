@@ -30,15 +30,14 @@ public:
     ColliderComponent() = default;
     ~ColliderComponent() override;
 
-    //! 初期化
+    //! 初期化（TransformComponent の取得とマテリアル設定のみ）
     void awake() override;
+
+    //! 毎フレーム後処理（デバッグ描画の自動更新）
+    void lateUpdate() override;
 
     //! インスペクタ表示
     void inspectGUI() override;
-
-    //========================================
-    // 形状設定（awake 後に呼ぶ）
-    //========================================
 
     //! ボックスコライダーとして設定
     void setBoxShape(const Vector3& halfExtents = Vector3(0.5f, 0.5f, 0.5f));
@@ -51,10 +50,6 @@ public:
 
     //! 無限平面コライダーとして設定（地面用）
     void setPlaneShape();
-
-    //========================================
-    // プロパティ
-    //========================================
 
     //! トリガーモード（衝突応答なし、イベントのみ）
     void setTrigger(bool isTrigger);
@@ -70,22 +65,32 @@ public:
     //! 形状タイプ取得
     ColliderShapeType getShapeType() const { return m_shapeType; }
 
-    //========================================
-    // 内部（RigidbodyComponent から参照）
-    //========================================
-
-    physx::PxShape* getPxShape() const { return m_shape; }
-
     //! RigidbodyComponent との紐付け
     void attachToRigidbody(RigidbodyComponent* rb);
 
+    //! RigidbodyComponent の紐付け解除
+    void detachFromRigidbody();
+
+    //! PhysX の PxShape 取得
+    physx::PxShape* getPxShape() const { return m_shape; }
+
+    //! デバッグ描画の有効・無効
+    void setDebugDraw(bool enable) { m_debugDraw = enable; }
+    bool isDebugDraw() const { return m_debugDraw; }
+
 private:
 
-    //! 既存シェイプの破棄
+    //! 既存シェイプの破棄（アクターからデタッチも行う）
     void releaseShape();
 
     //! シェイプ作成共通処理
     void finalizeShape();
+
+    //! シェイプをアクターに再アタッチ
+    void reattachShapeToActor();
+
+    //! デバッグ描画（毎フレーム自動で呼ばれる）
+    void drawDebugShape();
 
     TransformComponent* m_transform = nullptr;
     RigidbodyComponent* m_rigidbody = nullptr;
@@ -96,6 +101,7 @@ private:
     ColliderShapeType m_shapeType = ColliderShapeType::Box;
     Vector3 m_center = Vector3::Zero;
     bool m_isTrigger = false;
+    bool m_debugDraw = true;
 
     //! 形状パラメータ（Inspector 編集用）
     Vector3 m_boxHalfExtents = Vector3(0.5f, 0.5f, 0.5f);

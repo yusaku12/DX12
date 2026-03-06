@@ -2,7 +2,7 @@
 #include "TransformComponent.h"
 #include "ImGuizmo.h"
 
-Matrix TransformComponent::getLocalMatrix() const
+const Matrix& TransformComponent::getLocalMatrix() const
 {
     if (!m_dirty) return m_localMatrix;
 
@@ -15,10 +15,10 @@ Matrix TransformComponent::getLocalMatrix() const
     return m_localMatrix;
 }
 
-Matrix TransformComponent::getWorldMatrix() const
+const Matrix& TransformComponent::getWorldMatrix() const
 {
     //! ローカル行列を取得（必要なら再計算）
-    Matrix local = getLocalMatrix();
+    const Matrix& local = getLocalMatrix();
 
     //! 親がいない場合はローカルがワールド
     GameObject* parent = nullptr;
@@ -38,8 +38,8 @@ Matrix TransformComponent::getWorldMatrix() const
         return m_worldMatrix;
     }
 
-    //! 親のワールド行列を先に適用（parent * local）
-    m_worldMatrix = parentTf->getWorldMatrix() * local;
+    //! ローカル × 親ワールド
+    m_worldMatrix = local * parentTf->getWorldMatrix();
     return m_worldMatrix;
 }
 
@@ -95,7 +95,7 @@ void TransformComponent::onGizmo()
     //! 操作対象ローカル行列
     Matrix localMat = getLocalMatrix();
 
-    //!Q 操作モード決定
+    //! 操作モード決定
     ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
     switch (m_gizmoOp)
     {

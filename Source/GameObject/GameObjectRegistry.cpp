@@ -16,6 +16,15 @@ void GameObjectRegistry::unregister(GameObject* obj)
 
 void GameObjectRegistry::update()
 {
+    //! 未start のオブジェクトに対して start を呼ぶ
+    for (auto* obj : m_objects)
+    {
+        if (!obj->isDestroyed() && obj->isEnabled() && !obj->isStarted())
+        {
+            obj->start();
+        }
+    }
+
     //! 全オブジェクトの更新
     for (auto* obj : m_objects)
     {
