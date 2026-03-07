@@ -4,6 +4,7 @@
 #include "Component\TransformComponent.h"
 #include "Component\RigidbodyComponent.h"
 #include "Component\ColliderComponent.h"
+#include "Component\CharacterControllerComponent.h"
 
 void TestScene::onEnter()
 {
@@ -23,7 +24,7 @@ void TestScene::onEnter()
     {
         GameObject* modelObj = new GameObject("FBX_Model_Object");
         TransformComponent* tf = modelObj->addComponent<TransformComponent>();
-        tf->setPosition(Vector3(7.0f, 0.0f, 0.0f));
+        tf->setPosition(Vector3(50.0f, 0.0f, 0.0f));
         tf->setRotation(Quaternion::Identity);
         tf->setScale(Vector3::One);
 

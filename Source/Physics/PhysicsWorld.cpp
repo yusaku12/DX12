@@ -71,6 +71,14 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
     //! デフォルトマテリアル作成（staticFriction=0.5, dynamicFriction=0.5, restitution=0.3）
     m_defaultMaterial = m_physics->createMaterial(0.5f, 0.5f, 0.3f);
 
+    //! コントローラーマネージャー作成
+    m_controllerManager = PxCreateControllerManager(*m_scene);
+    if (m_controllerManager)
+    {
+        //! 障害物の重複防止モードを有効化
+        m_controllerManager->setOverlapRecoveryModule(true);
+    }
+
     m_initialized = true;
     LOG_INFO("PhysX 5.x complete (threads: %u)", numThreads);
 }
@@ -81,6 +89,7 @@ void PhysicsWorld::shutdown()
 
     PxCloseExtensions();
 
+    if (m_controllerManager) { m_controllerManager->release(); m_controllerManager = nullptr; }
     if (m_scene) { m_scene->release();     m_scene = nullptr; }
     if (m_dispatcher) { m_dispatcher->release(); m_dispatcher = nullptr; }
     if (m_physics) { m_physics->release();   m_physics = nullptr; }

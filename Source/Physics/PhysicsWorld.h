@@ -11,6 +11,11 @@
 #pragma comment(lib, "PhysXTask_static_64.lib")
 #pragma comment(lib, "SceneQuery_static_64.lib")
 #pragma comment(lib, "SimulationController_static_64.lib")
+#pragma comment(lib, "PhysXCharacterKinematic_static_64.lib")
+
+#include <characterkinematic/PxController.h>
+#include <characterkinematic/PxControllerManager.h>
+#include <characterkinematic/PxCapsuleController.h>
 
 class RigidbodyComponent;
 
@@ -48,6 +53,9 @@ public:
 
     //! デフォルトマテリアル（staticFriction, dynamicFriction, restitution）
     physx::PxMaterial* getDefaultMaterial() const { return m_defaultMaterial; }
+
+    //! コントローラーマネージャー取得
+    physx::PxControllerManager* getControllerManager() const { return m_controllerManager; }
 
     //! RaycastHit 情報
     struct RaycastHit
@@ -87,6 +95,7 @@ private:
     physx::PxMaterial* m_defaultMaterial = nullptr;
     physx::PxDefaultCpuDispatcher* m_dispatcher = nullptr;
     physx::PxPvd* m_pvd = nullptr;
+    physx::PxControllerManager* m_controllerManager = nullptr;
 
     //! PhysX 5.x では Cooking はオブジェクトではなくパラメータのみ保持
     physx::PxCookingParams m_cookingParams = physx::PxCookingParams(physx::PxTolerancesScale());

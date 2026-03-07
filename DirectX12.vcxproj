@@ -62,6 +62,7 @@
     <ClCompile Include="Source\Audio\SoundVoice.cpp" />
     <ClCompile Include="Source\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Camera\FreeCameraBehaviour.cpp" />
+    <ClCompile Include="Source\Component\CharacterControllerComponent.cpp" />
     <ClCompile Include="Source\Component\ColliderComponent.cpp" />
     <ClCompile Include="Source\Component\Component.cpp" />
     <ClCompile Include="Source\Component\RigidbodyComponent.cpp" />
@@ -143,6 +144,7 @@
     <ClInclude Include="Source\Camera\CameraBehaviour.h" />
     <ClInclude Include="Source\Camera\CameraManager.h" />
     <ClInclude Include="Source\Camera\FreeCameraBehaviour.h" />
+    <ClInclude Include="Source\Component\CharacterControllerComponent.h" />
     <ClInclude Include="Source\Component\ColliderComponent.h" />
     <ClInclude Include="Source\Component\Component.h" />
     <ClInclude Include="Source\Component\Object.h" />
