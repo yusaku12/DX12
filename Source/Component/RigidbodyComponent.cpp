@@ -14,13 +14,24 @@ RigidbodyComponent::~RigidbodyComponent()
 void RigidbodyComponent::awake()
 {
     //! TransformComponent を自動取得（なければ追加）
+    //! awake ではフィールド初期化のみ行い、PhysX リソースは作成しない
     m_transform = m_gameObject->getComponent<TransformComponent>();
     if (!m_transform)
     {
         m_transform = m_gameObject->addComponent<TransformComponent>();
     }
+}
 
-    createActor();
+void RigidbodyComponent::start()
+{
+    //! 全コンポーネントの awake 完了後 + ユーザーの setter 呼び出し後に
+    //! PhysX アクターを作成する
+    //! これにより setType / setMass / setUseGravity 等の設定が
+    //! アクター作成時に正しく反映される
+    if (!m_actor)
+    {
+        createActor();
+    }
 }
 
 void RigidbodyComponent::onDestroy()
@@ -83,6 +94,13 @@ void RigidbodyComponent::createActor()
 
     if (hasValidCollider)
     {
+        //! シェイプが既に別のアクターにアタッチされている場合はデタッチしてから再アタッチ
+        physx::PxRigidActor* prevActor = collider->getPxShape()->getActor();
+        if (prevActor)
+        {
+            prevActor->detachShape(*collider->getPxShape());
+        }
+
         m_actor->attachShape(*collider->getPxShape());
         collider->attachToRigidbody(this);
     }
@@ -118,25 +136,46 @@ void RigidbodyComponent::createActor()
 
 void RigidbodyComponent::releaseActor()
 {
-    if (m_actor)
+    if (!m_actor) return;
+
+    //! アクター破棄前にアタッチされている ColliderComponent のシェイプをデタッチ
+    //! （exclusive シェイプがアクターと一緒に解放されるのを防ぐ）
+    auto* collider = m_gameObject ? m_gameObject->getComponent<ColliderComponent>() : nullptr;
+    if (collider && collider->getPxShape())
     {
-        auto* scene = PhysicsWorld::Instance().getScene();
-        if (scene)
+        physx::PxRigidActor* shapeActor = collider->getPxShape()->getActor();
+        if (shapeActor == m_actor)
         {
-            scene->removeActor(*m_actor);
+            m_actor->detachShape(*collider->getPxShape());
         }
-        m_actor->release();
-        m_actor = nullptr;
     }
+
+    if (m_actor->getScene())
+    {
+        m_actor->getScene()->removeActor(*m_actor);
+    }
+
+    m_actor->release();
+    m_actor = nullptr;
 }
 
 void RigidbodyComponent::inspectGUI()
 {
-    const char* typeNames[] = { "Dynamic", "Kinematic", "Static" };
-    int typeIdx = static_cast<int>(m_type);
-    if (ImGui::Combo("Body Type", &typeIdx, typeNames, IM_ARRAYSIZE(typeNames)))
+    auto names = magic_enum::enum_names<RigidbodyType>();
+
+    int idx = static_cast<int>(m_type);
+
+    if (ImGui::Combo("Body Type", &idx,
+        [](void* data, int idx, const char** out_text)
+        {
+            auto* arr = static_cast<const decltype(names)*>(data);
+            *out_text = (*arr)[idx].data();
+            return true;
+        },
+        (void*)&names,
+        (int)names.size()))
     {
-        setType(static_cast<RigidbodyType>(typeIdx));
+        setType(static_cast<RigidbodyType>(idx));
     }
 
     if (m_type != RigidbodyType::Static)
@@ -204,6 +243,7 @@ void RigidbodyComponent::setLinearVelocity(const Vector3& vel)
 {
     if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
     static_cast<physx::PxRigidDynamic*>(m_actor)->setLinearVelocity(PhysXHelper::ToPxVec3(vel));
+    wakeUp();
 }
 
 Vector3 RigidbodyComponent::getLinearVelocity() const
@@ -216,6 +256,7 @@ void RigidbodyComponent::setAngularVelocity(const Vector3& vel)
 {
     if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
     static_cast<physx::PxRigidDynamic*>(m_actor)->setAngularVelocity(PhysXHelper::ToPxVec3(vel));
+    wakeUp();
 }
 
 Vector3 RigidbodyComponent::getAngularVelocity() const
@@ -227,15 +268,21 @@ Vector3 RigidbodyComponent::getAngularVelocity() const
 void RigidbodyComponent::setMass(float mass)
 {
     m_mass = mass;
-    if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
+
+    if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC)
+        return;
+
     auto* dyn = static_cast<physx::PxRigidDynamic*>(m_actor);
-    dyn->setMass(mass);
 
     auto* collider = m_gameObject->getComponent<ColliderComponent>();
-    if (collider && (collider->getShapeType() == ColliderShapeType::Plane || collider->isTrigger()))
+
+    if (collider &&
+        (collider->getShapeType() == ColliderShapeType::Plane ||
+            collider->isTrigger()))
         return;
 
     physx::PxRigidBodyExt::updateMassAndInertia(*dyn, mass);
+    wakeUp();
 }
 
 void RigidbodyComponent::setLinearDrag(float drag)
@@ -243,6 +290,7 @@ void RigidbodyComponent::setLinearDrag(float drag)
     m_linearDrag = drag;
     if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
     static_cast<physx::PxRigidDynamic*>(m_actor)->setLinearDamping(drag);
+    wakeUp();
 }
 
 void RigidbodyComponent::setAngularDrag(float drag)
@@ -250,6 +298,7 @@ void RigidbodyComponent::setAngularDrag(float drag)
     m_angularDrag = drag;
     if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
     static_cast<physx::PxRigidDynamic*>(m_actor)->setAngularDamping(drag);
+    wakeUp();
 }
 
 void RigidbodyComponent::setUseGravity(bool use)
@@ -257,6 +306,7 @@ void RigidbodyComponent::setUseGravity(bool use)
     m_useGravity = use;
     if (!m_actor) return;
     m_actor->setActorFlag(physx::PxActorFlag::eDISABLE_GRAVITY, !use);
+    wakeUp();
 }
 
 void RigidbodyComponent::setKinematic(bool kinematic)
@@ -265,15 +315,26 @@ void RigidbodyComponent::setKinematic(bool kinematic)
     if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
     static_cast<physx::PxRigidDynamic*>(m_actor)->setRigidBodyFlag(
         physx::PxRigidBodyFlag::eKINEMATIC, kinematic);
+    wakeUp();
 }
 
 void RigidbodyComponent::setType(RigidbodyType type)
 {
     if (m_type == type) return;
     m_type = type;
-    if (type == RigidbodyType::Kinematic) m_isKinematic = true;
-    releaseActor();
-    createActor();
+
+    //! Kinematic 以外に変更した場合は isKinematic フラグをリセット
+    if (type == RigidbodyType::Kinematic)
+        m_isKinematic = true;
+    else
+        m_isKinematic = false;
+
+    //! アクターが既に作成済み（start 後）の場合のみ再作成
+    if (m_actor)
+    {
+        releaseActor();
+        createActor();
+    }
 }
 
 void RigidbodyComponent::setFreezePositionX(bool freeze) { m_freezePosX = freeze; updateLockFlags(); }
@@ -297,23 +358,38 @@ void RigidbodyComponent::updateLockFlags()
     if (m_freezeRotZ) flags |= physx::PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z;
 
     dyn->setRigidDynamicLockFlags(flags);
+    wakeUp();
 }
 
 void RigidbodyComponent::movePosition(const Vector3& pos)
 {
-    if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
+    if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC)
+        return;
+
     auto* dyn = static_cast<physx::PxRigidDynamic*>(m_actor);
+
+    if (!(dyn->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC))
+        return;
+
     physx::PxTransform t = dyn->getGlobalPose();
     t.p = PhysXHelper::ToPxVec3(pos);
+
     dyn->setKinematicTarget(t);
 }
 
 void RigidbodyComponent::moveRotation(const Quaternion& rot)
 {
-    if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
+    if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC)
+        return;
+
     auto* dyn = static_cast<physx::PxRigidDynamic*>(m_actor);
+
+    if (!(dyn->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC))
+        return;
+
     physx::PxTransform t = dyn->getGlobalPose();
     t.q = PhysXHelper::ToPxQuat(rot);
+
     dyn->setKinematicTarget(t);
 }
 
@@ -326,13 +402,32 @@ void RigidbodyComponent::syncFromPhysics()
     m_transform->setRotation(PhysXHelper::ToQuaternion(pose.q));
 }
 
+void RigidbodyComponent::wakeUp()
+{
+    if (!m_actor || m_actor->getType() != physx::PxActorType::eRIGID_DYNAMIC) return;
+    auto* dyn = static_cast<physx::PxRigidDynamic*>(m_actor);
+    if (!(dyn->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC))
+    {
+        dyn->wakeUp();
+    }
+}
+
 void RigidbodyComponent::syncToPhysics()
 {
     if (!m_actor || !m_transform) return;
 
-    physx::PxTransform pose = PhysXHelper::ToPxTransform(
-        m_transform->getPosition(),
-        m_transform->getRotation()
-    );
+    physx::PxTransform pose = PhysXHelper::ToPxTransform(m_transform->getPosition(), m_transform->getRotation());
     m_actor->setGlobalPose(pose);
+
+    //! Dynamic アクターの場合、手動で位置を変更したら速度をリセットしてスリープ解除
+    if (m_actor->getType() == physx::PxActorType::eRIGID_DYNAMIC)
+    {
+        auto* dyn = static_cast<physx::PxRigidDynamic*>(m_actor);
+        if (!(dyn->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC))
+        {
+            dyn->setLinearVelocity(physx::PxVec3(0.0f));
+            dyn->setAngularVelocity(physx::PxVec3(0.0f));
+            dyn->wakeUp();
+        }
+    }
 }

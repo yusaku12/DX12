@@ -2,9 +2,6 @@
 #include "PhysXHelper.h"
 #include "Component\RigidbodyComponent.h"
 
-//=====================================================
-// 初期化
-//=====================================================
 void PhysicsWorld::initialize(const physx::PxVec3& gravity)
 {
     if (m_initialized) return;
@@ -75,12 +72,9 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
     m_defaultMaterial = m_physics->createMaterial(0.5f, 0.5f, 0.3f);
 
     m_initialized = true;
-    LOG_INFO("PhysX 5.x ワールド初期化完了 (threads: %u)", numThreads);
+    LOG_INFO("PhysX 5.x complete (threads: %u)", numThreads);
 }
 
-//=====================================================
-// 終了処理
-//=====================================================
 void PhysicsWorld::shutdown()
 {
     if (!m_initialized) return;
@@ -105,9 +99,6 @@ void PhysicsWorld::shutdown()
     LOG_INFO("PhysX ワールド終了");
 }
 
-//=====================================================
-// 固定タイムステップ シミュレーション
-//=====================================================
 void PhysicsWorld::simulate(float deltaTime)
 {
     if (!m_initialized || !m_scene) return;
@@ -128,9 +119,6 @@ void PhysicsWorld::simulate(float deltaTime)
     }
 }
 
-//=====================================================
-// シミュレーション結果を RigidbodyComponent に反映
-//=====================================================
 void PhysicsWorld::syncTransforms()
 {
     if (!m_scene) return;
@@ -151,37 +139,6 @@ void PhysicsWorld::syncTransforms()
         //! PhysX のトランスフォームを TransformComponent に反映
         rb->syncFromPhysics();
     }
-}
-
-void PhysicsWorld::imgui()
-{
-    if (!ImGui::Begin("Physics World"))
-    {
-        ImGui::End();
-        return;
-    }
-
-    //! 重力設定
-    Vector3 g = getGravity();
-    if (ImGui::DragFloat3("Gravity", &g.x, 0.1f))
-    {
-        setGravity(g);
-    }
-
-    ImGui::DragFloat("Fixed TimeStep", &m_fixedTimeStep, 0.001f, 0.001f, 0.1f, "%.4f");
-    ImGui::DragInt("Max SubSteps", &m_maxSubSteps, 1, 1, 32);
-
-    if (m_scene)
-    {
-        physx::PxSimulationStatistics stats;
-        m_scene->getSimulationStatistics(stats);
-        ImGui::Separator();
-        ImGui::Text("Active Dynamic : %u", stats.nbActiveDynamicBodies);
-        ImGui::Text("Active Kinematic: %u", stats.nbActiveKinematicBodies);
-        ImGui::Text("Static Bodies   : %u", stats.nbStaticBodies);
-    }
-
-    ImGui::End();
 }
 
 bool PhysicsWorld::raycast(const Vector3& origin, const Vector3& direction, float maxDistance, RaycastHit& outHit) const

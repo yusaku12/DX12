@@ -8,6 +8,7 @@
 
 ColliderComponent::~ColliderComponent()
 {
+    //! シェイプを破棄（アクターからデタッチも行う）
     releaseShape();
 }
 
@@ -21,10 +22,6 @@ void ColliderComponent::awake()
 
     //! デフォルトマテリアルを使用
     m_material = PhysicsWorld::Instance().getDefaultMaterial();
-
-    //! awake 時点ではシェイプを作成しない
-    //! 利用側が setBoxShape / setSphereShape 等を呼ぶことでシェイプが作られる
-    //! RigidbodyComponent::awake() が ColliderComponent のシェイプを拾う順序を保証するため
 }
 
 void ColliderComponent::lateUpdate()
@@ -36,11 +33,21 @@ void ColliderComponent::lateUpdate()
 void ColliderComponent::inspectGUI()
 {
     //! 形状タイプ選択
-    const char* shapeNames[] = { "Box", "Sphere", "Capsule", "Plane" };
+    auto names = magic_enum::enum_names<ColliderShapeType>();
     int typeIdx = static_cast<int>(m_shapeType);
-    if (ImGui::Combo("Shape", &typeIdx, shapeNames, IM_ARRAYSIZE(shapeNames)))
+
+    if (ImGui::Combo("Shape", &typeIdx,
+        [](void* data, int idx, const char** out_text)
+        {
+            auto* arr = static_cast<const decltype(names)*>(data);
+            *out_text = (*arr)[idx].data();
+            return true;
+        },
+        (void*)&names,
+        (int)names.size()))
     {
         ColliderShapeType newType = static_cast<ColliderShapeType>(typeIdx);
+
         if (newType != m_shapeType)
         {
             switch (newType)
@@ -89,58 +96,55 @@ void ColliderComponent::inspectGUI()
     ImGui::Checkbox("Debug Draw", &m_debugDraw);
 }
 
-void ColliderComponent::setBoxShape(const Vector3& halfExtents)
+template<typename Geometry>
+void ColliderComponent::createShape(const Geometry& geom)
 {
     releaseShape();
-    m_shapeType = ColliderShapeType::Box;
-
-    m_boxHalfExtents = Vector3(
-        std::max(halfExtents.x, 0.001f),
-        std::max(halfExtents.y, 0.001f),
-        std::max(halfExtents.z, 0.001f)
-    );
 
     auto* physics = PhysicsWorld::Instance().getPhysics();
-    if (!physics || !m_material) return;
 
-    physx::PxBoxGeometry geom(PhysXHelper::ToPxVec3(m_boxHalfExtents));
+    if (!physics || !m_material)
+        return;
+
     m_shape = physics->createShape(geom, *m_material, true);
-    if (!m_shape) return;
 
     finalizeShape();
+}
+
+void ColliderComponent::setBoxShape(const Vector3& halfExtents)
+{
+    m_shapeType = ColliderShapeType::Box;
+
+    m_boxHalfExtents = halfExtents;
+
+    createShape(physx::PxBoxGeometry(PhysXHelper::ToPxVec3(halfExtents)));
 }
 
 void ColliderComponent::setSphereShape(float radius)
 {
-    releaseShape();
     m_shapeType = ColliderShapeType::Sphere;
-    m_sphereRadius = std::max(radius, 0.001f);
 
-    auto* physics = PhysicsWorld::Instance().getPhysics();
-    if (!physics || !m_material) return;
+    m_sphereRadius = radius;
 
-    physx::PxSphereGeometry geom(m_sphereRadius);
-    m_shape = physics->createShape(geom, *m_material, true);
-    if (!m_shape) return;
-
-    finalizeShape();
+    createShape(physx::PxSphereGeometry(radius));
 }
 
 void ColliderComponent::setCapsuleShape(float radius, float halfHeight)
 {
-    releaseShape();
     m_shapeType = ColliderShapeType::Capsule;
-    m_capsuleRadius = std::max(radius, 0.001f);
-    m_capsuleHalfHeight = std::max(halfHeight, 0.001f);
+
+    m_capsuleRadius = radius;
+    m_capsuleHalfHeight = halfHeight;
+
+    releaseShape();
 
     auto* physics = PhysicsWorld::Instance().getPhysics();
     if (!physics || !m_material) return;
 
-    physx::PxCapsuleGeometry geom(m_capsuleRadius, m_capsuleHalfHeight);
-    m_shape = physics->createShape(geom, *m_material, true);
-    if (!m_shape) return;
+    m_shape = physics->createShape(physx::PxCapsuleGeometry(radius, halfHeight), *m_material, true);
 
-    //! PhysX のカプセルは X 軸方向なので Y 軸方向に回転
+    //! PxCapsuleGeometry のデフォルト軸は X 方向
+    //! キャラクターの直立方向（Y 軸）に合わせるため、Z 軸周りに 90° 回転させる
     physx::PxTransform localPose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0.0f, 0.0f, 1.0f)));
     m_shape->setLocalPose(localPose);
 
@@ -149,15 +153,19 @@ void ColliderComponent::setCapsuleShape(float radius, float halfHeight)
 
 void ColliderComponent::setPlaneShape()
 {
-    releaseShape();
     m_shapeType = ColliderShapeType::Plane;
+
+    releaseShape();
 
     auto* physics = PhysicsWorld::Instance().getPhysics();
     if (!physics || !m_material) return;
 
-    physx::PxPlaneGeometry geom;
-    m_shape = physics->createShape(geom, *m_material, true);
-    if (!m_shape) return;
+    m_shape = physics->createShape(physx::PxPlaneGeometry(), *m_material, true);
+
+    //! PxPlaneGeometry のデフォルト法線は +X 方向
+    //! 地面（法線 +Y）として使用するため、Z 軸周りに 90° 回転させる
+    physx::PxTransform localPose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0.0f, 0.0f, 1.0f)));
+    m_shape->setLocalPose(localPose);
 
     finalizeShape();
 }
@@ -252,18 +260,43 @@ void ColliderComponent::reattachShapeToActor()
     auto* actor = m_rigidbody->getPxActor();
     if (!actor) return;
 
+    //! 既に同じアクターにアタッチ済みならスキップ（二重アタッチ防止）
+    if (m_shape->getActor() == actor) return;
+
+    //! 別のアクターにアタッチされている場合は先にデタッチ
+    physx::PxRigidActor* prevActor = m_shape->getActor();
+    if (prevActor)
+    {
+        prevActor->detachShape(*m_shape);
+    }
+
     actor->attachShape(*m_shape);
 
     if (actor->getType() == physx::PxActorType::eRIGID_DYNAMIC)
     {
         auto* dyn = static_cast<physx::PxRigidDynamic*>(actor);
-        if (!(dyn->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC)
-            && m_shapeType != ColliderShapeType::Plane
-            && !m_isTrigger)
+        if (!(dyn->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC))
         {
-            physx::PxRigidBodyExt::updateMassAndInertia(*dyn, m_rigidbody->getMass());
+            //! シェイプ変更後は質量特性を再計算（Plane・Trigger を除く）
+            if (m_shapeType != ColliderShapeType::Plane && !m_isTrigger)
+            {
+                physx::PxRigidBodyExt::updateMassAndInertia(*dyn, m_rigidbody->getMass());
+            }
+
+            //! シェイプ変更をシミュレーションに即座に反映するためスリープ解除
+            dyn->wakeUp();
         }
     }
+}
+
+physx::PxBounds3 ColliderComponent::getBounds() const
+{
+    if (!m_shape || !m_rigidbody)
+        return physx::PxBounds3();
+
+    auto actor = m_rigidbody->getPxActor();
+
+    return physx::PxShapeExt::getWorldBounds(*m_shape, *actor, 1.0f);
 }
 
 void ColliderComponent::drawDebugShape()

@@ -80,12 +80,12 @@ void Window::update()
     //! CameraManager更新
     CameraManager::Instance().update();
 
+    //! ゲームオブジェクト更新
+    GameObjectRegistry::Instance().update();
+
     //! 物理シミュレーション更新（内部で fetchResults + Transform 同期まで完結）
     float dt = TimeManager::Instance().getDeltaTime();
     PhysicsWorld::Instance().simulate(dt);
-
-    //! ゲームオブジェクト更新
-    GameObjectRegistry::Instance().update();
 
     //! オーディオマネージャー更新
     AudioManager::Instance().update(dt);

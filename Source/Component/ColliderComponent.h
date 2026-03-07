@@ -78,7 +78,14 @@ public:
     void setDebugDraw(bool enable) { m_debugDraw = enable; }
     bool isDebugDraw() const { return m_debugDraw; }
 
+    //! このコライダーのワールド空間での AABB を取得
+    physx::PxBounds3 getBounds() const;
+
 private:
+
+    //! ジオメトリを指定してシェイプを作成
+    template<typename Geometry>
+    void createShape(const Geometry& geom);
 
     //! 既存シェイプの破棄（アクターからデタッチも行う）
     void releaseShape();

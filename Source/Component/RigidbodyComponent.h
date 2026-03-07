@@ -32,6 +32,9 @@ public:
     //! 初期化
     void awake() override;
 
+    //! PhysX アクター作成（全コンポーネントの awake 完了後に呼ばれる）
+    void start() override;
+
     //! インスペクタ表示
     void inspectGUI() override;
 
@@ -92,6 +95,9 @@ public:
 
     //! PhysX -> TransformComponent への同期
     void syncFromPhysics();
+
+    //! Dynamic アクターのスリープを解除する
+    void wakeUp();
 
     //! TransformComponent -> PhysX への同期（Kinematic / Static 用）
     void syncToPhysics();

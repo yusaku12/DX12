@@ -35,7 +35,7 @@ void TestScene::onEnter()
     {
         GameObject* ground = new GameObject("Ground");
         TransformComponent* tf = ground->addComponent<TransformComponent>();
-        tf->setPosition({ 0, -2, 0 });
+        tf->setPosition({ 0, 0, 0 });
         tf->setRotation(Quaternion::Identity);
 
         ColliderComponent* col = ground->addComponent<ColliderComponent>();
@@ -54,9 +54,8 @@ void TestScene::onEnter()
         ColliderComponent* col = sphere->addComponent<ColliderComponent>();
         col->setSphereShape(0.5f);
 
-        /*RigidbodyComponent* rb =*/ sphere->addComponent<RigidbodyComponent>();
-        //rb->setMass(1.0f);
-        //rb->setUseGravity(false);
+        RigidbodyComponent* rb = sphere->addComponent<RigidbodyComponent>();
+        rb->setMass(1.0f);
     }
 
     //! 落下するボックス（Dynamic + BoxCollider）
@@ -68,8 +67,8 @@ void TestScene::onEnter()
         ColliderComponent* col = box->addComponent<ColliderComponent>();
         col->setBoxShape(Vector3(0.5f, 0.5f, 0.5f));
 
-        /*RigidbodyComponent* rb =*/ box->addComponent<RigidbodyComponent>();
-        //rb->setMass(2.0f);
+        RigidbodyComponent* rb = box->addComponent<RigidbodyComponent>();
+        rb->setMass(2.0f);
     }
 }
 

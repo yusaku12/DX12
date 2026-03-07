@@ -39,13 +39,7 @@ public:
     //! 物理シミュレーションを1ステップ進める（内部で固定タイムステップ + fetchResults + Transform同期）
     void simulate(float deltaTime);
 
-    //! ImGui デバッグウィンドウ
-    void imgui();
-
-    //========================================
-    // PhysX オブジェクトアクセス
-    //========================================
-
+    //! PhysX オブジェクトへのアクセス
     physx::PxPhysics* getPhysics() const { return m_physics; }
     physx::PxScene* getScene() const { return m_scene; }
 
@@ -55,10 +49,7 @@ public:
     //! デフォルトマテリアル（staticFriction, dynamicFriction, restitution）
     physx::PxMaterial* getDefaultMaterial() const { return m_defaultMaterial; }
 
-    //========================================
-    // レイキャスト（Unity の Physics.Raycast 相当）
-    //========================================
-
+    //! RaycastHit 情報
     struct RaycastHit
     {
         Vector3 point = Vector3::Zero;
@@ -73,10 +64,7 @@ public:
     //! レイキャスト（全ヒットを返す）
     bool raycastAll(const Vector3& origin, const Vector3& direction, float maxDistance, std::vector<RaycastHit>& outHits) const;
 
-    //========================================
-    // ワールド設定
-    //========================================
-
+    //! 重力の設定・取得
     void setGravity(const Vector3& gravity);
     Vector3 getGravity() const;
 

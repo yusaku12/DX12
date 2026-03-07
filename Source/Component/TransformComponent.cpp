@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "TransformComponent.h"
 #include "ImGuizmo.h"
+#include "RigidbodyComponent.h"
 
 const Matrix& TransformComponent::getLocalMatrix() const
 {
@@ -146,5 +147,13 @@ void TransformComponent::onGizmo()
         m_scale = Vector3(scale[0], scale[1], scale[2]);
 
         m_dirty = true;
+
+        //! PhysX アクターへ位置・回転を同期し、スリープ解除する
+        auto* rb = m_gameObject->getComponent<RigidbodyComponent>();
+        if (rb && rb->getPxActor())
+        {
+            rb->syncToPhysics();
+            rb->wakeUp();
+        }
     }
 }
