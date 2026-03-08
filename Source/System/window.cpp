@@ -105,17 +105,6 @@ void Window::render()
     //! シーンマネージャ描画（マルチスレッドでワーカーコマンドリストに記録）
     SceneManager::Instance().draw();
 
-    //! メインコマンドリスト（pre-pass: バリア・クリア・デバッグ描画）を Close → Execute
-    m_dx12.getGraphicsCommandList()->Close();
-    ID3D12CommandList* preLists[] = { m_dx12.getGraphicsCommandList() };
-    m_dx12.getCommandQueue()->ExecuteCommandLists(1, preLists);
-
-    //! ワーカーコマンドリスト（描画コマンド）を Execute
-    m_dx12.executeWorkerCommandLists();
-
-    //! post-pass 用アロケータでメインコマンドリストをリセット（GPU Wait 不要）
-    m_dx12.resetCommandListOnly();
-
     //! バックバッファをimgui用に準備
     m_dx12.prepareBackBufferForImGui();
 
@@ -148,6 +137,9 @@ void Window::imguiRender()
 
     //! DX12のシーンimgui描画
     m_dx12.sceneImguiRender();
+
+    //! RenderManagerのimgui描画
+    RenderManager::Instance().debugImgui();
 
     //! EditorManagerのimgui描画
     EditorManager::Instance().imgui();

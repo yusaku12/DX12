@@ -1,8 +1,7 @@
 ﻿#include "pch.h"
 
-static constexpr float PI = 3.14159265358979323846f;
-static constexpr float PI2 = PI * 2.0f;
-static constexpr float PI_H = PI * 0.5f;
+//static constexpr float PI2 = PI * 2.0f;
+//static constexpr float PI_H = PI * 0.5f;
 
 void DebugPrimitive::initialize()
 {
@@ -98,7 +97,7 @@ void DebugPrimitive::drawCapsule(const Matrix& world, float radius, float halfHe
 
     //! 上半球（Y-方向に凸 → X軸でPI回転して蓋にする）
     {
-        Matrix rot = Matrix::CreateRotationX(PI);
+        Matrix rot = Matrix::CreateRotationX(XM_PI);
         Matrix w = rot * rs;
         Vector3 position = Vector3::Transform(Vector3(0, -halfHeight, 0), world);
         w.Translation(position);
@@ -295,7 +294,7 @@ void DebugPrimitive::createSphereMesh(int subdivisions)
     m_sphereVertexCount = subdivisions * 2 * 3;
     auto verts = std::make_unique<Vertex[]>(m_sphereVertexCount);
     Vertex* p = verts.get();
-    float step = PI2 / subdivisions;
+    float step = XM_2PI / subdivisions;
 
     // XZ平面
     for (int i = 0; i < subdivisions; ++i)
@@ -335,7 +334,7 @@ void DebugPrimitive::createHalfSphereMesh(int subdivisions)
     m_halfSphereVertexCount = subdivisions * 2 + halfSub * 2 + halfSub * 2;
     auto verts = std::make_unique<Vertex[]>(m_halfSphereVertexCount);
     Vertex* p = verts.get();
-    float step = PI2 / subdivisions;
+    float step = XM_2PI / subdivisions;
 
     // XZ平面（全周）
     for (int i = 0; i < subdivisions; ++i)
@@ -351,7 +350,7 @@ void DebugPrimitive::createHalfSphereMesh(int subdivisions)
     {
         for (int j = 0; j < 2; ++j)
         {
-            float t = step * ((i + j) % subdivisions) - PI_H;
+            float t = step * ((i + j) % subdivisions) - XM_PIDIV2;
             *p++ = { Vector3(sinf(t), cosf(t), 0.0f), defaultColor };
         }
     }
@@ -374,7 +373,7 @@ void DebugPrimitive::createCylinderMesh(int subdivisions)
     m_cylinderVertexCount = (subdivisions * 2 * 2) + (2 * 2 * 2);
     auto verts = std::make_unique<Vertex[]>(m_cylinderVertexCount);
     Vertex* p = verts.get();
-    float step = PI2 / subdivisions;
+    float step = XM_2PI / subdivisions;
 
     // 上リング
     for (int i = 0; i < subdivisions; ++i)

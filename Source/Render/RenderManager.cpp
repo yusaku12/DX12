@@ -2,9 +2,6 @@
 #include "RenderManager.h"
 #include "Component\IRenderComponent.h"
 
-//=====================================================
-// 登録
-//=====================================================
 void RenderManager::registerComponent(IRenderComponent* comp)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -17,9 +14,6 @@ void RenderManager::registerComponent(IRenderComponent* comp)
     }
 }
 
-//=====================================================
-// 登録解除
-//=====================================================
 void RenderManager::unregisterComponent(IRenderComponent* comp)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -31,9 +25,6 @@ void RenderManager::unregisterComponent(IRenderComponent* comp)
     }
 }
 
-//=====================================================
-// シングルスレッド描画
-//=====================================================
 void RenderManager::render()
 {
     for (auto* comp : m_components)
@@ -42,9 +33,6 @@ void RenderManager::render()
     }
 }
 
-//=====================================================
-// マルチスレッド描画
-//=====================================================
 void RenderManager::renderMultiThreaded()
 {
     using Clock = std::chrono::high_resolution_clock;
@@ -124,9 +112,106 @@ void RenderManager::renderMultiThreaded()
     }
 }
 
-//=====================================================
-// デバック描画
-//=====================================================
-void RenderManager::debugRender()
+void RenderManager::debugImgui()
 {
+    if (!ImGui::Begin("MT Command Recording"))
+    {
+        ImGui::End();
+        return;
+    }
+
+    float speedup = (m_totalMs > 0.001f)
+        ? m_singleEstimateMs / m_totalMs
+        : 0.0f;
+
+    ImGui::Text("Multi-thread total : %.3f ms", m_totalMs);
+    ImGui::Text("Single-thread est. : %.3f ms", m_singleEstimateMs);
+    ImGui::Text("Speedup            : %.2fx", speedup);
+
+    ImGui::Separator();
+    ImGui::Text("Thread Timeline:");
+
+    float maxTime = m_totalMs;
+    if (maxTime < 0.001f) maxTime = 1.0f;
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+    float canvasWidth = ImGui::GetContentRegionAvail().x;
+
+    float barHeight = 24.0f;
+    float padding = 4.0f;
+
+    ImU32 colors[] =
+    {
+        IM_COL32(66,135,245,255),
+        IM_COL32(245,166,35,255),
+        IM_COL32(80,200,120,255),
+        IM_COL32(220,80,80,255),
+    };
+
+    for (size_t i = 0; i < m_timings.size(); ++i)
+    {
+        const auto& t = m_timings[i];
+
+        float x0 = canvasPos.x + (t.startMs / maxTime) * canvasWidth;
+        float x1 = canvasPos.x + ((t.startMs + t.durationMs) / maxTime) * canvasWidth;
+
+        float y0 = canvasPos.y + i * (barHeight + padding);
+        float y1 = y0 + barHeight;
+
+        ImU32 color = colors[i % 4];
+
+        drawList->AddRectFilled(ImVec2(x0, y0), ImVec2(x1, y1), color, 4.0f);
+
+        char label[128];
+        std::snprintf(label, sizeof(label),
+            "%s  %.2f ms (TID:%zu)",
+            t.name,
+            t.durationMs,
+            std::hash<std::thread::id>{}(t.threadId) % 10000);
+
+        drawList->AddText(ImVec2(x0 + 4.0f, y0 + 4.0f),
+            IM_COL32(255, 255, 255, 255),
+            label);
+    }
+
+    float totalHeight =
+        static_cast<float>(m_timings.size()) *
+        (barHeight + padding) + padding;
+
+    ImGui::Dummy(ImVec2(canvasWidth, totalHeight));
+
+    ImGui::Separator();
+
+    if (ImGui::BeginTable("ThreadDetails", 4,
+        ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+    {
+        ImGui::TableSetupColumn("Task");
+        ImGui::TableSetupColumn("Start (ms)");
+        ImGui::TableSetupColumn("Duration (ms)");
+        ImGui::TableSetupColumn("Thread ID");
+        ImGui::TableHeadersRow();
+
+        for (const auto& t : m_timings)
+        {
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s", t.name);
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%.3f", t.startMs);
+
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%.3f", t.durationMs);
+
+            ImGui::TableSetColumnIndex(3);
+            ImGui::Text("%zu",
+                std::hash<std::thread::id>{}(t.threadId) % 10000);
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::End();
 }

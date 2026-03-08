@@ -19,4 +19,6 @@ public:
     void draw() override;
 
     void drawMultiThreaded() override;
+
+    void debugDraw() override;
 };

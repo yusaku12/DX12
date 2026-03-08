@@ -281,7 +281,7 @@ void DX12::screenClear()
     m_graphicsCommandList->ResourceBarrier(1, &barrier);
 
     //! SceneRTVをセット
-    m_graphicsCommandList->OMSetRenderTargets(1, &m_sceneRTVHandle, FALSE, &m_dsvHandle);
+    applySceneRenderTargets(m_graphicsCommandList.Get());
 
     //! Sceneクリア
     FLOAT clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
@@ -302,23 +302,8 @@ void DX12::screenClear()
         nullptr
     );
 
-    //! ビューポート設定
-    D3D12_VIEWPORT viewport = {};
-    viewport.Width = static_cast<FLOAT>(m_width);
-    viewport.Height = static_cast<FLOAT>(m_height);
-    viewport.TopLeftX = 0;
-    viewport.TopLeftY = 0;
-    viewport.MaxDepth = 1.0f;
-    viewport.MinDepth = 0.0f;
-    m_graphicsCommandList->RSSetViewports(1, &viewport);
-
-    //! シザー矩形設定
-    D3D12_RECT scissorrect = {};
-    scissorrect.top = 0;
-    scissorrect.left = 0;
-    scissorrect.right = scissorrect.left + m_width;
-    scissorrect.bottom = scissorrect.top + m_height;
-    m_graphicsCommandList->RSSetScissorRects(1, &scissorrect);
+    //! ビューポートとシザー矩形をセット
+    applyViewportAndScissor(m_graphicsCommandList.Get());
 }
 
 void DX12::sceneImguiRender()
@@ -645,6 +630,23 @@ void DX12::safeGPUWait()
 
 void DX12::prepareBackBufferForImGui()
 {
+    //! コマンドリストを閉じて GPU に送る（Scene 描画が完了している状態にする）
+    executeCommandList();
+
+    //! ワーカーコマンドリストをメインの前に実行
+    auto workerLists = CommandListPool::Instance().getClosedCommandLists();
+    if (!workerLists.empty())
+    {
+        m_commandQueue->ExecuteCommandLists(
+            static_cast<UINT>(workerLists.size()),
+            workerLists.data());
+    }
+    CommandListPool::Instance().resetAll();
+
+    //! post-pass 用のアロケータでリセット（pre-pass アロケータは GPU 使用中のため触らない）
+    m_postCommandAllocator->Reset();
+    m_graphicsCommandList->Reset(m_postCommandAllocator.Get(), nullptr);
+
     //! Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
     transitionSceneToSRV();
 
@@ -680,25 +682,6 @@ void DX12::executeCommandList()
     m_graphicsCommandList->Close();
     ID3D12CommandList* lists[] = { m_graphicsCommandList.Get() };
     m_commandQueue->ExecuteCommandLists(_countof(lists), lists);
-}
-
-void DX12::executeWorkerCommandLists()
-{
-    auto workerLists = CommandListPool::Instance().getClosedCommandLists();
-    if (!workerLists.empty())
-    {
-        m_commandQueue->ExecuteCommandLists(
-            static_cast<UINT>(workerLists.size()),
-            workerLists.data());
-    }
-    CommandListPool::Instance().resetAll();
-}
-
-void DX12::resetCommandListOnly()
-{
-    //! post-pass 用のアロケータでリセット（pre-pass アロケータは GPU 使用中のため触らない）
-    m_postCommandAllocator->Reset();
-    m_graphicsCommandList->Reset(m_postCommandAllocator.Get(), nullptr);
 }
 
 void DX12::applyViewportAndScissor(ID3D12GraphicsCommandList* cmd) const

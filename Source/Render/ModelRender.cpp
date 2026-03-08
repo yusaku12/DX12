@@ -4,8 +4,6 @@
 
 ModelRender::ModelRender(const std::string& mdlPath)
 {
-    m_settingPath = mdlPath + ".texture";
-
     if (!ModelData::loadFromMdl(mdlPath, m_modelData))
     {
         LOG_ASSERT_NO_JUDGE("Failed to load .mdl: %s", mdlPath.c_str());
@@ -18,7 +16,6 @@ ModelRender::ModelRender(const std::string& mdlPath)
 ModelRender::ModelRender(ModelData&& data)
     : m_modelData(std::move(data))
 {
-    m_settingPath = m_modelData.name + ".texture";
     buildGPUResources();
 }
 
@@ -86,9 +83,6 @@ void ModelRender::buildGPUResources()
 
     //! PSO
     createPSO();
-
-    //! 設定読み込み
-    loadSetting();
 }
 
 void ModelRender::createMaterialCBV()
@@ -183,99 +177,6 @@ void ModelRender::rebuildSubsetDescriptors(Subset& subset)
     DescriptorHeapManager::Instance().copyDescriptorsRange(subset.descriptorBase, srvIndices);
 }
 
-void ModelRender::loadSetting()
-{
-    std::ifstream file(m_settingPath, std::ios::binary);
-    if (!file) return;
-
-    size_t totalSubsetCount = 0;
-    file.read(reinterpret_cast<char*>(&totalSubsetCount), sizeof(size_t));
-
-    size_t currentTotal = 0;
-    for (const auto& mesh : m_meshes)
-        currentTotal += mesh.subsets.size();
-
-    if (!file || totalSubsetCount != currentTotal) return;
-
-    for (auto& mesh : m_meshes)
-    {
-        for (auto& subset : mesh.subsets)
-        {
-            uint8_t visible = 1;
-            file.read(reinterpret_cast<char*>(&visible), sizeof(uint8_t));
-            subset.visible = (visible != 0);
-
-            for (UINT t = 0; t < static_cast<UINT>(TextureType::Max); ++t)
-            {
-                size_t len = 0;
-                file.read(reinterpret_cast<char*>(&len), sizeof(size_t));
-                if (!file) return;
-
-                if (len == 0) { subset.textureIndices[t] = -1; continue; }
-
-                std::wstring path(len, L'\0');
-                file.read(reinterpret_cast<char*>(path.data()), len * sizeof(wchar_t));
-                if (!file) return;
-
-                int foundIndex = -1;
-                for (size_t k = 0; k < m_texturePaths.size(); ++k)
-                {
-                    if (m_texturePaths[k] == path) { foundIndex = (int)k; break; }
-                }
-
-                if (foundIndex == -1)
-                {
-                    auto tex = TextureManager::Instance().load(path);
-                    if (tex)
-                    {
-                        foundIndex = (int)m_textures.size();
-                        m_textures.push_back(tex);
-                        m_texturePaths.push_back(path);
-                    }
-                }
-
-                subset.textureIndices[t] = foundIndex;
-            }
-
-            rebuildSubsetDescriptors(subset);
-        }
-    }
-}
-
-void ModelRender::saveSetting()
-{
-    std::ofstream file(m_settingPath, std::ios::binary | std::ios::trunc);
-    if (!file) return;
-
-    size_t totalSubsetCount = 0;
-    for (const auto& mesh : m_meshes)
-        totalSubsetCount += mesh.subsets.size();
-
-    file.write(reinterpret_cast<const char*>(&totalSubsetCount), sizeof(size_t));
-
-    for (const auto& mesh : m_meshes)
-    {
-        for (const auto& subset : mesh.subsets)
-        {
-            uint8_t visible = subset.visible ? 1 : 0;
-            file.write(reinterpret_cast<const char*>(&visible), sizeof(uint8_t));
-
-            for (UINT t = 0; t < static_cast<UINT>(TextureType::Max); ++t)
-            {
-                int texIndex = subset.textureIndices[t];
-                std::wstring path;
-                if (texIndex >= 0 && texIndex < (int)m_texturePaths.size())
-                    path = m_texturePaths[texIndex];
-
-                size_t len = path.size();
-                file.write(reinterpret_cast<const char*>(&len), sizeof(size_t));
-                if (len > 0)
-                    file.write(reinterpret_cast<const char*>(path.data()), len * sizeof(wchar_t));
-            }
-        }
-    }
-}
-
 void ModelRender::render()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
@@ -314,176 +215,4 @@ void ModelRender::render(ID3D12GraphicsCommandList* cmd)
             cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
         }
     }
-}
-
-void ModelRender::debugRender()
-{
-    if (!ImGui::Begin("Model Material Editor"))
-    {
-        ImGui::End();
-        return;
-    }
-
-    static int selectedMesh = -1;
-    static int selectedSubset = -1;
-
-    ImGui::Columns(2, nullptr, true);
-
-    //! Subset List
-    ImGui::BeginChild("SubsetList", ImVec2(0, 0), true);
-
-    for (int mi = 0; mi < (int)m_meshes.size(); ++mi)
-    {
-        std::string meshLabel = (mi < (int)m_modelData.meshes.size() && !m_modelData.meshes[mi].name.empty())
-            ? m_modelData.meshes[mi].name
-            : "Mesh " + std::to_string(mi);
-
-        if (ImGui::TreeNode(meshLabel.c_str()))
-        {
-            for (int si = 0; si < (int)m_meshes[mi].subsets.size(); ++si)
-            {
-                UINT matIdx = m_meshes[mi].subsets[si].materialIndex;
-                std::string name = (matIdx < m_modelData.materials.size() && !m_modelData.materials[matIdx].name.empty())
-                    ? m_modelData.materials[matIdx].name
-                    : "Subset " + std::to_string(si);
-
-                bool isSelected = (selectedMesh == mi && selectedSubset == si);
-
-                if (ImGui::Selectable(name.c_str(), isSelected))
-                {
-                    selectedMesh = mi;
-                    selectedSubset = si;
-                }
-            }
-
-            ImGui::TreePop();
-        }
-    }
-
-    ImGui::EndChild();
-    ImGui::NextColumn();
-
-    //! Inspector
-    ImGui::BeginChild("Inspector", ImVec2(0, 0), true);
-
-    if (selectedMesh >= 0 && selectedMesh < (int)m_meshes.size() &&
-        selectedSubset >= 0 && selectedSubset < (int)m_meshes[selectedMesh].subsets.size())
-    {
-        auto& subset = m_meshes[selectedMesh].subsets[selectedSubset];
-        UINT matIdx = subset.materialIndex;
-
-        std::string matName = (matIdx < m_modelData.materials.size())
-            ? (m_modelData.materials[matIdx].name.empty() ? "Material " + std::to_string(matIdx) : m_modelData.materials[matIdx].name)
-            : "Unknown";
-
-        ImGui::Text("Material : %s", matName.c_str());
-        ImGui::Separator();
-
-        if (ImGui::Checkbox("Visible", &subset.visible))
-            saveSetting();
-
-        //! マテリアルパラメータ編集
-        if (matIdx < m_modelData.materials.size())
-        {
-            auto& mat = m_modelData.materials[matIdx];
-
-            ImGui::Spacing();
-            ImGui::Text("Properties");
-            ImGui::Separator();
-
-            bool changed = false;
-            changed |= ImGui::ColorEdit4("Diffuse", &mat.diffuse.x);
-            changed |= ImGui::ColorEdit3("Specular", &mat.specular.x);
-            changed |= ImGui::DragFloat("Spec Power", &mat.specularPower, 0.1f, 0.0f, 256.0f);
-            changed |= ImGui::ColorEdit3("Ambient", &mat.ambient.x);
-            changed |= ImGui::ColorEdit3("Emissive", &mat.emissive.x);
-
-            if (changed)
-            {
-                MaterialCB cb{};
-                cb.diffuse = mat.diffuse;
-                cb.specular = mat.specular;
-                cb.specularPower = mat.specularPower;
-                cb.ambient = mat.ambient;
-                cb.emissive = mat.emissive;
-                m_materialCB->update(cb, matIdx);
-            }
-        }
-
-        ImGui::Spacing();
-        ImGui::Text("Textures");
-
-        if (ImGui::BeginTable("Textures", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
-        {
-            for (UINT i = 0; i < static_cast<UINT>(TextureType::Max); ++i)
-            {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", magic_enum::enum_name(TextureType(i)).data());
-
-                ImGui::TableSetColumnIndex(1);
-
-                int texIndex = subset.textureIndices[i];
-
-                if (texIndex >= 0 && texIndex < (int)m_textures.size())
-                {
-                    ImTextureID texID = (ImTextureID)m_textures[texIndex]->getGPUHandle().ptr;
-
-                    if (ImGui::ImageButton(("TexBtn##" + std::to_string(i)).c_str(), texID, ImVec2(80, 80)))
-                    {
-                        std::vector<std::wstring> paths;
-                        if (Dialog::openFile(paths, L"Select Texture", L"Data/Texture", false) == DialogResult::OK)
-                        {
-                            auto tex = TextureManager::Instance().load(paths[0]);
-                            if (tex)
-                            {
-                                int idx = (int)m_textures.size();
-                                m_textures.push_back(tex);
-                                m_texturePaths.push_back(paths[0]);
-                                subset.textureIndices[i] = idx;
-                                rebuildSubsetDescriptors(subset);
-                                saveSetting();
-                            }
-                        }
-                    }
-                    ImGui::SameLine();
-                }
-                else
-                {
-                    if (ImGui::Button(("Set##" + std::to_string(i)).c_str(), ImVec2(80, 80)))
-                    {
-                        std::vector<std::wstring> paths;
-                        if (Dialog::openFile(paths, L"Select Texture", L"Data/Texture", false) == DialogResult::OK)
-                        {
-                            auto tex = TextureManager::Instance().load(paths[0]);
-                            if (tex)
-                            {
-                                int idx = (int)m_textures.size();
-                                m_textures.push_back(tex);
-                                m_texturePaths.push_back(paths[0]);
-                                subset.textureIndices[i] = idx;
-                                rebuildSubsetDescriptors(subset);
-                                saveSetting();
-                            }
-                        }
-                    }
-                    ImGui::SameLine();
-                }
-
-                if (ImGui::Button(("Clear##" + std::to_string(i)).c_str()))
-                {
-                    subset.textureIndices[i] = -1;
-                    rebuildSubsetDescriptors(subset);
-                    saveSetting();
-                }
-            }
-
-            ImGui::EndTable();
-        }
-    }
-
-    ImGui::EndChild();
-    ImGui::Columns(1);
-
-    ImGui::End();
 }

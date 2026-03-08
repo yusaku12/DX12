@@ -30,8 +30,8 @@ public:
     //! マルチスレッド描画（全登録コンポーネントを並列でコマンド記録）
     void renderMultiThreaded();
 
-    //! デバック描画（全登録コンポーネント）
-    void debugRender();
+    //! デバック描画
+    void debugImgui();
 
     //! 登録数取得
     size_t getComponentCount() const { return m_components.size(); }

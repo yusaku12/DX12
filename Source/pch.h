@@ -67,6 +67,7 @@
 #include "System\DebugPrimitive.h"
 #include "Graphics\CommandListPool.h"
 #include "Physics\PhysicsWorld.h"
+#include "Render\RenderManager.h"
 
 //! 省略系
 using namespace DirectX;

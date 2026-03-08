@@ -3,7 +3,9 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
+//=====================================================
 //! ImGui 用アロケータ
+//=====================================================
 struct ExampleDescriptorHeapAllocator
 {
     struct DescriptorAllocation
@@ -92,6 +94,12 @@ public:
     //! バックバッファをimgui用に準備
     void prepareBackBufferForImGui();
 
+    //! 現在のビューポートとシザー矩形をコマンドリストに設定
+    void applyViewportAndScissor(ID3D12GraphicsCommandList* cmd) const;
+
+    //! 現在の RenderTarget（Scene RT + DSV）をコマンドリストに設定
+    void applySceneRenderTargets(ID3D12GraphicsCommandList* cmd) const;
+
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
 
@@ -103,21 +111,6 @@ public:
 
     //! コマンドリスト取得
     ID3D12GraphicsCommandList* getGraphicsCommandList() const { return m_graphicsCommandList.Get(); }
-
-    //! ワーカーコマンドリストをメインの前に実行
-    void executeWorkerCommandLists();
-
-    //! メインコマンドリストのみリセット（アロケータもリセット）
-    void resetCommandListOnly();
-
-    //! GPU の処理完了を待つ（public版）
-    void waitForGpu() { safeGPUWait(); }
-
-    //! 現在のビューポートとシザー矩形をコマンドリストに設定
-    void applyViewportAndScissor(ID3D12GraphicsCommandList* cmd) const;
-
-    //! 現在の RenderTarget（Scene RT + DSV）をコマンドリストに設定
-    void applySceneRenderTargets(ID3D12GraphicsCommandList* cmd) const;
 
     //! バックバッファ取得
     DXGI_FORMAT getBackBufferFormat() const { return m_backBufferFormat; }

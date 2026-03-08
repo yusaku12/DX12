@@ -15,7 +15,7 @@ class ModelRender
 {
 public:
 
-    //! .mdl ファイルからロード（超高速）
+    //! .mdl ファイルからロード
     explicit ModelRender(const std::string& mdlPath);
 
     //! ModelData から直接生成（インポート直後など）
@@ -28,9 +28,6 @@ public:
 
     //! 描画（指定コマンドリストに対して）
     void render(ID3D12GraphicsCommandList* cmd);
-
-    //! デバック描画（マテリアルエディタ）
-    void debugRender();
 
     //! Transform 紐付け
     void setTransform(TransformComponent* tf) { m_transform = tf; }
@@ -107,12 +104,6 @@ private:
     //! Descriptor 再構築
     void rebuildSubsetDescriptors(Subset& subset);
 
-    //! 設定の読み込み
-    void loadSetting();
-
-    //! 設定の保存
-    void saveSetting();
-
     ModelData                                 m_modelData;
     std::vector<MeshDrawData>                 m_meshes;
     std::unique_ptr<ConstantBuffer<MaterialCB>> m_materialCB;
@@ -120,7 +111,6 @@ private:
     size_t                                    m_psoKey = 0;
     std::vector<LoadTexture*>                 m_textures;
     std::vector<std::wstring>                 m_texturePaths;
-    std::string                               m_settingPath;
 
     TransformComponent* m_transform = nullptr;
 };

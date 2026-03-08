@@ -9,7 +9,7 @@ void SceneManager::initialize()
     registerScene<ModelEditorScene>(SceneId::ModelEditor);
 
     //! 最初のシーンを読み込み
-    loadScene(SceneId::TEST);
+    loadScene(SceneId::ModelEditor);
 }
 
 void SceneManager::loadScene(SceneId id)
