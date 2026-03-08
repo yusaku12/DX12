@@ -1,15 +1,18 @@
 ﻿#pragma once
 
+//------------------------------------------------
 //! RootSignature の種類
+//------------------------------------------------
 enum class RootSignatureType : int
 {
-    Standard,
     PMXStandard,
     DebugPrimitive,
     Max
 };
 
+//------------------------------------------------
 //! 固定CBVの種類
+//------------------------------------------------
 enum class CBVType : int
 {
     Camera,
@@ -38,9 +41,6 @@ public:
 private:
 
     RootSignatureManager() = default;
-
-    //! Starndardをビルド
-    void buildStandard();
 
     //! PMXStandardをビルド
     void buildPMXStandard();

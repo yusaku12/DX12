@@ -61,7 +61,7 @@ public:
 
 private:
 
-    Vector3 m_position = { 0.0f, 9.0f, -23.0f };                //!< カメラの位置
+    Vector3 m_position = { 0.0f, 9.0f, -23.0f };   //!< カメラの位置
     Quaternion m_rotation = Quaternion::Identity;  //!< カメラの回転(クォータニオン)
 
     float m_fov = DirectX::XM_PIDIV4; //!< 視野角

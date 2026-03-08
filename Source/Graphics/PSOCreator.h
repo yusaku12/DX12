@@ -10,7 +10,7 @@ public:
     //! PSOデータ構造体
     struct PSOData
     {
-        RootSignatureType rootSignatureType = RootSignatureType::Standard;
+        RootSignatureType rootSignatureType = RootSignatureType::DebugPrimitive;
         ShaderID vsShaderId = ShaderID::MAX;
         ShaderID psShaderId = ShaderID::MAX;
         RasterizerState rasterizerState = RasterizerState::CULL_NONE;

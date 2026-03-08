@@ -1,10 +1,12 @@
 ﻿#include "pch.h"
 #include "TestScene.h"
+#include "ModelEditorScene.h"
 
 void SceneManager::initialize()
 {
     //! シーン登録
     registerScene<TestScene>(SceneId::TEST);
+    registerScene<ModelEditorScene>(SceneId::ModelEditor);
 
     //! 最初のシーンを読み込み
     loadScene(SceneId::TEST);

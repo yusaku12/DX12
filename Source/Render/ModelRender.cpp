@@ -1,67 +1,48 @@
 ﻿#include "pch.h"
-#include "FBXRender.h"
+#include "ModelRender.h"
 #include "Component\TransformComponent.h"
 
-FBXRender::FBXRender(const std::string& filePath)
+ModelRender::ModelRender(const std::string& mdlPath)
 {
-    m_settingPath = filePath + ".texture";
+    m_settingPath = mdlPath + ".texture";
 
-    //! FBXファイルの読み込み
-    FBXLoad loader;
-    if (!loader.load(filePath))
+    if (!ModelData::loadFromMdl(mdlPath, m_modelData))
     {
-        LOG_ASSERT_NO_JUDGE("failure file path");
+        LOG_ASSERT_NO_JUDGE("Failed to load .mdl: %s", mdlPath.c_str());
         return;
     }
-    m_model = loader.takeModel();
 
-    //! モデルCBVの作成
+    buildGPUResources();
+}
+
+ModelRender::ModelRender(ModelData&& data)
+    : m_modelData(std::move(data))
+{
+    m_settingPath = m_modelData.name + ".texture";
+    buildGPUResources();
+}
+
+void ModelRender::buildGPUResources()
+{
+    //! モデル行列CBV
     m_modelCB = std::make_unique<ConstantBuffer<ModelCB>>();
     m_modelCB->update(ModelCB{});
 
-    //! テクスチャの読み込み
+    //! テクスチャ読み込み
     createTextures();
 
-    //! メッシュ描画データの作成
-    createMeshData();
-
-    //! マテリアルCBVの作成
-    createMaterialCBV();
-
-    //! PSOの作成
-    createPSO();
-
-    //! 設定の読み込み
-    loadSetting();
-}
-
-void FBXRender::createMeshData()
-{
-    for (const auto& srcMesh : m_model.meshes)
+    //! メッシュ毎に VB / IB / Subsets を構築
+    for (const auto& srcMesh : m_modelData.meshes)
     {
-        MeshData meshData;
+        MeshDrawData meshDraw;
 
-        //! 頂点データ変換（ベイク済みなのでそのまま使用）
-        std::vector<Vertex> vertices;
-        vertices.reserve(srcMesh.vertices.size());
+        //! 頂点バッファ（ModelVertex はそのまま GPU 送信可能）
+        meshDraw.vertexBuffer = std::make_unique<VertexBuffer<ModelVertex>>(srcMesh.vertices);
 
-        for (const auto& v : srcMesh.vertices)
-        {
-            Vertex gv{};
-            gv.position = v.position;
-            gv.normal = v.normal;
-            gv.tangent = v.tangent;
-            gv.uv = v.uv;
-            vertices.push_back(gv);
-        }
+        //! インデックスバッファ
+        meshDraw.indexBuffer = std::make_unique<IndexBuffer<uint32_t>>(srcMesh.indices);
 
-        //! 頂点バッファの作成
-        meshData.vertexBuffer = std::make_unique<VertexBuffer<Vertex>>(vertices);
-
-        //! インデックスバッファの作成
-        meshData.indexBuffer = std::make_unique<IndexBuffer<uint32_t>>(srcMesh.indices);
-
-        //! サブセットの作成
+        //! サブセット
         for (const auto& sub : srcMesh.subMeshes)
         {
             Subset s{};
@@ -71,127 +52,95 @@ void FBXRender::createMeshData()
             s.textureIndices.fill(-1);
 
             //! マテリアルに紐づくテクスチャを検索
-            if (sub.materialIndex < m_model.materials.size())
+            if (sub.materialIndex < m_modelData.materials.size())
             {
-                const auto& mat = m_model.materials[sub.materialIndex];
+                const auto& mat = m_modelData.materials[sub.materialIndex];
 
-                //! Diffuse テクスチャ
-                if (!mat.texturePath.empty())
-                {
-                    std::wstring wpath(mat.texturePath.begin(), mat.texturePath.end());
-
-                    for (int i = 0; i < (int)m_texturePaths.size(); ++i)
+                auto findTexIndex = [&](const std::string& path) -> int
                     {
-                        if (m_texturePaths[i] == wpath)
+                        if (path.empty()) return -1;
+                        std::wstring wpath(path.begin(), path.end());
+                        for (int i = 0; i < (int)m_texturePaths.size(); ++i)
                         {
-                            s.textureIndices[static_cast<int>(TextureType::Diffuse)] = i;
-                            break;
+                            if (m_texturePaths[i] == wpath) return i;
                         }
-                    }
-                }
+                        return -1;
+                    };
 
-                //! Normal テクスチャ
-                if (!mat.normalMapPath.empty())
-                {
-                    std::wstring wpath(mat.normalMapPath.begin(), mat.normalMapPath.end());
-
-                    for (int i = 0; i < (int)m_texturePaths.size(); ++i)
-                    {
-                        if (m_texturePaths[i] == wpath)
-                        {
-                            s.textureIndices[static_cast<int>(TextureType::Normal)] = i;
-                            break;
-                        }
-                    }
-                }
+                s.textureIndices[static_cast<int>(TextureType::Diffuse)] = findTexIndex(mat.diffuseTexPath);
+                s.textureIndices[static_cast<int>(TextureType::Normal)] = findTexIndex(mat.normalTexPath);
+                s.textureIndices[static_cast<int>(TextureType::Toon)] = findTexIndex(mat.toonTexPath);
             }
 
             s.descriptorBase = DescriptorHeapManager::Instance().allocateRange(static_cast<int>(TextureType::Max));
             rebuildSubsetDescriptors(s);
 
-            meshData.subsets.push_back(s);
+            meshDraw.subsets.push_back(s);
         }
 
-        m_meshes.push_back(std::move(meshData));
+        m_meshes.push_back(std::move(meshDraw));
+    }
+
+    //! マテリアルCBV
+    createMaterialCBV();
+
+    //! PSO
+    createPSO();
+
+    //! 設定読み込み
+    loadSetting();
+}
+
+void ModelRender::createMaterialCBV()
+{
+    UINT matCount = (UINT)m_modelData.materials.size();
+    if (matCount == 0) matCount = 1;
+
+    m_materialCB = std::make_unique<ConstantBuffer<MaterialCB>>(matCount);
+
+    for (UINT i = 0; i < (UINT)m_modelData.materials.size(); ++i)
+    {
+        const auto& m = m_modelData.materials[i];
+        MaterialCB cb{};
+        cb.diffuse = m.diffuse;
+        cb.specular = m.specular;
+        cb.specularPower = m.specularPower;
+        cb.ambient = m.ambient;
+        cb.emissive = m.emissive;
+        m_materialCB->update(cb, i);
     }
 }
 
-void FBXRender::createMaterialCBV()
+void ModelRender::createTextures()
 {
-    UINT materialCount = (UINT)m_model.materials.size();
-
-    if (materialCount == 0)
-        materialCount = 1;
-
-    //! マテリアルCBVの作成
-    m_materialCB = std::make_unique<ConstantBuffer<Material>>(materialCount);
-
-    for (UINT i = 0; i < (UINT)m_model.materials.size(); ++i)
-    {
-        const auto& m = m_model.materials[i];
-        Material material{};
-        material.diffuse = m.diffuseColor;
-        material.specular = m.specularColor;
-        material.ambient = m.ambientColor;
-        m_materialCB->update(material, i);
-    }
-}
-
-void FBXRender::createTextures()
-{
-    for (const auto& mat : m_model.materials)
-    {
-        //! Diffuse テクスチャ
-        if (!mat.texturePath.empty())
+    auto addTexture = [&](const std::string& path)
         {
-            std::wstring wpath(mat.texturePath.begin(), mat.texturePath.end());
+            if (path.empty()) return;
 
-            //! 既に読み込み済みか確認
-            bool found = false;
+            std::wstring wpath(path.begin(), path.end());
+
             for (const auto& existing : m_texturePaths)
             {
-                if (existing == wpath)
-                {
-                    found = true;
-                    break;
-                }
+                if (existing == wpath) return;
             }
 
-            if (!found)
+            auto texture = TextureManager::Instance().load(wpath);
+            if (texture)
             {
-                auto texture = TextureManager::Instance().load(wpath);
                 m_textures.push_back(texture);
                 m_texturePaths.push_back(wpath);
             }
-        }
+        };
 
-        //! Normal テクスチャ
-        if (!mat.normalMapPath.empty())
-        {
-            std::wstring wpath(mat.normalMapPath.begin(), mat.normalMapPath.end());
-
-            //! 既に読み込み済みか確認
-            bool found = false;
-            for (const auto& existing : m_texturePaths)
-            {
-                if (existing == wpath)
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                auto texture = TextureManager::Instance().load(wpath);
-                m_textures.push_back(texture);
-                m_texturePaths.push_back(wpath);
-            }
-        }
+    for (const auto& mat : m_modelData.materials)
+    {
+        addTexture(mat.diffuseTexPath);
+        addTexture(mat.normalTexPath);
+        addTexture(mat.toonTexPath);
     }
 }
 
-void FBXRender::createPSO()
+void ModelRender::createPSO()
 {
     PSOCreator::PSOData psoData{};
     psoData.rootSignatureType = RootSignatureType::PMXStandard;
@@ -203,51 +152,50 @@ void FBXRender::createPSO()
     psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     psoData.inputLayout =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TANGENT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL",     0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TANGENT",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD",   0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "BONEINDEX",  0, DXGI_FORMAT_R32G32B32A32_UINT,  0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     };
     m_psoKey = PSOCreator::Instance().registerPSO(psoData);
 }
 
-void FBXRender::rebuildSubsetDescriptors(Subset& subset)
+void ModelRender::rebuildSubsetDescriptors(Subset& subset)
 {
-    if (subset.descriptorBase == UINT_MAX)
-        return;
+    if (subset.descriptorBase == UINT_MAX) return;
 
     std::vector<UINT> srvIndices;
 
-    for (UINT i = 0; i < static_cast<int>(TextureType::Max); ++i)
+    for (UINT i = 0; i < static_cast<UINT>(TextureType::Max); ++i)
     {
         int texIdx = subset.textureIndices[i];
 
         if (texIdx >= 0 && texIdx < (int)m_textures.size())
             srvIndices.push_back(m_textures[texIdx]->getSRVIndex());
-        else
+        else if (!m_textures.empty())
             srvIndices.push_back(m_textures[0]->getSRVIndex());
+        else
+            srvIndices.push_back(0);
     }
 
     DescriptorHeapManager::Instance().copyDescriptorsRange(subset.descriptorBase, srvIndices);
 }
 
-void FBXRender::loadSetting()
+void ModelRender::loadSetting()
 {
     std::ifstream file(m_settingPath, std::ios::binary);
-    if (!file)
-        return;
+    if (!file) return;
 
-    //! 全サブセットの合計数を読み込む
     size_t totalSubsetCount = 0;
     file.read(reinterpret_cast<char*>(&totalSubsetCount), sizeof(size_t));
 
-    //! 現在の合計サブセット数を算出
     size_t currentTotal = 0;
     for (const auto& mesh : m_meshes)
         currentTotal += mesh.subsets.size();
 
-    if (!file || totalSubsetCount != currentTotal)
-        return;
+    if (!file || totalSubsetCount != currentTotal) return;
 
     for (auto& mesh : m_meshes)
     {
@@ -257,46 +205,27 @@ void FBXRender::loadSetting()
             file.read(reinterpret_cast<char*>(&visible), sizeof(uint8_t));
             subset.visible = (visible != 0);
 
-            //! texture slots (固定数)
-            for (UINT t = 0; t < static_cast<int>(TextureType::Max); ++t)
+            for (UINT t = 0; t < static_cast<UINT>(TextureType::Max); ++t)
             {
                 size_t len = 0;
                 file.read(reinterpret_cast<char*>(&len), sizeof(size_t));
+                if (!file) return;
 
-                if (!file)
-                    return;
+                if (len == 0) { subset.textureIndices[t] = -1; continue; }
 
-                if (len == 0)
-                {
-                    subset.textureIndices[t] = -1;
-                    continue;
-                }
-
-                std::wstring path;
-                path.resize(len);
-
+                std::wstring path(len, L'\0');
                 file.read(reinterpret_cast<char*>(path.data()), len * sizeof(wchar_t));
+                if (!file) return;
 
-                if (!file)
-                    return;
-
-                //! 既存テクスチャ検索
                 int foundIndex = -1;
-
                 for (size_t k = 0; k < m_texturePaths.size(); ++k)
                 {
-                    if (m_texturePaths[k] == path)
-                    {
-                        foundIndex = (int)k;
-                        break;
-                    }
+                    if (m_texturePaths[k] == path) { foundIndex = (int)k; break; }
                 }
 
-                //! 無ければロード
                 if (foundIndex == -1)
                 {
                     auto tex = TextureManager::Instance().load(path);
-
                     if (tex)
                     {
                         foundIndex = (int)m_textures.size();
@@ -308,20 +237,16 @@ void FBXRender::loadSetting()
                 subset.textureIndices[t] = foundIndex;
             }
 
-            //! Descriptor再構築
             rebuildSubsetDescriptors(subset);
         }
     }
 }
 
-void FBXRender::saveSetting()
+void ModelRender::saveSetting()
 {
     std::ofstream file(m_settingPath, std::ios::binary | std::ios::trunc);
+    if (!file) return;
 
-    if (!file)
-        return;
-
-    //! 全サブセットの合計数を書き込む
     size_t totalSubsetCount = 0;
     for (const auto& mesh : m_meshes)
         totalSubsetCount += mesh.subsets.size();
@@ -335,95 +260,65 @@ void FBXRender::saveSetting()
             uint8_t visible = subset.visible ? 1 : 0;
             file.write(reinterpret_cast<const char*>(&visible), sizeof(uint8_t));
 
-            //! texture slots (固定数)
-            for (UINT t = 0; t < static_cast<int>(TextureType::Max); ++t)
+            for (UINT t = 0; t < static_cast<UINT>(TextureType::Max); ++t)
             {
                 int texIndex = subset.textureIndices[t];
-
                 std::wstring path;
-
                 if (texIndex >= 0 && texIndex < (int)m_texturePaths.size())
-                {
                     path = m_texturePaths[texIndex];
-                }
 
                 size_t len = path.size();
                 file.write(reinterpret_cast<const char*>(&len), sizeof(size_t));
-
                 if (len > 0)
-                {
                     file.write(reinterpret_cast<const char*>(path.data()), len * sizeof(wchar_t));
-                }
             }
         }
     }
 }
 
-void FBXRender::render()
+void ModelRender::render()
 {
     auto cmd = DX12::Instance().getGraphicsCommandList();
     render(cmd);
 }
 
-void FBXRender::render(ID3D12GraphicsCommandList* cmd)
+void ModelRender::render(ID3D12GraphicsCommandList* cmd)
 {
-    //! DescriptorHeap
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
-
-    //! RootSignature
     cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::PMXStandard));
-
-    //! PSO
     PSOCreator::Instance().setPSO(m_psoKey, cmd);
-
-    //! IA
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    //! CBV(カメラ)
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
 
-    //! モデル行列を更新（Transform が紐付いていればそれを使用）
     Matrix world = Matrix::Identity;
     if (m_transform)
-    {
         world = m_transform->getWorldMatrix();
-    }
 
-    //! カメラと同じ規約: DirectXMath行列を Transpose して row_major シェーダーに渡す
-    ModelCB modelData{};
-    modelData.world = world.Transpose();
-    m_modelCB->update(modelData);
+    ModelCB modelCBData{};
+    modelCBData.world = world.Transpose();
+    m_modelCB->update(modelCBData);
 
-    //! DescriptorTable(モデル行列)
     cmd->SetGraphicsRootDescriptorTable(1, m_modelCB->getGPUHandle());
 
-    //! メッシュごとに描画
     for (const auto& mesh : m_meshes)
     {
-        //! VB/IB
         mesh.vertexBuffer->bind(cmd);
         mesh.indexBuffer->bind(cmd);
 
         for (const auto& subset : mesh.subsets)
         {
-            //! DescriptorTable(テクスチャ)
+            if (!subset.visible) continue;
+
             cmd->SetGraphicsRootDescriptorTable(3, DescriptorHeapManager::Instance().getGPUHandle(subset.descriptorBase));
-
-            //! DescriptorTable(マテリアル)
             cmd->SetGraphicsRootDescriptorTable(2, m_materialCB->getGPUHandle(subset.materialIndex));
-
-            //! Draw
-            if (subset.visible)
-            {
-                cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
-            }
+            cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
         }
     }
 }
 
-void FBXRender::debugRender()
+void ModelRender::debugRender()
 {
-    if (!ImGui::Begin("FBX Material Editor"))
+    if (!ImGui::Begin("Model Material Editor"))
     {
         ImGui::End();
         return;
@@ -435,27 +330,22 @@ void FBXRender::debugRender()
     ImGui::Columns(2, nullptr, true);
 
     //! Subset List
-    ImGui::BeginChild("SubsetList");
-
-    int globalIndex = 0;
+    ImGui::BeginChild("SubsetList", ImVec2(0, 0), true);
 
     for (int mi = 0; mi < (int)m_meshes.size(); ++mi)
     {
-        std::string meshLabel = "Mesh " + std::to_string(mi);
-
-        if (!m_model.meshes.empty() && mi < (int)m_model.meshes.size())
-            meshLabel = m_model.meshes[mi].name.empty() ? meshLabel : m_model.meshes[mi].name;
+        std::string meshLabel = (mi < (int)m_modelData.meshes.size() && !m_modelData.meshes[mi].name.empty())
+            ? m_modelData.meshes[mi].name
+            : "Mesh " + std::to_string(mi);
 
         if (ImGui::TreeNode(meshLabel.c_str()))
         {
             for (int si = 0; si < (int)m_meshes[mi].subsets.size(); ++si)
             {
-                std::string name = "Subset " + std::to_string(si);
-
                 UINT matIdx = m_meshes[mi].subsets[si].materialIndex;
-
-                if (matIdx < m_model.materials.size() && !m_model.materials[matIdx].name.empty())
-                    name = m_model.materials[matIdx].name;
+                std::string name = (matIdx < m_modelData.materials.size() && !m_modelData.materials[matIdx].name.empty())
+                    ? m_modelData.materials[matIdx].name
+                    : "Subset " + std::to_string(si);
 
                 bool isSelected = (selectedMesh == mi && selectedSubset == si);
 
@@ -464,35 +354,27 @@ void FBXRender::debugRender()
                     selectedMesh = mi;
                     selectedSubset = si;
                 }
-
-                ++globalIndex;
             }
 
             ImGui::TreePop();
         }
-        else
-        {
-            globalIndex += (int)m_meshes[mi].subsets.size();
-        }
     }
 
     ImGui::EndChild();
-
     ImGui::NextColumn();
 
     //! Inspector
-    ImGui::BeginChild("Inspector");
+    ImGui::BeginChild("Inspector", ImVec2(0, 0), true);
 
     if (selectedMesh >= 0 && selectedMesh < (int)m_meshes.size() &&
         selectedSubset >= 0 && selectedSubset < (int)m_meshes[selectedMesh].subsets.size())
     {
         auto& subset = m_meshes[selectedMesh].subsets[selectedSubset];
-
         UINT matIdx = subset.materialIndex;
-        std::string matName = "Unknown";
 
-        if (matIdx < m_model.materials.size())
-            matName = m_model.materials[matIdx].name.empty() ? "Material " + std::to_string(matIdx) : m_model.materials[matIdx].name;
+        std::string matName = (matIdx < m_modelData.materials.size())
+            ? (m_modelData.materials[matIdx].name.empty() ? "Material " + std::to_string(matIdx) : m_modelData.materials[matIdx].name)
+            : "Unknown";
 
         ImGui::Text("Material : %s", matName.c_str());
         ImGui::Separator();
@@ -500,23 +382,49 @@ void FBXRender::debugRender()
         if (ImGui::Checkbox("Visible", &subset.visible))
             saveSetting();
 
+        //! マテリアルパラメータ編集
+        if (matIdx < m_modelData.materials.size())
+        {
+            auto& mat = m_modelData.materials[matIdx];
+
+            ImGui::Spacing();
+            ImGui::Text("Properties");
+            ImGui::Separator();
+
+            bool changed = false;
+            changed |= ImGui::ColorEdit4("Diffuse", &mat.diffuse.x);
+            changed |= ImGui::ColorEdit3("Specular", &mat.specular.x);
+            changed |= ImGui::DragFloat("Spec Power", &mat.specularPower, 0.1f, 0.0f, 256.0f);
+            changed |= ImGui::ColorEdit3("Ambient", &mat.ambient.x);
+            changed |= ImGui::ColorEdit3("Emissive", &mat.emissive.x);
+
+            if (changed)
+            {
+                MaterialCB cb{};
+                cb.diffuse = mat.diffuse;
+                cb.specular = mat.specular;
+                cb.specularPower = mat.specularPower;
+                cb.ambient = mat.ambient;
+                cb.emissive = mat.emissive;
+                m_materialCB->update(cb, matIdx);
+            }
+        }
+
         ImGui::Spacing();
         ImGui::Text("Textures");
 
         if (ImGui::BeginTable("Textures", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
         {
-            for (UINT i = 0; i < static_cast<int>(TextureType::Max); ++i)
+            for (UINT i = 0; i < static_cast<UINT>(TextureType::Max); ++i)
             {
                 ImGui::TableNextRow();
-
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text(magic_enum::enum_name(TextureType(i)).data(), i);
+                ImGui::Text("%s", magic_enum::enum_name(TextureType(i)).data());
 
                 ImGui::TableSetColumnIndex(1);
 
                 int texIndex = subset.textureIndices[i];
 
-                //! テクスチャが設定されている場合のみプレビュー表示
                 if (texIndex >= 0 && texIndex < (int)m_textures.size())
                 {
                     ImTextureID texID = (ImTextureID)m_textures[texIndex]->getGPUHandle().ptr;
@@ -524,52 +432,41 @@ void FBXRender::debugRender()
                     if (ImGui::ImageButton(("TexBtn##" + std::to_string(i)).c_str(), texID, ImVec2(80, 80)))
                     {
                         std::vector<std::wstring> paths;
-
                         if (Dialog::openFile(paths, L"Select Texture", L"Data/Texture", false) == DialogResult::OK)
                         {
                             auto tex = TextureManager::Instance().load(paths[0]);
-
                             if (tex)
                             {
                                 int idx = (int)m_textures.size();
                                 m_textures.push_back(tex);
                                 m_texturePaths.push_back(paths[0]);
-
                                 subset.textureIndices[i] = idx;
-
                                 rebuildSubsetDescriptors(subset);
                                 saveSetting();
                             }
                         }
                     }
-
                     ImGui::SameLine();
                 }
                 else
                 {
-                    //! テクスチャ未設定 → 設定ボタンを表示
                     if (ImGui::Button(("Set##" + std::to_string(i)).c_str(), ImVec2(80, 80)))
                     {
                         std::vector<std::wstring> paths;
-
                         if (Dialog::openFile(paths, L"Select Texture", L"Data/Texture", false) == DialogResult::OK)
                         {
                             auto tex = TextureManager::Instance().load(paths[0]);
-
                             if (tex)
                             {
                                 int idx = (int)m_textures.size();
                                 m_textures.push_back(tex);
                                 m_texturePaths.push_back(paths[0]);
-
                                 subset.textureIndices[i] = idx;
-
                                 rebuildSubsetDescriptors(subset);
                                 saveSetting();
                             }
                         }
                     }
-
                     ImGui::SameLine();
                 }
 
@@ -586,7 +483,6 @@ void FBXRender::debugRender()
     }
 
     ImGui::EndChild();
-
     ImGui::Columns(1);
 
     ImGui::End();

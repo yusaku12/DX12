@@ -6,6 +6,7 @@
 enum class SceneId : int
 {
     TEST,
+    ModelEditor,
     MAX
 };
 

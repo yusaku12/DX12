@@ -3,7 +3,7 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
-// 一時的な ImGui 用アロケータ
+//! ImGui 用アロケータ
 struct ExampleDescriptorHeapAllocator
 {
     struct DescriptorAllocation
@@ -56,7 +56,7 @@ struct ExampleDescriptorHeapAllocator
 
     void FreeByIndex(UINT index)
     {
-        // 簡易検査（ここは追加の検査を入れると堅牢）
+        //! 簡易検査（ここは追加の検査を入れると堅牢）
         FreeIndices.push_back(index);
     }
 };

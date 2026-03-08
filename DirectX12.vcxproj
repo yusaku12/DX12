@@ -62,7 +62,6 @@
     <ClCompile Include="Source\Audio\SoundVoice.cpp" />
     <ClCompile Include="Source\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Camera\FreeCameraBehaviour.cpp" />
-    <ClCompile Include="Source\Component\CharacterControllerComponent.cpp" />
     <ClCompile Include="Source\Component\ColliderComponent.cpp" />
     <ClCompile Include="Source\Component\Component.cpp" />
     <ClCompile Include="Source\Component\RigidbodyComponent.cpp" />
@@ -89,6 +88,7 @@
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
     <ClCompile Include="Source\Model\FBXLoad.cpp" />
+    <ClCompile Include="Source\Model\ModelData.cpp" />
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\Model\VmdLoad.cpp" />
     <ClCompile Include="Source\pch.cpp">
@@ -96,8 +96,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Physics\PhysicsWorld.cpp" />
-    <ClCompile Include="Source\Render\FBXRender.cpp" />
-    <ClCompile Include="Source\Render\PMXRender.cpp" />
+    <ClCompile Include="Source\Render\ModelRender.cpp" />
+    <ClCompile Include="Source\Render\RenderManager.cpp" />
+    <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\TestScene.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
@@ -144,9 +145,9 @@
     <ClInclude Include="Source\Camera\CameraBehaviour.h" />
     <ClInclude Include="Source\Camera\CameraManager.h" />
     <ClInclude Include="Source\Camera\FreeCameraBehaviour.h" />
-    <ClInclude Include="Source\Component\CharacterControllerComponent.h" />
     <ClInclude Include="Source\Component\ColliderComponent.h" />
     <ClInclude Include="Source\Component\Component.h" />
+    <ClInclude Include="Source\Component\IRenderComponent.h" />
     <ClInclude Include="Source\Component\Object.h" />
     <ClInclude Include="Source\Component\RigidbodyComponent.h" />
     <ClInclude Include="Source\Component\TransformComponent.h" />
@@ -173,16 +174,19 @@
     <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\Math\SimpleMath.h" />
     <ClInclude Include="Source\Model\FBXLoad.h" />
+    <ClInclude Include="Source\Model\ModelData.h" />
     <ClInclude Include="Source\Model\PmxLoad.h" />
     <ClInclude Include="Source\Model\VmdLoad.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Physics\PhysicsWorld.h" />
     <ClInclude Include="Source\Physics\PhysXHelper.h" />
-    <ClInclude Include="Source\Render\FBXRender.h" />
-    <ClInclude Include="Source\Render\PMXRender.h" />
+    <ClInclude Include="Source\Render\ModelRender.h" />
+    <ClInclude Include="Source\Render\RenderManager.h" />
+    <ClInclude Include="Source\Scene\ModelEditorScene.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\Scene\TestScene.h" />
+    <ClInclude Include="Source\System\Binary.h" />
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
     <ClInclude Include="Source\System\DebugPrimitive.h" />
     <ClInclude Include="Source\System\Dialog.h" />

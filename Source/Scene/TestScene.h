@@ -1,8 +1,6 @@
 ﻿#pragma once
 
 #include "Scene.h"
-#include "Render\PMXRender.h"
-#include "Render\FBXRender.h"
 #include <chrono>
 
 //============================================================
@@ -25,9 +23,6 @@ public:
     void debugDraw() override;
 
 private:
-
-    std::unique_ptr<PMXRender> m_pmxRender;
-    std::unique_ptr<FBXRender> m_fbxRender;
 
     //! マルチスレッドデバッグ計測用
     struct ThreadTimingInfo

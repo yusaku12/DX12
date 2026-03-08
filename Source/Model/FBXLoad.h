@@ -22,7 +22,7 @@ public:
     {
         struct Bone
         {
-            std::string name;          //!< ボーン名（ユニーク）
+            std::string name = {};     //!< ボーン名（ユニーク）
             int parentIndex = -1;      //!< 親ボーンIndex（-1 = Root）
             Matrix inverseBindMatrix;  //!< Inverse Bind Pose 行列
 
@@ -63,7 +63,7 @@ public:
     //! アニメーションクリップ
     struct AnimationClip
     {
-        std::string name;
+        std::string name = {};
         float duration = 0.0f;  //!< 秒
         float ticksPerSecond = 30.0f;
 
@@ -94,7 +94,7 @@ public:
     //! メッシュ
     struct Mesh
     {
-        std::string name;
+        std::string name = {};
 
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
@@ -118,9 +118,9 @@ public:
     //! マテリアル
     struct Material
     {
-        std::string name;
-        std::string texturePath;
-        std::string normalMapPath;
+        std::string name = {};
+        std::string texturePath = {};
+        std::string normalMapPath = {};
 
         Vector4 diffuseColor = { 1,1,1,1 };
         Vector3 specularColor = { 0,0,0 };

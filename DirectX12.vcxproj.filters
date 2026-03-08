@@ -50,8 +50,6 @@
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\Model\VmdLoad.cpp" />
     <ClCompile Include="Source\pch.cpp" />
-    <ClCompile Include="Source\Render\FBXRender.cpp" />
-    <ClCompile Include="Source\Render\PMXRender.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\TestScene.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
@@ -64,6 +62,10 @@
     <ClCompile Include="Source\Component\ColliderComponent.cpp" />
     <ClCompile Include="Source\Component\RigidbodyComponent.cpp" />
     <ClCompile Include="External\imgui\ImCurveEdit.cpp" />
+    <ClCompile Include="Source\Model\ModelData.cpp" />
+    <ClCompile Include="Source\Render\ModelRender.cpp" />
+    <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
+    <ClCompile Include="Source\Render\RenderManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -273,9 +275,6 @@
     <ClInclude Include="Source\Scene\TestScene.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Render\PMXRender.h">
-      <Filter>�w�b�_�[ �t�@�C��</Filter>
-    </ClInclude>
     <ClInclude Include="Source\System\Dialog.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
@@ -294,9 +293,6 @@
     <ClInclude Include="Source\Model\FBXLoad.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Render\FBXRender.h">
-      <Filter>�w�b�_�[ �t�@�C��</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Physics\PhysicsWorld.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
@@ -310,6 +306,24 @@
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\ImCurveEdit.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Model\ModelData.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\System\Binary.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\ModelRender.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\ModelEditorScene.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\RenderManager.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\IRenderComponent.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
   </ItemGroup>
