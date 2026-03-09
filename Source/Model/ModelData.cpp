@@ -38,11 +38,12 @@ ModelData ModelData::importFromPMX(const PmxLoad::PMXFileData& pmx)
         mat.specularPower = m.specularPower;
         mat.ambient = m.ambient;
 
-        //! Diffuse テクスチャ
+        //! テクスチャ読み込み
         if (m.textureIndex < pmx.textures.size())
         {
             std::filesystem::path texPath = pmx.textures[m.textureIndex].textureName;
-            mat.diffuseTexPath = texPath.string();
+            mat.texturePath[0] = texPath.string();
+            mat.texturePath[1] = texPath.string();
         }
 
         data.materials.push_back(std::move(mat));
@@ -96,7 +97,7 @@ ModelData ModelData::importFromPMX(const PmxLoad::PMXFileData& pmx)
     return data;
 }
 
-ModelData ModelData::importFromFBX(const FBXLoad::Model& fbx)
+ModelData ModelData::importFromFBX(const FbxLoad::Model& fbx)
 {
     ModelData data;
 
@@ -110,8 +111,8 @@ ModelData ModelData::importFromFBX(const FBXLoad::Model& fbx)
         mat.specularPower = m.specularPower;
         mat.ambient = m.ambientColor;
         mat.emissive = m.emissiveColor;
-        mat.diffuseTexPath = m.texturePath;
-        mat.normalTexPath = m.normalMapPath;
+        mat.texturePath[0] = m.texturePath;
+        mat.texturePath[1] = m.normalMapPath;
 
         data.materials.push_back(std::move(mat));
     }
@@ -206,9 +207,9 @@ bool ModelData::saveToMdl(const std::string& path) const
         Binary::writeF32(out, mat.specularPower);
         Binary::writeVec3(out, mat.ambient);
         Binary::writeVec3(out, mat.emissive);
-        Binary::writeString(out, mat.diffuseTexPath);
-        Binary::writeString(out, mat.normalTexPath);
-        Binary::writeString(out, mat.toonTexPath);
+        Binary::writeString(out, mat.texturePath[0]);
+        Binary::writeString(out, mat.texturePath[1]);
+        Binary::writeBool(out, mat.isVisible);
     }
 
     return out.good();
@@ -273,9 +274,9 @@ bool ModelData::loadFromMdl(const std::string& path, ModelData& outData)
         mat.specularPower = Binary::readF32(in);
         mat.ambient = Binary::readVec3(in);
         mat.emissive = Binary::readVec3(in);
-        mat.diffuseTexPath = Binary::readString(in);
-        mat.normalTexPath = Binary::readString(in);
-        mat.toonTexPath = Binary::readString(in);
+        mat.texturePath[0] = Binary::readString(in);
+        mat.texturePath[0] = Binary::readString(in);
+        mat.isVisible = Binary::readBool(in);
     }
 
     return in.good();

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "PmxLoad.h"
-#include "FBXLoad.h"
+#include "FbxLoad.h"
 
 //! .mdl ファイルマジック
 static constexpr uint32_t MDL_MAGIC = 'M' | ('D' << 8) | ('L' << 16) | ('1' << 24);
@@ -53,9 +53,8 @@ struct ModelMaterial
     float       specularPower = 0.0f;
     Vector3     ambient = { 0, 0, 0 };
     Vector3     emissive = { 0, 0, 0 };
-    std::string diffuseTexPath;
-    std::string normalTexPath;
-    std::string toonTexPath;
+    std::string texturePath[2] = {};
+    bool isVisible = true;
 };
 
 //=====================================================
@@ -78,7 +77,7 @@ struct ModelData
     static ModelData importFromPMX(const PmxLoad::PMXFileData& pmx);
 
     //! FBX からインポート
-    static ModelData importFromFBX(const FBXLoad::Model& fbx);
+    static ModelData importFromFBX(const FbxLoad::Model& fbx);
 
     //! .mdl バイナリ保存
     bool saveToMdl(const std::string& path) const;

@@ -8,8 +8,12 @@
 // {
 //
 //   float4 diffuse;                    // Offset:    0 Size:    16
-//   float4 specular;                   // Offset:   16 Size:    16
+//   float3 specular;                   // Offset:   16 Size:    12
+//   float specularPower;               // Offset:   28 Size:     4
 //   float3 ambient;                    // Offset:   32 Size:    12
+//   float _pad0;                       // Offset:   44 Size:     4 [unused]
+//   float3 emissive;                   // Offset:   48 Size:    12 [unused]
+//   float _pad1;                       // Offset:   60 Size:     4 [unused]
 //
 // }
 //
@@ -162,7 +166,7 @@ rsq r0.w, r0.w
 mul r0.xyz, r0.wwww, r0.xyzx  // r0.x <- halfDir.x; r0.y <- halfDir.y; r0.z <- halfDir.z
 
 #line 39
-max r0.w, cb2[1].w, l(1.000000)  // r0.w <- specularPower
+max r0.w, cb2[1].w, l(1.000000)  // r0.w <- gpuSpecularPower
 
 #line 40
 dp3 r0.x, r1.xyzx, r0.xyzx
@@ -180,7 +184,7 @@ add r1.xyz, r2.xyzx, r3.xyzx
 mul r1.xyz, r1.xyzx, r4.xyzx
 add r0.xyz, r0.xyzx, r1.xyzx  // r0.x <- finalColor.x; r0.y <- finalColor.y; r0.z <- finalColor.z
 
-#line 47
+#line 46
 mul o0.w, r4.w, cb2[0].w
 mov o0.xyz, r0.xyzx
 ret 

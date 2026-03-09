@@ -46,7 +46,7 @@
     <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
-    <ClCompile Include="Source\Model\FBXLoad.cpp" />
+    <ClCompile Include="Source\Model\FbxLoad.cpp" />
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\Model\VmdLoad.cpp" />
     <ClCompile Include="Source\pch.cpp" />
@@ -66,6 +66,7 @@
     <ClCompile Include="Source\Render\ModelRender.cpp" />
     <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
+    <ClCompile Include="Source\Render\FbxRender.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -290,7 +291,7 @@
     <ClInclude Include="Source\Model\VmdLoad.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Model\FBXLoad.h">
+    <ClInclude Include="Source\Model\FbxLoad.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Physics\PhysicsWorld.h">
@@ -324,6 +325,9 @@
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\IRenderComponent.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\FbxRender.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
   </ItemGroup>

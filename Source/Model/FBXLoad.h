@@ -5,7 +5,7 @@
 //==============================================================
 // FBX読み込み・内部データ保持クラス
 //==============================================================
-class FBXLoad
+class FbxLoad
 {
 public:
 
@@ -144,16 +144,16 @@ public:
         bool hasAnimation() const { return !animations.empty(); }
     };
 
-    explicit FBXLoad();
-    ~FBXLoad();
+    explicit FbxLoad();
+    ~FbxLoad();
 
     //! コピー禁止
-    FBXLoad(const FBXLoad&) = delete;
-    FBXLoad& operator=(const FBXLoad&) = delete;
+    FbxLoad(const FbxLoad&) = delete;
+    FbxLoad& operator=(const FbxLoad&) = delete;
 
     //! ムーブ可
-    FBXLoad(FBXLoad&& other) noexcept;
-    FBXLoad& operator=(FBXLoad&& other) noexcept;
+    FbxLoad(FbxLoad&& other) noexcept;
+    FbxLoad& operator=(FbxLoad&& other) noexcept;
 
     //! FBXファイルを読み込む
     bool load(const std::string& path);

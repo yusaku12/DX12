@@ -100,6 +100,9 @@ public:
     //! 現在の RenderTarget（Scene RT + DSV）をコマンドリストに設定
     void applySceneRenderTargets(ID3D12GraphicsCommandList* cmd) const;
 
+    //! フェンスを待つ
+    void safeGPUWait();
+
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
 
@@ -148,9 +151,6 @@ private:
 
     //! コマンドリスト実行
     void executeCommandList();
-
-    //! フェンスを待つ
-    void safeGPUWait();
 
     //! Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
     void transitionSceneToSRV();

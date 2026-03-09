@@ -13,12 +13,6 @@ ModelRender::ModelRender(const std::string& mdlPath)
     buildGPUResources();
 }
 
-ModelRender::ModelRender(ModelData&& data)
-    : m_modelData(std::move(data))
-{
-    buildGPUResources();
-}
-
 void ModelRender::buildGPUResources()
 {
     //! モデル行列CBV
@@ -49,7 +43,7 @@ void ModelRender::buildGPUResources()
             s.textureIndices.fill(-1);
 
             //! マテリアルに紐づくテクスチャを検索
-            if (sub.materialIndex < m_modelData.materials.size())
+            if (sub.materialIndex >= 0 && sub.materialIndex < m_modelData.materials.size())
             {
                 const auto& mat = m_modelData.materials[sub.materialIndex];
 
@@ -64,9 +58,8 @@ void ModelRender::buildGPUResources()
                         return -1;
                     };
 
-                s.textureIndices[static_cast<int>(TextureType::Diffuse)] = findTexIndex(mat.diffuseTexPath);
-                s.textureIndices[static_cast<int>(TextureType::Normal)] = findTexIndex(mat.normalTexPath);
-                s.textureIndices[static_cast<int>(TextureType::Toon)] = findTexIndex(mat.toonTexPath);
+                s.textureIndices[static_cast<int>(TextureType::Diffuse)] = findTexIndex(mat.texturePath[0]);
+                s.textureIndices[static_cast<int>(TextureType::Normal)] = findTexIndex(mat.texturePath[1]);
             }
 
             s.descriptorBase = DescriptorHeapManager::Instance().allocateRange(static_cast<int>(TextureType::Max));
@@ -128,9 +121,8 @@ void ModelRender::createTextures()
 
     for (const auto& mat : m_modelData.materials)
     {
-        addTexture(mat.diffuseTexPath);
-        addTexture(mat.normalTexPath);
-        addTexture(mat.toonTexPath);
+        addTexture(mat.texturePath[0]);
+        addTexture(mat.texturePath[1]);
     }
 }
 
@@ -161,17 +153,20 @@ void ModelRender::rebuildSubsetDescriptors(Subset& subset)
     if (subset.descriptorBase == UINT_MAX) return;
 
     std::vector<UINT> srvIndices;
+    srvIndices.reserve(TEXTURE_SLOT_COUNT);
 
-    for (UINT i = 0; i < static_cast<UINT>(TextureType::Max); ++i)
+    for (UINT i = 0; i < TEXTURE_SLOT_COUNT; ++i)
     {
         int texIdx = subset.textureIndices[i];
 
         if (texIdx >= 0 && texIdx < (int)m_textures.size())
+        {
             srvIndices.push_back(m_textures[texIdx]->getSRVIndex());
-        else if (!m_textures.empty())
-            srvIndices.push_back(m_textures[0]->getSRVIndex());
+        }
         else
-            srvIndices.push_back(0);
+        {
+            srvIndices.push_back(m_textures[0]->getSRVIndex());
+        }
     }
 
     DescriptorHeapManager::Instance().copyDescriptorsRange(subset.descriptorBase, srvIndices);

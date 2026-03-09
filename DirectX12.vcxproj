@@ -87,7 +87,7 @@
     <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
-    <ClCompile Include="Source\Model\FBXLoad.cpp" />
+    <ClCompile Include="Source\Model\FbxLoad.cpp" />
     <ClCompile Include="Source\Model\ModelData.cpp" />
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\Model\VmdLoad.cpp" />
@@ -96,6 +96,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Physics\PhysicsWorld.cpp" />
+    <ClCompile Include="Source\Render\FbxRender.cpp" />
     <ClCompile Include="Source\Render\ModelRender.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
     <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
@@ -173,13 +174,14 @@
     <ClInclude Include="Source\Graphics\TextureManager.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\Math\SimpleMath.h" />
-    <ClInclude Include="Source\Model\FBXLoad.h" />
+    <ClInclude Include="Source\Model\FbxLoad.h" />
     <ClInclude Include="Source\Model\ModelData.h" />
     <ClInclude Include="Source\Model\PmxLoad.h" />
     <ClInclude Include="Source\Model\VmdLoad.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Physics\PhysicsWorld.h" />
     <ClInclude Include="Source\Physics\PhysXHelper.h" />
+    <ClInclude Include="Source\Render\FbxRender.h" />
     <ClInclude Include="Source\Render\ModelRender.h" />
     <ClInclude Include="Source\Render\RenderManager.h" />
     <ClInclude Include="Source\Scene\ModelEditorScene.h" />

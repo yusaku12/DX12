@@ -1,7 +1,8 @@
 ﻿#pragma once
 
 #include "Scene.h"
-#include <chrono>
+#include "Render\FbxRender.h"
+#include "Component\TransformComponent.h"
 
 //============================================================
 // モデルエディタシーン
@@ -21,4 +22,12 @@ public:
     void drawMultiThreaded() override;
 
     void debugDraw() override;
+
+private:
+
+    //! ファイルダイアログから FBX を読み込む
+    void openFbxFile();
+
+    std::unique_ptr<FbxRender> m_fbxRender;
+    TransformComponent* m_transform;
 };

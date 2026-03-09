@@ -74,3 +74,44 @@ static std::wstring stringToWstring(const std::string& str)
     //! NULL終端を除いてwstring生成
     return std::wstring(buffer.data(), buffer.data() + sizeNeeded - 1);
 }
+
+//! 絶対パスを実行ファイルからの相対パスに変換するヘルパー
+static std::string toRelativePath(const std::wstring& absolutePath)
+{
+    //! wstring → filesystem::path
+    std::filesystem::path absPath(absolutePath);
+
+    //! カレントディレクトリからの相対パスを算出
+    std::error_code ec;
+    auto relPath = std::filesystem::relative(absPath, std::filesystem::current_path(), ec);
+
+    if (ec || relPath.empty())
+    {
+        //! 相対化できなければ UTF-8 に変換してそのまま返す
+        int sz = WideCharToMultiByte(CP_UTF8, 0, absolutePath.c_str(), static_cast<int>(absolutePath.size()), nullptr, 0, nullptr, nullptr);
+        std::string result(sz, '\0');
+        WideCharToMultiByte(CP_UTF8, 0, absolutePath.c_str(), static_cast<int>(absolutePath.size()), result.data(), sz, nullptr, nullptr);
+        return result;
+    }
+
+    return relPath.string();
+}
+
+//! 絶対パスを実行ファイルからの相対パスに変換するヘルパー
+static std::string toRelativePath(const char* absolutePath)
+{
+    //! char* → filesystem::path
+    std::filesystem::path absPath(absolutePath);
+
+    //! カレントディレクトリからの相対パスを算出
+    std::error_code ec;
+    auto relPath = std::filesystem::relative(absPath, std::filesystem::current_path(), ec);
+
+    if (ec || relPath.empty())
+    {
+        //! 相対化できなければそのまま返す
+        return std::string(absolutePath);
+    }
+
+    return relPath.string();
+}

@@ -9,7 +9,7 @@ class TransformComponent;
 
 //----------------------------------------------------------------------------
 // ModelRender — 統一モデルレンダラー
-// PMX / FBX / .mdl いずれからでも生成可能
+// .mdl ファイルからのロード、ModelData からの直接生成、どちらもサポート
 //----------------------------------------------------------------------------
 class ModelRender
 {
@@ -17,10 +17,6 @@ public:
 
     //! .mdl ファイルからロード
     explicit ModelRender(const std::string& mdlPath);
-
-    //! ModelData から直接生成（インポート直後など）
-    explicit ModelRender(ModelData&& data);
-
     ~ModelRender() = default;
 
     //! 描画
@@ -48,7 +44,6 @@ private:
     {
         Diffuse,
         Normal,
-        Toon,
         Max
     };
 
@@ -111,6 +106,7 @@ private:
     size_t                                    m_psoKey = 0;
     std::vector<LoadTexture*>                 m_textures;
     std::vector<std::wstring>                 m_texturePaths;
+    static constexpr UINT TEXTURE_SLOT_COUNT = static_cast<UINT>(TextureType::Max);
 
     TransformComponent* m_transform = nullptr;
 };

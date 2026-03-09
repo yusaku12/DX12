@@ -23,6 +23,10 @@ cbuffer Transform : register(b1)
 cbuffer Material : register(b2)
 {
     float4 diffuse;
-    float4 specular;
+    float3 specular;
+    float specularPower;
     float3 ambient;
+    float _pad0;
+    float3 emissive;
+    float _pad1;
 };

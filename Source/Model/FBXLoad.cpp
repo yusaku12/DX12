@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "FBXLoad.h"
+#include "FbxLoad.h"
 
 static Matrix ToMatrix(const FbxAMatrix& m)
 {
@@ -82,17 +82,17 @@ static Vector4 ReadTangent(FbxLayerElementTangent* elem, int ctrlIndex, int vert
     return { (float)t[0], (float)t[1], (float)t[2], 1.0f };
 }
 
-FBXLoad::FBXLoad()
+FbxLoad::FbxLoad()
 {
     initializeFbx();
 }
 
-FBXLoad::~FBXLoad()
+FbxLoad::~FbxLoad()
 {
     destroyFbx();
 }
 
-FBXLoad::FBXLoad(FBXLoad&& other) noexcept
+FbxLoad::FbxLoad(FbxLoad&& other) noexcept
     : m_model(std::move(other.m_model))
     , m_manager(other.m_manager)
     , m_scene(other.m_scene)
@@ -101,7 +101,7 @@ FBXLoad::FBXLoad(FBXLoad&& other) noexcept
     other.m_scene = nullptr;
 }
 
-FBXLoad& FBXLoad::operator=(FBXLoad&& other) noexcept
+FbxLoad& FbxLoad::operator=(FbxLoad&& other) noexcept
 {
     if (this != &other)
     {
@@ -115,7 +115,7 @@ FBXLoad& FBXLoad::operator=(FBXLoad&& other) noexcept
     return *this;
 }
 
-void FBXLoad::initializeFbx()
+void FbxLoad::initializeFbx()
 {
     m_manager = FbxManager::Create();
     assert(m_manager);
@@ -126,7 +126,7 @@ void FBXLoad::initializeFbx()
     m_scene = FbxScene::Create(m_manager, "Scene");
 }
 
-void FBXLoad::destroyFbx()
+void FbxLoad::destroyFbx()
 {
     if (m_scene)
     {
@@ -140,7 +140,7 @@ void FBXLoad::destroyFbx()
     }
 }
 
-bool FBXLoad::load(const std::string& path)
+bool FbxLoad::load(const std::string& path)
 {
     FbxImporter* importer = FbxImporter::Create(m_manager, "");
 
@@ -166,7 +166,7 @@ bool FBXLoad::load(const std::string& path)
     return true;
 }
 
-void FBXLoad::bakeNodeTransforms(FbxNode* node)
+void FbxLoad::bakeNodeTransforms(FbxNode* node)
 {
     if (!node) return;
 
@@ -237,7 +237,7 @@ void FBXLoad::bakeNodeTransforms(FbxNode* node)
     }
 }
 
-void FBXLoad::parseScene()
+void FbxLoad::parseScene()
 {
     m_model = Model();
 
@@ -279,7 +279,7 @@ void FBXLoad::parseScene()
     parseAnimations();
 }
 
-void FBXLoad::parseNode(FbxNode* node, int parentBoneIndex)
+void FbxLoad::parseNode(FbxNode* node, int parentBoneIndex)
 {
     if (!node) return;
 
@@ -312,7 +312,7 @@ void FBXLoad::parseNode(FbxNode* node, int parentBoneIndex)
         parseNode(node->GetChild(i), boneIndex);
 }
 
-void FBXLoad::parseMesh(FbxNode* node)
+void FbxLoad::parseMesh(FbxNode* node)
 {
     FbxMesh* mesh = node->GetMesh();
     if (!mesh) return;
@@ -329,6 +329,32 @@ void FBXLoad::parseMesh(FbxNode* node)
     FbxLayerElementTangent* tanElem = mesh->GetElementTangent();
     FbxLayerElementMaterial* materialElem = mesh->GetElementMaterial();
 
+    //! ノードのローカルマテリアルインデックス → シーングローバルインデックス変換テーブル
+    std::vector<int> localToGlobalMaterial;
+    int nodeMaterialCount = node->GetMaterialCount();
+    localToGlobalMaterial.reserve(nodeMaterialCount);
+    for (int mi = 0; mi < nodeMaterialCount; ++mi)
+    {
+        FbxSurfaceMaterial* nodeMat = node->GetMaterial(mi);
+        int globalIdx = 0; //!< フォールバック
+
+        if (nodeMat)
+        {
+            //! シーン全体のマテリアルリストからグローバルインデックスを検索
+            int sceneMatCount = m_scene->GetMaterialCount();
+            for (int si = 0; si < sceneMatCount; ++si)
+            {
+                if (m_scene->GetMaterial(si) == nodeMat)
+                {
+                    globalIdx = si;
+                    break;
+                }
+            }
+        }
+
+        localToGlobalMaterial.push_back(globalIdx);
+    }
+
     //! マテリアル別にインデックスを分類
     //! key = materialIndex, value = 三角形ごとのインデックスリスト
     std::map<int, std::vector<uint32_t>> subMeshIndices;
@@ -338,9 +364,16 @@ void FBXLoad::parseMesh(FbxNode* node)
 
     for (int i = 0; i < polyCount; ++i)
     {
-        int materialIndex = 0;
+        int localMaterialIndex = 0;
         if (materialElem)
-            materialIndex = materialElem->GetIndexArray().GetAt(i);
+            localMaterialIndex = materialElem->GetIndexArray().GetAt(i);
+
+        //! ローカルインデックスをグローバルインデックスに変換
+        int materialIndex = 0;
+        if (localMaterialIndex >= 0 && localMaterialIndex < (int)localToGlobalMaterial.size())
+            materialIndex = localToGlobalMaterial[localMaterialIndex];
+        else if (!localToGlobalMaterial.empty())
+            materialIndex = localToGlobalMaterial[0];
 
         for (int j = 0; j < 3; ++j)
         {
@@ -405,7 +438,7 @@ void FBXLoad::parseMesh(FbxNode* node)
     m_model.meshes.push_back(std::move(dst));
 }
 
-void FBXLoad::parseSkeleton(FbxNode* node, int parentIndex)
+void FbxLoad::parseSkeleton(FbxNode* node, int parentIndex)
 {
     //! 既に登録済みならスキップ
     if (m_model.skeleton.boneMap.contains(node->GetName()))
@@ -423,7 +456,7 @@ void FBXLoad::parseSkeleton(FbxNode* node, int parentIndex)
     m_model.skeleton.boneMap[bone.name] = index;
 }
 
-void FBXLoad::parseMaterials()
+void FbxLoad::parseMaterials()
 {
     int materialCount = m_scene->GetMaterialCount();
     m_model.materials.reserve(materialCount);
@@ -449,7 +482,7 @@ void FBXLoad::parseMaterials()
             {
                 FbxFileTexture* tex = propDiffuse.GetSrcObject<FbxFileTexture>(0);
                 if (tex)
-                    mat.texturePath = tex->GetFileName();
+                    mat.texturePath = toRelativePath(tex->GetFileName());
             }
 
             //! Diffuse カラー
@@ -469,7 +502,7 @@ void FBXLoad::parseMaterials()
             {
                 FbxFileTexture* tex = propNormal.GetSrcObject<FbxFileTexture>(0);
                 if (tex)
-                    mat.normalMapPath = tex->GetFileName();
+                    mat.normalMapPath = toRelativePath(tex->GetFileName());
             }
         }
 
@@ -505,7 +538,7 @@ void FBXLoad::parseMaterials()
     }
 }
 
-void FBXLoad::parseAnimations()
+void FbxLoad::parseAnimations()
 {
     if (m_model.skeleton.empty()) return;
 
@@ -569,7 +602,7 @@ void FBXLoad::parseAnimations()
     }
 }
 
-void FBXLoad::extractSkinning(FbxMesh* mesh, Mesh& dstMesh, const std::unordered_map<int, std::vector<uint32_t>>& ctrlToVertex)
+void FbxLoad::extractSkinning(FbxMesh* mesh, Mesh& dstMesh, const std::unordered_map<int, std::vector<uint32_t>>& ctrlToVertex)
 {
     int skinCount = mesh->GetDeformerCount(FbxDeformer::eSkin);
     if (skinCount == 0) return;
@@ -659,7 +692,7 @@ void FBXLoad::extractSkinning(FbxMesh* mesh, Mesh& dstMesh, const std::unordered
     }
 }
 
-void FBXLoad::generateTangents(Mesh& dstMesh)
+void FbxLoad::generateTangents(Mesh& dstMesh)
 {
     size_t vertCount = dstMesh.vertices.size();
     if (vertCount == 0) return;
@@ -715,7 +748,7 @@ void FBXLoad::generateTangents(Mesh& dstMesh)
     }
 }
 
-std::unordered_map<int, std::vector<uint32_t>> FBXLoad::buildCtrlToVertexMap(FbxMesh* mesh) const
+std::unordered_map<int, std::vector<uint32_t>> FbxLoad::buildCtrlToVertexMap(FbxMesh* mesh) const
 {
     std::unordered_map<int, std::vector<uint32_t>> result;
 
@@ -735,7 +768,7 @@ std::unordered_map<int, std::vector<uint32_t>> FBXLoad::buildCtrlToVertexMap(Fbx
     return result;
 }
 
-FbxAMatrix FBXLoad::computeAxisFixMatrix() const
+FbxAMatrix FbxLoad::computeAxisFixMatrix() const
 {
     FbxAxisSystem sceneAxis = m_scene->GetGlobalSettings().GetAxisSystem();
 
