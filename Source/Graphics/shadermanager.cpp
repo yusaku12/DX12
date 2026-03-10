@@ -34,7 +34,7 @@ void ShaderManager::update()
         }
     }
 
-    //! シェーダーの更新をPSOCreatorに通知
+    // シェーダーの更新をPSOCreatorに通知
     PSOCreator::Instance().refreshDirtyPSOs();
 }
 

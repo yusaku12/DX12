@@ -27,7 +27,7 @@ public:
         m_indexCount = count;
         m_bufferSize = sizeof(T) * m_indexCount;
 
-        //! UploadBuffer 作成
+        // UploadBuffer 作成
         m_uploadBuffer = std::make_unique<UploadBuffer>(m_bufferSize);
 
         void* mapped = nullptr;
@@ -37,7 +37,7 @@ public:
         memcpy(mapped, indices, m_bufferSize);
         m_uploadBuffer->getResource()->Unmap(0, nullptr);
 
-        //! Format 自動判定
+        // Format 自動判定
         DXGI_FORMAT format = (sizeof(T) == 2) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
 
         //! IB View

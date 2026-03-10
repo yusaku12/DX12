@@ -5,11 +5,11 @@ size_t PSOCreator::registerPSO(const PSOData& data)
 {
     size_t key = data.computeHash();
 
-    //! 既にキャッシュにあればそのまま返す
+    // 既にキャッシュにあればそのまま返す
     if (m_cache.contains(key))
         return key;
 
-    //! PSO生成してキャッシュに登録
+    // PSO生成してキャッシュに登録
     CacheEntry entry;
     entry.data = data;
     entry.pipelineState = buildPSO(data);
@@ -60,7 +60,7 @@ void PSOCreator::refreshDirtyPSOs()
 
         if (vsDirty || psDirty)
         {
-            //! PSO再構築
+            // PSO再構築
             entry.pipelineState = buildPSO(entry.data);
 
             if (vsDirty)
@@ -80,29 +80,29 @@ Microsoft::WRL::ComPtr<ID3D12PipelineState> PSOCreator::buildPSO(const PSOData& 
 {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC gpipeline = {};
 
-    //! ルートシグネチャ設定
+    // ルートシグネチャ設定
     gpipeline.pRootSignature = RootSignatureManager::Instance().getRootSignature(data.rootSignatureType);
 
-    //! シェーダ設定
+    // シェーダ設定
     gpipeline.VS.pShaderBytecode = ShaderManager::Instance().getShaderBlob(data.vsShaderId)->GetBufferPointer();
     gpipeline.VS.BytecodeLength = ShaderManager::Instance().getShaderBlob(data.vsShaderId)->GetBufferSize();
     gpipeline.PS.pShaderBytecode = ShaderManager::Instance().getShaderBlob(data.psShaderId)->GetBufferPointer();
     gpipeline.PS.BytecodeLength = ShaderManager::Instance().getShaderBlob(data.psShaderId)->GetBufferSize();
 
-    //! ラスタライザステート設定
+    // ラスタライザステート設定
     gpipeline.RasterizerState = PiplineState::Instance().getRasterizerState(data.rasterizerState);
 
-    //! ブレンドステート設定
+    // ブレンドステート設定
     gpipeline.BlendState = PiplineState::Instance().getBlendState(data.blendState);
 
-    //! デプスステンシルステート設定
+    // デプスステンシルステート設定
     gpipeline.DepthStencilState = PiplineState::Instance().getDepthStencilState(data.depthStencilState);
 
-    //! 入力レイアウト設定
+    // 入力レイアウト設定
     gpipeline.InputLayout.pInputElementDescs = data.inputLayout.data();
     gpipeline.InputLayout.NumElements = (UINT)data.inputLayout.size();
 
-    //! その他設定
+    // その他設定
     gpipeline.SampleMask = UINT_MAX;
     gpipeline.PrimitiveTopologyType = data.topologyType;
     gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
@@ -110,16 +110,16 @@ Microsoft::WRL::ComPtr<ID3D12PipelineState> PSOCreator::buildPSO(const PSOData& 
 
     // ここのコードは改善必須
     {
-        //! レンダーターゲット設定
+        // レンダーターゲット設定
         gpipeline.NumRenderTargets = 1;
         gpipeline.RTVFormats[0] = DX12::Instance().getBackBufferFormat();
 
-        //! サンプル設定
+        // サンプル設定
         gpipeline.SampleDesc.Count = 1;
         gpipeline.SampleDesc.Quality = 0;
     }
 
-    //! パイプラインステート作成
+    // パイプラインステート作成
     Microsoft::WRL::ComPtr<ID3D12PipelineState> pso;
     HRESULT hr = DX12::Instance().getDevice()->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(pso.GetAddressOf()));
     assert(SUCCEEDED(hr));

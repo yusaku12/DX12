@@ -6,23 +6,23 @@ GameObject::GameObject(const std::string& name)
 {
     setName(name);
 
-    //! 登録
+    // 登録
     GameObjectRegistry::Instance().registryGameObject(this);
 }
 
 GameObject::~GameObject()
 {
-    //! 親から外す
+    // 親から外す
     setParent(nullptr);
 
-    //! 子をルートに戻す
+    // 子をルートに戻す
     for (auto* child : m_children)
     {
         child->m_parent = nullptr;
     }
     m_children.clear();
 
-    //! コンポーネント破棄
+    // コンポーネント破棄
     for (auto& c : m_components)
     {
         if (c)
@@ -36,7 +36,7 @@ void GameObject::start()
 {
     for (auto& c : m_components)
     {
-        //! GameObject とコンポーネントの双方が有効な場合のみ start を呼ぶ
+        // GameObject とコンポーネントの双方が有効な場合のみ start を呼ぶ
         if (c && c->isEnabled() && isEnabled())
             c->start();
     }
@@ -50,7 +50,7 @@ void GameObject::destroy()
 
     m_destroyed = true;
 
-    //! 子も再帰的に削除予約
+    // 子も再帰的に削除予約
     for (auto* child : m_children)
     {
         child->destroy();
@@ -59,7 +59,7 @@ void GameObject::destroy()
 
 void GameObject::update()
 {
-    //! GameObject 自体が無効なら何もしない（所属コンポーネントの実行を停止する）
+    // GameObject 自体が無効なら何もしない（所属コンポーネントの実行を停止する）
     if (!isEnabled()) return;
 
     for (auto& c : m_components)
@@ -84,7 +84,7 @@ void GameObject::drawInspector()
 
     ImGui::SameLine();
 
-    //! GameObject の有効/無効
+    // GameObject の有効/無効
     bool enabled = isEnabled();
     if (ImGui::Checkbox("Enabled", &enabled))
     {
@@ -93,7 +93,7 @@ void GameObject::drawInspector()
 
     ImGui::Separator();
 
-    //! 親表示（読み取り専用）
+    // 親表示（読み取り専用）
     if (m_parent)
         ImGui::Text("Parent : %s", m_parent->getName().c_str());
     else
@@ -116,7 +116,7 @@ void GameObject::drawInspector()
         ImGui::Separator();
     }
 
-    //! TransformComponent のギズモ更新は Inspector の開閉に依存せず毎フレーム行う
+    // TransformComponent のギズモ更新は Inspector の開閉に依存せず毎フレーム行う
     if (auto tf = getComponent<TransformComponent>())
     {
         tf->onGizmo();
@@ -128,7 +128,7 @@ void GameObject::setParent(GameObject* parent)
     if (m_parent == parent)
         return;
 
-    //! 旧親から外す
+    // 旧親から外す
     if (m_parent)
     {
         auto& siblings = m_parent->m_children;
@@ -140,13 +140,13 @@ void GameObject::setParent(GameObject* parent)
 
     m_parent = parent;
 
-    //! 新親に追加
+    // 新親に追加
     if (m_parent)
     {
         m_parent->m_children.push_back(this);
     }
 
-    //! 親が変わるとワールド行列に依存する子孫の Transform が変化するため再計算フラグを立てる
+    // 親が変わるとワールド行列に依存する子孫の Transform が変化するため再計算フラグを立てる
     std::function<void(GameObject*)> markDirtyRec = [&](GameObject* node)
         {
             if (!node) return;
@@ -166,8 +166,8 @@ void GameObject::setEnabled(bool value)
     if (m_enabled == value) return;
     m_enabled = value;
 
-    //! GameObject の有効/無効が変わったとき、所属コンポーネントのうち
-    //! コンポーネント自身が有効なものに対して onEnable/onDisable を発行する。
+    // GameObject の有効/無効が変わったとき、所属コンポーネントのうち
+    // コンポーネント自身が有効なものに対して onEnable/onDisable を発行する。
     for (auto& c : m_components)
     {
         if (!c) continue;

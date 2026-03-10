@@ -5,16 +5,16 @@ CpuGpuProfiler::CpuGpuProfiler()
 {
     const auto& dx12 = DX12::Instance();
 
-    //! GPU周波数取得
+    // GPU周波数取得
     dx12.getCommandQueue()->GetTimestampFrequency(&m_gpuFreq);
 
-    //! QueryHeap 作成
+    // QueryHeap 作成
     D3D12_QUERY_HEAP_DESC desc = {};
     desc.Count = QUERYCOUNT;
     desc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
     dx12.getDevice()->CreateQueryHeap(&desc, IID_PPV_ARGS(&m_queryHeap));
 
-    //! 結果格納バッファ
+    // 結果格納バッファ
     D3D12_RESOURCE_DESC bufDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(UINT64) * QUERYCOUNT);
     auto heap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
     dx12.getDevice()->CreateCommittedResource(
@@ -33,19 +33,19 @@ CpuGpuProfiler::CpuGpuProfiler()
 
 void CpuGpuProfiler::beginFrame(ID3D12GraphicsCommandList* cmd)
 {
-    //! CPU 計測開始
+    // CPU 計測開始
     m_cpuStart = std::chrono::high_resolution_clock::now();
 
-    //! GPU 計測開始
+    // GPU 計測開始
     cmd->EndQuery(m_queryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
 }
 
 void CpuGpuProfiler::endFrame(ID3D12GraphicsCommandList* cmd)
 {
-    //! GPU 計測終了
+    // GPU 計測終了
     cmd->EndQuery(m_queryHeap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
 
-    //! 結果コピー
+    // 結果コピー
     cmd->ResolveQueryData(
         m_queryHeap.Get(),
         D3D12_QUERY_TYPE_TIMESTAMP,
@@ -55,15 +55,15 @@ void CpuGpuProfiler::endFrame(ID3D12GraphicsCommandList* cmd)
         0
     );
 
-    //! CPU 計測終了
+    // CPU 計測終了
     auto cpuEnd = std::chrono::high_resolution_clock::now();
     m_cpuTimeMs = std::chrono::duration<float, std::milli>(cpuEnd - m_cpuStart).count();
 
-    //! 履歴更新
+    // 履歴更新
     m_cpuHistory.erase(m_cpuHistory.begin());
     m_cpuHistory.push_back(m_cpuTimeMs);
 
-    //! GPU データ取得
+    // GPU データ取得
     UINT64 result[QUERYCOUNT] = {};
     void* mapped = nullptr;
 

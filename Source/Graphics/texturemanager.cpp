@@ -2,17 +2,17 @@
 
 LoadTexture* TextureManager::load(const std::wstring& filePath)
 {
-    //! キャッシュに存在すれば再利用
+    // キャッシュに存在すれば再利用
     auto it = m_textureCache.find(filePath);
     if (it != m_textureCache.end())
     {
         return it->second.get();
     }
 
-    //! 存在しない場合 → 新規ロード
+    // 存在しない場合 → 新規ロード
     auto newTex = std::make_unique<LoadTexture>(filePath.c_str());
 
-    //! 失敗した場合は白色テクスチャを返す
+    // 失敗した場合は白色テクスチャを返す
     if (!newTex->isValid())
     {
         uint8_t whitePixel[4] = { 0xFF, 0xFF, 0xFF, 0xFF };

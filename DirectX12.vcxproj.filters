@@ -48,7 +48,6 @@
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
     <ClCompile Include="Source\Model\FbxLoad.cpp" />
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
-    <ClCompile Include="Source\Model\VmdLoad.cpp" />
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\TestScene.cpp" />
@@ -286,9 +285,6 @@
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\ImGuizmo.h">
-      <Filter>�w�b�_�[ �t�@�C��</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Model\VmdLoad.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Model\FbxLoad.h">

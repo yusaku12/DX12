@@ -6,7 +6,7 @@ void Component::onUpdate()
 {
     if (!isActiveInHierarchy()) return;
 
-    //! 派生クラスの update を呼ぶ
+    // 派生クラスの update を呼ぶ
     update();
 }
 
@@ -14,7 +14,7 @@ void Component::onLateUpdate()
 {
     if (!isActiveInHierarchy()) return;
 
-    //! 派生クラスの lateUpdate を呼ぶ
+    // 派生クラスの lateUpdate を呼ぶ
     lateUpdate();
 }
 
@@ -46,6 +46,6 @@ void Component::onInspectorGUI()
         setEnabled(enabled);
     }
 
-    //! 派生クラスのインスペクタ表示
+    // 派生クラスのインスペクタ表示
     inspectGUI();
 }

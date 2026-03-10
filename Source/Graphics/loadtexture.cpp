@@ -12,7 +12,7 @@ LoadTexture::LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void
     auto device = DX12::Instance().getDevice();
     auto cmd = DX12::Instance().getGraphicsCommandList();
 
-    //! テクスチャ記述（1配列、1Mip）
+    // テクスチャ記述（1配列、1Mip）
     CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(
         format,
         width,
@@ -33,19 +33,19 @@ LoadTexture::LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void
     );
     LOG_HR(hr, "Failed to create white texture resource");
 
-    //! サブリソースデータ準備（1サブリソース）
+    // サブリソースデータ準備（1サブリソース）
     D3D12_SUBRESOURCE_DATA subresource{};
     subresource.pData = pixelData;
-    //! RowPitch はフォーマットに応じて計算（R8G8B8A8_UNORM を想定している場合は width * 4）
+    // RowPitch はフォーマットに応じて計算（R8G8B8A8_UNORM を想定している場合は width * 4）
     subresource.RowPitch = static_cast<LONG_PTR>(width * (pixelSize / (width * height))); // 保守的にセット
-    //! 上が計算的に不明瞭なら以下のように幅*bytesPerPixel を直接設定しても良い
+    // 上が計算的に不明瞭なら以下のように幅*bytesPerPixel を直接設定しても良い
     subresource.SlicePitch = subresource.RowPitch * height;
 
-    //! UploadBuffer 作成
+    // UploadBuffer 作成
     UINT64 uploadSize = GetRequiredIntermediateSize(m_texture.Get(), 0, 1);
     m_upload = std::make_unique<UploadBuffer>(uploadSize);
 
-    //! GPUへコピー
+    // GPUへコピー
     UpdateSubresources(
         cmd,
         m_texture.Get(),
@@ -55,12 +55,12 @@ LoadTexture::LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void
         &subresource
     );
 
-    //! SRV用に状態遷移
+    // SRV用に状態遷移
     CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
     cmd->ResourceBarrier(1, &barrier);
 
-    //! SRV作成（DescriptorHeapManager）
+    // SRV作成（DescriptorHeapManager）
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
     srvDesc.Format = format;
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -102,7 +102,7 @@ bool LoadTexture::loadFromFile(const std::wstring& filePath)
     DirectX::TexMetadata metadata = {};
     DirectX::ScratchImage scratchImg = {};
 
-    //! 拡張子取得
+    // 拡張子取得
     auto pos = filePath.find_last_of(L'.');
     if (pos == std::wstring::npos)
     {
@@ -136,7 +136,7 @@ void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const 
     auto device = DX12::Instance().getDevice();
     auto cmd = DX12::Instance().getGraphicsCommandList();
 
-    //! GPU側テクスチャ作成（DEFAULT HEAP）
+    // GPU側テクスチャ作成（DEFAULT HEAP）
     CD3DX12_RESOURCE_DESC texDesc = CD3DX12_RESOURCE_DESC::Tex2D(
         meta.format,
         meta.width,
@@ -156,7 +156,7 @@ void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const 
         IID_PPV_ARGS(m_texture.GetAddressOf())
     );
 
-    //! サブリソース準備（全Mip）
+    // サブリソース準備（全Mip）
     std::vector<D3D12_SUBRESOURCE_DATA> subresources;
 
     const DirectX::Image* images = img.GetImages();
@@ -171,12 +171,12 @@ void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const 
         subresources[i].SlicePitch = images[i].slicePitch;
     }
 
-    //! UploadBuffer作成
+    // UploadBuffer作成
     UINT64 uploadSize = GetRequiredIntermediateSize(m_texture.Get(), 0, (UINT)subresources.size());
 
     m_upload = std::make_unique<UploadBuffer>(uploadSize);
 
-    //! GPUへコピー
+    // GPUへコピー
     UpdateSubresources(
         cmd,
         m_texture.Get(),
@@ -186,7 +186,7 @@ void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const 
         subresources.data()
     );
 
-    //! SRV用に状態遷移
+    // SRV用に状態遷移
     CD3DX12_RESOURCE_BARRIER barrier =
         CD3DX12_RESOURCE_BARRIER::Transition(
             m_texture.Get(),
@@ -195,7 +195,7 @@ void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const 
 
     cmd->ResourceBarrier(1, &barrier);
 
-    //! SRV作成（DescriptorHeapManager）
+    // SRV作成（DescriptorHeapManager）
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
     srvDesc.Format = meta.format;
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;

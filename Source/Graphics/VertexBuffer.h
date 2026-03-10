@@ -27,10 +27,10 @@ public:
         m_vertexCount = count;
         m_bufferSize = sizeof(T) * m_vertexCount;
 
-        //! バッファ作成
+        // バッファ作成
         m_uploadBuffer = std::make_unique<UploadBuffer>(m_bufferSize);
 
-        //! Map → Copy → Unmap
+        // Map → Copy → Unmap
         void* mapped = nullptr;
         HRESULT hr = m_uploadBuffer->getResource()->Map(0, nullptr, &mapped);
         LOG_HR(hr, "failed Map");
@@ -38,7 +38,7 @@ public:
         memcpy(mapped, vertices, m_bufferSize);
         m_uploadBuffer->getResource()->Unmap(0, nullptr);
 
-        //! VertexBufferView 作成
+        // VertexBufferView 作成
         m_vertexBufferView.BufferLocation = m_uploadBuffer->getResource()->GetGPUVirtualAddress();
         m_vertexBufferView.SizeInBytes = m_bufferSize;
         m_vertexBufferView.StrideInBytes = sizeof(T);

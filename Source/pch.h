@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-//! DXの標準機能
+// DXの標準機能
 #include <windows.h>
 #include <d3d12.h>
 #include <string>
@@ -43,7 +43,7 @@
 #undef ERROR
 #undef OPAQUE
 
-//! 自作の機能
+// 自作の機能
 #include "System\Dialog.h"
 #include "System\stringformat.h"
 #include "Graphics\DX12.h"

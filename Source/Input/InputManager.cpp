@@ -5,7 +5,7 @@ void InputManager::update()
     if (!m_windowFocused)
         return;
 
-    //! フレーム開始時にホイールリセット
+    // フレーム開始時にホイールリセット
     m_prevMouseWheel = m_mouseWheel;
     m_mouseWheel = 0;
 
@@ -74,7 +74,7 @@ void InputManager::updateBuffer()
 {
     const float dt = TimeManager::Instance().getDeltaTime();
 
-    //! Pressed 検出 → Buffer 登録
+    // Pressed 検出 → Buffer 登録
     for (auto& [name, action] : m_actionBindings)
     {
         for (uint8_t key : action.keys)
@@ -89,7 +89,7 @@ void InputManager::updateBuffer()
         }
     }
 
-    //! Buffer 寿命管理
+    // Buffer 寿命管理
     for (auto it = m_actionBuffers.begin(); it != m_actionBuffers.end(); )
     {
         it->second.timeLeft -= dt;

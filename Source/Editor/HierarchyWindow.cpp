@@ -3,7 +3,6 @@
 #include "EditorContext.h"
 #include "GameObject\GameObject.h"
 
-//! GameObject ノード再帰描画
 static void drawGameObjectNode(GameObject* obj)
 {
     if (!obj || obj->isDestroyed())
@@ -23,7 +22,7 @@ static void drawGameObjectNode(GameObject* obj)
         obj->getName().c_str()
     );
 
-    //! Item 右クリックメニュー
+    // Item 右クリックメニュー
     if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
     {
         if (ImGui::MenuItem("Delete"))
@@ -37,13 +36,13 @@ static void drawGameObjectNode(GameObject* obj)
         ImGui::EndPopup();
     }
 
-    //! 選択
+    // 選択
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
         g_editor.selectedObject = obj;
     }
 
-    //! Drag Source
+    // Drag Source
     if (ImGui::BeginDragDropSource())
     {
         ImGui::SetDragDropPayload(
@@ -55,7 +54,7 @@ static void drawGameObjectNode(GameObject* obj)
         ImGui::EndDragDropSource();
     }
 
-    //! Drop Target（親子付け替え）
+    // Drop Target（親子付け替え）
     if (ImGui::BeginDragDropTarget())
     {
         if (const ImGuiPayload* payload =
@@ -63,7 +62,7 @@ static void drawGameObjectNode(GameObject* obj)
         {
             GameObject* dropped = *(GameObject**)payload->Data;
 
-            //! 自分自身・破棄予定は弾く
+            // 自分自身・破棄予定は弾く
             if (dropped && dropped != obj && !dropped->isDestroyed())
             {
                 dropped->setParent(obj);
@@ -72,7 +71,7 @@ static void drawGameObjectNode(GameObject* obj)
         ImGui::EndDragDropTarget();
     }
 
-    //! 子ノード再帰描画
+    // 子ノード再帰描画
     if (opened)
     {
         for (GameObject* child : obj->getChildren())
@@ -89,7 +88,7 @@ void drawHierarchyWindow()
 
     const auto& objects = GameObjectRegistry::Instance().getAll();
 
-    //! ルート GameObject 表示
+    // ルート GameObject 表示
     for (GameObject* obj : objects)
     {
         if (obj && !obj->getParent() && !obj->isDestroyed())
@@ -98,7 +97,7 @@ void drawHierarchyWindow()
         }
     }
 
-    //! 空白右クリック（ルート作成）
+    // 空白右クリック（ルート作成）
     if (ImGui::BeginPopupContextWindow(
         nullptr,
         ImGuiPopupFlags_NoOpenOverItems |

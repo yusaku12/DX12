@@ -13,8 +13,8 @@ RigidbodyComponent::~RigidbodyComponent()
 
 void RigidbodyComponent::awake()
 {
-    //! TransformComponent を自動取得（なければ追加）
-    //! awake ではフィールド初期化のみ行い、PhysX リソースは作成しない
+    // TransformComponent を自動取得（なければ追加）
+    // awake ではフィールド初期化のみ行い、PhysX リソースは作成しない
     m_transform = m_gameObject->getComponent<TransformComponent>();
     if (!m_transform)
     {
@@ -24,10 +24,10 @@ void RigidbodyComponent::awake()
 
 void RigidbodyComponent::start()
 {
-    //! 全コンポーネントの awake 完了後 + ユーザーの setter 呼び出し後に
-    //! PhysX アクターを作成する
-    //! これにより setType / setMass / setUseGravity 等の設定が
-    //! アクター作成時に正しく反映される
+    // 全コンポーネントの awake 完了後 + ユーザーの setter 呼び出し後に
+    // PhysX アクターを作成する
+    // これにより setType / setMass / setUseGravity 等の設定が
+    // アクター作成時に正しく反映される
     if (!m_actor)
     {
         createActor();
@@ -36,7 +36,7 @@ void RigidbodyComponent::start()
 
 void RigidbodyComponent::onDestroy()
 {
-    //! ColliderComponent との紐付けを解除
+    // ColliderComponent との紐付けを解除
     auto* collider = m_gameObject->getComponent<ColliderComponent>();
     if (collider)
     {
@@ -53,13 +53,13 @@ void RigidbodyComponent::createActor()
     auto* scene = world.getScene();
     if (!physics || !scene) return;
 
-    //! 現在の TransformComponent から初期姿勢を取得
+    // 現在の TransformComponent から初期姿勢を取得
     physx::PxTransform pose = PhysXHelper::ToPxTransform(
         m_transform->getPosition(),
         m_transform->getRotation()
     );
 
-    //! タイプに応じてアクターを作成
+    // タイプに応じてアクターを作成
     bool useKinematic = m_isKinematic || m_type == RigidbodyType::Kinematic;
 
     if (m_type == RigidbodyType::Static)
@@ -85,16 +85,16 @@ void RigidbodyComponent::createActor()
         updateLockFlags();
     }
 
-    //! userData にこのコンポーネントへのポインタを設定（衝突コールバック用）
+    // userData にこのコンポーネントへのポインタを設定（衝突コールバック用）
     m_actor->userData = this;
 
-    //! ColliderComponent があればシェイプをアタッチし、相互紐付けする
+    // ColliderComponent があればシェイプをアタッチし、相互紐付けする
     auto* collider = m_gameObject->getComponent<ColliderComponent>();
     bool hasValidCollider = collider && collider->getPxShape();
 
     if (hasValidCollider)
     {
-        //! シェイプが既に別のアクターにアタッチされている場合はデタッチしてから再アタッチ
+        // シェイプが既に別のアクターにアタッチされている場合はデタッチしてから再アタッチ
         physx::PxRigidActor* prevActor = collider->getPxShape()->getActor();
         if (prevActor)
         {
@@ -106,14 +106,14 @@ void RigidbodyComponent::createActor()
     }
     else
     {
-        //! ColliderComponent がない、またはシェイプ未設定の場合はデフォルトボックス
+        // ColliderComponent がない、またはシェイプ未設定の場合はデフォルトボックス
         physx::PxBoxGeometry defaultGeom(0.5f, 0.5f, 0.5f);
         auto* defaultShape = physics->createShape(defaultGeom, *world.getDefaultMaterial(), true);
         m_actor->attachShape(*defaultShape);
         defaultShape->release();
     }
 
-    //! Dynamic の場合は質量特性を自動計算
+    // Dynamic の場合は質量特性を自動計算
     if (m_actor->getType() == physx::PxActorType::eRIGID_DYNAMIC && !useKinematic)
     {
         bool canComputeMass = true;
@@ -130,7 +130,7 @@ void RigidbodyComponent::createActor()
         }
     }
 
-    //! シーンに追加
+    // シーンに追加
     scene->addActor(*m_actor);
 }
 
@@ -138,8 +138,8 @@ void RigidbodyComponent::releaseActor()
 {
     if (!m_actor) return;
 
-    //! アクター破棄前にアタッチされている ColliderComponent のシェイプをデタッチ
-    //! （exclusive シェイプがアクターと一緒に解放されるのを防ぐ）
+    // アクター破棄前にアタッチされている ColliderComponent のシェイプをデタッチ
+    // （exclusive シェイプがアクターと一緒に解放されるのを防ぐ）
     auto* collider = m_gameObject ? m_gameObject->getComponent<ColliderComponent>() : nullptr;
     if (collider && collider->getPxShape())
     {
@@ -323,13 +323,13 @@ void RigidbodyComponent::setType(RigidbodyType type)
     if (m_type == type) return;
     m_type = type;
 
-    //! Kinematic 以外に変更した場合は isKinematic フラグをリセット
+    // Kinematic 以外に変更した場合は isKinematic フラグをリセット
     if (type == RigidbodyType::Kinematic)
         m_isKinematic = true;
     else
         m_isKinematic = false;
 
-    //! アクターが既に作成済み（start 後）の場合のみ再作成
+    // アクターが既に作成済み（start 後）の場合のみ再作成
     if (m_actor)
     {
         releaseActor();
@@ -419,7 +419,7 @@ void RigidbodyComponent::syncToPhysics()
     physx::PxTransform pose = PhysXHelper::ToPxTransform(m_transform->getPosition(), m_transform->getRotation());
     m_actor->setGlobalPose(pose);
 
-    //! Dynamic アクターの場合、手動で位置を変更したら速度をリセットしてスリープ解除
+    // Dynamic アクターの場合、手動で位置を変更したら速度をリセットしてスリープ解除
     if (m_actor->getType() == physx::PxActorType::eRIGID_DYNAMIC)
     {
         auto* dyn = static_cast<physx::PxRigidDynamic*>(m_actor);

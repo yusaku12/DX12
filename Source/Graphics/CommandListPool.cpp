@@ -21,7 +21,7 @@ void CommandListPool::initialize(ID3D12Device* device, UINT poolSize)
             IID_PPV_ARGS(entry.commandList.GetAddressOf()));
         LOG_HR(hr, "Failed to create worker CommandList");
 
-        //! 初期状態では Close しておく（acquire 時に Reset する）
+        // 初期状態では Close しておく（acquire 時に Reset する）
         entry.commandList->Close();
         entry.inUse = false;
         entry.closed = true;
@@ -44,7 +44,7 @@ ID3D12GraphicsCommandList* CommandListPool::acquire()
         }
     }
 
-    //! プールが足りない場合は動的に追加
+    // プールが足りない場合は動的に追加
     CommandListEntry newEntry;
     HRESULT hr = m_device->CreateCommandAllocator(
         D3D12_COMMAND_LIST_TYPE_DIRECT,

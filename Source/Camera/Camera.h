@@ -29,7 +29,7 @@ public:
         );
     }
 
-    // カメラ座標取得
+    //! カメラ座標取得
     Vector3& getPosition() { return m_position; }
 
     //! カメラ座標設定

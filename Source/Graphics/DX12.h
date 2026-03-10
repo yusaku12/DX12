@@ -58,7 +58,7 @@ struct ExampleDescriptorHeapAllocator
 
     void FreeByIndex(UINT index)
     {
-        //! 簡易検査（ここは追加の検査を入れると堅牢）
+        // 簡易検査（ここは追加の検査を入れると堅牢）
         FreeIndices.push_back(index);
     }
 };

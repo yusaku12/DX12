@@ -2,22 +2,22 @@
 
 void PiplineState::initialize()
 {
-    //! サンプラーステート初期化
+    // サンプラーステート初期化
     initSamplerState();
 
-    //! ブレンドステート初期化
+    // ブレンドステート初期化
     initBlendState();
 
-    //! デプスステンシルステート初期化
+    // デプスステンシルステート初期化
     initDepthStencilState();
 
-    //! ラスタライザステート初期化
+    // ラスタライザステート初期化
     initRasterizerState();
 }
 
 void PiplineState::initSamplerState()
 {
-    //! サンプラーステートの基本設定を作成するラムダ
+    // サンプラーステートの基本設定を作成するラムダ
     auto makeSamplerDesc = [&]()
         {
             D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -33,13 +33,13 @@ void PiplineState::initSamplerState()
             return samplerDesc;
         };
 
-    //! 全てデフォルト値で初期化
+    // 全てデフォルト値で初期化
     for (int i = 0; i < static_cast<int>(SamplerState::MAX); i++)
     {
         m_samplerState[i] = makeSamplerDesc();
     }
 
-    //! POINT_WRAP
+    // POINT_WRAP
     {
         auto& desc = m_samplerState[static_cast<int>(SamplerState::POINT_WRAP)];
         desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -49,7 +49,7 @@ void PiplineState::initSamplerState()
         desc.ShaderRegister = 0; //!< s0
     }
 
-    //! POINT_CLAMP
+    // POINT_CLAMP
     {
         auto& desc = m_samplerState[static_cast<int>(SamplerState::POINT_CLAMP)];
         desc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -59,7 +59,7 @@ void PiplineState::initSamplerState()
         desc.ShaderRegister = 1; //!< s1
     }
 
-    //! LINEAR_WRAP
+    // LINEAR_WRAP
     {
         auto& desc = m_samplerState[static_cast<int>(SamplerState::LINEAR_WRAP)];
         desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -69,7 +69,7 @@ void PiplineState::initSamplerState()
         desc.ShaderRegister = 2; //!< s2
     }
 
-    //! LINEAR_CLAMP
+    // LINEAR_CLAMP
     {
         auto& desc = m_samplerState[static_cast<int>(SamplerState::LINEAR_CLAMP)];
         desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -79,7 +79,7 @@ void PiplineState::initSamplerState()
         desc.ShaderRegister = 3; //!< s3
     }
 
-    //! ANISOTROPIC_WRAP
+    // ANISOTROPIC_WRAP
     {
         auto& desc = m_samplerState[static_cast<int>(SamplerState::ANISOTROPIC_WRAP)];
         desc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
@@ -90,7 +90,7 @@ void PiplineState::initSamplerState()
         desc.ShaderRegister = 4; //!< s4
     }
 
-    //! ANISOTROPIC_CLAMP
+    // ANISOTROPIC_CLAMP
     {
         auto& desc = m_samplerState[static_cast<int>(SamplerState::ANISOTROPIC_CLAMP)];
         desc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
@@ -104,7 +104,7 @@ void PiplineState::initSamplerState()
 
 void PiplineState::initBlendState()
 {
-    //! ブレンドステートの基本設定を作成するラムダ
+    // ブレンドステートの基本設定を作成するラムダ
     auto makeBlendDesc = [&]()
         {
             D3D12_BLEND_DESC desc = {};
@@ -126,13 +126,13 @@ void PiplineState::initBlendState()
             return desc;
         };
 
-    //! 全てデフォルト値で初期化
+    // 全てデフォルト値で初期化
     for (int i = 0; i < static_cast<int>(BlendState::MAX); i++)
     {
         m_blendState[i] = makeBlendDesc();
     }
 
-    //! ALPHA
+    // ALPHA
     {
         auto& rt = m_blendState[static_cast<int>(BlendState::ALPHA)].RenderTarget[0];
         rt.BlendEnable = TRUE;
@@ -142,7 +142,7 @@ void PiplineState::initBlendState()
         rt.DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
     }
 
-    //! ADD
+    // ADD
     {
         auto& rt = m_blendState[static_cast<int>(BlendState::ADD)].RenderTarget[0];
         rt.BlendEnable = TRUE;
@@ -152,7 +152,7 @@ void PiplineState::initBlendState()
         rt.DestBlendAlpha = D3D12_BLEND_ONE;
     }
 
-    //! MULTIPLY
+    // MULTIPLY
     {
         auto& rt = m_blendState[static_cast<int>(BlendState::MULTIPLIE)].RenderTarget[0];
         rt.BlendEnable = TRUE;
@@ -165,7 +165,7 @@ void PiplineState::initBlendState()
 
 void PiplineState::initDepthStencilState()
 {
-    //! デプスステンシルステートの基本設定を作成するラムダ
+    // デプスステンシルステートの基本設定を作成するラムダ
     auto makeDepthStencilDesc = [&]()
         {
             D3D12_DEPTH_STENCIL_DESC desc = {};
@@ -184,13 +184,13 @@ void PiplineState::initDepthStencilState()
             return desc;
         };
 
-    //! 全てデフォルト値で初期化
+    // 全てデフォルト値で初期化
     for (int i = 0; i < static_cast<int>(DepthStencilState::MAX); i++)
     {
         m_depthStencilState[i] = makeDepthStencilDesc();
     }
 
-    //! DEPTH_NONE
+    // DEPTH_NONE
     {
         auto& desc = m_depthStencilState[static_cast<int>(DepthStencilState::DEPTH_NONE)];
         desc.DepthEnable = FALSE;
@@ -198,7 +198,7 @@ void PiplineState::initDepthStencilState()
         desc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
     }
 
-    //! DEPTH_DEFALT
+    // DEPTH_DEFALT
     {
         auto& desc = m_depthStencilState[static_cast<int>(DepthStencilState::DEPTH_DEFALT)];
         desc.DepthEnable = TRUE;
@@ -206,7 +206,7 @@ void PiplineState::initDepthStencilState()
         desc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
     }
 
-    //! DEPTH_READ
+    // DEPTH_READ
     {
         auto& desc = m_depthStencilState[static_cast<int>(DepthStencilState::DEPTH_READ)];
         desc.DepthEnable = TRUE;
@@ -214,7 +214,7 @@ void PiplineState::initDepthStencilState()
         desc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
     }
 
-    //! DEPTH_REVERSE_Z
+    // DEPTH_REVERSE_Z
     {
         auto& desc = m_depthStencilState[static_cast<int>(DepthStencilState::DEPTH_REVERSE_Z)];
         desc.DepthEnable = TRUE;
@@ -222,7 +222,7 @@ void PiplineState::initDepthStencilState()
         desc.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
     }
 
-    //! DEPTH_READ_REVERSE_Z
+    // DEPTH_READ_REVERSE_Z
     {
         auto& desc = m_depthStencilState[static_cast<int>(DepthStencilState::DEPTH_READ_REVERSE_Z)];
         desc.DepthEnable = TRUE;
@@ -233,7 +233,7 @@ void PiplineState::initDepthStencilState()
 
 void PiplineState::initRasterizerState()
 {
-    //! ラスタライザーステートの基本設定を作成するラムダ
+    // ラスタライザーステートの基本設定を作成するラムダ
     auto makeRasterizerDesc = [&]()
         {
             D3D12_RASTERIZER_DESC desc = {};
@@ -251,34 +251,34 @@ void PiplineState::initRasterizerState()
             return desc;
         };
 
-    //! 全てデフォルト値で初期化
+    // 全てデフォルト値で初期化
     for (int i = 0; i < static_cast<int>(RasterizerState::MAX); i++)
     {
         m_rasterizerState[i] = makeRasterizerDesc();
     }
 
-    //! CULL_NONE
+    // CULL_NONE
     {
         auto& desc = m_rasterizerState[static_cast<int>(RasterizerState::CULL_NONE)];
         desc.FillMode = D3D12_FILL_MODE_SOLID;
         desc.CullMode = D3D12_CULL_MODE_NONE;
     }
 
-    //! CULL_CLOCKWISE
+    // CULL_CLOCKWISE
     {
         auto& desc = m_rasterizerState[static_cast<int>(RasterizerState::CULL_CLOCKWISE)];
         desc.FillMode = D3D12_FILL_MODE_SOLID;
         desc.CullMode = D3D12_CULL_MODE_FRONT;
     }
 
-    //! CULL_COUNTER_CLOCKWISE
+    // CULL_COUNTER_CLOCKWISE
     {
         auto& desc = m_rasterizerState[static_cast<int>(RasterizerState::CULL_COUNTER_CLOCKWISE)];
         desc.FillMode = D3D12_FILL_MODE_SOLID;
         desc.CullMode = D3D12_CULL_MODE_BACK;
     }
 
-    //! WIRE_FRAME
+    // WIRE_FRAME
     {
         auto& desc = m_rasterizerState[static_cast<int>(RasterizerState::WIRE_FRAME)];
         desc.FillMode = D3D12_FILL_MODE_WIREFRAME;

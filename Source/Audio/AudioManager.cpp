@@ -19,7 +19,7 @@ void AudioManager::update(float deltaTime)
             v->update(deltaTime);
     }
 
-    //! 再生終了ボイスの回収
+    // 再生終了ボイスの回収
     m_voices.erase(
         std::remove_if(m_voices.begin(), m_voices.end(),
             [](const std::unique_ptr<SoundVoice>& v)

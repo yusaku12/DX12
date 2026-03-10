@@ -3,7 +3,7 @@
 
 PmxLoad::PmxLoad(const std::wstring& filePath, PMXFileData& fileData)
 {
-    //! PMXモデル読み込み
+    // PMXモデル読み込み
     pmxLoadFile(filePath, fileData);
 }
 
@@ -49,15 +49,15 @@ bool PmxLoad::getPMXStringUTF8(std::ifstream& _file, std::string& output)
 {
     int textSize = 0;
 
-    //! 文字列サイズを読込
+    // 文字列サイズを読込
     _file.read(reinterpret_cast<char*>(&textSize), 4);
 
-    //! textSize 分のバッファを確保（UTF-8 = 1byte）
+    // textSize 分のバッファを確保（UTF-8 = 1byte）
     std::vector<char> buffer(textSize);
 
     _file.read(reinterpret_cast<char*>(buffer.data()), textSize);
 
-    //! そのまま string に格納
+    // そのまま string に格納
     output.assign(buffer.begin(), buffer.end());
 
     return true;
@@ -65,14 +65,14 @@ bool PmxLoad::getPMXStringUTF8(std::ifstream& _file, std::string& output)
 
 bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
 {
-    //! ファイルが無かったら
+    // ファイルが無かったら
     if (filePath.empty())
     {
         LOG_ASSERT_NO_JUDGE("failure file path");
         return false;
     }
 
-    //! ファイル読み込み
+    // ファイル読み込み
     std::ifstream pmxFile{ filePath, (std::ios::binary | std::ios::in) };
     if (pmxFile.fail())
     {
@@ -81,7 +81,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! PMXのファイルヘッダー情報読み込み
+    // PMXのファイルヘッダー情報読み込み
     bool result = readHeader(fileData, pmxFile);
     if (!result)
     {
@@ -89,7 +89,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! PMXのモデル情報はモデルの名前とコメントを読み込む
+    // PMXのモデル情報はモデルの名前とコメントを読み込む
     result = readModelInfo(fileData, pmxFile);
     if (!result)
     {
@@ -97,7 +97,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! 頂点情報読み込み
+    // 頂点情報読み込み
     result = readVertex(fileData, pmxFile);
     if (!result)
     {
@@ -105,7 +105,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! フェイス情報読み込み
+    // フェイス情報読み込み
     result = readFace(fileData, pmxFile);
     if (!result)
     {
@@ -113,7 +113,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! テクスチャ情報読み込み
+    // テクスチャ情報読み込み
     result = readTextures(fileData, pmxFile);
     if (!result)
     {
@@ -121,7 +121,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! マテリアル読み込み
+    // マテリアル読み込み
     result = readMaterial(fileData, pmxFile);
     if (!result)
     {
@@ -129,7 +129,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ボーン情報読み込み
+    // ボーン情報読み込み
     result = readBone(fileData, pmxFile);
     if (!result)
     {
@@ -137,7 +137,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! モーフ情報読み込み
+    // モーフ情報読み込み
     result = readMorph(fileData, pmxFile);
     if (!result)
     {
@@ -145,7 +145,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! 表示パネル読み込み
+    // 表示パネル読み込み
     result = readDisplayFrame(fileData, pmxFile);
     if (!result)
     {
@@ -153,7 +153,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! 剛体読み込み
+    // 剛体読み込み
     result = readRigidBody(fileData, pmxFile);
     if (!result)
     {
@@ -161,7 +161,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ジョイント読み込み
+    // ジョイント読み込み
     result = readJoint(fileData, pmxFile);
     if (!result)
     {
@@ -169,7 +169,7 @@ bool PmxLoad::pmxLoadFile(const std::wstring& filePath, PMXFileData& fileData)
         return false;
     }
 
-    //! ソフトボディ読み込み
+    // ソフトボディ読み込み
     result = readSoftBody(fileData, pmxFile);
     if (!result)
     {
@@ -217,7 +217,7 @@ bool PmxLoad::readHeader(PMXFileData& data, std::ifstream& file)
     data.header.morphIndexSize = headerData[6];
     data.header.rigidBodyIndexSize = headerData[7];
 
-    //! indexSizeチェック
+    // indexSizeチェック
     auto checkIndexSize = [](uint8_t size)
         {
             return size == 1 || size == 2 || size == 4;
@@ -249,7 +249,7 @@ bool PmxLoad::readModelInfo(PMXFileData& data, std::ifstream& file)
         getPMXStringUTF8(file, data.modelInfo.englishComment);
     }
 
-    //!読み込んだモデル名をログ出力
+    // 読み込んだモデル名をログ出力
     LOG_INFO("PMX Model Loaded : " + (data.modelInfo.modelName));
 
     return true;
@@ -263,18 +263,18 @@ bool PmxLoad::readVertex(PMXFileData& data, std::ifstream& file)
 
     for (auto& vertex : data.vertices)
     {
-        //! position / normal / uv
+        // position / normal / uv
         file.read(reinterpret_cast<char*>(&vertex.position), 12);
         file.read(reinterpret_cast<char*>(&vertex.normal), 12);
         file.read(reinterpret_cast<char*>(&vertex.uv), 8);
 
-        //! additional UV (max 4)
+        // additional UV (max 4)
         for (uint8_t i = 0; i < std::min(data.header.addUVNum, uint8_t(4)); ++i)
         {
             file.read(reinterpret_cast<char*>(&vertex.additionalUV[i]), 16);
         }
 
-        //! weight type
+        // weight type
         file.read(reinterpret_cast<char*>(&vertex.weightType), 1);
 
         switch (vertex.weightType)
@@ -308,7 +308,7 @@ bool PmxLoad::readVertex(PMXFileData& data, std::ifstream& file)
             break;
         }
 
-        //! edge
+        // edge
         file.read(reinterpret_cast<char*>(&vertex.edgeMag), 4);
 
         if (!file)
@@ -390,20 +390,20 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
             getPMXStringUTF8(file, mat.englishName);
         }
 
-        //! basic params
+        // basic params
         file.read(reinterpret_cast<char*>(&mat.diffuse), 16);
         file.read(reinterpret_cast<char*>(&mat.specular), 12);
         file.read(reinterpret_cast<char*>(&mat.specularPower), 4);
         file.read(reinterpret_cast<char*>(&mat.ambient), 12);
 
-        //! draw flag
+        // draw flag
         file.read(reinterpret_cast<char*>(&mat.drawMode), 1);
 
-        //! edge
+        // edge
         file.read(reinterpret_cast<char*>(&mat.edgeColor), 16);
         file.read(reinterpret_cast<char*>(&mat.edgeSize), 4);
 
-        //! texture indices
+        // texture indices
         file.read(reinterpret_cast<char*>(&mat.textureIndex), data.header.textureIndexSize);
         file.read(reinterpret_cast<char*>(&mat.sphereTextureIndex), data.header.textureIndexSize);
         file.read(reinterpret_cast<char*>(&mat.sphereMode), 1);
@@ -422,7 +422,7 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
             return false;
         }
 
-        //! memo
+        // memo
         if (data.header.textEncoding == 0)
         {
             getPMXStringUTF16(file, mat.memo);
@@ -432,7 +432,7 @@ bool PmxLoad::readMaterial(PMXFileData& data, std::ifstream& file)
             getPMXStringUTF8(file, mat.memo);
         }
 
-        //! face vertex count
+        // face vertex count
         file.read(reinterpret_cast<char*>(&mat.numFaceVertices), 4);
 
         if (!file)
@@ -451,7 +451,7 @@ bool PmxLoad::readBone(PMXFileData& data, std::ifstream& file)
 
     for (auto& bone : data.bones)
     {
-        //! name
+        // name
         if (data.header.textEncoding == 0)
         {
             getPMXStringUTF16(file, bone.name);
@@ -463,13 +463,13 @@ bool PmxLoad::readBone(PMXFileData& data, std::ifstream& file)
             getPMXStringUTF8(file, bone.englishName);
         }
 
-        //! base
+        // base
         file.read(reinterpret_cast<char*>(&bone.position), 12);
         bone.parentBoneIndex = readIndex(file, data.header.boneIndexSize);
         file.read(reinterpret_cast<char*>(&bone.deformDepth), 4);
         file.read(reinterpret_cast<char*>(&bone.boneFlag), 2);
 
-        //! 表示先
+        // 表示先
         if (!hasBoneFlag(bone.boneFlag, PMXBoneFlags::TargetShowMode))
         {
             file.read(reinterpret_cast<char*>(&bone.positionOffset), 12);
@@ -479,7 +479,7 @@ bool PmxLoad::readBone(PMXFileData& data, std::ifstream& file)
             bone.linkBoneIndex = readIndex(file, data.header.boneIndexSize);
         }
 
-        //! 付与
+        // 付与
         if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::AppendRotate) ||
             hasBoneFlag(bone.boneFlag, PMXBoneFlags::AppendTranslate))
         {
@@ -487,26 +487,26 @@ bool PmxLoad::readBone(PMXFileData& data, std::ifstream& file)
             file.read(reinterpret_cast<char*>(&bone.appendWeight), 4);
         }
 
-        //! 固定軸
+        // 固定軸
         if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::FixedAxis))
         {
             file.read(reinterpret_cast<char*>(&bone.fixedAxis), 12);
         }
 
-        //! ローカル軸
+        // ローカル軸
         if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::LocalAxis))
         {
             file.read(reinterpret_cast<char*>(&bone.localXAxis), 12);
             file.read(reinterpret_cast<char*>(&bone.localZAxis), 12);
         }
 
-        //! 外部親変形
+        // 外部親変形
         if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::DeformOuterParent))
         {
             file.read(reinterpret_cast<char*>(&bone.keyValue), 4);
         }
 
-        //! IK
+        // IK
         if (hasBoneFlag(bone.boneFlag, PMXBoneFlags::IK))
         {
             bone.ikTargetBoneIndex = readIndex(file, data.header.boneIndexSize);
@@ -546,7 +546,7 @@ bool PmxLoad::readMorph(PMXFileData& data, std::ifstream& file)
 
     for (auto& morph : data.morphs)
     {
-        //! name
+        // name
         if (data.header.textEncoding == 0)
         {
             getPMXStringUTF16(file, morph.name);
@@ -657,7 +657,7 @@ bool PmxLoad::readDisplayFrame(PMXFileData& data, std::ifstream& file)
 
     for (auto& frame : data.displayFrames)
     {
-        //! name
+        // name
         if (data.header.textEncoding == 0)
         {
             getPMXStringUTF16(file, frame.name);
@@ -709,7 +709,7 @@ bool PmxLoad::readRigidBody(PMXFileData& data, std::ifstream& file)
 
     for (auto& rb : data.rigidBodies)
     {
-        //! name
+        // name
         if (data.header.textEncoding == 0)
         {
             getPMXStringUTF16(file, rb.name);
@@ -752,7 +752,7 @@ bool PmxLoad::readJoint(PMXFileData& data, std::ifstream& file)
 
     for (auto& joint : data.joints)
     {
-        //! name
+        // name
         if (data.header.textEncoding == 0)
         {
             getPMXStringUTF16(file, joint.name);
@@ -796,7 +796,7 @@ bool PmxLoad::readSoftBody(PMXFileData& data, std::ifstream& file)
 
     for (auto& sb : data.softBodies)
     {
-        //! name
+        // name
         if (data.header.textEncoding == 0)
         {
             getPMXStringUTF16(file, sb.name);
@@ -808,7 +808,7 @@ bool PmxLoad::readSoftBody(PMXFileData& data, std::ifstream& file)
             getPMXStringUTF8(file, sb.englishName);
         }
 
-        //! base
+        // base
         file.read(reinterpret_cast<char*>(&sb.type), 1);
 
         sb.materialIndex = readIndex(file, data.header.materialIndexSize);
@@ -825,7 +825,7 @@ bool PmxLoad::readSoftBody(PMXFileData& data, std::ifstream& file)
 
         file.read(reinterpret_cast<char*>(&sb.areoModel), 4);
 
-        //! physics parameters
+        // physics parameters
         file.read(reinterpret_cast<char*>(&sb.vcf), 4);
         file.read(reinterpret_cast<char*>(&sb.dp), 4);
         file.read(reinterpret_cast<char*>(&sb.dg), 4);
@@ -839,7 +839,7 @@ bool PmxLoad::readSoftBody(PMXFileData& data, std::ifstream& file)
         file.read(reinterpret_cast<char*>(&sb.shr), 4);
         file.read(reinterpret_cast<char*>(&sb.ahr), 4);
 
-        //! cluster
+        // cluster
         file.read(reinterpret_cast<char*>(&sb.srhr_cl), 4);
         file.read(reinterpret_cast<char*>(&sb.skhr_cl), 4);
         file.read(reinterpret_cast<char*>(&sb.sshr_cl), 4);
@@ -847,18 +847,18 @@ bool PmxLoad::readSoftBody(PMXFileData& data, std::ifstream& file)
         file.read(reinterpret_cast<char*>(&sb.sk_splt_cl), 4);
         file.read(reinterpret_cast<char*>(&sb.ss_splt_cl), 4);
 
-        //! iteration
+        // iteration
         file.read(reinterpret_cast<char*>(&sb.v_it), 4);
         file.read(reinterpret_cast<char*>(&sb.p_it), 4);
         file.read(reinterpret_cast<char*>(&sb.d_it), 4);
         file.read(reinterpret_cast<char*>(&sb.c_it), 4);
 
-        //! stiffness
+        // stiffness
         file.read(reinterpret_cast<char*>(&sb.lst), 4);
         file.read(reinterpret_cast<char*>(&sb.ast), 4);
         file.read(reinterpret_cast<char*>(&sb.vst), 4);
 
-        //! anchor rigid body
+        // anchor rigid body
         uint32_t anchorCount = 0;
         file.read(reinterpret_cast<char*>(&anchorCount), sizeof(uint32_t));
 
@@ -870,7 +870,7 @@ bool PmxLoad::readSoftBody(PMXFileData& data, std::ifstream& file)
             file.read(reinterpret_cast<char*>(&anchor.nearMode), 1);
         }
 
-        //! pin vertex
+        // pin vertex
         uint32_t pinVertexCount = 0;
         file.read(reinterpret_cast<char*>(&pinVertexCount), sizeof(uint32_t));
 

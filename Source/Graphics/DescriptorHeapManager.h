@@ -57,8 +57,6 @@ public:
     UINT allocateRange(UINT count = 1);
 
     //! 連続領域に既存 SRV インデックス群をコピーする（1 件ずつコピー）
-    //! dstIndex: コピー先の開始インデックス（連続領域, shader-visible ヒープ内）
-    //! srcIndices: コピー元 SRV インデックスの配列（各 src は createSRV 等で割り当てられたインデックス）
     bool copyDescriptorsRange(UINT dstIndex, const std::vector<UINT>& srcIndices);
 
 private:

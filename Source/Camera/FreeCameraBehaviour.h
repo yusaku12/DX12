@@ -15,7 +15,7 @@ public:
         m_camera = &camera;
 
         //! 初期角度設定
-        m_yaw = DirectX::XMConvertToRadians(180.0f);  //!< 左右回転
+        m_yaw = DirectX::XMConvertToRadians(180.0f); //!< 左右回転
         m_pitch = DirectX::XMConvertToRadians(0.0f); //!< 上下回転
 
         //! 初期回転を反映

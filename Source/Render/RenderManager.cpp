@@ -6,7 +6,7 @@ void RenderManager::registerComponent(IRenderComponent* comp)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    //! 二重登録防止
+    // 二重登録防止
     auto it = std::find(m_components.begin(), m_components.end(), comp);
     if (it == m_components.end())
     {
@@ -39,7 +39,7 @@ void RenderManager::renderMultiThreaded()
 
     if (m_components.empty()) return;
 
-    //! コンポーネントが1つならシングルスレッドで描画
+    // コンポーネントが1つならシングルスレッドで描画
     if (m_components.size() == 1)
     {
         auto start = Clock::now();
@@ -63,7 +63,7 @@ void RenderManager::renderMultiThreaded()
         m_timings.clear();
     }
 
-    //! コンポーネント毎にコマンドリストを取得 & 非同期実行
+    // コンポーネント毎にコマンドリストを取得 & 非同期実行
     std::vector<std::pair<ID3D12GraphicsCommandList*, std::future<void>>> tasks;
     tasks.reserve(m_components.size());
 
@@ -92,7 +92,7 @@ void RenderManager::renderMultiThreaded()
         tasks.push_back({ cmd, std::move(future) });
     }
 
-    //! 全タスク完了を待つ
+    // 全タスク完了を待つ
     for (auto& [cmd, future] : tasks)
     {
         future.wait();
@@ -100,12 +100,12 @@ void RenderManager::renderMultiThreaded()
 
     m_totalMs = std::chrono::duration<float, std::milli>(Clock::now() - frameStart).count();
 
-    //! シングルスレッド推定値
+    // シングルスレッド推定値
     m_singleEstimateMs = 0.0f;
     for (const auto& t : m_timings)
         m_singleEstimateMs += t.durationMs;
 
-    //! コマンドリスト返却
+    // コマンドリスト返却
     for (auto& [cmd, future] : tasks)
     {
         pool.release(cmd);

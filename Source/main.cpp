@@ -21,7 +21,7 @@ INT WINAPI wWinMain(
     [[maybe_unused]] LPWSTR cmdLine,
     INT cmdShow)
 {
-    //! サイズ調整
+    // サイズ調整
     DWORD dw_style = WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
     DWORD dw_ex_style = WS_EX_APPWINDOW;
 
@@ -34,7 +34,7 @@ INT WINAPI wWinMain(
     const int width = rect.right - rect.left;
     const int height = rect.bottom - rect.top;
 
-    //! Windowクラスの設定
+    // Windowクラスの設定
     WNDCLASSEX wcex{};
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = CS_HREDRAW | CS_VREDRAW;
@@ -48,7 +48,7 @@ INT WINAPI wWinMain(
     if (!RegisterClassEx(&wcex))
         return -1;
 
-    //! Window作成
+    // Window作成
     HWND hwnd = ::CreateWindowEx(
         dw_ex_style,
         WINDOW_CLASS,

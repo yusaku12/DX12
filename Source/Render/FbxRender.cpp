@@ -49,25 +49,25 @@ FbxRender::FbxRender(const FbxLoad::Model& fbxModel)
 
 void FbxRender::buildGPUResources()
 {
-    //! モデル行列 CBV
+    // モデル行列 CBV
     m_modelCB = std::make_unique<ConstantBuffer<ModelCB>>();
     m_modelCB->update(ModelCB{});
 
-    //! テクスチャ読み込み
+    // テクスチャ読み込み
     createTextures();
 
-    //! メッシュ毎に VB / IB / Subsets を構築
+    // メッシュ毎に VB / IB / Subsets を構築
     for (const auto& srcMesh : m_modelData.meshes)
     {
         MeshDrawData meshDraw;
 
-        //! 頂点バッファ
+        // 頂点バッファ
         meshDraw.vertexBuffer = std::make_unique<VertexBuffer<ModelVertex>>(srcMesh.vertices);
 
-        //! インデックスバッファ
+        // インデックスバッファ
         meshDraw.indexBuffer = std::make_unique<IndexBuffer<uint32_t>>(srcMesh.indices);
 
-        //! サブセット
+        // サブセット
         for (const auto& sub : srcMesh.subMeshes)
         {
             Subset s{};
@@ -76,7 +76,7 @@ void FbxRender::buildGPUResources()
             s.materialIndex = sub.materialIndex;
             s.textureIndices.fill(-1);
 
-            //! マテリアルに紐づくテクスチャを検索
+            // マテリアルに紐づくテクスチャを検索
             if (sub.materialIndex < m_modelData.materials.size())
             {
                 const auto& mat = m_modelData.materials[sub.materialIndex];
@@ -105,10 +105,10 @@ void FbxRender::buildGPUResources()
         m_meshes.push_back(std::move(meshDraw));
     }
 
-    //! マテリアル CBV
+    // マテリアル CBV
     createMaterialCBV();
 
-    //! PSO（ソリッド + ワイヤーフレーム）
+    // PSO（ソリッド + ワイヤーフレーム）
     createSolidPSO();
     createWireframePSO();
 }
@@ -171,7 +171,7 @@ void FbxRender::createSolidPSO()
     psoData.rootSignatureType = RootSignatureType::PMXStandard;
     psoData.vsShaderId = ShaderID::FBXVS;
     psoData.psShaderId = ShaderID::FBXPS;
-    psoData.rasterizerState = RasterizerState::CULL_COUNTER_CLOCKWISE;
+    psoData.rasterizerState = RasterizerState::CULL_CLOCKWISE;
     psoData.blendState = BlendState::ALPHA;
     psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
     psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -226,7 +226,7 @@ void FbxRender::rebuildSubsetDescriptors(Subset& subset)
         }
         else
         {
-            //! テクスチャがない場合はフォールバック
+            // テクスチャがない場合はフォールバック
             if (!m_textures.empty())
                 srvIndices.push_back(m_textures[0]->getSRVIndex());
             else
@@ -270,34 +270,10 @@ void FbxRender::render(ID3D12GraphicsCommandList* cmd)
         renderInternal(cmd, m_wireframePSOKey);
         break;
 
-    case DebugMode::WireframeOverlay:
-        //! ソリッド → ワイヤーフレームの順に重ねて描画
-        renderInternal(cmd, m_solidPSOKey);
-        renderInternal(cmd, m_wireframePSOKey);
-        break;
-
-    case DebugMode::Normals:
-        renderInternal(cmd, m_solidPSOKey);
-        debugDrawNormals(m_normalDisplayLength);
-        break;
-
-    case DebugMode::Tangents:
-        renderInternal(cmd, m_solidPSOKey);
-        debugDrawTangents(m_tangentDisplayLength);
-        break;
-
     case DebugMode::None:
-    case DebugMode::UVChecker:
-    case DebugMode::BoneWeights:
     default:
         renderInternal(cmd, m_solidPSOKey);
         break;
-    }
-
-    //! AABB 表示
-    if (m_showBounds)
-    {
-        debugDrawBounds();
     }
 }
 
@@ -311,7 +287,7 @@ void FbxRender::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
 
-    //! ワールド行列更新
+    // ワールド行列更新
     Matrix world = Matrix::Identity;
     if (m_transform)
         world = m_transform->getWorldMatrix();
@@ -326,7 +302,7 @@ void FbxRender::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
     {
         const auto& mesh = m_meshes[meshIdx];
 
-        //! メッシュ単位の表示制御
+        // メッシュ単位の表示制御
         if (!mesh.visible) continue;
 
         mesh.vertexBuffer->bind(cmd);
@@ -334,10 +310,10 @@ void FbxRender::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
 
         for (const auto& subset : mesh.subsets)
         {
-            //! サブセット単位の表示制御
+            // サブセット単位の表示制御
             if (!subset.visible) continue;
 
-            //! マテリアル単位の表示制御
+            // マテリアル単位の表示制御
             if (subset.materialIndex < m_modelData.materials.size())
             {
                 if (!m_modelData.materials[subset.materialIndex].isVisible)
@@ -352,148 +328,24 @@ void FbxRender::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
     }
 }
 
-void FbxRender::debugDrawNormals(float length) const
-{
-    Matrix world = Matrix::Identity;
-    if (m_transform)
-        world = m_transform->getWorldMatrix();
-
-    const Vector4 normalColor = { 0.0f, 0.5f, 1.0f, 1.0f };
-
-    for (size_t meshIdx = 0; meshIdx < m_modelData.meshes.size(); ++meshIdx)
-    {
-        if (meshIdx < m_meshes.size() && !m_meshes[meshIdx].visible)
-            continue;
-
-        const auto& mesh = m_modelData.meshes[meshIdx];
-
-        //! 全頂点の法線を描画すると重いので間引き
-        size_t step = std::max<size_t>(1, mesh.vertices.size() / 2000);
-
-        for (size_t i = 0; i < mesh.vertices.size(); i += step)
-        {
-            const auto& v = mesh.vertices[i];
-            Vector3 start = Vector3::Transform(v.position, world);
-            Vector3 end = Vector3::Transform(v.position + v.normal * length, world);
-
-            Matrix lineWorld = Matrix::CreateTranslation(start);
-            DebugPrimitive::Instance().drawSphere(lineWorld, length * 0.05f, normalColor);
-
-            Matrix endWorld = Matrix::CreateTranslation(end);
-            DebugPrimitive::Instance().drawSphere(endWorld, length * 0.05f, normalColor);
-        }
-    }
-}
-
-void FbxRender::debugDrawTangents(float length) const
-{
-    Matrix world = Matrix::Identity;
-    if (m_transform)
-        world = m_transform->getWorldMatrix();
-
-    const Vector4 tangentColor = { 1.0f, 0.5f, 0.0f, 1.0f };
-
-    for (size_t meshIdx = 0; meshIdx < m_modelData.meshes.size(); ++meshIdx)
-    {
-        if (meshIdx < m_meshes.size() && !m_meshes[meshIdx].visible)
-            continue;
-
-        const auto& mesh = m_modelData.meshes[meshIdx];
-
-        //! 間引き
-        size_t step = std::max<size_t>(1, mesh.vertices.size() / 2000);
-
-        for (size_t i = 0; i < mesh.vertices.size(); i += step)
-        {
-            const auto& v = mesh.vertices[i];
-            Vector3 tangentDir = Vector3(v.tangent.x, v.tangent.y, v.tangent.z);
-            Vector3 start = Vector3::Transform(v.position, world);
-            Vector3 end = Vector3::Transform(v.position + tangentDir * length, world);
-
-            Matrix lineWorld = Matrix::CreateTranslation(start);
-            DebugPrimitive::Instance().drawSphere(lineWorld, length * 0.05f, tangentColor);
-
-            Matrix endWorld = Matrix::CreateTranslation(end);
-            DebugPrimitive::Instance().drawSphere(endWorld, length * 0.05f, tangentColor);
-        }
-    }
-}
-
-void FbxRender::debugDrawBounds() const
-{
-    Matrix world = Matrix::Identity;
-    if (m_transform)
-        world = m_transform->getWorldMatrix();
-
-    const Vector4 boundsColor = { 0.0f, 1.0f, 0.0f, 1.0f };
-    const Vector4 meshBoundsColor = { 1.0f, 1.0f, 0.0f, 0.5f };
-
-    //! 全体 AABB
-    {
-        Vector3 center = (m_modelData.boundsMin + m_modelData.boundsMax) * 0.5f;
-        Vector3 extents = (m_modelData.boundsMax - m_modelData.boundsMin) * 0.5f;
-        Matrix boxWorld = Matrix::CreateTranslation(center) * world;
-        DebugPrimitive::Instance().drawBox(boxWorld, extents, boundsColor);
-    }
-
-    //! メッシュ個別の AABB
-    for (size_t i = 0; i < m_modelData.meshes.size(); ++i)
-    {
-        if (i < m_meshes.size() && !m_meshes[i].visible)
-            continue;
-
-        const auto& mesh = m_modelData.meshes[i];
-        Vector3 center = (mesh.boundsMin + mesh.boundsMax) * 0.5f;
-        Vector3 extents = (mesh.boundsMax - mesh.boundsMin) * 0.5f;
-        Matrix boxWorld = Matrix::CreateTranslation(center) * world;
-        DebugPrimitive::Instance().drawBox(boxWorld, extents, meshBoundsColor);
-    }
-}
-
-void FbxRender::setMeshVisible(uint32_t meshIndex, bool visible)
-{
-    if (meshIndex < m_meshes.size())
-        m_meshes[meshIndex].visible = visible;
-}
-
-bool FbxRender::getMeshVisible(uint32_t meshIndex) const
-{
-    if (meshIndex < m_meshes.size())
-        return m_meshes[meshIndex].visible;
-    return false;
-}
-
-void FbxRender::setMaterialVisible(uint32_t materialIndex, bool visible)
-{
-    if (materialIndex < m_modelData.materials.size())
-        m_modelData.materials[materialIndex].isVisible = visible;
-}
-
-bool FbxRender::getMaterialVisible(uint32_t materialIndex) const
-{
-    if (materialIndex < m_modelData.materials.size())
-        return m_modelData.materials[materialIndex].isVisible;
-    return false;
-}
-
 void FbxRender::rebuild()
 {
     LOG_INFO("[FbxRender] Rebuilding GPU resources...");
 
-    //! GPU が使用中のリソースを安全に解放するため、全コマンド完了を待つ
+    // GPU が使用中のリソースを安全に解放するため、全コマンド完了を待つ
     DX12::Instance().safeGPUWait();
 
-    //! 既存リソースをクリア
+    // 既存リソースをクリア
     m_meshes.clear();
     m_textures.clear();
     m_texturePaths.clear();
     m_materialCB.reset();
     m_modelCB.reset();
 
-    //! AABB 再計算
+    // AABB 再計算
     m_modelData.computeBounds();
 
-    //! GPU リソース再構築
+    // GPU リソース再構築
     buildGPUResources();
     computeStatistics();
 
@@ -509,7 +361,7 @@ void FbxRender::debugImGui()
         return;
     }
 
-    //! ステータスバー
+    // ステータスバー
     if (m_valid)
     {
         ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), reinterpret_cast<const char*>(u8"[有効]"));
@@ -522,7 +374,7 @@ void FbxRender::debugImGui()
     ImGui::TextDisabled("Source: %s", m_sourcePath.c_str());
     ImGui::Separator();
 
-    //! タブバー
+    // タブバー
     if (ImGui::BeginTabBar("FbxRenderTabs"))
     {
         if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"統計")))
@@ -593,7 +445,7 @@ void FbxRender::imguiMeshPanel()
 
         bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 
-        //! 表示 ON/OFF チェックボックス（ツリーノード横に配置）
+        // 表示 ON/OFF チェックボックス（ツリーノード横に配置）
         ImGui::SameLine(ImGui::GetContentRegionAvail().x - 30.0f);
         std::string checkId = std::format("##meshVis{}", i);
         ImGui::Checkbox(checkId.c_str(), &meshDraw.visible);
@@ -606,7 +458,7 @@ void FbxRender::imguiMeshPanel()
             ImGui::Text("  AABB Min: (%.3f, %.3f, %.3f)", meshData.boundsMin.x, meshData.boundsMin.y, meshData.boundsMin.z);
             ImGui::Text("  AABB Max: (%.3f, %.3f, %.3f)", meshData.boundsMax.x, meshData.boundsMax.y, meshData.boundsMax.z);
 
-            //! サブセット詳細
+            // サブセット詳細
             for (size_t j = 0; j < meshDraw.subsets.size(); ++j)
             {
                 auto& subset = meshDraw.subsets[j];
@@ -628,10 +480,10 @@ void FbxRender::imguiMeshPanel()
 
 void FbxRender::imguiMaterialPanel()
 {
-    //! rebuild() をループ中に呼ぶとクラッシュするので、フラグで遅延実行
+    // rebuild() をループ中に呼ぶとクラッシュするので、フラグで遅延実行
     bool needsRebuild = false;
 
-    //! マテリアルパラメータの CBV 更新用ヘルパー
+    // マテリアルパラメータの CBV 更新用ヘルパー
     auto updateMaterialCB = [&](size_t index)
         {
             const auto& mat = m_modelData.materials[index];
@@ -651,14 +503,14 @@ void FbxRender::imguiMaterialPanel()
         std::string label = std::format("[{}] {}", i, mat.name.empty() ? "Unnamed" : mat.name);
         bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 
-        //! 表示 ON/OFF
+        // 表示 ON/OFF
         ImGui::SameLine(ImGui::GetContentRegionAvail().x - 30.0f);
         std::string checkId = std::format("##matVis{}", i);
         ImGui::Checkbox(checkId.c_str(), &mat.isVisible);
 
         if (nodeOpen)
         {
-            //! Diffuse カラー編集
+            // Diffuse カラー編集
             float diffuse[4] = { mat.diffuse.x, mat.diffuse.y, mat.diffuse.z, mat.diffuse.w };
             if (ImGui::ColorEdit4(std::format("Diffuse##{}", i).c_str(), diffuse))
             {
@@ -666,7 +518,7 @@ void FbxRender::imguiMaterialPanel()
                 updateMaterialCB(i);
             }
 
-            //! Specular
+            // Specular
             float spec[3] = { mat.specular.x, mat.specular.y, mat.specular.z };
             if (ImGui::ColorEdit3(std::format("Specular##{}", i).c_str(), spec))
             {
@@ -674,13 +526,13 @@ void FbxRender::imguiMaterialPanel()
                 updateMaterialCB(i);
             }
 
-            //! Specular Power
+            // Specular Power
             if (ImGui::DragFloat(std::format("Specular Power##{}", i).c_str(), &mat.specularPower, 0.1f, 0.0f, 256.0f))
             {
                 updateMaterialCB(i);
             }
 
-            //! Ambient
+            // Ambient
             float amb[3] = { mat.ambient.x, mat.ambient.y, mat.ambient.z };
             if (ImGui::ColorEdit3(std::format("Ambient##{}", i).c_str(), amb))
             {
@@ -688,7 +540,7 @@ void FbxRender::imguiMaterialPanel()
                 updateMaterialCB(i);
             }
 
-            //! Emissive
+            // Emissive
             float emi[3] = { mat.emissive.x, mat.emissive.y, mat.emissive.z };
             if (ImGui::ColorEdit3(std::format("Emissive##{}", i).c_str(), emi))
             {
@@ -696,7 +548,7 @@ void FbxRender::imguiMaterialPanel()
                 updateMaterialCB(i);
             }
 
-            //! テクスチャパス表示 & 張替ボタン
+            // テクスチャパス表示 & 張替ボタン
             ImGui::TextDisabled("Diffuse Tex: %s", mat.texturePath[0].empty() ? "(none)" : mat.texturePath[0].c_str());
             ImGui::SameLine();
             if (ImGui::SmallButton(std::format("change##diffTex{}", i).c_str()))
@@ -727,7 +579,7 @@ void FbxRender::imguiMaterialPanel()
         }
     }
 
-    //! ループ終了後に安全にリビルド
+    // ループ終了後に安全にリビルド
     if (needsRebuild)
     {
         rebuild();
@@ -736,64 +588,17 @@ void FbxRender::imguiMaterialPanel()
 
 void FbxRender::imguiDebugPanel()
 {
-    //! デバッグモード選択
-    static const char* debugModeNames[] = {
+    // デバッグモード選択
+    static const char* debugModeNames[] =
+    {
         reinterpret_cast<const char*>(u8"なし"),
         reinterpret_cast<const char*>(u8"ワイヤーフレーム"),
-        reinterpret_cast<const char*>(u8"ワイヤーフレーム重畳"),
-        reinterpret_cast<const char*>(u8"法線表示"),
-        reinterpret_cast<const char*>(u8"接線表示"),
-        reinterpret_cast<const char*>(u8"UV チェッカー"),
-        reinterpret_cast<const char*>(u8"ボーンウェイト"),
     };
 
     int currentMode = static_cast<int>(m_debugMode);
     if (ImGui::Combo(reinterpret_cast<const char*>(u8"デバッグモード"), &currentMode, debugModeNames, IM_ARRAYSIZE(debugModeNames)))
     {
         m_debugMode = static_cast<DebugMode>(currentMode);
-    }
-
-    ImGui::Separator();
-
-    //! AABB 表示
-    ImGui::Checkbox(reinterpret_cast<const char*>(u8"AABB 表示"), &m_showBounds);
-
-    //! 法線・接線表示の長さ
-    if (m_debugMode == DebugMode::Normals)
-    {
-        ImGui::SliderFloat(reinterpret_cast<const char*>(u8"法線の長さ"), &m_normalDisplayLength, 0.001f, 0.5f, "%.3f");
-    }
-    if (m_debugMode == DebugMode::Tangents)
-    {
-        ImGui::SliderFloat(reinterpret_cast<const char*>(u8"接線の長さ"), &m_tangentDisplayLength, 0.001f, 0.5f, "%.3f");
-    }
-
-    ImGui::Separator();
-
-    //! 全メッシュ表示 ON/OFF
-    if (ImGui::Button(reinterpret_cast<const char*>(u8"全メッシュ表示")))
-    {
-        for (auto& mesh : m_meshes)
-            mesh.visible = true;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(reinterpret_cast<const char*>(u8"全メッシュ非表示")))
-    {
-        for (auto& mesh : m_meshes)
-            mesh.visible = false;
-    }
-
-    //! 全マテリアル表示 ON/OFF
-    if (ImGui::Button(reinterpret_cast<const char*>(u8"全マテリアル表示")))
-    {
-        for (auto& mat : m_modelData.materials)
-            mat.isVisible = true;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(reinterpret_cast<const char*>(u8"全マテリアル非表示")))
-    {
-        for (auto& mat : m_modelData.materials)
-            mat.isVisible = false;
     }
 }
 
@@ -802,7 +607,7 @@ void FbxRender::imguiExportPanel()
     ImGui::Text(reinterpret_cast<const char*>(u8"元ファイル: %s"), m_sourcePath.c_str());
     ImGui::Separator();
 
-    //! モデル名編集
+    // モデル名編集
     static char nameBuffer[256] = {};
     if (nameBuffer[0] == '\0' && !m_modelData.name.empty())
     {
@@ -816,7 +621,7 @@ void FbxRender::imguiExportPanel()
 
     ImGui::Separator();
 
-    //! .mdl エクスポート
+    // .mdl エクスポート
     static char exportPath[512] = "output.mdl";
     ImGui::InputText(reinterpret_cast<const char*>(u8"出力パス (.mdl)"), exportPath, sizeof(exportPath));
 
@@ -834,7 +639,7 @@ void FbxRender::imguiExportPanel()
 
     ImGui::Separator();
 
-    //! リビルドボタン
+    // リビルドボタン
     if (ImGui::Button(reinterpret_cast<const char*>(u8"GPU リソース再構築")))
     {
         rebuild();

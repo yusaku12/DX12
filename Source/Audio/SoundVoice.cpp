@@ -9,14 +9,14 @@ void SoundVoice::update(float deltaTime)
     XAUDIO2_VOICE_STATE state{};
     m_voice->GetState(&state);
 
-    //! 再生終了検出
+    // 再生終了検出
     if (state.BuffersQueued == 0)
     {
         stop();
         return;
     }
 
-    //! フェード処理
+    // フェード処理
     if (m_fadeDuration > 0.0f)
     {
         m_fadeTimer += deltaTime;

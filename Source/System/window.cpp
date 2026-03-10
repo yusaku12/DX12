@@ -5,146 +5,146 @@ Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
     , m_dx12(hwnd)
 {
-    //! DescriptorHeapManager初期化
+    // DescriptorHeapManager初期化
     DescriptorHeapManager::Instance().initialize();
 
-    //! DX12初期化
+    // DX12初期化
     m_dx12.initialize();
 
-    //! CommandListPool初期化（ワーカースレッド用）
+    // CommandListPool初期化（ワーカースレッド用）
     CommandListPool::Instance().initialize(m_dx12.getDevice(), 4);
 
-    //! imgui初期化
+    // imgui初期化
     IMGUI_CTRL_INITIALIZE();
 
-    //! シェーダーマネージャー初期化
+    // シェーダーマネージャー初期化
     ShaderManager::Instance().initialize();
 
-    //! PiplineState初期化
+    // PiplineState初期化
     PiplineState::Instance().initialize();
 
-    //! RootSignatureManager初期化
+    // RootSignatureManager初期化
     RootSignatureManager::Instance().initialize();
 
-    //! TimeManager初期化
+    // TimeManager初期化
     TimeManager::Instance().initialize();
 
-    //! CameraManager初期化
+    // CameraManager初期化
     CameraManager::Instance().initialize();
 
-    //! オーディオマネージャー初期化
+    // オーディオマネージャー初期化
     AudioManager::Instance().initialize();
 
-    //! デバックプリミティブ描画初期化
+    // デバックプリミティブ描画初期化
     DebugPrimitive::Instance().initialize();
 
-    //! 物理マネージャー初期化（SceneManager より前に初期化すること）
+    // 物理マネージャー初期化（SceneManager より前に初期化すること）
     PhysicsWorld::Instance().initialize();
 
-    //! シーンマネージャー初期化（onEnter で ColliderComponent 等が PhysicsWorld を使うため最後）
+    // シーンマネージャー初期化（onEnter で ColliderComponent 等が PhysicsWorld を使うため最後）
     SceneManager::Instance().initialize();
 }
 
 Window::~Window()
 {
-    //! ImGui がある場合は先に終了処理
+    // ImGui がある場合は先に終了処理
     IMGUI_CTRL_FINALIZE();
 
-    //! オーディオマネージャー終了処理
+    // オーディオマネージャー終了処理
     AudioManager::Instance().shutdown();
 
-    //! デバックプリミティブ描画終了処理
+    // デバックプリミティブ描画終了処理
     DebugPrimitive::Instance().shutdown();
 
-    //! 物理マネージャー終了処理
+    // 物理マネージャー終了処理
     PhysicsWorld::Instance().shutdown();
 }
 
 void Window::update()
 {
-    //! TimeManager更新
+    // TimeManager更新
     TimeManager::Instance().update();
 
-    //! shaderManager更新
+    // shaderManager更新
     ShaderManager::Instance().update();
 
-    //! InputManager更新
+    // InputManager更新
     InputManager::Instance().update();
 
-    //! デバックプリミティブ フレーム開始（前フレームの描画リクエストをクリア）
+    // デバックプリミティブ フレーム開始（前フレームの描画リクエストをクリア）
     DebugPrimitive::Instance().beginFrame();
 
-    //! SceneManager更新
+    // SceneManager更新
     SceneManager::Instance().update();
 
-    //! CameraManager更新
+    // CameraManager更新
     CameraManager::Instance().update();
 
-    //! ゲームオブジェクト更新
+    // ゲームオブジェクト更新
     GameObjectRegistry::Instance().update();
 
-    //! 物理シミュレーション更新（内部で fetchResults + Transform 同期まで完結）
+    // 物理シミュレーション更新（内部で fetchResults + Transform 同期まで完結）
     float dt = TimeManager::Instance().getDeltaTime();
     PhysicsWorld::Instance().simulate(dt);
 
-    //! オーディオマネージャー更新
+    // オーディオマネージャー更新
     AudioManager::Instance().update(dt);
 }
 
 void Window::render()
 {
-    //! フレーム開始処理
+    // フレーム開始処理
     TimeManager::Instance().frameStart(m_dx12.getGraphicsCommandList());
 
-    //! 画面をクリア（メインコマンドリストにバリア・クリア・ビューポート・シザーを記録）
+    // 画面をクリア（メインコマンドリストにバリア・クリア・ビューポート・シザーを記録）
     m_dx12.screenClear();
 
-    //! デバックプリミティブ描画（メインコマンドリストで実行）
+    // デバックプリミティブ描画（メインコマンドリストで実行）
     DebugPrimitive::Instance().render();
 
-    //! シーンマネージャ描画（マルチスレッドでワーカーコマンドリストに記録）
+    // シーンマネージャ描画（マルチスレッドでワーカーコマンドリストに記録）
     SceneManager::Instance().draw();
 
-    //! バックバッファをimgui用に準備
+    // バックバッファをimgui用に準備
     m_dx12.prepareBackBufferForImGui();
 
-    //! imgui描画
+    // imgui描画
     imguiRender();
 
-    //! 画面クリア後の後処理
+    // 画面クリア後の後処理
     m_dx12.screenClearCleanup();
 
-    //! TimeManagerフレーム終了処理
+    // TimeManagerフレーム終了処理
     TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
 }
 
 void Window::imguiRender()
 {
-    //! imgui更新
+    // imgui更新
     IMGUI_CTRL_UPDATE();
 
-    //! ログ描画
+    // ログ描画
     Logger::Instance().renderLog();
 
-    //!TimeManagerのimgui描画
+    // TimeManagerのimgui描画
     TimeManager::Instance().imgui();
 
-    //! SceneManagerのimgui描画
+    // SceneManagerのimgui描画
     SceneManager::Instance().debugOption();
 
-    //! カメラマネージャーのimgui描画
+    // カメラマネージャーのimgui描画
     CameraManager::Instance().debugImgui();
 
-    //! DX12のシーンimgui描画
+    // DX12のシーンimgui描画
     m_dx12.sceneImguiRender();
 
-    //! RenderManagerのimgui描画
+    // RenderManagerのimgui描画
     RenderManager::Instance().debugImgui();
 
-    //! EditorManagerのimgui描画
+    // EditorManagerのimgui描画
     EditorManager::Instance().imgui();
 
-    //! imgui描画
+    // imgui描画
     IMGUI_CTRL_RENDER();
 }
 
@@ -160,7 +160,7 @@ int Window::run()
         }
         else
         {
-            //! 更新、描画
+            // 更新、描画
             update();
             render();
             updateTitleBar();
@@ -171,7 +171,7 @@ int Window::run()
 
 LRESULT Window::processMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    //! ImGui にメッセージを渡す
+    // ImGui にメッセージを渡す
     IMGUI_CTRL_WND_PRC_HANDLER(hwnd, msg, wparam, lparam);
 
     switch (msg)

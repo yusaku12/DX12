@@ -19,7 +19,7 @@ public:
         auto res = m_uploadBuffer->getResource();
         res->Map(0, nullptr, reinterpret_cast<void**>(&m_mapped));
 
-        //! elementごとにCBV作成
+        // elementごとにCBV作成
         for (UINT i = 0; i < m_elementCount; ++i)
         {
             D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc{};
@@ -30,11 +30,11 @@ public:
         }
     }
 
-    // コピー禁止
+    //! コピー禁止
     ConstantBuffer(const ConstantBuffer&) = delete;
     ConstantBuffer& operator=(const ConstantBuffer&) = delete;
 
-    // ムーブ
+    //! ムーブ
     ConstantBuffer(ConstantBuffer&&) noexcept = default;
     ConstantBuffer& operator=(ConstantBuffer&&) noexcept = default;
 

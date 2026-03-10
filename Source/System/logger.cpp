@@ -1,6 +1,6 @@
-#include "pch.h"
+ï»¿#include "pch.h"
 
-//! ƒRƒ“ƒ\[ƒ‹o—Í•¶ŽšF§ŒäƒR[ƒh
+//! ã‚³ãƒ³ã‚½ãƒ¼ãƒ«å‡ºåŠ›æ–‡å­—è‰²åˆ¶å¾¡ã‚³ãƒ¼ãƒ‰
 static constexpr const char* ConsoleColorReset = "\x1b[0m";
 static constexpr const char* ConsoleColorBlack = "\x1b[30m";
 static constexpr const char* ConsoleColorRed = "\x1b[31m";
@@ -24,7 +24,7 @@ void Logger::renderLog()
     }
     if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
     {
-        ImGui::SetScrollHereY(1.0f); //!< Ž©“®ƒXƒNƒ[ƒ‹
+        ImGui::SetScrollHereY(1.0f); // è‡ªå‹•ã‚¹ã‚¯ãƒ­ãƒ¼ãƒ«
     }
     ImGui::EndChild();
     ImGui::End();
@@ -46,7 +46,7 @@ void Logger::log(LogLevel level, const std::string& message)
 
     (*out) << prefix << message << std::endl;
 
-    // ImGui —p‚É‚à•Û‘¶
+    // ImGui ç”¨ã«ã‚‚ä¿å­˜
     ImVec4 color = ImVec4(1.f, 1.f, 1.f, 1.f);
     if (level == LogLevel::INFO) color = ImVec4(0.f, 1.f, 1.f, 1.f);
     if (level == LogLevel::WARN) color = ImVec4(1.f, 1.f, 0.f, 1.f);

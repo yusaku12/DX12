@@ -16,7 +16,7 @@ void GameObjectRegistry::unregister(GameObject* obj)
 
 void GameObjectRegistry::update()
 {
-    //! 未start のオブジェクトに対して start を呼ぶ
+    // 未start のオブジェクトに対して start を呼ぶ
     for (auto* obj : m_objects)
     {
         if (!obj->isDestroyed() && obj->isEnabled() && !obj->isStarted())
@@ -25,19 +25,19 @@ void GameObjectRegistry::update()
         }
     }
 
-    //! 全オブジェクトの更新
+    // 全オブジェクトの更新
     for (auto* obj : m_objects)
     {
         obj->update();
     }
 
-    //! 全オブジェクトの後処理更新
+    // 全オブジェクトの後処理更新
     for (auto* obj : m_objects)
     {
         obj->lateUpdate();
     }
 
-    //! 削除予約オブジェクトの破棄
+    // 削除予約オブジェクトの破棄
     destroyMarkedObjects();
 }
 

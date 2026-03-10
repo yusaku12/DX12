@@ -2,14 +2,13 @@
 #include "EditorContext.h"
 #include "GameObject\GameObject.h"
 
-//! Inspector ウィンドウ
 void drawInspectorWindow()
 {
     ImGui::Begin("Inspector");
 
     if (g_editor.selectedObject)
     {
-        //! Component 一覧を描画
+        // Component 一覧を描画
         g_editor.selectedObject->drawInspector();
     }
     else

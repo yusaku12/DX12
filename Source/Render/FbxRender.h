@@ -11,21 +11,6 @@ class TransformComponent;
 
 //============================================================================
 // FbxRender — モデルエディター向け FBX レンダラー
-//
-// 【設計方針】
-//   1. FBX ファイルを読み込み → ModelData に変換 → GPU リソースを構築
-//   2. ModelData を外部に公開し、エディター側で編集・保存を可能にする
-//   3. 豊富なデバッグ機能（ワイヤーフレーム、法線、接線、AABB、UV チェッカー等）
-//   4. IRenderComponent 実装により RenderManager に登録してマルチスレッド描画対応
-//   5. メッシュ / マテリアル / サブセット単位の表示ON/OFF
-//
-// 【使い方】
-//   FbxRender renderer("Assets/Model.fbx");
-//   renderer.setTransform(&transformComponent);
-//   renderer.render();                           // シングルスレッド
-//   renderer.render(cmd);                        // マルチスレッド
-//   renderer.debugImGui();                       // ImGui デバッグウィンドウ
-//   renderer.getModelData().saveToMdl("out.mdl"); // .mdl 保存
 //============================================================================
 class FbxRender : public IRenderComponent
 {
@@ -69,32 +54,11 @@ public:
     {
         None = 0,          //!< 通常描画
         Wireframe,         //!< ワイヤーフレーム
-        WireframeOverlay,  //!< ソリッド + ワイヤーフレーム重畳
-        Normals,           //!< 法線表示
-        Tangents,          //!< 接線表示
-        UVChecker,         //!< UV チェッカー（テクスチャなし・マテリアルカラーのみ）
-        BoneWeights,       //!< ボーンウェイト可視化
         Max
     };
 
     //! ImGui デバッグウィンドウ（エディター統合用）
     void debugImGui();
-
-    //! デバッグモード設定 / 取得
-    void setDebugMode(DebugMode mode) { m_debugMode = mode; }
-    DebugMode getDebugMode() const { return m_debugMode; }
-
-    //! AABB 表示 ON / OFF
-    void setShowBounds(bool show) { m_showBounds = show; }
-    bool getShowBounds() const { return m_showBounds; }
-
-    //! メッシュ単位の表示 ON / OFF
-    void setMeshVisible(uint32_t meshIndex, bool visible);
-    bool getMeshVisible(uint32_t meshIndex) const;
-
-    //! マテリアル単位の表示 ON / OFF
-    void setMaterialVisible(uint32_t materialIndex, bool visible);
-    bool getMaterialVisible(uint32_t materialIndex) const;
 
     //! GPU リソースを再構築（ModelData 編集後に呼ぶ）
     void rebuild();
@@ -188,13 +152,6 @@ private:
     //! 描画コア処理（PSO 別）
     void renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey);
 
-    //! デバッグ描画：法線 / 接線の線分
-    void debugDrawNormals(float length = 0.05f) const;
-    void debugDrawTangents(float length = 0.05f) const;
-
-    //! デバッグ描画：AABB
-    void debugDrawBounds() const;
-
     //! ImGui：メッシュ情報パネル
     void imguiMeshPanel();
 
@@ -224,9 +181,6 @@ private:
 
     //! デバッグ
     DebugMode   m_debugMode = DebugMode::None;
-    bool        m_showBounds = false;
-    float       m_normalDisplayLength = 0.05f;
-    float       m_tangentDisplayLength = 0.05f;
     Statistics  m_stats{};
     std::string m_debugName = "FbxRender";
     std::string m_sourcePath;   //!< 元の FBX ファイルパス

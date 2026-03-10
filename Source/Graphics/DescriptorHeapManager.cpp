@@ -7,7 +7,7 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     m_maxCount = maxCount;
     m_used.assign(maxCount, false);
 
-    //! shader-visible Descriptor Heap 作成（既存）
+    // shader-visible Descriptor Heap 作成（既存）
     D3D12_DESCRIPTOR_HEAP_DESC desc = {};
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     desc.NumDescriptors = maxCount;
@@ -17,7 +17,7 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     LOG_HR(hr, "DescriptorHeap CreateDescriptorHeap failed");
     m_incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    //! CPU-only Descriptor Heap 作成（コピー元として使う）
+    // CPU-only Descriptor Heap 作成（コピー元として使う）
     D3D12_DESCRIPTOR_HEAP_DESC cpuDesc = {};
     cpuDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     cpuDesc.NumDescriptors = maxCount;
@@ -25,7 +25,7 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     hr = device->CreateDescriptorHeap(&cpuDesc, IID_PPV_ARGS(&m_cpuHeap));
     LOG_HR(hr, "DescriptorHeap CreateDescriptorHeap (CPU-only) failed");
 
-    //! 既存コードの互換性を保つため、インデックス0を予約している既存実装の挙動を尊重
+    // 既存コードの互換性を保つため、インデックス0を予約している既存実装の挙動を尊重
     if (maxCount > 0)
         m_used[0] = true;
 }
@@ -55,11 +55,11 @@ UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHAD
     UINT index = allocateRange();
     if (index == InvalidIndex) return InvalidIndex;
 
-    //! まず CPU-only ヒープに書く（読み取り可能なソースを作る）
+    // まず CPU-only ヒープに書く（読み取り可能なソースを作る）
     D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = getCPUHandleCpuHeap(index);
     device->CreateShaderResourceView(resource, &desc, cpuHandle);
 
-    //! CPU-only から shader-visible ヒープへコピー
+    // CPU-only から shader-visible ヒープへコピー
     D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(index); // shader-visible の CPU ハンドル
     device->CopyDescriptorsSimple(
         1,
@@ -144,7 +144,7 @@ UINT DescriptorHeapManager::allocateRange(UINT count)
     if (count == 0) return InvalidIndex;
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    //! 既存実装はインデックス1から探索している挙動に合わせる
+    // 既存実装はインデックス1から探索している挙動に合わせる
     for (UINT start = 1; start + count <= m_maxCount; ++start)
     {
         bool freeBlock = true;

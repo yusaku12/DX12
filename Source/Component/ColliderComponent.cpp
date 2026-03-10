@@ -8,7 +8,7 @@
 
 ColliderComponent::~ColliderComponent()
 {
-    //! シェイプを破棄（アクターからデタッチも行う）
+    // シェイプを破棄（アクターからデタッチも行う）
     releaseShape();
 }
 
@@ -20,19 +20,19 @@ void ColliderComponent::awake()
         m_transform = m_gameObject->addComponent<TransformComponent>();
     }
 
-    //! デフォルトマテリアルを使用
+    // デフォルトマテリアルを使用
     m_material = PhysicsWorld::Instance().getDefaultMaterial();
 }
 
 void ColliderComponent::lateUpdate()
 {
-    //! 毎フレーム自動で現在位置にデバッグ描画
+    // 毎フレーム自動で現在位置にデバッグ描画
     drawDebugShape();
 }
 
 void ColliderComponent::inspectGUI()
 {
-    //! 形状タイプ選択
+    // 形状タイプ選択
     auto names = magic_enum::enum_names<ColliderShapeType>();
     int typeIdx = static_cast<int>(m_shapeType);
 
@@ -60,7 +60,7 @@ void ColliderComponent::inspectGUI()
         }
     }
 
-    //! 形状固有パラメータ
+    // 形状固有パラメータ
     switch (m_shapeType)
     {
     case ColliderShapeType::Box:
@@ -86,7 +86,7 @@ void ColliderComponent::inspectGUI()
         break;
     }
 
-    //! 共通設定
+    // 共通設定
     if (ImGui::DragFloat3("Center", &m_center.x, 0.01f))
         setCenter(m_center);
 
@@ -143,8 +143,8 @@ void ColliderComponent::setCapsuleShape(float radius, float halfHeight)
 
     m_shape = physics->createShape(physx::PxCapsuleGeometry(radius, halfHeight), *m_material, true);
 
-    //! PxCapsuleGeometry のデフォルト軸は X 方向
-    //! キャラクターの直立方向（Y 軸）に合わせるため、Z 軸周りに 90° 回転させる
+    // PxCapsuleGeometry のデフォルト軸は X 方向
+    // キャラクターの直立方向（Y 軸）に合わせるため、Z 軸周りに 90° 回転させる
     physx::PxTransform localPose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0.0f, 0.0f, 1.0f)));
     m_shape->setLocalPose(localPose);
 
@@ -162,8 +162,8 @@ void ColliderComponent::setPlaneShape()
 
     m_shape = physics->createShape(physx::PxPlaneGeometry(), *m_material, true);
 
-    //! PxPlaneGeometry のデフォルト法線は +X 方向
-    //! 地面（法線 +Y）として使用するため、Z 軸周りに 90° 回転させる
+    // PxPlaneGeometry のデフォルト法線は +X 方向
+    // 地面（法線 +Y）として使用するため、Z 軸周りに 90° 回転させる
     physx::PxTransform localPose(physx::PxQuat(physx::PxHalfPi, physx::PxVec3(0.0f, 0.0f, 1.0f)));
     m_shape->setLocalPose(localPose);
 
@@ -237,19 +237,19 @@ void ColliderComponent::finalizeShape()
 {
     if (!m_shape) return;
 
-    //! デバッグ描画用フラグ
+    // デバッグ描画用フラグ
     m_shape->setFlag(physx::PxShapeFlag::eVISUALIZATION, true);
 
-    //! トリガー設定の反映
+    // トリガー設定の反映
     setTrigger(m_isTrigger);
 
-    //! センターオフセットの反映
+    // センターオフセットの反映
     if (m_center.LengthSquared() > 1e-6f)
     {
         setCenter(m_center);
     }
 
-    //! 既にアクターが存在すればシェイプを再アタッチ
+    // 既にアクターが存在すればシェイプを再アタッチ
     reattachShapeToActor();
 }
 
@@ -260,10 +260,10 @@ void ColliderComponent::reattachShapeToActor()
     auto* actor = m_rigidbody->getPxActor();
     if (!actor) return;
 
-    //! 既に同じアクターにアタッチ済みならスキップ（二重アタッチ防止）
+    // 既に同じアクターにアタッチ済みならスキップ（二重アタッチ防止）
     if (m_shape->getActor() == actor) return;
 
-    //! 別のアクターにアタッチされている場合は先にデタッチ
+    // 別のアクターにアタッチされている場合は先にデタッチ
     physx::PxRigidActor* prevActor = m_shape->getActor();
     if (prevActor)
     {
@@ -277,13 +277,13 @@ void ColliderComponent::reattachShapeToActor()
         auto* dyn = static_cast<physx::PxRigidDynamic*>(actor);
         if (!(dyn->getRigidBodyFlags() & physx::PxRigidBodyFlag::eKINEMATIC))
         {
-            //! シェイプ変更後は質量特性を再計算（Plane・Trigger を除く）
+            // シェイプ変更後は質量特性を再計算（Plane・Trigger を除く）
             if (m_shapeType != ColliderShapeType::Plane && !m_isTrigger)
             {
                 physx::PxRigidBodyExt::updateMassAndInertia(*dyn, m_rigidbody->getMass());
             }
 
-            //! シェイプ変更をシミュレーションに即座に反映するためスリープ解除
+            // シェイプ変更をシミュレーションに即座に反映するためスリープ解除
             dyn->wakeUp();
         }
     }
@@ -303,9 +303,9 @@ void ColliderComponent::drawDebugShape()
 {
     if (!m_debugDraw || !m_shape || !m_transform) return;
 
-    //! ワールド行列からスケールを除去（回転 + 平行移動のみ）
-    //! コライダーのサイズは halfExtents / radius / halfHeight で表現されるため
-    //! Transform のスケールを含めると二重適用になる
+    // ワールド行列からスケールを除去（回転 + 平行移動のみ）
+    // コライダーのサイズは halfExtents / radius / halfHeight で表現されるため
+    // Transform のスケールを含めると二重適用になる
     Matrix worldMat = m_transform->getWorldMatrix();
 
     Vector3 scale;
@@ -313,7 +313,7 @@ void ColliderComponent::drawDebugShape()
     Vector3 pos;
     worldMat.Decompose(scale, rot, pos);
 
-    //! センターオフセットを回転後のローカル空間で適用
+    // センターオフセットを回転後のローカル空間で適用
     Vector3 rotatedCenter = Vector3::Transform(m_center, rot);
     Matrix world = Matrix::CreateFromQuaternion(rot) * Matrix::CreateTranslation(pos + rotatedCenter);
 

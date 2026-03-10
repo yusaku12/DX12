@@ -15,8 +15,8 @@ void FreeCameraBehaviour::update()
     float speedMul = input.isKeyHeld(VK_SHIFT) ? 4.0f : 1.0f;
     float speed = baseSpeed * speedMul * dt;
 
-    //! 回転（右ドラッグ）
-    if (input.isMouseHeld(1)) //!< 右ボタン
+    // 回転（右ドラッグ）
+    if (input.isMouseHeld(1)) // 右ボタン
     {
         POINT delta = input.getMouseDelta();
 
@@ -32,7 +32,7 @@ void FreeCameraBehaviour::update()
         m_camera->setRotation(qPitch * qYaw);
     }
 
-    //! 移動（カメラ基準）
+    // 移動（カメラ基準）
     Vector3 move = Vector3::Zero;
 
     if (input.isKeyHeld('W')) move += m_camera->getForward();
@@ -48,7 +48,7 @@ void FreeCameraBehaviour::update()
         m_camera->setPosition(m_camera->getPosition() + move * speed);
     }
 
-    //! ホイールドリー
+    // ホイールドリー
     int wheel = input.getMouseWheel();
     if (wheel != 0)
     {

@@ -6,7 +6,7 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
 {
     if (m_initialized) return;
 
-    //! Foundation 作成
+    // Foundation 作成
     m_foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_allocator, m_errorCallback);
     if (!m_foundation)
     {
@@ -14,7 +14,7 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
         return;
     }
 
-    //! PVD (PhysX Visual Debugger) 接続（デバッグ用）
+    // PVD (PhysX Visual Debugger) 接続（デバッグ用）
 #ifdef _DEBUG
     m_pvd = physx::PxCreatePvd(*m_foundation);
     physx::PxPvdTransport* transport = physx::PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
@@ -24,7 +24,7 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
     }
 #endif
 
-    //! Physics 作成
+    // Physics 作成
     m_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_foundation,
         physx::PxTolerancesScale(), true, m_pvd);
     if (!m_physics)
@@ -33,17 +33,17 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
         return;
     }
 
-    //! Extensions 初期化
+    // Extensions 初期化
     PxInitExtensions(*m_physics, m_pvd);
 
-    //! CookingParams 初期化（PhysX 5.x では PxCooking オブジェクトは廃止）
+    // CookingParams 初期化（PhysX 5.x では PxCooking オブジェクトは廃止）
     m_cookingParams = physx::PxCookingParams(m_physics->getTolerancesScale());
 
-    //! CPU Dispatcher 作成（スレッド数はハードウェアに合わせる）
+    // CPU Dispatcher 作成（スレッド数はハードウェアに合わせる）
     UINT numThreads = std::max(1u, std::thread::hardware_concurrency() - 1);
     m_dispatcher = physx::PxDefaultCpuDispatcherCreate(numThreads);
 
-    //! Scene 作成
+    // Scene 作成
     physx::PxSceneDesc sceneDesc(m_physics->getTolerancesScale());
     sceneDesc.gravity = gravity;
     sceneDesc.cpuDispatcher = m_dispatcher;
@@ -57,7 +57,7 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
         return;
     }
 
-    //! PVD クライアント設定
+    // PVD クライアント設定
 #ifdef _DEBUG
     physx::PxPvdSceneClient* pvdClient = m_scene->getScenePvdClient();
     if (pvdClient)
@@ -68,14 +68,14 @@ void PhysicsWorld::initialize(const physx::PxVec3& gravity)
     }
 #endif
 
-    //! デフォルトマテリアル作成（staticFriction=0.5, dynamicFriction=0.5, restitution=0.3）
+    // デフォルトマテリアル作成（staticFriction=0.5, dynamicFriction=0.5, restitution=0.3）
     m_defaultMaterial = m_physics->createMaterial(0.5f, 0.5f, 0.3f);
 
-    //! コントローラーマネージャー作成
+    // コントローラーマネージャー作成
     m_controllerManager = PxCreateControllerManager(*m_scene);
     if (m_controllerManager)
     {
-        //! 障害物の重複防止モードを有効化
+        // 障害物の重複防止モードを有効化
         m_controllerManager->setOverlapRecoveryModule(true);
     }
 
@@ -120,7 +120,7 @@ void PhysicsWorld::simulate(float deltaTime)
         m_scene->simulate(m_fixedTimeStep);
         m_scene->fetchResults(true);
 
-        //! シミュレーション結果を TransformComponent に反映
+        // シミュレーション結果を TransformComponent に反映
         syncTransforms();
 
         ++steps;
@@ -132,7 +132,7 @@ void PhysicsWorld::syncTransforms()
 {
     if (!m_scene) return;
 
-    //! アクティブなアクターを取得して Transform に書き戻す
+    // アクティブなアクターを取得して Transform に書き戻す
     physx::PxU32 numActiveActors = 0;
     physx::PxActor** activeActors = m_scene->getActiveActors(numActiveActors);
 
@@ -145,7 +145,7 @@ void PhysicsWorld::syncTransforms()
         auto* rb = static_cast<RigidbodyComponent*>(rigid->userData);
         if (!rb) continue;
 
-        //! PhysX のトランスフォームを TransformComponent に反映
+        // PhysX のトランスフォームを TransformComponent に反映
         rb->syncFromPhysics();
     }
 }

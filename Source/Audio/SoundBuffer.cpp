@@ -22,13 +22,13 @@ bool SoundBuffer::loadWav(const std::string& path)
 
         if (strncmp(id, "fmt ", 4) == 0)
         {
-            //! fmtチャンクを一旦バッファへ
+            // fmtチャンクを一旦バッファへ
             std::vector<char> fmt(size);
             file.read(fmt.data(), size);
 
             WAVEFORMATEX* wf = reinterpret_cast<WAVEFORMATEX*>(fmt.data());
 
-            //! PCMのみ許可
+            // PCMのみ許可
             if (wf->wFormatTag != WAVE_FORMAT_PCM)
                 return false;
 

@@ -15,25 +15,25 @@ ModelRender::ModelRender(const std::string& mdlPath)
 
 void ModelRender::buildGPUResources()
 {
-    //! モデル行列CBV
+    // モデル行列CBV
     m_modelCB = std::make_unique<ConstantBuffer<ModelCB>>();
     m_modelCB->update(ModelCB{});
 
-    //! テクスチャ読み込み
+    // テクスチャ読み込み
     createTextures();
 
-    //! メッシュ毎に VB / IB / Subsets を構築
+    // メッシュ毎に VB / IB / Subsets を構築
     for (const auto& srcMesh : m_modelData.meshes)
     {
         MeshDrawData meshDraw;
 
-        //! 頂点バッファ（ModelVertex はそのまま GPU 送信可能）
+        // 頂点バッファ（ModelVertex はそのまま GPU 送信可能）
         meshDraw.vertexBuffer = std::make_unique<VertexBuffer<ModelVertex>>(srcMesh.vertices);
 
-        //! インデックスバッファ
+        // インデックスバッファ
         meshDraw.indexBuffer = std::make_unique<IndexBuffer<uint32_t>>(srcMesh.indices);
 
-        //! サブセット
+        // サブセット
         for (const auto& sub : srcMesh.subMeshes)
         {
             Subset s{};
@@ -42,7 +42,7 @@ void ModelRender::buildGPUResources()
             s.materialIndex = sub.materialIndex;
             s.textureIndices.fill(-1);
 
-            //! マテリアルに紐づくテクスチャを検索
+            // マテリアルに紐づくテクスチャを検索
             if (sub.materialIndex >= 0 && sub.materialIndex < m_modelData.materials.size())
             {
                 const auto& mat = m_modelData.materials[sub.materialIndex];
@@ -71,10 +71,10 @@ void ModelRender::buildGPUResources()
         m_meshes.push_back(std::move(meshDraw));
     }
 
-    //! マテリアルCBV
+    // マテリアルCBV
     createMaterialCBV();
 
-    //! PSO
+    // PSO
     createPSO();
 }
 

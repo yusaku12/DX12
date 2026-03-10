@@ -8,13 +8,13 @@ void CameraManager::setBehaviour(std::unique_ptr<CameraBehaviour> behaviour)
 
 void CameraManager::initialize()
 {
-    //! デフォルトでフリーカメラ挙動を設定
+    // デフォルトでフリーカメラ挙動を設定
     setBehaviour(std::make_unique<FreeCameraBehaviour>(m_camera));
 
-    //! カメラ定数バッファ作成
+    // カメラ定数バッファ作成
     m_cameraCB = std::make_unique<ConstantBuffer<GPUCameraBuffer>>();
 
-    //! カメラ定数バッファをGPUにアップロード
+    // カメラ定数バッファをGPUにアップロード
     uploadCameraBufferToGPU();
 }
 
@@ -24,7 +24,7 @@ void CameraManager::update()
     {
         m_behaviour->update();
 
-        //! カメラ定数バッファをGPUにアップロード
+        // カメラ定数バッファをGPUにアップロード
         uploadCameraBufferToGPU();
     }
 }
@@ -74,6 +74,6 @@ void CameraManager::uploadCameraBufferToGPU()
     camera.viewProjection = (camera.view * camera.projection).Transpose();;
     camera.cameraPos = m_camera.getPosition();
 
-    //! 定数バッファ更新
+    // 定数バッファ更新
     m_cameraCB->update(camera);
 }

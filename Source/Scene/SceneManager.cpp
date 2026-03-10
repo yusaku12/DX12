@@ -4,11 +4,11 @@
 
 void SceneManager::initialize()
 {
-    //! シーン登録
+    // シーン登録
     registerScene<TestScene>(SceneId::TEST);
     registerScene<ModelEditorScene>(SceneId::ModelEditor);
 
-    //! 最初のシーンを読み込み
+    // 最初のシーンを読み込み
     loadScene(SceneId::ModelEditor);
 }
 
@@ -24,7 +24,7 @@ void SceneManager::loadScene(SceneId id)
 
 void SceneManager::update()
 {
-    //! シーン切り替え要求があればここで反映
+    // シーン切り替え要求があればここで反映
     if (m_requestChange)
     {
         changeSceneInternal();
@@ -48,15 +48,15 @@ void SceneManager::debugOption()
 {
     ImGui::Begin("GameScene");
 
-    //! 現在シーン表示
+    // 現在シーン表示
     ImGui::Text("Current Scene: %s", magic_enum::enum_name(m_currentSceneID).data());
 
     ImGui::Separator();
 
-    //! enum 全列挙
+    // enum 全列挙
     for (auto id : magic_enum::enum_values<SceneId>())
     {
-        if (id == SceneId::MAX) //!< Countは除外
+        if (id == SceneId::MAX) // Countは除外
             continue;
 
         bool isCurrent = (id == m_currentSceneID);
@@ -75,7 +75,7 @@ void SceneManager::debugOption()
 
     ImGui::End();
 
-    //! 現在シーンのデバック描画
+    // 現在シーンのデバック描画
     m_currentScene->debugDraw();
 }
 

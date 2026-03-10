@@ -19,7 +19,7 @@ public:
         std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
         D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = {};
 
-        //! ハッシュ値計算（inputLayoutは除外：enumの組み合わせで十分識別可能）
+        // ハッシュ値計算（inputLayoutは除外：enumの組み合わせで十分識別可能）
         size_t computeHash() const
         {
             size_t h = 0;

@@ -1,21 +1,18 @@
 ﻿#include "pch.h"
 
-//static constexpr float PI2 = PI * 2.0f;
-//static constexpr float PI_H = PI * 0.5f;
-
 void DebugPrimitive::initialize()
 {
-    //! メッシュ作成
+    // メッシュ作成
     createSphereMesh(16);
     createHalfSphereMesh(16);
     createCylinderMesh(16);
     createBoxMesh();
     createLineMesh();
 
-    //! メッシュ定数バッファ作成（ドローコールごとに個別エレメント）
+    // メッシュ定数バッファ作成（ドローコールごとに個別エレメント）
     m_meshCB = std::make_unique<ConstantBuffer<CbMesh>>(MAX_DRAW_CALLS);
 
-    //! グリッド用動的バッファ（最大 2048 ライン = 4096 頂点）
+    // グリッド用動的バッファ（最大 2048 ライン = 4096 頂点）
     constexpr UINT gridMaxVerts = 4096;
     m_gridUploadBuffer = std::make_unique<UploadBuffer>(sizeof(Vertex) * gridMaxVerts);
     auto* res = m_gridUploadBuffer->getResource();
@@ -24,7 +21,7 @@ void DebugPrimitive::initialize()
     m_gridVBV.StrideInBytes = sizeof(Vertex);
     m_gridVBV.SizeInBytes = sizeof(Vertex) * gridMaxVerts;
 
-    //! PSO 作成（メッシュ描画用：位置 + カラー）
+    // PSO 作成（メッシュ描画用：位置 + カラー）
     PSOCreator::PSOData pso;
     pso.rootSignatureType = RootSignatureType::DebugPrimitive;
     pso.vsShaderId = ShaderID::DebugPrimitiveVS;
@@ -40,7 +37,7 @@ void DebugPrimitive::initialize()
     };
     m_meshPsoKey = PSOCreator::Instance().registerPSO(pso);
 
-    //! リクエスト予約
+    // リクエスト予約
     m_sphereRequests.reserve(64);
     m_halfSphereRequests.reserve(128);
     m_boxRequests.reserve(64);
@@ -86,16 +83,16 @@ void DebugPrimitive::drawCylinder(const Matrix& world, float radius, float heigh
 
 void DebugPrimitive::drawCapsule(const Matrix& world, float radius, float halfHeight, const Vector4& color)
 {
-    //! ワールド行列から平行移動を分離
+    // ワールド行列から平行移動を分離
     Vector3 worldPos = world.Translation();
 
-    //! 回転部分のみの行列を作成（平行移動を除去）
+    // 回転部分のみの行列を作成（平行移動を除去）
     Matrix rs = world;
     rs._41 = 0.0f;
     rs._42 = 0.0f;
     rs._43 = 0.0f;
 
-    //! 上半球（Y-方向に凸 → X軸でPI回転して蓋にする）
+    // 上半球（Y-方向に凸 → X軸でPI回転して蓋にする）
     {
         Matrix rot = Matrix::CreateRotationX(XM_PI);
         Matrix w = rot * rs;
@@ -103,9 +100,10 @@ void DebugPrimitive::drawCapsule(const Matrix& world, float radius, float halfHe
         w.Translation(position);
         m_halfSphereRequests.push_back({ w, radius, color });
     }
-    //! 円柱
+    // 円柱
     m_cylinderRequests.push_back({ world, radius, halfHeight * 2.0f, color });
-    //! 下半球（Y+方向に凸、そのまま）
+
+    // 下半球（Y+方向に凸、そのまま）
     {
         Matrix w = rs;
         Vector3 position = Vector3::Transform(Vector3(0, halfHeight, 0), world);
@@ -216,7 +214,7 @@ void DebugPrimitive::renderGrid()
     if (m_lineRequests.empty()) return;
     if (m_drawIndex >= MAX_DRAW_CALLS) return;
 
-    //! グリッドラインを動的バッファに書き込み
+    // グリッドラインを動的バッファに書き込み
     UINT maxVerts = m_gridVBV.SizeInBytes / m_gridVBV.StrideInBytes;
     UINT vertCount = std::min(static_cast<UINT>(m_lineRequests.size()) * 2u, maxVerts);
 
@@ -263,7 +261,7 @@ void DebugPrimitive::createVertexBuffer(const Vertex* vertices, UINT count,
     auto device = DX12::Instance().getDevice();
     UINT bufferSize = sizeof(Vertex) * count;
 
-    //! デフォルトヒープに配置
+    // デフォルトヒープに配置
     auto heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
     auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
 
@@ -276,7 +274,7 @@ void DebugPrimitive::createVertexBuffer(const Vertex* vertices, UINT count,
         IID_PPV_ARGS(&outBuffer));
     LOG_HR(hr, "DebugPrimitive: createVertexBuffer failed");
 
-    //! データ書き込み
+    // データ書き込み
     void* mapped = nullptr;
     outBuffer->Map(0, nullptr, &mapped);
     memcpy(mapped, vertices, bufferSize);
@@ -405,7 +403,7 @@ void DebugPrimitive::createCylinderMesh(int subdivisions)
 void DebugPrimitive::createBoxMesh()
 {
     static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
-    //! 単位サイズ（-1 ～ +1）の箱
+    // 単位サイズ（-1 ～ +1）の箱
     Vector3 positions[8] =
     {
         { -1,  1, -1 }, {  1,  1, -1 }, {  1,  1,  1 }, { -1,  1,  1 },
@@ -438,7 +436,7 @@ void DebugPrimitive::createBoxMesh()
 void DebugPrimitive::createLineMesh()
 {
     static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
-    //! 単位ライン（0→1）
+    // 単位ライン（0→1）
     Vertex verts[2] = { { Vector3::Zero, defaultColor }, { Vector3(1, 0, 0), defaultColor } };
     createVertexBuffer(verts, 2, m_lineVB, m_lineVBV);
 }

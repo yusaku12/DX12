@@ -28,7 +28,7 @@ ModelData ModelData::importFromPMX(const PmxLoad::PMXFileData& pmx)
     ModelData data;
     data.name = pmx.modelInfo.modelName;
 
-    //! マテリアル変換
+    // マテリアル変換
     for (const auto& m : pmx.materials)
     {
         ModelMaterial mat;
@@ -38,7 +38,7 @@ ModelData ModelData::importFromPMX(const PmxLoad::PMXFileData& pmx)
         mat.specularPower = m.specularPower;
         mat.ambient = m.ambient;
 
-        //! テクスチャ読み込み
+        // テクスチャ読み込み
         if (m.textureIndex < pmx.textures.size())
         {
             std::filesystem::path texPath = pmx.textures[m.textureIndex].textureName;
@@ -49,7 +49,7 @@ ModelData ModelData::importFromPMX(const PmxLoad::PMXFileData& pmx)
         data.materials.push_back(std::move(mat));
     }
 
-    //! 単一メッシュとして変換
+    // 単一メッシュとして変換
     ModelMesh mesh;
     mesh.name = data.name;
 
@@ -79,7 +79,7 @@ ModelData ModelData::importFromPMX(const PmxLoad::PMXFileData& pmx)
         mesh.indices.push_back(f.vertices[2]);
     }
 
-    //! サブメッシュ
+    // サブメッシュ
     uint32_t startIdx = 0;
     for (uint32_t i = 0; i < (uint32_t)pmx.materials.size(); ++i)
     {
@@ -101,7 +101,7 @@ ModelData ModelData::importFromFBX(const FbxLoad::Model& fbx)
 {
     ModelData data;
 
-    //! マテリアル変換
+    // マテリアル変換
     for (const auto& m : fbx.materials)
     {
         ModelMaterial mat;
@@ -117,7 +117,7 @@ ModelData ModelData::importFromFBX(const FbxLoad::Model& fbx)
         data.materials.push_back(std::move(mat));
     }
 
-    //! メッシュ変換
+    // メッシュ変換
     for (const auto& src : fbx.meshes)
     {
         ModelMesh mesh;
@@ -164,14 +164,14 @@ bool ModelData::saveToMdl(const std::string& path) const
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
     if (!out) return false;
 
-    //! Header
+    // Header
     Binary::writeU32(out, MDL_MAGIC);
     Binary::writeU32(out, MDL_VERSION);
     Binary::writeString(out, name);
     Binary::writeVec3(out, boundsMin);
     Binary::writeVec3(out, boundsMax);
 
-    //! Mesh count
+    // Mesh count
     Binary::writeU32(out, (uint32_t)meshes.size());
 
     for (const auto& mesh : meshes)
@@ -180,23 +180,23 @@ bool ModelData::saveToMdl(const std::string& path) const
         Binary::writeVec3(out, mesh.boundsMin);
         Binary::writeVec3(out, mesh.boundsMax);
 
-        //! 頂点（連続メモリ一括書き込み）
+        // 頂点（連続メモリ一括書き込み）
         Binary::writeU32(out, (uint32_t)mesh.vertices.size());
         if (!mesh.vertices.empty())
             Binary::writeBlob(out, mesh.vertices.data(), mesh.vertices.size() * sizeof(ModelVertex));
 
-        //! インデックス（連続メモリ一括書き込み）
+        // インデックス（連続メモリ一括書き込み）
         Binary::writeU32(out, (uint32_t)mesh.indices.size());
         if (!mesh.indices.empty())
             Binary::writeBlob(out, mesh.indices.data(), mesh.indices.size() * sizeof(uint32_t));
 
-        //! サブメッシュ（連続メモリ一括書き込み）
+        // サブメッシュ（連続メモリ一括書き込み）
         Binary::writeU32(out, (uint32_t)mesh.subMeshes.size());
         if (!mesh.subMeshes.empty())
             Binary::writeBlob(out, mesh.subMeshes.data(), mesh.subMeshes.size() * sizeof(ModelSubMesh));
     }
 
-    //! Material count
+    // Material count
     Binary::writeU32(out, (uint32_t)materials.size());
 
     for (const auto& mat : materials)
@@ -220,7 +220,7 @@ bool ModelData::loadFromMdl(const std::string& path, ModelData& outData)
     std::ifstream in(path, std::ios::binary);
     if (!in) return false;
 
-    //! Header
+    // Header
     uint32_t magic = Binary::readU32(in);
     if (magic != MDL_MAGIC) return false;
 
@@ -231,7 +231,7 @@ bool ModelData::loadFromMdl(const std::string& path, ModelData& outData)
     outData.boundsMin = Binary::readVec3(in);
     outData.boundsMax = Binary::readVec3(in);
 
-    //! Meshes
+    // Meshes
     uint32_t meshCount = Binary::readU32(in);
     outData.meshes.resize(meshCount);
 
@@ -242,26 +242,26 @@ bool ModelData::loadFromMdl(const std::string& path, ModelData& outData)
         mesh.boundsMin = Binary::readVec3(in);
         mesh.boundsMax = Binary::readVec3(in);
 
-        //! 頂点（一括読み込み）
+        // 頂点（一括読み込み）
         uint32_t vertCount = Binary::readU32(in);
         mesh.vertices.resize(vertCount);
         if (vertCount > 0)
             Binary::readBlob(in, mesh.vertices.data(), vertCount * sizeof(ModelVertex));
 
-        //! インデックス（一括読み込み）
+        // インデックス（一括読み込み）
         uint32_t idxCount = Binary::readU32(in);
         mesh.indices.resize(idxCount);
         if (idxCount > 0)
             Binary::readBlob(in, mesh.indices.data(), idxCount * sizeof(uint32_t));
 
-        //! サブメッシュ（一括読み込み）
+        // サブメッシュ（一括読み込み）
         uint32_t subCount = Binary::readU32(in);
         mesh.subMeshes.resize(subCount);
         if (subCount > 0)
             Binary::readBlob(in, mesh.subMeshes.data(), subCount * sizeof(ModelSubMesh));
     }
 
-    //! Materials
+    // Materials
     uint32_t matCount = Binary::readU32(in);
     outData.materials.resize(matCount);
 
