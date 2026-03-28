@@ -12,13 +12,7 @@ public:
 
     void onEnter() override;
 
-    void onExit() override;
-
     void update() override;
-
-    void draw() override;
-
-    void drawMultiThreaded() override;
 
     void debugDraw() override;
 };

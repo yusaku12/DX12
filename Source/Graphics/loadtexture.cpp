@@ -4,7 +4,7 @@
 LoadTexture::LoadTexture(const std::wstring& filePath)
 {
     initLoaderTable();
-    m_isValid = loadFromFile(filePath);
+    m_isValid = loadFromFile(toRelativeWPath(filePath));
 }
 
 LoadTexture::LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void* pixelData, size_t pixelSize)
@@ -123,7 +123,7 @@ bool LoadTexture::loadFromFile(const std::wstring& filePath)
     HRESULT hr = it->second(filePath, &metadata, scratchImg);
     if (FAILED(hr))
     {
-        LOG_ASSERT_NO_JUDGE("Texture load failed");
+        LOG_ERROR("Texture load failed");
         return false;
     }
 

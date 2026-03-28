@@ -68,10 +68,13 @@ void CameraManager::debugImgui()
 
 void CameraManager::uploadCameraBufferToGPU()
 {
+    auto view = m_camera.getView();
+    auto proj = m_camera.getProjection();
+
     GPUCameraBuffer camera{};
-    camera.view = m_camera.getView().Transpose();
-    camera.projection = m_camera.getProjection().Transpose();
-    camera.viewProjection = (camera.view * camera.projection).Transpose();;
+    camera.view = view.Transpose();
+    camera.projection = proj.Transpose();
+    camera.viewProjection = (view * proj);
     camera.cameraPos = m_camera.getPosition();
 
     // 定数バッファ更新

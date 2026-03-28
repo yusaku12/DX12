@@ -27,7 +27,14 @@ void RenderManager::unregisterComponent(IRenderComponent* comp)
 
 void RenderManager::render()
 {
-    for (auto* comp : m_components)
+    // 安全のためローカルコピーを使う（他スレッドで登録解除されても安全）
+    std::vector<IRenderComponent*> comps;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        comps = m_components;
+    }
+
+    for (auto* comp : comps)
     {
         comp->render();
     }
@@ -37,19 +44,30 @@ void RenderManager::renderMultiThreaded()
 {
     using Clock = std::chrono::high_resolution_clock;
 
-    if (m_components.empty()) return;
+    // ローカルコピー
+    std::vector<IRenderComponent*> comps;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        comps = m_components;
+    }
+
+    if (comps.empty()) return;
 
     // コンポーネントが1つならシングルスレッドで描画
-    if (m_components.size() == 1)
+    if (comps.size() == 1)
     {
         auto start = Clock::now();
-        m_components[0]->render();
+        comps[0]->render();
         auto end = Clock::now();
 
-        m_timings.clear();
-        m_totalMs = std::chrono::duration<float, std::milli>(end - start).count();
-        m_singleEstimateMs = m_totalMs;
-        m_timings.push_back({ m_components[0]->getRenderName(), 0.0f, m_totalMs, std::this_thread::get_id() });
+        {
+            std::lock_guard<std::mutex> lock(m_timingMutex);
+            m_timings.clear();
+            m_totalMs = std::chrono::duration<float, std::milli>(end - start).count();
+            m_singleEstimateMs = m_totalMs;
+            // 名前をコピーして保持する
+            m_timings.push_back({ comps[0]->getName(), 0.0f, m_totalMs, std::this_thread::get_id() });
+        }
         return;
     }
 
@@ -65,9 +83,9 @@ void RenderManager::renderMultiThreaded()
 
     // コンポーネント毎にコマンドリストを取得 & 非同期実行
     std::vector<std::pair<ID3D12GraphicsCommandList*, std::future<void>>> tasks;
-    tasks.reserve(m_components.size());
+    tasks.reserve(comps.size());
 
-    for (auto* comp : m_components)
+    for (auto* comp : comps)
     {
         auto* cmd = pool.acquire();
         dx12.applyViewportAndScissor(cmd);
@@ -86,7 +104,8 @@ void RenderManager::renderMultiThreaded()
                 float durationMs = std::chrono::duration<float, std::milli>(end - start).count();
 
                 std::lock_guard<std::mutex> lock(m_timingMutex);
-                m_timings.push_back({ comp->getRenderName(), startMs, durationMs, std::this_thread::get_id() });
+                // 名前はコピーして保存（オリジナル破棄時のダングリングを防ぐ）
+                m_timings.push_back({ comp->getName(), startMs, durationMs, std::this_thread::get_id() });
             });
 
         tasks.push_back({ cmd, std::move(future) });
@@ -102,8 +121,11 @@ void RenderManager::renderMultiThreaded()
 
     // シングルスレッド推定値
     m_singleEstimateMs = 0.0f;
-    for (const auto& t : m_timings)
-        m_singleEstimateMs += t.durationMs;
+    {
+        std::lock_guard<std::mutex> lock(m_timingMutex);
+        for (const auto& t : m_timings)
+            m_singleEstimateMs += t.durationMs;
+    }
 
     // コマンドリスト返却
     for (auto& [cmd, future] : tasks)
@@ -120,18 +142,29 @@ void RenderManager::debugImgui()
         return;
     }
 
-    float speedup = (m_totalMs > 0.001f)
-        ? m_singleEstimateMs / m_totalMs
+    // m_timings を安全にコピーして UI スレッド側で描画する
+    std::vector<ThreadTimingInfo> timingsCopy;
+    float totalMsCopy = 0.0f;
+    float singleEstimateCopy = 0.0f;
+    {
+        std::lock_guard<std::mutex> lock(m_timingMutex);
+        timingsCopy = m_timings;
+        totalMsCopy = m_totalMs;
+        singleEstimateCopy = m_singleEstimateMs;
+    }
+
+    float speedup = (totalMsCopy > 0.001f)
+        ? singleEstimateCopy / totalMsCopy
         : 0.0f;
 
-    ImGui::Text("Multi-thread total : %.3f ms", m_totalMs);
-    ImGui::Text("Single-thread est. : %.3f ms", m_singleEstimateMs);
+    ImGui::Text("Multi-thread total : %.3f ms", totalMsCopy);
+    ImGui::Text("Single-thread est. : %.3f ms", singleEstimateCopy);
     ImGui::Text("Speedup            : %.2fx", speedup);
 
     ImGui::Separator();
     ImGui::Text("Thread Timeline:");
 
-    float maxTime = m_totalMs;
+    float maxTime = totalMsCopy;
     if (maxTime < 0.001f) maxTime = 1.0f;
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -149,9 +182,9 @@ void RenderManager::debugImgui()
         IM_COL32(220,80,80,255),
     };
 
-    for (size_t i = 0; i < m_timings.size(); ++i)
+    for (size_t i = 0; i < timingsCopy.size(); ++i)
     {
-        const auto& t = m_timings[i];
+        const auto& t = timingsCopy[i];
 
         float x0 = canvasPos.x + (t.startMs / maxTime) * canvasWidth;
         float x1 = canvasPos.x + ((t.startMs + t.durationMs) / maxTime) * canvasWidth;
@@ -166,7 +199,7 @@ void RenderManager::debugImgui()
         char label[128];
         std::snprintf(label, sizeof(label),
             "%s  %.2f ms (TID:%zu)",
-            t.name,
+            t.name.c_str(),
             t.durationMs,
             std::hash<std::thread::id>{}(t.threadId) % 10000);
 
@@ -176,7 +209,7 @@ void RenderManager::debugImgui()
     }
 
     float totalHeight =
-        static_cast<float>(m_timings.size()) *
+        static_cast<float>(timingsCopy.size()) *
         (barHeight + padding) + padding;
 
     ImGui::Dummy(ImVec2(canvasWidth, totalHeight));
@@ -192,12 +225,12 @@ void RenderManager::debugImgui()
         ImGui::TableSetupColumn("Thread ID");
         ImGui::TableHeadersRow();
 
-        for (const auto& t : m_timings)
+        for (const auto& t : timingsCopy)
         {
             ImGui::TableNextRow();
 
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text("%s", t.name);
+            ImGui::Text("%s", t.name.c_str());
 
             ImGui::TableSetColumnIndex(1);
             ImGui::Text("%.3f", t.startMs);

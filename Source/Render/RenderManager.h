@@ -39,15 +39,11 @@ public:
     //! マルチスレッド計測情報（デバッグ用）
     struct ThreadTimingInfo
     {
-        const char* name = "";
+        std::string name;
         float startMs = 0.0f;
         float durationMs = 0.0f;
         std::thread::id threadId{};
     };
-
-    const std::vector<ThreadTimingInfo>& getTimings() const { return m_timings; }
-    float getTotalMultiThreadMs()      const { return m_totalMs; }
-    float getSingleThreadEstimateMs()  const { return m_singleEstimateMs; }
 
 private:
 

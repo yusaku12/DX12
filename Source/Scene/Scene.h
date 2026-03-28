@@ -13,18 +13,18 @@ public:
     virtual void onEnter() {}
 
     //! シーン破棄時に1回だけ呼ばれる
-    virtual void onExit() {}
+    virtual void onExit();
 
     //! 毎フレーム更新
     virtual void update() = 0;
 
     //! 描画
-    virtual void draw() = 0;
-
-    //! マルチスレッド描画（ワーカーコマンドリストにコマンドを記録）
-    //! デフォルト実装は draw() を呼ぶだけ（後方互換）
-    virtual void drawMultiThreaded() { draw(); }
+    virtual void draw();
 
     //! シーン毎のデバック描画
     virtual void debugDraw() = 0;
+
+private:
+
+    bool m_useMultiThreadedRendering = true;
 };

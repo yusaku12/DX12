@@ -1,0 +1,124 @@
+namespace mdl;
+
+struct vec2
+{
+    x:float;
+    y:float;
+}
+
+struct vec3
+{
+    x:float;
+    y:float;
+    z:float;
+}
+
+struct vec4
+{
+    x:float;
+    y:float;
+    z:float;
+    w:float;
+}
+
+struct matrix
+{
+    m00:float; m01:float; m02:float; m03:float;
+    m10:float; m11:float; m12:float; m13:float;
+    m20:float; m21:float; m22:float; m23:float;
+    m30:float; m31:float; m32:float; m33:float;
+}
+
+struct vertex
+{
+    position:vec3;
+    normal:vec3;
+    tangent:vec3;
+    uv:vec2;
+
+    bone_index0:uint;
+    bone_index1:uint;
+    bone_index2:uint;
+    bone_index3:uint;
+
+    weight0:float;
+    weight1:float;
+    weight2:float;
+    weight3:float;
+}
+
+struct sub_mesh
+{
+    start_index:uint;
+    index_count:uint;
+    material_index:uint;
+}
+
+struct node_key
+{
+    scale:vec3;
+    rotate:vec4;
+    translate:vec3;
+}
+
+struct keyframe
+{
+    time:float;
+    node_keys:[node_key];
+}
+
+table animation
+{
+    name:string;
+    duration:float;
+    keyframes:[keyframe];
+}
+
+table bone
+{
+    id:ulong;
+    name:string;
+    parent:int;
+
+    scale:vec3;
+    rotate:vec4;
+    translate:vec3;
+}
+
+table mesh
+{
+    name:string;
+
+    vertices:[vertex];
+    indices:[uint];
+    sub_meshes:[sub_mesh];
+
+    node_index:int;
+
+    node_indices:[int];
+    offset_matrices:[matrix];
+
+    bounds_min:vec3;
+    bounds_max:vec3;
+}
+
+table material
+{
+    name:string;
+
+    texture_albedo:string;
+    texture_normal:string;
+
+    diffuse_color:vec4;
+}
+
+table model
+{
+    bones:[bone];
+    meshes:[mesh];
+    materials:[material];
+    animations:[animation];
+}
+
+root_type model;
+file_identifier "MDL0";

@@ -83,7 +83,7 @@ void Window::update()
     // ゲームオブジェクト更新
     GameObjectRegistry::Instance().update();
 
-    // 物理シミュレーション更新（内部で fetchResults + Transform 同期まで完結）
+    // 物理シミュレーション更新
     float dt = TimeManager::Instance().getDeltaTime();
     PhysicsWorld::Instance().simulate(dt);
 

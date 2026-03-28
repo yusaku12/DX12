@@ -64,6 +64,8 @@
     <ClCompile Include="Source\Camera\FreeCameraBehaviour.cpp" />
     <ClCompile Include="Source\Component\ColliderComponent.cpp" />
     <ClCompile Include="Source\Component\Component.cpp" />
+    <ClCompile Include="Source\Component\FbxRenderComponent.cpp" />
+    <ClCompile Include="Source\Component\IRenderComponent.cpp" />
     <ClCompile Include="Source\Component\RigidbodyComponent.cpp" />
     <ClCompile Include="Source\Component\TransformComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp">
@@ -88,17 +90,17 @@
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
     <ClCompile Include="Source\Model\FbxLoad.cpp" />
-    <ClCompile Include="Source\Model\ModelData.cpp" />
+    <ClCompile Include="Source\Model\Model.cpp" />
+    <ClCompile Include="Source\Model\ModelResource.cpp" />
     <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Physics\PhysicsWorld.cpp" />
-    <ClCompile Include="Source\Render\FbxRender.cpp" />
-    <ClCompile Include="Source\Render\ModelRender.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
     <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
+    <ClCompile Include="Source\Scene\Scene.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\TestScene.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
@@ -147,6 +149,7 @@
     <ClInclude Include="Source\Camera\FreeCameraBehaviour.h" />
     <ClInclude Include="Source\Component\ColliderComponent.h" />
     <ClInclude Include="Source\Component\Component.h" />
+    <ClInclude Include="Source\Component\FbxRenderComponent.h" />
     <ClInclude Include="Source\Component\IRenderComponent.h" />
     <ClInclude Include="Source\Component\Object.h" />
     <ClInclude Include="Source\Component\RigidbodyComponent.h" />
@@ -174,19 +177,17 @@
     <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\Math\SimpleMath.h" />
     <ClInclude Include="Source\Model\FbxLoad.h" />
-    <ClInclude Include="Source\Model\ModelData.h" />
+    <ClInclude Include="Source\Model\Model.h" />
+    <ClInclude Include="Source\Model\ModelResource.h" />
     <ClInclude Include="Source\Model\PmxLoad.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Physics\PhysicsWorld.h" />
     <ClInclude Include="Source\Physics\PhysXHelper.h" />
-    <ClInclude Include="Source\Render\FbxRender.h" />
-    <ClInclude Include="Source\Render\ModelRender.h" />
     <ClInclude Include="Source\Render\RenderManager.h" />
     <ClInclude Include="Source\Scene\ModelEditorScene.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\Scene\TestScene.h" />
-    <ClInclude Include="Source\System\Binary.h" />
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
     <ClInclude Include="Source\System\DebugPrimitive.h" />
     <ClInclude Include="Source\System\Dialog.h" />
@@ -365,7 +366,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External.\magic_enum;.\External\Physx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External.\magic_enum;.\External\Physx;.\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
@@ -398,7 +399,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External.\magic_enum;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\Physx;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External.\magic_enum;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\Physx;.\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
