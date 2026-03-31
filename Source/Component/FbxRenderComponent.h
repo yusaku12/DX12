@@ -31,6 +31,9 @@ public:
     //! 描画（マルチスレッド描画）
     void render(ID3D12GraphicsCommandList* cmd) override;
 
+    //! インスペクタ表示
+    void inspectGUI() override;
+
 private:
 
     //! デバッグ描画モード
@@ -71,11 +74,30 @@ private:
     //! 描画コア処理（PSO 別）
     void renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey);
 
+    //! AABB 描画
+    void renderAABB();
+
+    //! ImGui：統計パネル
+    void imguiStatisticsPanel();
+
+    //! ImGui：メッシュ情報パネル
+    void imguiMeshPanel();
+
+    //! ImGui：マテリアル情報パネル
+    void imguiMaterialPanel();
+
+    //! ImGui：デバッグ描画パネル
+    void imguiDebugPanel();
+
+    //! ImGui：エクスポートパネル
+    void imguiExportPanel();
+
     std::unique_ptr<ConstantBuffer<ModelCB>> m_modelCB;
     std::unique_ptr<ConstantBuffer<MaterialCB>> m_materialCB;
     std::unique_ptr<Model> m_model;
     size_t m_solidPSOKey = 0;
     size_t m_wireframePSOKey = 0;
-    DebugMode   m_debugMode = DebugMode::Wireframe;
+    DebugMode m_debugMode = DebugMode::None;
     TransformComponent* m_transform = nullptr;
+    bool m_showAABB = false;
 };

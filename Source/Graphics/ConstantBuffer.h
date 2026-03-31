@@ -38,6 +38,32 @@ public:
     ConstantBuffer(ConstantBuffer&&) noexcept = default;
     ConstantBuffer& operator=(ConstantBuffer&&) noexcept = default;
 
+    //! デストラクタ（CBV 解放と Unmap）
+    ~ConstantBuffer()
+    {
+        // Unmap しておく
+        if (m_uploadBuffer)
+        {
+            auto res = m_uploadBuffer->getResource();
+            if (res)
+            {
+                res->Unmap(0, nullptr);
+            }
+        }
+
+        // 確保した CBV を解放（無効インデックスはスキップ）
+        for (UINT idx : m_cbvIndices)
+        {
+            if (idx != UINT_MAX)
+            {
+                DescriptorHeapManager::Instance().free(idx, 1);
+            }
+        }
+        m_cbvIndices.clear();
+
+        m_mapped = nullptr;
+    }
+
     //! データ更新
     void update(const T& data, UINT index = 0)
     {

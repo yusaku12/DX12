@@ -51,6 +51,7 @@ private:
         Matrix projection;     //!< プロジェクション行列
         Matrix viewProjection; //!< ビュー×プロジェクション行列
         Vector3 cameraPos;     //!< カメラ座標
+        float padding;         //!< パディング
     };
 
     //! カメラ取得

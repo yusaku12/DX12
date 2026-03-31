@@ -13,22 +13,22 @@ ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType ty
 
 void RootSignatureManager::buildPMXStandard()
 {
-    // ディスクリプタレンジ
-    CD3DX12_DESCRIPTOR_RANGE range[3] = {};
+    CD3DX12_ROOT_PARAMETER params[4];
 
-    // ディスクリプタレンジ(モデル行列、マテリアル、テクスチャ)
-    range[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-    range[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
-    range[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
+    // Camera
+    params[0].InitAsConstantBufferView(0);
 
-    // ルートパラメータ
-    CD3DX12_ROOT_PARAMETER params[4] = {};
+    // Model
+    params[1].InitAsConstantBufferView(1);
 
-    // パラメータ設定(カメラ、モデル行列、マテリアル、テクスチャ)
-    params[0].InitAsConstantBufferView(static_cast<int>(CBVType::Camera));
-    params[1].InitAsDescriptorTable(1, &range[0]);
-    params[2].InitAsDescriptorTable(1, &range[1]);
-    params[3].InitAsDescriptorTable(1, &range[2]);
+    // Material
+    params[2].InitAsConstantBufferView(2);
+
+    // Texture (SRV)
+    CD3DX12_DESCRIPTOR_RANGE range;
+    range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
+
+    params[3].InitAsDescriptorTable(1, &range);
 
     // ルートシグネチャ生成
     createRootSignature(params, _countof(params), RootSignatureType::PMXStandard);

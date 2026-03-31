@@ -18,6 +18,20 @@ enum class TextureType : UINT
 //------------------------------------------------
 class ModelResource
 {
+private:
+
+    //! 統計情報構造体
+    struct Statistics
+    {
+        uint32_t totalVertices = 0;
+        uint32_t totalIndices = 0;
+        uint32_t totalTriangles = 0;
+        uint32_t meshCount = 0;
+        uint32_t materialCount = 0;
+        uint32_t subMeshCount = 0;
+        uint32_t drawCallCount = 0;   //!< 直近フレームのドローコール数
+    };
+
 public:
 
     explicit ModelResource() {};
@@ -133,23 +147,13 @@ public:
     //! 読み込んだモデルデータを取得
     const Model& getModelData() const { return m_model; }
 
+    //! 統計情報を取得
+    const Statistics& getStatistics() const { return m_stats; }
+
 private:
 
     //! サブセットディスクリプタ再構築
     void rebuildSubsetDescriptors(SubMesh& subMesh);
-
-    //! 統計情報構造体
-    struct Statistics
-    {
-        uint32_t totalVertices = 0;
-        uint32_t totalIndices = 0;
-        uint32_t totalTriangles = 0;
-        uint32_t meshCount = 0;
-        uint32_t materialCount = 0;
-        uint32_t subMeshCount = 0;
-        uint32_t drawCallCount = 0;   //!< 直近フレームのドローコール数
-    };
-    Statistics  m_stats{};
 
     //! GPUメッシュ
     struct GpuMesh
@@ -159,9 +163,12 @@ private:
     };
     std::vector<GpuMesh> m_gpuMeshes;
 
-    // テクスチャ
+    //! テクスチャ
     std::vector<LoadTexture*> m_textures;
     std::vector<std::wstring> m_texturePaths;
+
+    //! 統計情報
+    Statistics  m_stats{};
 
     static constexpr UINT TEXTURE_SLOT_COUNT = static_cast<UINT>(TextureType::Max);
 

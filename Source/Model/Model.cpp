@@ -13,14 +13,11 @@ Model::Model(std::shared_ptr<ModelResource> resource)
         const auto& src = resBones.at(boneIndex);
         auto& dst = m_bones.at(boneIndex);
 
-        // 名前は安全にコピーして所有する
         dst.name = src.name;
 
-        // parentIndex の範囲チェックを行ってからポインタを設定する
         if (src.parentIndex >= 0 && static_cast<size_t>(src.parentIndex) < m_bones.size())
         {
             dst.parent = &m_bones.at(static_cast<size_t>(src.parentIndex));
-            // 親が存在する場合のみ子リストに追加
             dst.parent->children.emplace_back(&dst);
         }
         else

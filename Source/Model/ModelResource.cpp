@@ -25,7 +25,7 @@ void ModelResource::createTextures()
         {
             if (path.empty()) return -1;
 
-            std::wstring wpath = stringToWstring(path);
+            std::wstring wpath = toRelativeWPath(stringToWstring(path));
 
             for (int i = 0; i < static_cast<int>(m_texturePaths.size()); ++i)
             {
@@ -33,7 +33,6 @@ void ModelResource::createTextures()
                     return i;
             }
 
-            // 新規ロード
             auto tex = TextureManager::Instance().load(wpath);
             m_texturePaths.push_back(wpath);
             m_textures.push_back(tex);
@@ -77,7 +76,7 @@ void ModelResource::createMesh()
                     {
                         if (path.empty()) return -1;
 
-                        std::wstring wpath = stringToWstring(path);
+                        std::wstring wpath = toRelativeWPath(stringToWstring(path));
 
                         for (int i = 0; i < static_cast<int>(m_texturePaths.size()); ++i)
                         {
@@ -94,7 +93,6 @@ void ModelResource::createMesh()
             // Descriptor確保
             sub.descriptorBase = DescriptorHeapManager::Instance().allocateRange(TEXTURE_SLOT_COUNT);
 
-            // allocateRange が失敗した場合は再構築をスキップしてログを残す
             if (sub.descriptorBase == UINT_MAX)
             {
                 LOG_WARN("Descriptor allocation failed for a submesh - skipping descriptor rebuild");
@@ -156,6 +154,7 @@ void ModelResource::computeStatistics()
         m_stats.totalIndices += static_cast<uint32_t>(mesh.indices.size());
         m_stats.subMeshCount += static_cast<uint32_t>(mesh.subMeshes.size());
         m_stats.totalTriangles += static_cast<uint32_t>(mesh.indices.size() / 3);
+        m_stats.drawCallCount += static_cast<uint32_t>(mesh.subMeshes.size());
     }
 }
 

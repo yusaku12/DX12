@@ -7,29 +7,17 @@ Texture2D<float4> normalTex : register(t1);
 
 float4 PS(VS_OUT input) : SV_TARGET
 {
-    //   float3 lightDir = normalize(float3(0, 0, -1));
-    //
-    //// TBN構築
-    //float3 N = normalize(input.normal);
-    //float3 T = normalize(input.tangent.xyz);
-    //T = normalize(T - dot(T, N) * N);
-    //float3 B = cross(N, T);
-    //
-    //float3x3 TBN = float3x3(T, B, N);
-    //
-    //// 法線マップ
-    //float3 normalMap = normalTex.Sample(samplerStates[LINEAR_WRAP], input.uv).rgb;
-    //normalMap = normalMap * 2.0f - 1.0f;
-    //float3 normal = normalize(mul(normalMap, TBN));
-    //
-    //// ランバート
-    //float NdotL = saturate(dot(normal, -lightDir));
-    //float3 diffuseColor = diffuse.rgb * NdotL;
-    //
     // テクスチャ
     float4 texColor = diffuseTex.Sample(samplerStates[LINEAR_WRAP], input.uv) * diffuse;
-//
-//// 合成
-//float3 finalColor = texColor.rgb * (diffuseColor);
-return texColor;
+    float3 normal = normalTex.Sample(samplerStates[LINEAR_WRAP], input.uv).xyz * 2.0f - 1.0f;
+
+    // ライティング
+     float3 lightDir = normalize(float3(0.5f, 1.0f, -0.5f));
+     float3 viewDir = normalize(eye - input.worldPos);
+     float3 halfDir = normalize(lightDir + viewDir);
+     float NdotL = max(dot(normal, lightDir), 0.0f);
+     float NdotH = max(dot(normal, halfDir), 0.0f);
+     float3 diffuseComponent = texColor.rgb * NdotL;
+     float3 specularComponent = pow(NdotH, 0.5f) * 1.0f;
+     return float4(diffuseComponent + specularComponent, texColor.a);
 }

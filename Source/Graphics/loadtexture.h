@@ -21,7 +21,11 @@ public:
     ID3D12Resource* getResource() const { return m_texture.Get(); }
 
     //! GPUハンドル取得（描画時用）
-    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const { return DescriptorHeapManager::Instance().getGPUHandle(m_srvIndex); }
+    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle() const
+    {
+        if (m_srvIndex == UINT_MAX) return {}; // 未割当時は空ハンドルを返す
+        return DescriptorHeapManager::Instance().getGPUHandle(m_srvIndex);
+    }
 
     //! SRVインデックス取得
     UINT getSRVIndex() const { return m_srvIndex; }
@@ -46,6 +50,6 @@ private:
     bool m_isValid = false;  //!< 読み込み成功フラグ
     std::unordered_map<std::wstring, LoaderFunc> m_loaderTable; //!< ローダーテーブル
     Microsoft::WRL::ComPtr<ID3D12Resource> m_texture; //!< テクスチャリソース
-    UINT m_srvIndex = 0;
+    UINT m_srvIndex = UINT_MAX;
     std::unique_ptr<UploadBuffer> m_upload;
 };

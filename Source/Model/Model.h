@@ -17,11 +17,11 @@ public:
     {
         std::string name;
         Bone* parent;
-        Vector3	scale;
-        Vector4	rotate;
-        Vector3	translate;
-        Matrix	localTransform;
-        Matrix	worldTransform;
+        Vector3	scale = {};
+        Vector4	rotate = {};
+        Vector3	translate = {};
+        Matrix	localTransform = {};
+        Matrix	worldTransform = {};
 
         std::vector<Bone*>	children;
     };

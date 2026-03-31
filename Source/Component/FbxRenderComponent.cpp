@@ -33,6 +33,12 @@ void FbxRenderComponent::update()
 
     // モデル行列更新
     m_model->updateTransform(m_transform->getLocalMatrix());
+
+    // AABB 描画
+    if (m_showAABB)
+    {
+        renderAABB();
+    }
 }
 
 void FbxRenderComponent::render()
@@ -60,6 +66,39 @@ void FbxRenderComponent::render(ID3D12GraphicsCommandList* cmd)
     }
 }
 
+void FbxRenderComponent::inspectGUI()
+{
+    if (ImGui::BeginTabBar("FBXRender"))
+    {
+        if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"統計")))
+        {
+            imguiStatisticsPanel();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"メッシュ")))
+        {
+            imguiMeshPanel();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"マテリアル")))
+        {
+            imguiMaterialPanel();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"デバッグ")))
+        {
+            imguiDebugPanel();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"エクスポート")))
+        {
+            imguiExportPanel();
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+}
+
 bool FbxRenderComponent::loadFbx(const std::string& fbxPath)
 {
     auto fbx = std::make_unique<FbxLoad>();
@@ -79,8 +118,12 @@ bool FbxRenderComponent::loadFbx(const std::string& fbxPath)
 void FbxRenderComponent::buildGPUResources()
 {
     // モデル行列 CBV
-    m_modelCB = std::make_unique<ConstantBuffer<ModelCB>>();
-    m_modelCB->update(ModelCB{});
+    UINT meshCount = static_cast<UINT>(m_model->getResource()->getModelData().meshes.size());
+    m_modelCB = std::make_unique<ConstantBuffer<ModelCB>>(meshCount);
+    for (UINT i = 0; i < meshCount; ++i)
+    {
+        m_modelCB->update(ModelCB{}, i);
+    }
 
     // テクスチャ読み込み
     m_model->getResource()->createTextures();
@@ -171,11 +214,6 @@ void FbxRenderComponent::createWireframePSO()
 
 void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
 {
-    if (!cmd) return;
-    if (!m_model) return;
-    if (!m_modelCB) return;
-    if (!m_materialCB) return;
-
     // PSO とルートシグネチャをセット
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
     cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::PMXStandard));
@@ -196,7 +234,7 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
         ModelCB modelCBData{};
 
         // メッシュ用定数バッファ更新
-        if (mesh.nodeIndices.size() > 0)
+        if (!mesh.nodeIndices.empty())
         {
             for (size_t i = 0; i < mesh.nodeIndices.size(); ++i)
             {
@@ -212,8 +250,8 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
         }
 
         // CBV 更新 & ルートにセット
-        m_modelCB->update(modelCBData);
-        cmd->SetGraphicsRootDescriptorTable(1, m_modelCB->getGPUHandle());
+        m_modelCB->update(modelCBData, static_cast<UINT>(meshIdx));
+        cmd->SetGraphicsRootConstantBufferView(1, m_modelCB->getGPUAddress(static_cast<UINT>(meshIdx)));
 
         // メッシュバッファをセット（現在処理中のメッシュのみ）
         m_model->getResource()->bindGpuMesh(cmd, meshIdx);
@@ -242,9 +280,161 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
             if (subset.materialIndex < modelData.materials.size())
                 matIndex = static_cast<UINT>(subset.materialIndex);
 
+            cmd->SetGraphicsRootConstantBufferView(2, m_materialCB->getGPUAddress(matIndex));
             cmd->SetGraphicsRootDescriptorTable(3, DescriptorHeapManager::Instance().getGPUHandle(subset.descriptorBase));
-            cmd->SetGraphicsRootDescriptorTable(2, m_materialCB->getGPUHandle(matIndex));
             cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
         }
     }
+}
+
+void FbxRenderComponent::renderAABB()
+{
+    Vector3 modelWorldMin(std::numeric_limits<float>::max());
+    Vector3 modelWorldMax(std::numeric_limits<float>::lowest());
+
+    for (const auto& mesh : m_model->getResource()->getModelData().meshes)
+    {
+        Vector3 localMin(mesh.boundsMin.x, mesh.boundsMin.y, mesh.boundsMin.z);
+        Vector3 localMax(mesh.boundsMax.x, mesh.boundsMax.y, mesh.boundsMax.z);
+
+        Vector3 corners[8] =
+        {
+            { localMin.x, localMin.y, localMin.z },
+            { localMax.x, localMin.y, localMin.z },
+            { localMin.x, localMax.y, localMin.z },
+            { localMax.x, localMax.y, localMin.z },
+            { localMin.x, localMin.y, localMax.z },
+            { localMax.x, localMin.y, localMax.z },
+            { localMin.x, localMax.y, localMax.z },
+            { localMax.x, localMax.y, localMax.z },
+        };
+
+        if (!mesh.nodeIndices.empty())
+        {
+            for (size_t ni = 0; ni < mesh.nodeIndices.size(); ++ni)
+            {
+                int nodeIdx = mesh.nodeIndices[ni];
+                Matrix boneWorld = m_model->getBone().at(nodeIdx).worldTransform;
+                Matrix combined = mesh.offsetTransforms[ni] * boneWorld;
+
+                for (int c = 0; c < 8; ++c)
+                {
+                    Vector3 w = Vector3::Transform(corners[c], combined);
+
+                    modelWorldMin = Vector3::Min(modelWorldMin, w);
+                    modelWorldMax = Vector3::Max(modelWorldMax, w);
+                }
+            }
+        }
+        else
+        {
+            Matrix boneWorld = m_model->getBone().at(mesh.nodeIndex).worldTransform;
+
+            for (int c = 0; c < 8; ++c)
+            {
+                Vector3 w = Vector3::Transform(corners[c], boneWorld);
+
+                modelWorldMin = Vector3::Min(modelWorldMin, w);
+                modelWorldMax = Vector3::Max(modelWorldMax, w);
+            }
+        }
+    }
+
+    if (modelWorldMin.x > modelWorldMax.x ||
+        modelWorldMin.y > modelWorldMax.y ||
+        modelWorldMin.z > modelWorldMax.z)
+    {
+        return;
+    }
+
+    Vector3 center = (modelWorldMin + modelWorldMax) * 0.5f;
+    Vector3 extents = (modelWorldMax - modelWorldMin) * 0.5f;
+    Matrix boxWorld = Matrix::CreateTranslation(center);
+    Vector4 color = Vector4{ 1.0f, 1.0f, 0.0f, 1.0f };
+
+    DebugPrimitive::Instance().drawBox(boxWorld, extents, color);
+}
+
+void FbxRenderComponent::imguiStatisticsPanel()
+{
+    ImGui::Columns(2, "StatsColumns", true);
+    ImGui::SetColumnWidth(0, 150.0f);
+
+    auto& status = m_model->getResource()->getStatistics();
+    ImGui::Text(reinterpret_cast<const char*>(u8"メッシュ数"));        ImGui::NextColumn(); ImGui::Text("%u", status.meshCount);        ImGui::NextColumn();
+    ImGui::Text(reinterpret_cast<const char*>(u8"マテリアル数"));      ImGui::NextColumn(); ImGui::Text("%u", status.materialCount);    ImGui::NextColumn();
+    ImGui::Text(reinterpret_cast<const char*>(u8"サブメッシュ数"));    ImGui::NextColumn(); ImGui::Text("%u", status.subMeshCount);     ImGui::NextColumn();
+    ImGui::Text(reinterpret_cast<const char*>(u8"頂点数"));            ImGui::NextColumn(); ImGui::Text("%u", status.totalVertices);    ImGui::NextColumn();
+    ImGui::Text(reinterpret_cast<const char*>(u8"インデックス数"));    ImGui::NextColumn(); ImGui::Text("%u", status.totalIndices);     ImGui::NextColumn();
+    ImGui::Text(reinterpret_cast<const char*>(u8"三角形数"));          ImGui::NextColumn(); ImGui::Text("%u", status.totalTriangles);   ImGui::NextColumn();
+    ImGui::Text(reinterpret_cast<const char*>(u8"ドローコール数"));    ImGui::NextColumn(); ImGui::Text("%u", status.drawCallCount);    ImGui::NextColumn();
+
+    ImGui::Columns(1);
+}
+
+void FbxRenderComponent::imguiMeshPanel()
+{
+    for (size_t i = 0; i < m_model->getResource()->getModelData().meshes.size(); ++i)
+    {
+        auto meshDraw = m_model->getResource()->getModelData().meshes[i];
+        const auto& meshData = m_model->getResource()->getModelData().meshes[i];
+
+        std::string label = std::format("[{}] {}", i, meshData.name.empty() ? "Unnamed" : meshData.name);
+
+        bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+        // 表示 ON/OFF チェックボックス（ツリーノード横に配置）
+        ImGui::SameLine(ImGui::GetContentRegionAvail().x - 30.0f);
+        std::string checkId = std::format("##meshVis{}", i);
+        ImGui::Checkbox(checkId.c_str(), &meshDraw.visible);
+
+        if (nodeOpen)
+        {
+            ImGui::Text(reinterpret_cast<const char*>(u8"  頂点数: %zu"), meshData.vertices.size());
+            ImGui::Text(reinterpret_cast<const char*>(u8"  インデックス数: %zu"), meshData.indices.size());
+            ImGui::Text(reinterpret_cast<const char*>(u8"  サブメッシュ数: %zu"), meshData.subMeshes.size());
+
+            // サブセット詳細
+            for (size_t j = 0; j < meshDraw.subMeshes.size(); ++j)
+            {
+                auto& subset = meshDraw.subMeshes[j];
+                std::string subLabel = std::format("  Subset [{}] mat={} idx={}-{}",
+                    j, subset.materialIndex, subset.startIndex, subset.startIndex + subset.indexCount);
+
+                ImGui::Indent();
+                std::string subCheckId = std::format("##subVis{}_{}", i, j);
+                ImGui::Checkbox(subCheckId.c_str(), &subset.visible);
+                ImGui::SameLine();
+                ImGui::TextDisabled("%s", subLabel.c_str());
+                ImGui::Unindent();
+            }
+
+            ImGui::TreePop();
+        }
+    }
+}
+
+void FbxRenderComponent::imguiMaterialPanel()
+{
+}
+
+void FbxRenderComponent::imguiDebugPanel()
+{
+    // デバッグモード選択
+    static const char* debugModeNames[] =
+    {
+        reinterpret_cast<const char*>(u8"通常描画"),
+        reinterpret_cast<const char*>(u8"ワイヤーフレーム"),
+    };
+
+    int currentMode = static_cast<int>(m_debugMode);
+    if (ImGui::Combo(reinterpret_cast<const char*>(u8"デバッグモード"), &currentMode, debugModeNames, IM_ARRAYSIZE(debugModeNames)))
+    {
+        m_debugMode = static_cast<DebugMode>(currentMode);
+    }
+    ImGui::Checkbox(reinterpret_cast<const char*>(u8"AABB表示"), &m_showAABB);
+}
+
+void FbxRenderComponent::imguiExportPanel()
+{
 }

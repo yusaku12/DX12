@@ -111,6 +111,13 @@ bool FbxLoad::load(const char* filename)
             FbxAxisSystem::MayaYUp.ConvertScene(fbxScene);
         }
 
+        // 単位をメートルに変換する
+        //FbxSystemUnit sceneUnit = fbxScene->GetGlobalSettings().GetSystemUnit();
+        //if (sceneUnit != FbxSystemUnit::m)
+        //{
+        //    FbxSystemUnit::m.ConvertScene(fbxScene);
+        //}
+
         // モデル読み込み
         std::vector<FbxNode*> fbxNodes;
         FbxNode* fbxRootNode = fbxScene->GetRootNode();
@@ -289,7 +296,6 @@ void FbxLoad::loadMesh(FbxNode* fbxNode, FbxMesh* fbxMesh)
                     for (int i = 0; i < fbxClusterControlPointIndicesCount; ++i)
                     {
                         BoneInfluence& boneInfluence = boneInfluences.at(fbxControlPointIndices[i]);
-
                         boneInfluence.Add(fbxClusterIndex, static_cast<float>(fbxControlPointWeights[i]));
                     }
                 }
@@ -656,12 +662,6 @@ void FbxLoad::loadAnimations(FbxScene* fbxScene, const char* name, bool append)
             }
             seconds += samplingTime;
         }
-    }
-
-    // 後始末
-    for (int i = 0; i < fbxAnimationCount; i++)
-    {
-        delete fbxAnimStackNames[i];
     }
 }
 
