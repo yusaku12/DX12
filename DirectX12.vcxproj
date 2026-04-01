@@ -61,7 +61,9 @@
     <ClCompile Include="Source\Audio\SoundBuffer.cpp" />
     <ClCompile Include="Source\Audio\SoundVoice.cpp" />
     <ClCompile Include="Source\Camera\CameraManager.cpp" />
+    <ClCompile Include="Source\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Camera\FreeCameraBehaviour.cpp" />
+    <ClCompile Include="Source\Camera\FreeCameraComponent.cpp" />
     <ClCompile Include="Source\Component\ColliderComponent.cpp" />
     <ClCompile Include="Source\Component\Component.cpp" />
     <ClCompile Include="Source\Component\FbxRenderComponent.cpp" />
@@ -145,8 +147,10 @@
     <ClInclude Include="Source\Audio\SoundVoice.h" />
     <ClInclude Include="Source\Camera\Camera.h" />
     <ClInclude Include="Source\Camera\CameraBehaviour.h" />
+    <ClInclude Include="Source\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Camera\CameraManager.h" />
     <ClInclude Include="Source\Camera\FreeCameraBehaviour.h" />
+    <ClInclude Include="Source\Camera\FreeCameraComponent.h" />
     <ClInclude Include="Source\Component\ColliderComponent.h" />
     <ClInclude Include="Source\Component\Component.h" />
     <ClInclude Include="Source\Component\FbxRenderComponent.h" />

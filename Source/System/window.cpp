@@ -77,11 +77,11 @@ void Window::update()
     // SceneManager更新
     SceneManager::Instance().update();
 
-    // CameraManager更新
-    CameraManager::Instance().update();
-
-    // ゲームオブジェクト更新
+    // ゲームオブジェクト更新（FreeCameraComponent など、カメラ位置を動かすコンポーネントを先に更新）
     GameObjectRegistry::Instance().update();
+
+    // CameraManager更新（ゲームオブジェクト更新後に GPU バッファを確定させる）
+    CameraManager::Instance().update();
 
     // 物理シミュレーション更新
     float dt = TimeManager::Instance().getDeltaTime();
