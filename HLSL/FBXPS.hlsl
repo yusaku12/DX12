@@ -19,5 +19,5 @@ float4 PS(VS_OUT input) : SV_TARGET
      float NdotH = max(dot(normal, halfDir), 0.0f);
      float3 diffuseComponent = texColor.rgb * NdotL;
      float3 specularComponent = pow(NdotH, 0.5f) * 1.0f;
-     return float4(diffuseComponent + specularComponent, texColor.a);
+     return texColor;
 }

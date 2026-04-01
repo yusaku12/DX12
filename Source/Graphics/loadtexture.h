@@ -13,6 +13,7 @@ class LoadTexture
 public:
 
     explicit LoadTexture(const std::wstring& filePath);
+    ~LoadTexture();
 
     //! メモリから直接テクスチャを作成するコンストラクタ（幅・高さ・フォーマット・ピクセルデータ）
     LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void* pixelData, size_t pixelSize);

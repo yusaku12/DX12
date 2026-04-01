@@ -7,6 +7,15 @@ LoadTexture::LoadTexture(const std::wstring& filePath)
     m_isValid = loadFromFile(toRelativeWPath(filePath));
 }
 
+LoadTexture::~LoadTexture()
+{
+    if (m_srvIndex != UINT_MAX)
+    {
+        DescriptorHeapManager::Instance().free(m_srvIndex, 1);
+        m_srvIndex = UINT_MAX;
+    }
+}
+
 LoadTexture::LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void* pixelData, size_t pixelSize)
 {
     auto device = DX12::Instance().getDevice();

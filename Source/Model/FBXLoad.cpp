@@ -112,11 +112,11 @@ bool FbxLoad::load(const char* filename)
         }
 
         // 単位をメートルに変換する
-        //FbxSystemUnit sceneUnit = fbxScene->GetGlobalSettings().GetSystemUnit();
-        //if (sceneUnit != FbxSystemUnit::m)
-        //{
-        //    FbxSystemUnit::m.ConvertScene(fbxScene);
-        //}
+        FbxSystemUnit sceneUnit = fbxScene->GetGlobalSettings().GetSystemUnit();
+        if (sceneUnit != FbxSystemUnit::m)
+        {
+            FbxSystemUnit::m.ConvertScene(fbxScene);
+        }
 
         // モデル読み込み
         std::vector<FbxNode*> fbxNodes;
@@ -514,16 +514,17 @@ void FbxLoad::loadMaterial(const char* dirname, FbxSurfaceMaterial* fbxSurfaceMa
             std::ifstream istream(filename, std::ios::binary);
             if (istream.is_open())
             {
-                // 見つかったのでそのまま設定する
-                material.textureName[0] = relativeFileName;
+                // ディレクトリパスを結合した完全パスを設定する
+                material.textureName[0] = filename;
             }
             else
             {
                 // 見つからなかった場合はモデルと同ディレクトリにあれば読み込めるようにする
                 char fname[256], ext[32];
                 ::_splitpath_s(relativeFileName, nullptr, 0, nullptr, 0, fname, sizeof(fname), ext, sizeof(ext));
-                ::_makepath_s(filename, sizeof(filename), nullptr, nullptr, fname, ext);
-                material.textureName[0] = filename;
+                char fallback[256];
+                ::_makepath_s(fallback, sizeof(fallback), nullptr, dirname, fname, ext);
+                material.textureName[0] = fallback;
             }
         }
     }
