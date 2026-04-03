@@ -2,9 +2,14 @@
 #include "ModelEditorScene.h"
 #include "Component\TransformComponent.h"
 #include "Component\FbxRenderComponent.h"
+#include "Camera\FreeCameraComponent.h"
 
 void ModelEditorScene::onEnter()
 {
+    GameObject* cameraObject = new GameObject("MainCamera");
+    cameraObject->addComponent<TransformComponent>()->setPosition({ 0.0f, 9.0f, -23.0f });
+    cameraObject->addComponent<FreeCameraComponent>();
+
     GameObject* object = new GameObject("ModelObject");
     object->addComponent<TransformComponent>();
     object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");

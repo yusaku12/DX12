@@ -2,6 +2,7 @@
 #include "TransformComponent.h"
 #include "ImGuizmo.h"
 #include "RigidbodyComponent.h"
+#include "Camera\CameraComponent.h"
 
 const Matrix& TransformComponent::getLocalMatrix() const
 {
@@ -72,8 +73,9 @@ void TransformComponent::onGizmo()
     ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
 
     // カメラ行列取得
-    Matrix view = CameraManager::Instance().getView();
-    Matrix proj = CameraManager::Instance().getProjection();
+    //CameraComponent* camera = CameraManager::Instance().getMainCamera();
+    Matrix view = Matrix::Identity/*camera->getView()*/;
+    Matrix proj = Matrix::Identity/*camera->getProjection()*/;
 
     // 描画設定
     ImGuizmo::SetDrawlist(DX12::Instance().getSceneDrawList());
