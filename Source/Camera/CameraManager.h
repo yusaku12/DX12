@@ -1,11 +1,11 @@
 ﻿#pragma once
 
-#include "Camera.h"
-#include "CameraBehaviour.h"
 #include "Graphics/ConstantBuffer.h"
 
+class CameraComponent;
+
 //=====================================================
-// カメラマネージャ(シングルトン)
+// カメラマネージャ（シングルトン）
 //=====================================================
 class CameraManager
 {
@@ -14,49 +14,47 @@ public:
     //! シングルトンインスタンス取得
     static CameraManager& Instance()
     {
-        static CameraManager inst;
-        return inst;
+        static CameraManager instance;
+        return instance;
     }
 
-    //! カメラ挙動設定
-    void setBehaviour(std::unique_ptr<CameraBehaviour> behaviour);
+    //! CameraComponent を登録（CameraComponent::start / onEnable から呼ばれる）
+    void registerCamera(CameraComponent* cam);
+
+    //! CameraComponent を解除（CameraComponent::onDisable / onDestroy から呼ばれる）
+    void unregisterCamera(CameraComponent* cam);
+
+    //! アクティブなメインカメラを返す（depth 最大、なければ nullptr）
+    CameraComponent* getMainCamera() const;
 
     //! 初期化
     void initialize();
 
-    //! カメラ更新
+    //! カメラ更新（GPU 定数バッファ更新を含む）
     void update();
 
-    //! デバック機能
+    //! デバッグ ImGui ウィンドウ
     void debugImgui();
 
-    //! ビュー行列取得
-    DirectX::SimpleMath::Matrix getView() const { return m_camera.getView(); }
-
-    //! プロジェクション行列取得
-    DirectX::SimpleMath::Matrix getProjection() const { return m_camera.getProjection(); }
-
-    //! カメラ定数バッファのGPUアドレス取得
+    //! カメラ定数バッファの GPU アドレス取得
     D3D12_GPU_VIRTUAL_ADDRESS getGPUAddress() const { return m_cameraCB->getGPUAddress(); }
 
 private:
 
-    //! GPUに送るカメラ定数バッファ
+    //! GPU 定数バッファを現在のメインカメラのデータで更新
     void uploadCameraBufferToGPU();
 
     //! 定数バッファ構造体
     struct GPUCameraBuffer
     {
-        Matrix view;           //!< ビュー行列
-        Matrix projection;     //!< プロジェクション行列
-        Matrix viewProjection; //!< ビュー×プロジェクション行列
-        Vector3 cameraPos;     //!< カメラ座標
-        float padding;         //!< パディング
+        Matrix view;            //!< ビュー行列
+        Matrix projection;      //!< プロジェクション行列
+        Matrix viewProjection;  //!< ビュー×プロジェクション行列
+        Vector3 cameraPos;      //!< カメラ座標
+        float padding;          //!< パディング
     };
 
-    //! カメラ取得
-    Camera m_camera;
-
-    std::unique_ptr<ConstantBuffer<GPUCameraBuffer>> m_cameraCB; //!< カメラ定数バッファ
-    std::unique_ptr<CameraBehaviour> m_behaviour;
+    //! 登録済み CameraComponent 一覧
+    std::vector<CameraComponent*> m_cameras;
+    std::unique_ptr<ConstantBuffer<GPUCameraBuffer>> m_cameraCB;  //!< GPU 定数バッファ
 };
