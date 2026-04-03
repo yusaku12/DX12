@@ -97,6 +97,11 @@ public:
     //! 定数バッファを GPU へアップロード
     void uploadToGPU();
 
+protected:
+
+    //! 同 GameObject の TransformComponent（サブクラスからも参照可能）
+    TransformComponent* m_transform = nullptr;
+
 private:
 
     //! CameraManager への登録（start/onEnable で呼ぶ）
@@ -119,8 +124,6 @@ private:
     float m_nearZ  = 0.1f;               //!< ニアクリップ距離
     float m_farZ   = 1000.0f;            //!< ファークリップ距離
     int   m_depth  = 0;                  //!< カメラ優先度
-
-    TransformComponent* m_transform = nullptr; //!< 同 GameObject の Transform（キャッシュ）
 
     bool m_registered = false; //!< CameraManager 登録済みフラグ
 

@@ -76,32 +76,32 @@ void CameraManager::debugImgui()
 
     if (mainCam)
     {
-        ImGui::Text("[CameraComponent] depth=%d", mainCam->getDepth());
+        // getName() はコンポーネントの型名を返す（例: "FreeCameraComponent"）
+        ImGui::Text("[%s]  depth=%d  cameras=%d",
+            mainCam->getName().c_str(),
+            mainCam->getDepth(),
+            static_cast<int>(m_cameras.size()));
         ImGui::Separator();
 
-        Vector3 pos = mainCam->getPosition();
-        ImGui::Text("Position: %.2f %.2f %.2f", pos.x, pos.y, pos.z);
+        // 登録済みカメラ一覧
+        if (m_cameras.size() > 1)
+        {
+            ImGui::Text("Registered cameras:");
+            for (int i = 0; i < static_cast<int>(m_cameras.size()); ++i)
+            {
+                auto* cam = m_cameras[i];
+                bool isMain = (cam == mainCam);
+                ImGui::Text("  [%d] %s  depth=%d %s",
+                    i,
+                    cam->getName().c_str(),
+                    cam->getDepth(),
+                    isMain ? "<-- main" : "");
+            }
+            ImGui::Separator();
+        }
 
-        Vector3 f = mainCam->getForward();
-        Vector3 r = mainCam->getRight();
-        Vector3 u = mainCam->getUp();
-        ImGui::Text("Forward : %.2f %.2f %.2f", f.x, f.y, f.z);
-        ImGui::Text("Right   : %.2f %.2f %.2f", r.x, r.y, r.z);
-        ImGui::Text("Up      : %.2f %.2f %.2f", u.x, u.y, u.z);
-
-        ImGui::Separator();
-
-        float fovDeg = DirectX::XMConvertToDegrees(mainCam->getFov());
-        if (ImGui::DragFloat("FOV (deg)", &fovDeg, 0.5f, 1.0f, 179.0f))
-            mainCam->setFov(DirectX::XMConvertToRadians(fovDeg));
-
-        float nearZ = mainCam->getNear();
-        if (ImGui::DragFloat("Near", &nearZ, 0.01f, 0.001f, 10.0f))
-            mainCam->setNear(nearZ);
-
-        float farZ = mainCam->getFar();
-        if (ImGui::DragFloat("Far", &farZ, 1.0f, 1.0f, 10000.0f))
-            mainCam->setFar(farZ);
+        // CameraComponent::inspectGUI() に委譲して重複を排除
+        mainCam->inspectGUI();
     }
     else
     {
