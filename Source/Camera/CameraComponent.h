@@ -6,24 +6,6 @@ class TransformComponent;
 
 //=====================================================
 // カメラコンポーネント（基底クラス）
-//
-// ■ 概要
-//   UnityEngine.Camera に相当するコンポーネント。
-//   GameObject に付与して使用し、CameraManager に自動登録される。
-//   同じ GameObject 上の TransformComponent から
-//   位置・回転を取得してビュー行列を計算する。
-//
-// ■ 継承して使う
-//   FreeCameraComponent のように本クラスを継承し、
-//   update() をオーバーライドすることで様々なカメラ挙動を
-//   1 つのコンポーネントで実現できる。
-//   （従来の CameraComponent + FreeCameraComponent を
-//     2 つ addComponent する方式は不要になった）
-//
-// ■ GPU 定数バッファについて
-//   GPU へのカメラ情報アップロードは CameraManager が
-//   一括管理する。本コンポーネントは行列やプロパティの
-//   提供のみを担当する（単一責務）。
 //=====================================================
 class CameraComponent : public Component
 {
@@ -50,8 +32,6 @@ public:
     //! インスペクタ表示
     void inspectGUI() override;
 
-    // ─── カメラプロパティ ───────────────────────────────
-
     //! 視野角（ラジアン）の取得
     float getFov() const { return m_fov; }
 
@@ -76,30 +56,26 @@ public:
     //! カメラ優先度の設定
     void setDepth(int depth) { m_depth = depth; }
 
-    // ─── 行列 ────────────────────────────────────────────
-
     //! ビュー行列の取得
-    Matrix getView() const;
+    const Matrix& getView() const;
 
     //! プロジェクション行列の取得
-    Matrix getProjection() const;
-
-    // ─── 位置・方向ヘルパー ──────────────────────────────
+    const Matrix& getProjection() const;
 
     //! カメラのワールド座標
-    Vector3 getPosition() const;
+    const Vector3& getPosition() const;
 
     //! カメラの前方ベクトル
-    Vector3 getForward() const;
+    const Vector3& getForward() const;
 
     //! カメラの右ベクトル
-    Vector3 getRight() const;
+    const Vector3& getRight() const;
 
     //! カメラの上ベクトル
-    Vector3 getUp() const;
+    const Vector3& getUp() const;
 
     //! カメラの回転（クォータニオン）
-    Quaternion getRotation() const;
+    const Quaternion& getRotation() const;
 
 protected:
 
@@ -114,11 +90,11 @@ private:
     //! CameraManager からの解除（onDisable/onDestroy で呼ぶ）
     void unregisterFromManager();
 
-    float m_fov    = DirectX::XM_PIDIV4; //!< 視野角（ラジアン）
-    float m_nearZ  = 0.1f;               //!< ニアクリップ距離
-    float m_farZ   = 1000.0f;            //!< ファークリップ距離
-    int   m_depth  = 0;                  //!< カメラ優先度
+    float m_fov = DirectX::XM_PIDIV4; //!< 視野角（ラジアン）
+    float m_nearZ = 0.1f;               //!< ニアクリップ距離
+    float m_farZ = 1000.0f;            //!< ファークリップ距離
+    int   m_depth = 0;                  //!< カメラ優先度
 
     bool m_initialized = false; //!< awake 完了フラグ（onEnable の早期呼び出しを防ぐ）
-    bool m_registered  = false; //!< CameraManager 登録済みフラグ
+    bool m_registered = false; //!< CameraManager 登録済みフラグ
 };

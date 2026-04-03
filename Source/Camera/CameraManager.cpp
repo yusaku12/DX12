@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "CameraManager.h"
 #include "CameraComponent.h"
 
 void CameraManager::registerCamera(CameraComponent* cam)
@@ -34,7 +35,7 @@ CameraComponent* CameraManager::getMainCamera() const
 void CameraManager::initialize()
 {
     // カメラ定数バッファ作成
-    m_cameraCB = std::make_unique<ConstantBuffer<GPUCameraBuffer>>();
+    //m_cameraCB = std::make_unique<ConstantBuffer<GPUCameraBuffer>>();
 
     // カメラ定数バッファをGPUにアップロード
     uploadCameraBufferToGPU();
