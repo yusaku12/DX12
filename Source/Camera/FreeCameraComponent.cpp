@@ -4,8 +4,8 @@
 
 void FreeCameraComponent::start()
 {
-    if (gameObject())
-        m_transform = gameObject()->getComponent<TransformComponent>();
+    // 基底クラスの start（TransformComponent キャッシュ & CameraManager 登録）
+    CameraComponent::start();
 
     if (!m_transform) return;
 
@@ -75,6 +75,12 @@ void FreeCameraComponent::update()
 
 void FreeCameraComponent::inspectGUI()
 {
+    // ─── カメラ共通プロパティ（FOV, Near, Far, Depth, 位置・方向） ──
+    CameraComponent::inspectGUI();
+
+    ImGui::Separator();
+
+    // ─── フリーカメラ固有の設定 ────────────────────────
     ImGui::DragFloat("Move Speed",        &m_moveSpeed,        0.1f, 0.1f, 100.0f);
     ImGui::DragFloat("Mouse Sensitivity", &m_mouseSensitivity, 0.0001f, 0.0001f, 0.05f);
 

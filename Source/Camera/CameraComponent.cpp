@@ -5,8 +5,9 @@
 
 void CameraComponent::awake()
 {
-    // 定数バッファを作成（awake で GPU リソースを確保する）
-    m_cameraCB = std::make_unique<ConstantBuffer<GPUCameraBuffer>>();
+    // awake 完了フラグを立てる
+    // （onEnable が awake より先に呼ばれた場合の安全策）
+    m_initialized = true;
 }
 
 void CameraComponent::start()
@@ -22,8 +23,8 @@ void CameraComponent::start()
 
 void CameraComponent::onEnable()
 {
-    // start 前は登録しない（定数バッファがまだ作成されていない）
-    if (!m_cameraCB) return;
+    // awake 前の早期呼び出しを防ぐ
+    if (!m_initialized) return;
 
     // start が呼ばれなかった場合の遅延初期化
     if (!m_transform && gameObject())
@@ -107,20 +108,6 @@ Quaternion CameraComponent::getRotation() const
     if (m_transform)
         return m_transform->getRotation();
     return Quaternion::Identity;
-}
-
-void CameraComponent::uploadToGPU()
-{
-    auto view = getView();
-    auto proj = getProjection();
-
-    GPUCameraBuffer buf{};
-    buf.view          = view.Transpose();
-    buf.projection    = proj.Transpose();
-    buf.viewProjection = (view * proj);
-    buf.cameraPos     = getPosition();
-
-    m_cameraCB->update(buf);
 }
 
 void CameraComponent::registerToManager()
