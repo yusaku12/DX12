@@ -23,10 +23,6 @@
     <ClCompile Include="Source\Audio\AudioManager.cpp" />
     <ClCompile Include="Source\Audio\SoundBuffer.cpp" />
     <ClCompile Include="Source\Audio\SoundVoice.cpp" />
-    <ClCompile Include="Source\Camera\CameraManager.cpp" />
-    <ClCompile Include="Source\Camera\CameraComponent.cpp" />
-    <ClCompile Include="Source\Camera\FreeCameraBehaviour.cpp" />
-    <ClCompile Include="Source\Camera\FreeCameraComponent.cpp" />
     <ClCompile Include="Source\Component\Component.cpp" />
     <ClCompile Include="Source\Component\TransformComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp" />
@@ -183,18 +179,6 @@
     <ClInclude Include="Source\Scene\SceneManager.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Camera\Camera.h">
-      <Filter>&#x30D8;&#x30C3;&#x30C0;&#x30FC; &#x30D5;&#x30A1;&#x30A4;&#x30EB;</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Camera\CameraComponent.h">
-      <Filter>&#x30D8;&#x30C3;&#x30C0;&#x30FC; &#x30D5;&#x30A1;&#x30A4;&#x30EB;</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Camera\CameraManager.h">
-      <Filter>&#x30D8;&#x30C3;&#x30C0;&#x30FC; &#x30D5;&#x30A1;&#x30A4;&#x30EB;</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Camera\CameraBehaviour.h">
-      <Filter>&#x30D8;&#x30C3;&#x30C0;&#x30FC; &#x30D5;&#x30A1;&#x30A4;&#x30EB;</Filter>
-    </ClInclude>
     <ClInclude Include="Source\System\LoggerMacros.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
@@ -247,12 +231,6 @@
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\ShaderData.h">
-      <Filter>�w�b�_�[ �t�@�C��</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Camera\FreeCameraBehaviour.h">
-      <Filter>�w�b�_�[ �t�@�C��</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Camera\FreeCameraComponent.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="External\magic_enum\magic_enum.hpp">

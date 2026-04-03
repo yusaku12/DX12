@@ -59,7 +59,6 @@
 #include "Graphics\PSOCreator.h"
 #include "System\TimeManager.h"
 #include "Scene\SceneManager.h"
-#include "Camera\CameraManager.h"
 #include "GameObject\GameObjectRegistry.h"
 #include "Editor\EditorManager.h"
 #include "Input\InputManager.h"
@@ -68,6 +67,7 @@
 #include "Graphics\CommandListPool.h"
 #include "Physics\PhysicsWorld.h"
 #include "Render\RenderManager.h"
+//#include "Camera\CameraManager.h"
 
 //! 省略系
 using namespace DirectX;

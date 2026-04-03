@@ -1,5 +1,4 @@
 ﻿#include "pch.h"
-#include "RenderManager.h"
 #include "Component\IRenderComponent.h"
 
 void RenderManager::registerComponent(IRenderComponent* comp)
