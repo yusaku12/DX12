@@ -67,7 +67,7 @@
 #include "Graphics\CommandListPool.h"
 #include "Physics\PhysicsWorld.h"
 #include "Render\RenderManager.h"
-//#include "Camera\CameraManager.h"
+#include "Camera\CameraManager.h"
 
 //! 省略系
 using namespace DirectX;

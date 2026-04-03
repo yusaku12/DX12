@@ -73,9 +73,9 @@ void TransformComponent::onGizmo()
     ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
 
     // カメラ行列取得
-    //CameraComponent* camera = CameraManager::Instance().getMainCamera();
-    Matrix view = Matrix::Identity/*camera->getView()*/;
-    Matrix proj = Matrix::Identity/*camera->getProjection()*/;
+    CameraComponent* camera = CameraManager::Instance().getMainCamera();
+    Matrix view = camera->getView();
+    Matrix proj = camera->getProjection();
 
     // 描画設定
     ImGuizmo::SetDrawlist(DX12::Instance().getSceneDrawList());
