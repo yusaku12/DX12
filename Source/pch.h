@@ -44,13 +44,13 @@
 #undef OPAQUE
 
 // 自作の機能
+#include "Math\SimpleMath.h"
 #include "System\Dialog.h"
 #include "System\stringformat.h"
 #include "Graphics\DX12.h"
 #include "System\Logger.h"
 #include "System\LoggerMacros.h"
 #include "imgui_render.h"
-#include "Math\SimpleMath.h"
 #include "Graphics\PiplineState.h"
 #include "Graphics\TextureManager.h"
 #include "Graphics\ShaderManager.h"

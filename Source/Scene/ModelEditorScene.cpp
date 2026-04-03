@@ -7,7 +7,7 @@
 
 void ModelEditorScene::onEnter()
 {
-    // カメラオブジェクトを作成（Unity と同じコンポーネント方式）
+    // カメラオブジェクトを作成
     GameObject* cameraObject = new GameObject("MainCamera");
     cameraObject->addComponent<TransformComponent>()->setPosition({ 0.0f, 9.0f, -23.0f });
     cameraObject->addComponent<CameraComponent>();

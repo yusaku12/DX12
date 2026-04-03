@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "Component\Component.h"
-#include "Graphics\ConstantBuffer.h"
 
 class TransformComponent;
 
@@ -20,9 +19,6 @@ public:
     CameraComponent() = default;
     ~CameraComponent() override = default;
 
-    //! 初期化（awake では他コンポーネントへの参照は取得しない）
-    void awake() override;
-
     //! ゲーム開始時（TransformComponent キャッシュ & CameraManager 登録）
     void start() override;
 
@@ -37,8 +33,6 @@ public:
 
     //! インスペクタ表示
     void inspectGUI() override;
-
-    // ─── カメラプロパティ ───────────────────────────────
 
     //! 視野角（ラジアン）の取得
     float getFov() const { return m_fov; }
@@ -64,38 +58,26 @@ public:
     //! カメラ優先度の設定
     void setDepth(int depth) { m_depth = depth; }
 
-    // ─── 行列 ────────────────────────────────────────────
-
     //! ビュー行列の取得
-    Matrix getView() const;
+    const Matrix& getView() const;
 
     //! プロジェクション行列の取得
-    Matrix getProjection() const;
-
-    // ─── 位置・方向ヘルパー ──────────────────────────────
+    const Matrix& getProjection() const;
 
     //! カメラのワールド座標
-    Vector3 getPosition() const;
+    const Vector3& getPosition() const;
 
     //! カメラの前方ベクトル
-    Vector3 getForward() const;
+    const Vector3& getForward() const;
 
     //! カメラの右ベクトル
-    Vector3 getRight() const;
+    const Vector3& getRight() const;
 
     //! カメラの上ベクトル
-    Vector3 getUp() const;
+    const Vector3& getUp() const;
 
     //! カメラの回転（クォータニオン）
-    Quaternion getRotation() const;
-
-    // ─── GPU 定数バッファ ────────────────────────────────
-
-    //! GPU 上の定数バッファアドレスの取得
-    D3D12_GPU_VIRTUAL_ADDRESS getGPUAddress() const { return m_cameraCB->getGPUAddress(); }
-
-    //! 定数バッファを GPU へアップロード
-    void uploadToGPU();
+    const Quaternion& getRotation() const;
 
 private:
 
@@ -105,24 +87,12 @@ private:
     //! CameraManager からの解除（onDisable/onDestroy で呼ぶ）
     void unregisterFromManager();
 
-    //! GPU に送る定数バッファ構造体
-    struct GPUCameraBuffer
-    {
-        Matrix view;            //!< ビュー行列
-        Matrix projection;      //!< プロジェクション行列
-        Matrix viewProjection;  //!< ビュー×プロジェクション行列
-        Vector3 cameraPos;      //!< カメラ座標
-        float padding;          //!< パディング
-    };
-
-    float m_fov    = DirectX::XM_PIDIV4; //!< 視野角（ラジアン）
-    float m_nearZ  = 0.1f;               //!< ニアクリップ距離
-    float m_farZ   = 1000.0f;            //!< ファークリップ距離
-    int   m_depth  = 0;                  //!< カメラ優先度
+    float m_fov = DirectX::XM_PIDIV4;   //!< 視野角（ラジアン）
+    float m_nearZ = 0.1f;               //!< ニアクリップ距離
+    float m_farZ = 1000.0f;             //!< ファークリップ距離
+    int   m_depth = 0;                  //!< カメラ優先度
 
     TransformComponent* m_transform = nullptr; //!< 同 GameObject の Transform（キャッシュ）
 
     bool m_registered = false; //!< CameraManager 登録済みフラグ
-
-    std::unique_ptr<ConstantBuffer<GPUCameraBuffer>> m_cameraCB; //!< GPU 定数バッファ
 };
