@@ -151,7 +151,7 @@ void DebugPrimitive::render()
     PSOCreator::Instance().setPSO(m_meshPsoKey);
 
     auto cmd = DX12::Instance().getGraphicsCommandList();
-    cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
+    //cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 
     renderSpheres();

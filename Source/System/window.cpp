@@ -30,7 +30,7 @@ Window::Window(HWND hwnd)
     TimeManager::Instance().initialize();
 
     // CameraManager初期化
-    CameraManager::Instance().initialize();
+    //CameraManager::Instance().initialize();
 
     // オーディオマネージャー初期化
     AudioManager::Instance().initialize();
@@ -77,11 +77,11 @@ void Window::update()
     // SceneManager更新
     SceneManager::Instance().update();
 
-    // CameraManager更新
-    CameraManager::Instance().update();
-
-    // ゲームオブジェクト更新
+    // ゲームオブジェクト更新（FreeCameraComponent など、カメラ位置を動かすコンポーネントを先に更新）
     GameObjectRegistry::Instance().update();
+
+    // CameraManager更新（ゲームオブジェクト更新後に GPU バッファを確定させる）
+    //CameraManager::Instance().update();
 
     // 物理シミュレーション更新
     float dt = TimeManager::Instance().getDeltaTime();
@@ -133,7 +133,7 @@ void Window::imguiRender()
     SceneManager::Instance().debugOption();
 
     // カメラマネージャーのimgui描画
-    CameraManager::Instance().debugImgui();
+    //CameraManager::Instance().debugImgui();
 
     // DX12のシーンimgui描画
     m_dx12.sceneImguiRender();

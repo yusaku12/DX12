@@ -44,13 +44,13 @@
 #undef OPAQUE
 
 // 自作の機能
+#include "Math\SimpleMath.h"
 #include "System\Dialog.h"
 #include "System\stringformat.h"
 #include "Graphics\DX12.h"
 #include "System\Logger.h"
 #include "System\LoggerMacros.h"
 #include "imgui_render.h"
-#include "Math\SimpleMath.h"
 #include "Graphics\PiplineState.h"
 #include "Graphics\TextureManager.h"
 #include "Graphics\ShaderManager.h"
@@ -59,7 +59,6 @@
 #include "Graphics\PSOCreator.h"
 #include "System\TimeManager.h"
 #include "Scene\SceneManager.h"
-#include "Camera\CameraManager.h"
 #include "GameObject\GameObjectRegistry.h"
 #include "Editor\EditorManager.h"
 #include "Input\InputManager.h"
@@ -68,6 +67,7 @@
 #include "Graphics\CommandListPool.h"
 #include "Physics\PhysicsWorld.h"
 #include "Render\RenderManager.h"
+//#include "Camera\CameraManager.h"
 
 //! 省略系
 using namespace DirectX;
