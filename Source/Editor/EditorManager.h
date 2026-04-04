@@ -14,6 +14,9 @@ public:
         return instance;
     }
 
+    //! 更新（Scene ウィンドウのオブジェクトピッキング処理）
+    void update();
+
     //! ImGui 描画
     void imgui();
 

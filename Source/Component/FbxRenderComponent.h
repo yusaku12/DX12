@@ -34,6 +34,9 @@ public:
     //! インスペクタ表示
     void inspectGUI() override;
 
+    //! モデルのワールド空間 AABB を取得する（ピッキング・カリング用）
+    bool getWorldAABB(Vector3& outCenter, Vector3& outExtents) const;
+
 private:
 
     //! デバッグ描画モード
@@ -99,5 +102,4 @@ private:
     size_t m_wireframePSOKey = 0;
     DebugMode m_debugMode = DebugMode::None;
     TransformComponent* m_transform = nullptr;
-    bool m_showAABB = false;
 };

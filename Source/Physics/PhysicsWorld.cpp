@@ -172,6 +172,7 @@ bool PhysicsWorld::raycast(const Vector3& origin, const Vector3& direction, floa
         {
             outHit.rigidbody = static_cast<RigidbodyComponent*>(hit.block.actor->userData);
         }
+
         return true;
     }
     return false;

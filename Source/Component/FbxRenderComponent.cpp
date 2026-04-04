@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "FbxRenderComponent.h"
 #include "TransformComponent.h"
+#include "Editor/EditorContext.h"
 
 FbxRenderComponent::FbxRenderComponent(const std::string& fbxPath)
 {
@@ -35,7 +36,7 @@ void FbxRenderComponent::update()
     m_model->updateTransform(m_transform->getLocalMatrix());
 
     // AABB 描画
-    if (m_showAABB)
+    if (g_editor.selectedObject == gameObject())
     {
         renderAABB();
     }
@@ -97,6 +98,79 @@ void FbxRenderComponent::inspectGUI()
         }
         ImGui::EndTabBar();
     }
+}
+
+bool FbxRenderComponent::getWorldAABB(Vector3& outCenter, Vector3& outExtents) const
+{
+    if (!m_model) return false;
+
+    Vector3 worldMin(std::numeric_limits<float>::max());
+    Vector3 worldMax(std::numeric_limits<float>::lowest());
+
+    const auto& modelData = m_model->getResource()->getModelData();
+
+    // 早期リターン：メッシュが無ければ無効
+    if (modelData.meshes.empty()) return false;
+
+    // ヘルパー：1つのワールド空間点で min/max 更新
+    auto updateMinMax = [&](const Vector3& p)
+        {
+            worldMin = Vector3::Min(worldMin, p);
+            worldMax = Vector3::Max(worldMax, p);
+        };
+
+    for (const auto& mesh : modelData.meshes)
+    {
+        // メッシュローカルの最小/最大から 8 コーナーを作る
+        const Vector3 localMin(mesh.boundsMin.x, mesh.boundsMin.y, mesh.boundsMin.z);
+        const Vector3 localMax(mesh.boundsMax.x, mesh.boundsMax.y, mesh.boundsMax.z);
+
+        std::array<Vector3, 8> corners = {
+            Vector3(localMin.x, localMin.y, localMin.z),
+            Vector3(localMax.x, localMin.y, localMin.z),
+            Vector3(localMin.x, localMax.y, localMin.z),
+            Vector3(localMax.x, localMax.y, localMin.z),
+            Vector3(localMin.x, localMin.y, localMax.z),
+            Vector3(localMax.x, localMin.y, localMax.z),
+            Vector3(localMin.x, localMax.y, localMax.z),
+            Vector3(localMax.x, localMax.y, localMax.z)
+        };
+
+        // メッシュのルートノードの worldTransform で変換（スキニングの有無に関わらず）
+        const Matrix& nodeWorld = m_model->getBone().at(mesh.nodeIndex).worldTransform;
+        for (const auto& c : corners)
+        {
+            Vector3 w = Vector3::Transform(c, nodeWorld);
+            updateMinMax(w);
+        }
+    }
+
+    // 無効判定
+    if (worldMin.x > worldMax.x ||
+        worldMin.y > worldMax.y ||
+        worldMin.z > worldMax.z)
+    {
+        return false;
+    }
+
+    outCenter = (worldMin + worldMax) * 0.5f;
+    outExtents = (worldMax - worldMin) * 0.5f;
+    return true;
+}
+
+void FbxRenderComponent::renderAABB()
+{
+    Vector3 center{};
+    Vector3 extents{};
+
+    // AABB を取得できなければ描画しない
+    if (!getWorldAABB(center, extents))
+        return;
+
+    Matrix boxWorld = Matrix::CreateTranslation(center);
+    Vector4 color = Vector4{ 1.0f, 1.0f, 0.0f, 1.0f };
+
+    DebugPrimitive::Instance().drawBox(boxWorld, extents, color);
 }
 
 bool FbxRenderComponent::loadFbx(const std::string& fbxPath)
@@ -287,74 +361,6 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
     }
 }
 
-void FbxRenderComponent::renderAABB()
-{
-    Vector3 modelWorldMin(std::numeric_limits<float>::max());
-    Vector3 modelWorldMax(std::numeric_limits<float>::lowest());
-
-    for (const auto& mesh : m_model->getResource()->getModelData().meshes)
-    {
-        Vector3 localMin(mesh.boundsMin.x, mesh.boundsMin.y, mesh.boundsMin.z);
-        Vector3 localMax(mesh.boundsMax.x, mesh.boundsMax.y, mesh.boundsMax.z);
-
-        Vector3 corners[8] =
-        {
-            { localMin.x, localMin.y, localMin.z },
-            { localMax.x, localMin.y, localMin.z },
-            { localMin.x, localMax.y, localMin.z },
-            { localMax.x, localMax.y, localMin.z },
-            { localMin.x, localMin.y, localMax.z },
-            { localMax.x, localMin.y, localMax.z },
-            { localMin.x, localMax.y, localMax.z },
-            { localMax.x, localMax.y, localMax.z },
-        };
-
-        if (!mesh.nodeIndices.empty())
-        {
-            for (size_t ni = 0; ni < mesh.nodeIndices.size(); ++ni)
-            {
-                int nodeIdx = mesh.nodeIndices[ni];
-                Matrix boneWorld = m_model->getBone().at(nodeIdx).worldTransform;
-                Matrix combined = mesh.offsetTransforms[ni] * boneWorld;
-
-                for (int c = 0; c < 8; ++c)
-                {
-                    Vector3 w = Vector3::Transform(corners[c], combined);
-
-                    modelWorldMin = Vector3::Min(modelWorldMin, w);
-                    modelWorldMax = Vector3::Max(modelWorldMax, w);
-                }
-            }
-        }
-        else
-        {
-            Matrix boneWorld = m_model->getBone().at(mesh.nodeIndex).worldTransform;
-
-            for (int c = 0; c < 8; ++c)
-            {
-                Vector3 w = Vector3::Transform(corners[c], boneWorld);
-
-                modelWorldMin = Vector3::Min(modelWorldMin, w);
-                modelWorldMax = Vector3::Max(modelWorldMax, w);
-            }
-        }
-    }
-
-    if (modelWorldMin.x > modelWorldMax.x ||
-        modelWorldMin.y > modelWorldMax.y ||
-        modelWorldMin.z > modelWorldMax.z)
-    {
-        return;
-    }
-
-    Vector3 center = (modelWorldMin + modelWorldMax) * 0.5f;
-    Vector3 extents = (modelWorldMax - modelWorldMin) * 0.5f;
-    Matrix boxWorld = Matrix::CreateTranslation(center);
-    Vector4 color = Vector4{ 1.0f, 1.0f, 0.0f, 1.0f };
-
-    DebugPrimitive::Instance().drawBox(boxWorld, extents, color);
-}
-
 void FbxRenderComponent::imguiStatisticsPanel()
 {
     ImGui::Columns(2, "StatsColumns", true);
@@ -432,7 +438,6 @@ void FbxRenderComponent::imguiDebugPanel()
     {
         m_debugMode = static_cast<DebugMode>(currentMode);
     }
-    ImGui::Checkbox(reinterpret_cast<const char*>(u8"AABB表示"), &m_showAABB);
 }
 
 void FbxRenderComponent::imguiExportPanel()

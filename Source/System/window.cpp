@@ -83,6 +83,9 @@ void Window::update()
     // CameraManager更新（ゲームオブジェクト更新後に GPU バッファを確定させる）
     CameraManager::Instance().update();
 
+    // エディタ更新（オブジェクトピッキング等、カメラ確定後に実行）
+    EditorManager::Instance().update();
+
     // 物理シミュレーション更新
     float dt = TimeManager::Instance().getDeltaTime();
     PhysicsWorld::Instance().simulate(dt);
