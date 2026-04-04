@@ -64,7 +64,7 @@ void CameraComponent::inspectGUI()
     ImGui::Text("Up       : %.2f  %.2f  %.2f", up.x, up.y, up.z);
 }
 
-const Matrix& CameraComponent::getView() const
+Matrix CameraComponent::getView() const
 {
     Vector3    pos = getPosition();
     Vector3    fwd = getForward();
@@ -72,36 +72,36 @@ const Matrix& CameraComponent::getView() const
     return Matrix::CreateLookAt(pos, pos + fwd, up);
 }
 
-const Matrix& CameraComponent::getProjection() const
+Matrix CameraComponent::getProjection() const
 {
     float aspect = static_cast<float>(DX12::Instance().getScreenWidth())
         / static_cast<float>(DX12::Instance().getScreenHeight());
     return Matrix::CreatePerspectiveFieldOfView(m_fov, aspect, m_nearZ, m_farZ);
 }
 
-const Vector3& CameraComponent::getPosition() const
+Vector3 CameraComponent::getPosition() const
 {
     if (m_transform)
         return m_transform->getPosition();
     return Vector3::Zero;
 }
 
-const Vector3& CameraComponent::getForward() const
+Vector3 CameraComponent::getForward() const
 {
     return Vector3::Transform(Vector3::Forward, getRotation());
 }
 
-const Vector3& CameraComponent::getRight() const
+Vector3 CameraComponent::getRight() const
 {
     return Vector3::Transform(Vector3::Right, getRotation());
 }
 
-const Vector3& CameraComponent::getUp() const
+Vector3 CameraComponent::getUp() const
 {
     return Vector3::Transform(Vector3::Up, getRotation());
 }
 
-const Quaternion& CameraComponent::getRotation() const
+Quaternion CameraComponent::getRotation() const
 {
     if (m_transform)
         return m_transform->getRotation();

@@ -8,9 +8,17 @@ static void drawGameObjectNode(GameObject* obj)
     if (!obj || obj->isDestroyed())
         return;
 
+    // 子の有無を確認
+    const auto& children = obj->getChildren();
+    bool hasChildren = !children.empty();
+
     ImGuiTreeNodeFlags flags =
         ImGuiTreeNodeFlags_OpenOnArrow |
         ImGuiTreeNodeFlags_SpanFullWidth;
+
+    // 子がいなければ矢印を表示しない（リーフ）
+    if (!hasChildren)
+        flags |= ImGuiTreeNodeFlags_Leaf;
 
     if (g_editor.selectedObject == obj)
         flags |= ImGuiTreeNodeFlags_Selected;

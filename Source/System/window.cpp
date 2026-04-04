@@ -132,9 +132,6 @@ void Window::imguiRender()
     // SceneManagerのimgui描画
     SceneManager::Instance().debugOption();
 
-    // カメラマネージャーのimgui描画
-    CameraManager::Instance().debugImgui();
-
     // DX12のシーンimgui描画
     m_dx12.sceneImguiRender();
 

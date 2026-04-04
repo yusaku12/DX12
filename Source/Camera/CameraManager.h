@@ -33,9 +33,6 @@ public:
     //! カメラ更新（GPU 定数バッファ更新を含む）
     void update();
 
-    //! デバッグ ImGui ウィンドウ
-    void debugImgui();
-
     //! カメラ定数バッファの GPU アドレス取得
     D3D12_GPU_VIRTUAL_ADDRESS getGPUAddress() const { return m_cameraCB->getGPUAddress(); }
 

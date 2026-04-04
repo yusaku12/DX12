@@ -57,25 +57,25 @@ public:
     void setDepth(int depth) { m_depth = depth; }
 
     //! ビュー行列の取得
-    const Matrix& getView() const;
+    Matrix getView() const;
 
     //! プロジェクション行列の取得
-    const Matrix& getProjection() const;
+    Matrix getProjection() const;
 
     //! カメラのワールド座標
-    const Vector3& getPosition() const;
+    Vector3 getPosition() const;
 
     //! カメラの前方ベクトル
-    const Vector3& getForward() const;
+    Vector3 getForward() const;
 
     //! カメラの右ベクトル
-    const Vector3& getRight() const;
+    Vector3 getRight() const;
 
     //! カメラの上ベクトル
-    const Vector3& getUp() const;
+    Vector3 getUp() const;
 
     //! カメラの回転（クォータニオン）
-    const Quaternion& getRotation() const;
+    Quaternion getRotation() const;
 
 protected:
 
