@@ -54,17 +54,8 @@ void FbxRenderComponent::render(ID3D12GraphicsCommandList* cmd)
 {
     if (!cmd) return;
 
-    switch (m_debugMode)
-    {
-    case DebugMode::Wireframe:
-        renderInternal(cmd, m_wireframePSOKey);
-        break;
-
-    case DebugMode::None:
-    default:
-        renderInternal(cmd, m_solidPSOKey);
-        break;
-    }
+    size_t psoKey = (m_debugMode == DebugMode::Wireframe) ? m_wireframePSOKey : m_solidPSOKey;
+    renderInternal(cmd, psoKey);
 }
 
 void FbxRenderComponent::inspectGUI()
@@ -84,6 +75,11 @@ void FbxRenderComponent::inspectGUI()
         if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"マテリアル")))
         {
             imguiMaterialPanel();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"ボーン")))
+        {
+            imguiBonePanel();
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem(reinterpret_cast<const char*>(u8"デバッグ")))
@@ -209,8 +205,8 @@ void FbxRenderComponent::buildGPUResources()
     createMaterialCBV();
 
     // PSO（ソリッド + ワイヤーフレーム）
-    createSolidPSO();
-    createWireframePSO();
+    m_solidPSOKey = createPSO(RasterizerState::CULL_CLOCKWISE);
+    m_wireframePSOKey = createPSO(RasterizerState::WIRE_FRAME);
 }
 
 void FbxRenderComponent::createMaterialCBV()
@@ -242,40 +238,22 @@ void FbxRenderComponent::createMaterialCBV()
     }
 }
 
-void FbxRenderComponent::createSolidPSO()
+void FbxRenderComponent::updateMaterialCBV()
 {
-    PSOCreator::PSOData psoData{};
-    psoData.rootSignatureType = RootSignatureType::PMXStandard;
-    psoData.vsShaderId = ShaderID::FBXVS;
-    psoData.psShaderId = ShaderID::FBXPS;
-    psoData.rasterizerState = RasterizerState::CULL_CLOCKWISE;
-    psoData.blendState = BlendState::ALPHA;
-    psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
-    psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    psoData.inputLayout =
+    const auto& modelData = m_model->getResource()->getModelData();
+    UINT matCount = static_cast<UINT>(modelData.materials.size());
+
+    for (UINT i = 0; i < matCount; ++i)
     {
-        { "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "NORMAL",     0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TANGENT",    0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD",   0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "WEIGHTS",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "BONES",      0, DXGI_FORMAT_R32G32B32A32_UINT,  0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    };
-    m_solidPSOKey = PSOCreator::Instance().registerPSO(psoData);
+        MaterialCB cb{};
+        cb.diffuse = modelData.materials[i].diffuseColor;
+        m_materialCB->update(cb, i);
+    }
 }
 
-void FbxRenderComponent::createWireframePSO()
+std::vector<D3D12_INPUT_ELEMENT_DESC> FbxRenderComponent::getInputLayout()
 {
-    PSOCreator::PSOData psoData{};
-    psoData.rootSignatureType = RootSignatureType::PMXStandard;
-    psoData.vsShaderId = ShaderID::FBXVS;
-    psoData.psShaderId = ShaderID::FBXPS;
-    psoData.rasterizerState = RasterizerState::WIRE_FRAME;
-    psoData.blendState = BlendState::ALPHA;
-    psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
-    psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    psoData.inputLayout =
-    {
+    return {
         { "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "NORMAL",     0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "TANGENT",    0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -283,7 +261,20 @@ void FbxRenderComponent::createWireframePSO()
         { "WEIGHTS",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "BONES",      0, DXGI_FORMAT_R32G32B32A32_UINT,  0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
     };
-    m_wireframePSOKey = PSOCreator::Instance().registerPSO(psoData);
+}
+
+size_t FbxRenderComponent::createPSO(RasterizerState rasterizer)
+{
+    PSOCreator::PSOData psoData{};
+    psoData.rootSignatureType = RootSignatureType::PMXStandard;
+    psoData.vsShaderId = ShaderID::FBXVS;
+    psoData.psShaderId = ShaderID::FBXPS;
+    psoData.rasterizerState = rasterizer;
+    psoData.blendState = BlendState::ALPHA;
+    psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
+    psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoData.inputLayout = getInputLayout();
+    return PSOCreator::Instance().registerPSO(psoData);
 }
 
 void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
@@ -380,10 +371,11 @@ void FbxRenderComponent::imguiStatisticsPanel()
 
 void FbxRenderComponent::imguiMeshPanel()
 {
-    for (size_t i = 0; i < m_model->getResource()->getModelData().meshes.size(); ++i)
+    auto& modelData = m_model->getResource()->getModelData();
+
+    for (size_t i = 0; i < modelData.meshes.size(); ++i)
     {
-        auto meshDraw = m_model->getResource()->getModelData().meshes[i];
-        const auto& meshData = m_model->getResource()->getModelData().meshes[i];
+        auto& meshData = modelData.meshes[i];
 
         std::string label = std::format("[{}] {}", i, meshData.name.empty() ? "Unnamed" : meshData.name);
 
@@ -392,7 +384,7 @@ void FbxRenderComponent::imguiMeshPanel()
         // 表示 ON/OFF チェックボックス（ツリーノード横に配置）
         ImGui::SameLine(ImGui::GetContentRegionAvail().x - 30.0f);
         std::string checkId = std::format("##meshVis{}", i);
-        ImGui::Checkbox(checkId.c_str(), &meshDraw.visible);
+        ImGui::Checkbox(checkId.c_str(), &meshData.visible);
 
         if (nodeOpen)
         {
@@ -401,9 +393,9 @@ void FbxRenderComponent::imguiMeshPanel()
             ImGui::Text(reinterpret_cast<const char*>(u8"  サブメッシュ数: %zu"), meshData.subMeshes.size());
 
             // サブセット詳細
-            for (size_t j = 0; j < meshDraw.subMeshes.size(); ++j)
+            for (size_t j = 0; j < meshData.subMeshes.size(); ++j)
             {
-                auto& subset = meshDraw.subMeshes[j];
+                auto& subset = meshData.subMeshes[j];
                 std::string subLabel = std::format("  Subset [{}] mat={} idx={}-{}",
                     j, subset.materialIndex, subset.startIndex, subset.startIndex + subset.indexCount);
 
@@ -422,19 +414,274 @@ void FbxRenderComponent::imguiMeshPanel()
 
 void FbxRenderComponent::imguiMaterialPanel()
 {
+    auto& modelData = m_model->getResource()->getModelData();
+
+    if (modelData.materials.empty())
+    {
+        ImGui::TextDisabled(reinterpret_cast<const char*>(u8"マテリアルなし"));
+        return;
+    }
+
+    // プレビューサイズ
+    static constexpr float TEX_PREVIEW_SIZE = 64.0f;
+
+    bool materialChanged = false;
+
+    for (size_t i = 0; i < modelData.materials.size(); ++i)
+    {
+        auto& mat = modelData.materials[i];
+
+        std::string label = std::format("[{}] {}", i, mat.name.empty() ? "Unnamed" : mat.name);
+
+        bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+        // 表示 ON/OFF チェックボックス
+        ImGui::SameLine(ImGui::GetContentRegionAvail().x - 30.0f);
+        std::string checkId = std::format("##matVis{}", i);
+        ImGui::Checkbox(checkId.c_str(), &mat.visible);
+
+        if (nodeOpen)
+        {
+            // ディフューズカラー編集（RGBA）
+            std::string colorId = std::string(reinterpret_cast<const char*>(u8"ディフューズ##matColor")) + std::to_string(i);
+            float color[4] = { mat.diffuseColor.x, mat.diffuseColor.y, mat.diffuseColor.z, mat.diffuseColor.w };
+            if (ImGui::ColorEdit4(colorId.c_str(), color, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_AlphaBar))
+            {
+                mat.diffuseColor = Vector4(color[0], color[1], color[2], color[3]);
+                materialChanged = true;
+            }
+
+            // テクスチャ表示＆差し替え
+            for (auto texType : magic_enum::enum_values<TextureType>())
+            {
+                if (texType == TextureType::Max) continue;
+
+                UINT t = static_cast<UINT>(texType);
+                auto texTypeName = magic_enum::enum_name(texType);
+
+                ImGui::PushID(static_cast<int>(i * static_cast<UINT>(TextureType::Max) + t));
+
+                ImGui::Separator();
+                ImGui::Text("  %.*s:", static_cast<int>(texTypeName.size()), texTypeName.data());
+
+                // テクスチャ差し替え用ラムダ
+                auto openAndReplace = [&]()
+                    {
+                        std::vector<std::wstring> selectedFiles;
+                        DialogResult result = Dialog::openFile(
+                            selectedFiles,
+                            L"Select Texture",
+                            L"",
+                            false
+                        );
+                        if (result == DialogResult::OK && !selectedFiles.empty())
+                        {
+                            m_model->getResource()->replaceTexture(i, texType, selectedFiles[0]);
+                        }
+                    };
+
+                // コンテキストメニューID
+                std::string ctxId = "##texCtx" + std::to_string(t);
+                bool hasTexture = !mat.textureName[t].empty();
+
+                // テクスチャプレビュー表示
+                LoadTexture* tex = m_model->getResource()->getMaterialTexture(i, texType);
+                if (tex && tex->isValid())
+                {
+                    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = tex->getGPUHandle();
+                    if (gpuHandle.ptr != 0)
+                    {
+                        ImTextureID texID = (ImTextureID)gpuHandle.ptr;
+
+                        // 左クリック → テクスチャ変更
+                        if (ImGui::ImageButton("##texBtn", texID, ImVec2(TEX_PREVIEW_SIZE, TEX_PREVIEW_SIZE)))
+                        {
+                            openAndReplace();
+                        }
+
+                        // ホバー時に拡大プレビュー + 操作ヒント
+                        if (ImGui::IsItemHovered())
+                        {
+                            ImGui::BeginTooltip();
+                            ImGui::Image(texID, ImVec2(TEX_PREVIEW_SIZE * 4.0f, TEX_PREVIEW_SIZE * 4.0f));
+                            if (hasTexture)
+                            {
+                                ImGui::Text("%s", mat.textureName[t].c_str());
+                            }
+                            ImGui::Separator();
+                            ImGui::TextDisabled(reinterpret_cast<const char*>(u8"左クリック: 変更 / 右クリック: メニュー"));
+                            ImGui::EndTooltip();
+                        }
+
+                        // 右クリック → コンテキストメニュー
+                        if (ImGui::BeginPopupContextItem(ctxId.c_str()))
+                        {
+                            if (ImGui::MenuItem(reinterpret_cast<const char*>(u8"変更")))
+                            {
+                                openAndReplace();
+                            }
+                            if (hasTexture)
+                            {
+                                if (ImGui::MenuItem(reinterpret_cast<const char*>(u8"削除")))
+                                {
+                                    m_model->getResource()->clearTexture(i, texType);
+                                }
+                                ImGui::Separator();
+                                if (ImGui::MenuItem(reinterpret_cast<const char*>(u8"パスをコピー")))
+                                {
+                                    ImGui::SetClipboardText(mat.textureName[t].c_str());
+                                }
+                            }
+                            ImGui::EndPopup();
+                        }
+                    }
+                }
+                else
+                {
+                    // テクスチャがない場合はプレースホルダーボタン
+                    if (ImGui::Button("##texPlaceholder", ImVec2(TEX_PREVIEW_SIZE, TEX_PREVIEW_SIZE)))
+                    {
+                        openAndReplace();
+                    }
+                    ImVec2 rectMin = ImGui::GetItemRectMin();
+                    ImVec2 rectMax = ImGui::GetItemRectMax();
+                    ImGui::GetWindowDrawList()->AddRect(rectMin, rectMax, IM_COL32(128, 128, 128, 255));
+                    ImGui::GetWindowDrawList()->AddText(
+                        ImVec2(rectMin.x + 8.0f, rectMin.y + TEX_PREVIEW_SIZE * 0.5f - 7.0f),
+                        IM_COL32(160, 160, 160, 255), "+ Add");
+
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip(reinterpret_cast<const char*>(u8"クリックでテクスチャを追加"));
+                    }
+                }
+
+                // ファイル名表示
+                if (hasTexture)
+                {
+                    ImGui::SameLine();
+                    std::filesystem::path texPath(mat.textureName[t]);
+                    ImGui::Text("%s", texPath.filename().string().c_str());
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::TreePop();
+        }
+    }
+
+    // マテリアル CBV を即時更新
+    if (materialChanged)
+    {
+        updateMaterialCBV();
+    }
+}
+
+void FbxRenderComponent::imguiBonePanel()
+{
+    const auto& modelData = m_model->getResource()->getModelData();
+    const auto& bones = modelData.bones;
+
+    if (bones.empty())
+    {
+        ImGui::TextDisabled(reinterpret_cast<const char*>(u8"ボーンなし"));
+        return;
+    }
+
+    ImGui::Text(reinterpret_cast<const char*>(u8"ボーン数: %zu"), bones.size());
+    ImGui::Separator();
+
+    // 親子関係マップを構築
+    std::vector<std::vector<int>> childMap(bones.size());
+    std::vector<int> roots;
+    for (int i = 0; i < static_cast<int>(bones.size()); ++i)
+    {
+        int parent = bones[i].parentIndex;
+        if (parent >= 0 && parent < static_cast<int>(bones.size()))
+        {
+            childMap[parent].push_back(i);
+        }
+        else
+        {
+            roots.push_back(i);
+        }
+    }
+
+    // ルートボーンからツリーを描画
+    for (int rootIdx : roots)
+    {
+        imguiBoneTreeNode(rootIdx, bones, childMap);
+    }
+}
+
+void FbxRenderComponent::imguiBoneTreeNode(int boneIndex, const std::vector<ModelResource::Bone>& bones,
+    const std::vector<std::vector<int>>& childMap)
+{
+    const auto& bone = bones[boneIndex];
+    const auto& runtimeBones = m_model->getBone();
+
+    std::string label = std::format("[{}] {}", boneIndex, bone.name.empty() ? "Unnamed" : bone.name);
+
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
+    if (childMap[boneIndex].empty())
+    {
+        flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+    }
+
+    bool nodeOpen = ImGui::TreeNodeEx(label.c_str(), flags);
+
+    // ツールチップで詳細情報表示
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::Text("ID: %llu", bone.id);
+        ImGui::Text("Parent: %d", bone.parentIndex);
+        ImGui::Text("Scale:     (%.3f, %.3f, %.3f)", bone.scale.x, bone.scale.y, bone.scale.z);
+        ImGui::Text("Rotate:    (%.3f, %.3f, %.3f, %.3f)", bone.rotate.x, bone.rotate.y, bone.rotate.z, bone.rotate.w);
+        ImGui::Text("Translate: (%.3f, %.3f, %.3f)", bone.translate.x, bone.translate.y, bone.translate.z);
+
+        // ランタイムボーンのワールド行列も表示
+        if (boneIndex < static_cast<int>(runtimeBones.size()))
+        {
+            const auto& rt = runtimeBones[boneIndex];
+            const Matrix& w = rt.worldTransform;
+            ImGui::Separator();
+            ImGui::Text(reinterpret_cast<const char*>(u8"ワールド行列:"));
+            ImGui::Text("  [%.2f, %.2f, %.2f, %.2f]", w._11, w._12, w._13, w._14);
+            ImGui::Text("  [%.2f, %.2f, %.2f, %.2f]", w._21, w._22, w._23, w._24);
+            ImGui::Text("  [%.2f, %.2f, %.2f, %.2f]", w._31, w._32, w._33, w._34);
+            ImGui::Text("  [%.2f, %.2f, %.2f, %.2f]", w._41, w._42, w._43, w._44);
+        }
+
+        ImGui::EndTooltip();
+    }
+
+    // 子ノードがある場合のみ再帰
+    if (nodeOpen && !childMap[boneIndex].empty())
+    {
+        for (int childIdx : childMap[boneIndex])
+        {
+            imguiBoneTreeNode(childIdx, bones, childMap);
+        }
+        ImGui::TreePop();
+    }
 }
 
 void FbxRenderComponent::imguiDebugPanel()
 {
-    // デバッグモード選択
-    static const char* debugModeNames[] =
-    {
-        reinterpret_cast<const char*>(u8"通常描画"),
-        reinterpret_cast<const char*>(u8"ワイヤーフレーム"),
-    };
-
+    auto names = magic_enum::enum_names<DebugMode>();
     int currentMode = static_cast<int>(m_debugMode);
-    if (ImGui::Combo(reinterpret_cast<const char*>(u8"デバッグモード"), &currentMode, debugModeNames, IM_ARRAYSIZE(debugModeNames)))
+
+    if (ImGui::Combo(reinterpret_cast<const char*>(u8"デバッグモード"), &currentMode,
+        [](void* data, int idx, const char** out_text)
+        {
+            auto* arr = static_cast<const decltype(names)*>(data);
+            *out_text = (*arr)[idx].data();
+            return true;
+        },
+        (void*)&names,
+        (int)names.size()))
     {
         m_debugMode = static_cast<DebugMode>(currentMode);
     }
@@ -442,4 +689,5 @@ void FbxRenderComponent::imguiDebugPanel()
 
 void FbxRenderComponent::imguiExportPanel()
 {
+    ImGui::TextDisabled(reinterpret_cast<const char*>(u8"エクスポート機能は準備中です"));
 }

@@ -62,6 +62,21 @@ void TransformComponent::inspectGUI()
     if (ImGui::RadioButton("T", m_gizmoOp == 0)) m_gizmoOp = 0; ImGui::SameLine();
     if (ImGui::RadioButton("R", m_gizmoOp == 1)) m_gizmoOp = 1; ImGui::SameLine();
     if (ImGui::RadioButton("S", m_gizmoOp == 2)) m_gizmoOp = 2;
+
+    // 位置 (Position)
+    ImGui::Text("postion: %.3f, %.3f, %.3f", m_position.x, m_position.y, m_position.z);
+
+    // 回転 (Rotation) - Quaternion をオイラー角（度）に変換して表示
+    {
+        Vector3 eulerRad = m_rotation.ToEuler(); // ラジアンで返る
+        float degX = DirectX::XMConvertToDegrees(eulerRad.x);
+        float degY = DirectX::XMConvertToDegrees(eulerRad.y);
+        float degZ = DirectX::XMConvertToDegrees(eulerRad.z);
+        ImGui::Text("rotation: % .3f, % .3f, % .3f", degX, degY, degZ);
+    }
+
+    // スケール (Scale)
+    ImGui::Text("scale: %.3f, %.3f, %.3f", m_scale.x, m_scale.y, m_scale.z);
 }
 
 void TransformComponent::onGizmo()

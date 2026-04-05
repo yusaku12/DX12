@@ -111,6 +111,9 @@ void ModelResource::rebuildSubsetDescriptors(SubMesh& subMesh)
 {
     if (subMesh.descriptorBase == UINT_MAX) return;
 
+    // フォールバック用の白テクスチャを確保
+    int whiteIdx = getOrCreateWhiteTextureIndex();
+
     std::vector<UINT> srvIndices;
     srvIndices.reserve(TEXTURE_SLOT_COUNT);
 
@@ -124,19 +127,141 @@ void ModelResource::rebuildSubsetDescriptors(SubMesh& subMesh)
         }
         else
         {
-            // fallback
-            if (!m_textures.empty())
-            {
-                srvIndices.push_back(m_textures[0]->getSRVIndex());
-            }
-            else
-            {
-                srvIndices.push_back(0);
-            }
+            // 白テクスチャの SRV をフォールバックに使用
+            srvIndices.push_back(m_textures[whiteIdx]->getSRVIndex());
         }
     }
 
     DescriptorHeapManager::Instance().copyDescriptorsRange(subMesh.descriptorBase, srvIndices);
+}
+
+int ModelResource::getOrCreateWhiteTextureIndex()
+{
+    // 既に "__white__" として登録済みか探す
+    static const std::wstring WHITE_KEY = L"__white__";
+
+    for (int i = 0; i < static_cast<int>(m_texturePaths.size()); ++i)
+    {
+        if (m_texturePaths[i] == WHITE_KEY)
+            return i;
+    }
+
+    // TextureManager に白テクスチャをロードさせる（存在しないパスなので自動的に白1x1が生成される）
+    LoadTexture* whiteTex = TextureManager::Instance().load(WHITE_KEY);
+
+    int idx = static_cast<int>(m_textures.size());
+    m_textures.push_back(whiteTex);
+    m_texturePaths.push_back(WHITE_KEY);
+    return idx;
+}
+
+bool ModelResource::replaceTexture(size_t materialIndex, TextureType texType, const std::wstring& newFilePath)
+{
+    if (materialIndex >= m_model.materials.size()) return false;
+    if (texType >= TextureType::Max) return false;
+
+    UINT texSlot = static_cast<UINT>(texType);
+
+    // 新しいテクスチャをロード（TextureManager がキャッシュを管理）
+    std::wstring wpath = toRelativeWPath(newFilePath);
+    LoadTexture* newTex = TextureManager::Instance().load(wpath);
+    if (!newTex || !newTex->isValid())
+    {
+        LOG_ERROR("[ModelResource] Failed to load texture: %s", wstringToString(newFilePath).c_str());
+        return false;
+    }
+
+    // テクスチャ配列に追加（既に同じパスがあればそのインデックスを再利用）
+    int newTexIndex = -1;
+    for (int i = 0; i < static_cast<int>(m_texturePaths.size()); ++i)
+    {
+        if (m_texturePaths[i] == wpath)
+        {
+            newTexIndex = i;
+            break;
+        }
+    }
+    if (newTexIndex < 0)
+    {
+        newTexIndex = static_cast<int>(m_textures.size());
+        m_textures.push_back(newTex);
+        m_texturePaths.push_back(wpath);
+    }
+
+    // マテリアルのテクスチャ名を更新
+    auto& mat = m_model.materials[materialIndex];
+    mat.textureName[texSlot] = wstringToString(wpath);
+
+    // 該当マテリアルを参照する全サブメッシュのディスクリプタを再構築
+    for (auto& mesh : m_model.meshes)
+    {
+        for (auto& sub : mesh.subMeshes)
+        {
+            if (sub.materialIndex != materialIndex) continue;
+
+            sub.textureIndices[texSlot] = newTexIndex;
+            rebuildSubsetDescriptors(sub);
+        }
+    }
+
+    LOG_INFO("[ModelResource] Replaced mat[%zu] %s texture -> %s",
+        materialIndex, magic_enum::enum_name(texType).data(), wstringToString(wpath).c_str());
+
+    return true;
+}
+
+void ModelResource::clearTexture(size_t materialIndex, TextureType texType)
+{
+    if (materialIndex >= m_model.materials.size()) return;
+    if (texType >= TextureType::Max) return;
+
+    UINT texSlot = static_cast<UINT>(texType);
+
+    // マテリアルのテクスチャ名をクリア
+    m_model.materials[materialIndex].textureName[texSlot].clear();
+
+    // 白テクスチャのインデックスを取得
+    int whiteIdx = getOrCreateWhiteTextureIndex();
+
+    // 該当マテリアルを参照する全サブメッシュのスロットを白テクスチャに差し替え
+    for (auto& mesh : m_model.meshes)
+    {
+        for (auto& sub : mesh.subMeshes)
+        {
+            if (sub.materialIndex != materialIndex) continue;
+
+            sub.textureIndices[texSlot] = whiteIdx;
+            rebuildSubsetDescriptors(sub);
+        }
+    }
+
+    LOG_INFO("[ModelResource] Cleared mat[%zu] %s texture -> white fallback",
+        materialIndex, magic_enum::enum_name(texType).data());
+}
+
+LoadTexture* ModelResource::getMaterialTexture(size_t materialIndex, TextureType texType) const
+{
+    if (materialIndex >= m_model.materials.size()) return nullptr;
+    if (texType >= TextureType::Max) return nullptr;
+
+    // マテリアルに対応するサブメッシュからテクスチャインデックスを探す
+    UINT texSlot = static_cast<UINT>(texType);
+
+    for (const auto& mesh : m_model.meshes)
+    {
+        for (const auto& sub : mesh.subMeshes)
+        {
+            if (sub.materialIndex != materialIndex) continue;
+
+            int texIdx = sub.textureIndices[texSlot];
+            if (texIdx >= 0 && texIdx < static_cast<int>(m_textures.size()))
+            {
+                return m_textures[texIdx];
+            }
+        }
+    }
+
+    return nullptr;
 }
 
 void ModelResource::computeStatistics()

@@ -144,8 +144,27 @@ public:
     //! GPUメッシュをバインド
     void bindGpuMesh(ID3D12GraphicsCommandList* cmd, size_t meshIndex) const;
 
+    //! テクスチャを置き換える
+    bool replaceTexture(size_t materialIndex, TextureType texType, const std::wstring& newFilePath);
+
+    //! マテリアルのテクスチャをクリアし白テクスチャに戻す
+    void clearTexture(size_t materialIndex, TextureType texType);
+
+    //! 内部テクスチャインデックスから LoadTexture を取得（プレビュー用）
+    LoadTexture* getTextureByIndex(int texIndex) const
+    {
+        if (texIndex < 0 || texIndex >= static_cast<int>(m_textures.size())) return nullptr;
+        return m_textures[texIndex];
+    }
+
+    //! マテリアルの特定スロットに対応する LoadTexture を取得
+    LoadTexture* getMaterialTexture(size_t materialIndex, TextureType texType) const;
+
     //! 読み込んだモデルデータを取得
     const Model& getModelData() const { return m_model; }
+
+    //! 読み込んだモデルデータを取得（編集用）
+    Model& getModelData() { return m_model; }
 
     //! 統計情報を取得
     const Statistics& getStatistics() const { return m_stats; }
@@ -154,6 +173,9 @@ private:
 
     //! サブセットディスクリプタ再構築
     void rebuildSubsetDescriptors(SubMesh& subMesh);
+
+    //! 白テクスチャのインデックスを取得（無ければ生成して登録）
+    int getOrCreateWhiteTextureIndex();
 
     //! GPUメッシュ
     struct GpuMesh

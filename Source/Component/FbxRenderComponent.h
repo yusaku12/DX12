@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#include "Model\FBXLoad.h"
+﻿#include "Model\FBXLoad.h"
 #include "Model\Model.h"
 #include "IRenderComponent.h"
 #include "Graphics\ConstantBuffer.h"
@@ -44,7 +42,6 @@ private:
     {
         None = 0,          //!< 通常描画
         Wireframe,         //!< ワイヤーフレーム
-        Max
     };
 
     //! モデル行列 CBV
@@ -68,11 +65,11 @@ private:
     //! モデル行列 CBV 構築
     void createMaterialCBV();
 
-    //! ソリッド描画用 PSO 構築
-    void createSolidPSO();
+    //! 共通の入力レイアウト定義を取得
+    static std::vector<D3D12_INPUT_ELEMENT_DESC> getInputLayout();
 
-    //! ワイヤーフレーム描画用 PSO 構築
-    void createWireframePSO();
+    //! PSO を構築（RasterizerState を指定）
+    size_t createPSO(RasterizerState rasterizer);
 
     //! 描画コア処理（PSO 別）
     void renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey);
@@ -89,11 +86,20 @@ private:
     //! ImGui：マテリアル情報パネル
     void imguiMaterialPanel();
 
+    //! ImGui：ボーン情報パネル
+    void imguiBonePanel();
+
+    //! ImGui：ボーンツリー再帰描画
+    void imguiBoneTreeNode(int boneIndex, const std::vector<ModelResource::Bone>& bones, const std::vector<std::vector<int>>& childMap);
+
     //! ImGui：デバッグ描画パネル
     void imguiDebugPanel();
 
     //! ImGui：エクスポートパネル
     void imguiExportPanel();
+
+    //! マテリアル CBV を再更新（色変更時）
+    void updateMaterialCBV();
 
     std::unique_ptr<ConstantBuffer<ModelCB>> m_modelCB;
     std::unique_ptr<ConstantBuffer<MaterialCB>> m_materialCB;
