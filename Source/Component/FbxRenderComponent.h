@@ -1,5 +1,6 @@
 ﻿#include "Model\FBXLoad.h"
 #include "Model\Model.h"
+#include "Model\Exporter\IModelExporter.h"
 #include "IRenderComponent.h"
 #include "Graphics\ConstantBuffer.h"
 
