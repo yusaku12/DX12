@@ -67,7 +67,7 @@ model_data の構造
 from __future__ import annotations
 
 import struct
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from base_exporter import BaseExporter
 
@@ -274,7 +274,7 @@ class _FlatBufferBuilder:
 
     # --- 仕上げ ---
 
-    def finish(self, root_table: int, file_identifier: str | None = None) -> None:
+    def finish(self, root_table: int, file_identifier: Optional[str] = None) -> None:
         self._pad(4)
         if file_identifier:
             ident = file_identifier.encode('ascii')
