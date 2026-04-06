@@ -63,6 +63,7 @@
     <ClCompile Include="Source\Render\RenderManager.cpp" />
     <ClCompile Include="Source\Model\ModelResource.cpp" />
     <ClCompile Include="Source\Model\Model.cpp" />
+    <ClCompile Include="Source\Model\Exporter\FlatBufferModelExporter.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
     <ClCompile Include="Source\Component\FbxRenderComponent.cpp" />
     <ClCompile Include="Source\Component\IRenderComponent.cpp" />
@@ -311,6 +312,12 @@
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Model\Model.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Model\Exporter\IModelExporter.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Model\Exporter\FlatBufferModelExporter.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\FbxRenderComponent.h">

@@ -2,6 +2,7 @@
 #include "FbxRenderComponent.h"
 #include "TransformComponent.h"
 #include "Editor/EditorContext.h"
+#include "Model/Exporter/FlatBufferModelExporter.h"
 
 FbxRenderComponent::FbxRenderComponent(const std::string& fbxPath)
 {
@@ -689,5 +690,31 @@ void FbxRenderComponent::imguiDebugPanel()
 
 void FbxRenderComponent::imguiExportPanel()
 {
-    ImGui::TextDisabled(reinterpret_cast<const char*>(u8"エクスポート機能は準備中です"));
+    if (!m_model)
+    {
+        ImGui::TextDisabled(reinterpret_cast<const char*>(u8"モデルが読み込まれていません"));
+        return;
+    }
+
+    ImGui::TextWrapped(reinterpret_cast<const char*>(u8"モデルデータを FlatBuffer (.mdl) 形式でエクスポートします。"));
+    ImGui::Separator();
+
+    if (ImGui::Button(reinterpret_cast<const char*>(u8"MDL にエクスポート..."), ImVec2(-1, 0)))
+    {
+        std::wstring outPath;
+        if (Dialog::saveFile(outPath, L"Export Model", L"", L"mdl") == DialogResult::OK)
+        {
+            FlatBufferModelExporter exporter;
+            std::string path = wstringToString(outPath);
+
+            if (exporter.exportModel(m_model->getResource()->getModelData(), path))
+            {
+                LOG_INFO("[FbxRenderComponent] Export succeeded: %s", path.c_str());
+            }
+            else
+            {
+                LOG_ERROR("[FbxRenderComponent] Export failed: %s", path.c_str());
+            }
+        }
+    }
 }
