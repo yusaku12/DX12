@@ -1,5 +1,4 @@
 ﻿#include "Model\FBXLoad.h"
-#include "Model\Model.h"
 #include "IRenderComponent.h"
 #include "Graphics\ConstantBuffer.h"
 
@@ -103,7 +102,6 @@ private:
 
     std::unique_ptr<ConstantBuffer<ModelCB>> m_modelCB;
     std::unique_ptr<ConstantBuffer<MaterialCB>> m_materialCB;
-    std::unique_ptr<Model> m_model;
     size_t m_solidPSOKey = 0;
     size_t m_wireframePSOKey = 0;
     DebugMode m_debugMode = DebugMode::None;

@@ -63,6 +63,7 @@
     <ClCompile Include="Source\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Camera\CameraManager.cpp" />
     <ClCompile Include="Source\Camera\FreeCameraComponent.cpp" />
+    <ClCompile Include="Source\Component\AnimationComponent.cpp" />
     <ClCompile Include="Source\Component\ColliderComponent.cpp" />
     <ClCompile Include="Source\Component\Component.cpp" />
     <ClCompile Include="Source\Component\FbxRenderComponent.cpp" />
@@ -149,6 +150,7 @@
     <ClInclude Include="Source\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Camera\CameraManager.h" />
     <ClInclude Include="Source\Camera\FreeCameraComponent.h" />
+    <ClInclude Include="Source\Component\AnimationComponent.h" />
     <ClInclude Include="Source\Component\ColliderComponent.h" />
     <ClInclude Include="Source\Component\Component.h" />
     <ClInclude Include="Source\Component\FbxRenderComponent.h" />

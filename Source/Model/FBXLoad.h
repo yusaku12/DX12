@@ -16,6 +16,9 @@ public:
     //! FBXファイルを読み込む
     bool load(const char* filename);
 
+    //! アニメーション追加読み込み
+    void addAnimation(const char* filename);
+
 private:
 
     //! ノードデータを構築

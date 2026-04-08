@@ -71,6 +71,7 @@
     <ClCompile Include="Source\Camera\FreeCameraComponent.cpp" />
     <ClCompile Include="Source\Physics\Raycast.cpp" />
     <ClCompile Include="Source\GameObject\ObjectPicker.cpp" />
+    <ClCompile Include="Source\Component\AnimationComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -329,6 +330,9 @@
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\GameObject\ObjectPicker.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Component\AnimationComponent.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
   </ItemGroup>

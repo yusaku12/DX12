@@ -3,6 +3,7 @@
 #include "Component\TransformComponent.h"
 #include "Component\FbxRenderComponent.h"
 #include "Camera\FreeCameraComponent.h"
+#include "Component\AnimationComponent.h"
 
 void ModelEditorScene::onEnter()
 {
@@ -13,6 +14,7 @@ void ModelEditorScene::onEnter()
     GameObject* object = new GameObject("ModelObject");
     object->addComponent<TransformComponent>();
     object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
+    object->addComponent<AnimationComponent>();
 }
 
 void ModelEditorScene::update()

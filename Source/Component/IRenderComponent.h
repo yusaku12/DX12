@@ -2,6 +2,7 @@
 
 #include <d3d12.h>
 #include "Component.h"
+#include "Model\Model.h"
 
 //=====================================================
 // 描画可能コンポーネントのインターフェース
@@ -30,4 +31,11 @@ public:
 
     //! 描画(マルチスレッド)
     virtual void render(ID3D12GraphicsCommandList* cmd) = 0;
+
+    //! モデル取得
+    Model* getModel() const { return m_model.get(); }
+
+protected:
+
+    std::unique_ptr<Model> m_model;
 };

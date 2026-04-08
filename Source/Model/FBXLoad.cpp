@@ -138,6 +138,55 @@ bool FbxLoad::load(const char* filename)
     return true;
 }
 
+void FbxLoad::addAnimation(const char* filename)
+{
+    // FBXのファイルパスはUTF-8にする必要がある
+    char fbxFilename[256];
+    stringToUTF8(filename, fbxFilename, sizeof(fbxFilename));
+
+    FbxManager* fbxManager = FbxManager::Create();
+
+    // FBXに対する入出力を定義する
+    FbxIOSettings* fbxIOS = FbxIOSettings::Create(fbxManager, IOSROOT);	// 特別な理由がない限りIOSROOTを指定
+    fbxManager->SetIOSettings(fbxIOS);
+
+    // インポータを生成
+    FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
+    bool result = fbxImporter->Initialize(fbxFilename, -1, fbxManager->GetIOSettings());	// -1でファイルフォーマット自動判定
+    LOG_ASSERT(result, "FbxImporter::Initialize() : Failed!!\n");
+
+    // SceneオブジェクトにFBXファイル内の情報を流し込む
+    FbxScene* fbxScene = FbxScene::Create(fbxManager, "scene");
+    fbxImporter->Import(fbxScene);
+    fbxImporter->Destroy();	// シーンを流し込んだらImporterは解放してOK
+
+    // 軸がZ-Upの場合はY-Upに変換する
+    FbxAxisSystem fbx_scene_axis_system = fbxScene->GetGlobalSettings().GetAxisSystem();
+    if (fbx_scene_axis_system == FbxAxisSystem::eMayaZUp)
+    {
+        FbxAxisSystem::MayaYUp.ConvertScene(fbxScene);
+    }
+
+    // 単位をメートルに変換する
+    FbxSystemUnit sceneUnit = fbxScene->GetGlobalSettings().GetSystemUnit();
+    if (sceneUnit != FbxSystemUnit::m)
+    {
+        FbxSystemUnit::m.ConvertScene(fbxScene);
+    }
+
+    // アニメーション読み込み
+    char name[256];
+    ::_splitpath_s(filename, nullptr, 0, nullptr, 0, name, 256, nullptr, 0);
+
+    char utf8[256];
+    stringToUTF8(name, utf8, sizeof(utf8));
+
+    loadAnimations(fbxScene, utf8, true);
+
+    // マネージャ解放
+    fbxManager->Destroy();		// 関連するすべてのオブジェクトが解放される
+}
+
 void FbxLoad::loadNodes(FbxNode* fbxNode, int parentNodeIndex)
 {
     FbxNodeAttribute* fbxNodeAttribute = fbxNode->GetNodeAttribute();
