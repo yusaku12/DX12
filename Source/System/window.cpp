@@ -117,6 +117,12 @@ void Window::render()
     // 画面クリア後の後処理
     m_dx12.screenClearCleanup();
 
+    // スクリーンショット実行（Scene 描画完了後、Present 後に実行）
+    if (ScreenCapture::Instance().isCaptureRequested())
+    {
+        m_dx12.captureScreenshot();
+    }
+
     // TimeManagerフレーム終了処理
     TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
 }

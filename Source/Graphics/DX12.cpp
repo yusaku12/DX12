@@ -318,6 +318,14 @@ void DX12::sceneImguiRender()
     // 現在のウィンドウの DrawList を保存（ImGuizmo の入力判定に使う）
     m_sceneDrawList = ImGui::GetWindowDrawList();
 
+    //! スクリーンショットボタン（Scene ウィンドウ上部に配置）
+    if (ImGui::Button("Screenshot"))
+    {
+        ScreenCapture::Instance().requestCapture();
+    }
+    ImGui::SameLine();
+    ImGui::Separator();
+
     ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(m_sceneSrvIndex).ptr;
 
     // ウィンドウサイズにフィットさせて表示
@@ -713,4 +721,38 @@ void DX12::commandReset()
     m_commandAllocator->Reset();
     m_postCommandAllocator->Reset();
     m_graphicsCommandList->Reset(m_commandAllocator.Get(), nullptr);
+}
+
+void DX12::captureScreenshot()
+{
+    //! スクリーンショット用に専用コマンドアロケータ＆コマンドリストを作成
+    //! メインのコマンドリストを汚さないようにする
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> captureAllocator;
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> captureCmd;
+
+    HRESULT hr = m_device->CreateCommandAllocator(
+        D3D12_COMMAND_LIST_TYPE_DIRECT,
+        IID_PPV_ARGS(captureAllocator.GetAddressOf()));
+    LOG_HR(hr, "ScreenCapture: コマンドアロケータ作成失敗");
+    if (FAILED(hr)) return;
+
+    hr = m_device->CreateCommandList(
+        0,
+        D3D12_COMMAND_LIST_TYPE_DIRECT,
+        captureAllocator.Get(),
+        nullptr,
+        IID_PPV_ARGS(captureCmd.GetAddressOf()));
+    LOG_HR(hr, "ScreenCapture: コマンドリスト作成失敗");
+    if (FAILED(hr)) return;
+
+    //! Scene RT は SRV 状態（PIXEL_SHADER_RESOURCE）にあるのでそれを渡す
+    ScreenCapture::Instance().capture(
+        m_sceneRenderTarget.Get(),
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        captureCmd.Get(),
+        m_commandQueue.Get(),
+        m_device.Get());
+
+    //! GPU待機して完全にコピーが完了するのを待つ
+    safeGPUWait();
 }

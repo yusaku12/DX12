@@ -103,6 +103,9 @@ public:
     //! フェンスを待つ
     void safeGPUWait();
 
+    //! スクリーンショットを撮影（Scene RT を PNG として保存）
+    void captureScreenshot();
+
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
 
@@ -137,6 +140,9 @@ public:
 
     //! Scene ウィンドウの ImDrawList（ImGuizmo が入力判定で参照するため）
     ImDrawList* getSceneDrawList() const { return m_sceneDrawList; }
+
+    //! シーンレンダーターゲット取得
+    ID3D12Resource* getSceneRenderTarget() const { return m_sceneRenderTarget.Get(); }
 
 private:
 

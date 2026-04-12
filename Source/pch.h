@@ -68,6 +68,7 @@
 #include "Physics\PhysicsWorld.h"
 #include "Render\RenderManager.h"
 #include "Camera\CameraManager.h"
+#include "Editor\ScreenCapture.h"
 
 //! 省略系
 using namespace DirectX;
