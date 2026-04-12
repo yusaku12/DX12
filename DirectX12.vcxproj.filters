@@ -343,6 +343,13 @@
     <None Include="HLSL\Common.hlsli" />
     <None Include="HLSL\DebugPrimitive.hlsli" />
     <None Include="HLSL\FBX.hlsli" />
+    <None Include=".github\prompts\review-code.prompt.md" />
+    <None Include=".github\prompts\physics-setup.prompt.md" />
+    <None Include=".github\prompts\create-shader.prompt.md" />
+    <None Include=".github\prompts\debug-build.prompt.md" />
+    <None Include=".github\prompts\create-scene.prompt.md" />
+    <None Include=".github\prompts\create-component.prompt.md" />
+    <None Include=".github\copilot-instructions.md" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\PolygonVS.hlsl" />
