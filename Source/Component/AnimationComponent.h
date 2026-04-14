@@ -2,16 +2,22 @@
 
 #include "Component\Component.h"
 #include "Model\Model.h"
+#include "Animation\AnimationStateMachine.h"
 
 //=====================================================
-// アニメーションコンポーネント
-// 機能:
-//  - インデックス / 名前指定で再生
-//  - ループ / ワンショット
-//  - クロスフェード（前アニメーションと現アニメーションの補間遷移）
-//  - 再生速度制御
-//  - 再生完了コールバック
-//  - シーケンサーによるデバッグUI
+//! アニメーションコンポーネント
+//! Unity の Animator / UE の AnimInstance 相当
+//! 機能:
+//!  - ステートマシンによるパラメータ駆動の自動遷移
+//!  - Any State 遷移
+//!  - インデックス / 名前指定でダイレクト再生
+//!  - クロスフェード（前後アニメーションの補間遷移）
+//!  - ループ / ワンショット / PingPong
+//!  - 再生速度制御
+//!  - アニメーションイベント（特定時刻のコールバック発火）
+//!  - レイヤーブレンド（上半身/下半身分離など）
+//!  - 再生完了コールバック
+//!  - シーケンサーによるデバッグ UI
 //=====================================================
 class AnimationComponent : public Component
 {
@@ -32,8 +38,17 @@ public:
     //! インスペクタ表示
     void inspectGUI() override;
 
-    //! アニメーション追加読み込み（FBXファイルから）
+    //! アニメーション追加読み込み（FBX ファイルから）
     void addAnimation(const char* filename);
+
+    //! ステートマシンへのアクセス
+    AnimationStateMachine& getStateMachine() { return m_stateMachine; }
+    const AnimationStateMachine& getStateMachine() const { return m_stateMachine; }
+
+    //! ステートマシンモードの有効/無効
+    //! 無効時はダイレクト再生 API を使用する
+    void setStateMachineEnabled(bool enabled) { m_useStateMachine = enabled; }
+    bool isStateMachineEnabled() const { return m_useStateMachine; }
 
     //! インデックス指定で再生
     void play(int animationIndex, bool loop = true, float speed = 1.0f);
@@ -56,10 +71,10 @@ public:
 
     //! 再生速度
     float getSpeed() const { return m_speed; }
-    void setSpeed(float speed) { m_speed = speed; }
+    void  setSpeed(float speed) { m_speed = speed; }
 
     //! 再生中か
-    bool isPlaying() const { return m_playing && !m_paused; }
+    bool isPlaying() const;
 
     //! 一時停止中か
     bool isPaused() const { return m_paused; }
@@ -68,16 +83,16 @@ public:
     bool isFinished() const { return m_finished; }
 
     //! クロスフェード中か
-    bool isFading() const { return m_fading; }
+    bool isFading() const;
 
     //! 現在の再生時間（秒）
-    float getCurrentTime() const { return m_currentTime; }
+    float getCurrentTime() const;
 
     //! 正規化された再生位置（0.0～1.0）
     float getNormalizedTime() const;
 
     //! 現在のアニメーションインデックス（再生中でない場合は -1）
-    int getCurrentAnimationIndex() const { return m_animationIndex; }
+    int getCurrentAnimationIndex() const;
 
     //! 現在のアニメーション名（再生中でない場合は空文字列）
     const std::string& getCurrentAnimationName() const;
@@ -91,11 +106,11 @@ public:
 private:
 
     //! 指定アニメーションのキーフレーム補間結果をボーン配列に書き込む
-    void evaluateAnimation(int animIndex, float time, std::vector<Model::Bone>& bones) const;
+    void evaluateAnimation(int animIndex, float time,
+        std::vector<Model::Bone>& bones) const;
 
     //! ボーン配列同士をブレンド: out = lerp(a, b, t)
-    static void blendBones(
-        const std::vector<Model::Bone>& a,
+    static void blendBones(const std::vector<Model::Bone>& a,
         const std::vector<Model::Bone>& b,
         float t,
         std::vector<Model::Bone>& out);
@@ -104,12 +119,15 @@ private:
     float getSamplingTime(int animIndex) const;
 
     void drawSequencer();
-
     void drawDebugInfo();
 
     Model* m_model = nullptr;
 
-    //! 現在のアニメーション
+    //! ステートマシン
+    AnimationStateMachine m_stateMachine;
+    bool m_useStateMachine = false;
+
+    //! ダイレクト再生: 現在のアニメーション
     int   m_animationIndex = -1;
     float m_currentTime = 0.0f;
     float m_speed = 1.0f;
@@ -118,11 +136,11 @@ private:
     bool  m_paused = false;
     bool  m_finished = false;
 
-    //! クロスフェード
-    int   m_prevAnimIndex = -1;  //!< フェード元アニメーション
-    float m_prevTime = 0.0f;     //!< フェード元の再生時間（フェード開始時点で固定）
-    float m_fadeDuration = 0.0f; //!< フェード所要時間
-    float m_fadeElapsed = 0.0f;  //!< フェード経過時間
+    //! ダイレクト再生: クロスフェード
+    int   m_prevAnimIndex = -1;
+    float m_prevTime = 0.0f;
+    float m_fadeDuration = 0.0f;
+    float m_fadeElapsed = 0.0f;
     bool  m_fading = false;
 
     //! コールバック

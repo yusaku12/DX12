@@ -73,6 +73,7 @@
     <ClCompile Include="Source\GameObject\ObjectPicker.cpp" />
     <ClCompile Include="Source\Component\AnimationComponent.cpp" />
     <ClCompile Include="Source\Editor\ScreenCapture.cpp" />
+    <ClCompile Include="Source\Animation\AnimationStateMachine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -337,6 +338,27 @@
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\ScreenCapture.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\AnimationCommon.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\AnimationParameter.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\AnimationEvent.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\AnimationTransition.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\AnimationState.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\AnimationLayer.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\AnimationStateMachine.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
   </ItemGroup>

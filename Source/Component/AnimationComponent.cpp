@@ -12,11 +12,28 @@ void AnimationComponent::awake()
     {
         m_model = fbxRender->getModel();
     }
+
+    // ステートマシンにモデルを渡す
+    if (m_model)
+    {
+        m_stateMachine.initialize(m_model);
+    }
 }
 
 void AnimationComponent::update()
 {
-    if (!m_model || !m_playing || m_paused) return;
+    if (!m_model || m_paused) return;
+
+    // ステートマシンモード
+    if (m_useStateMachine)
+    {
+        float dt = TimeManager::Instance().getDeltaTime();
+        m_stateMachine.update(dt);
+        return;
+    }
+
+    // ダイレクト再生モード
+    if (!m_playing) return;
 
     const auto& animations = m_model->getResource()->getModelData().animations;
     if (m_animationIndex < 0 || m_animationIndex >= static_cast<int>(animations.size())) return;
@@ -24,7 +41,7 @@ void AnimationComponent::update()
     const auto& anim = animations[m_animationIndex];
     float dt = TimeManager::Instance().getDeltaTime() * m_speed;
 
-    // 現在のアニメーションの時間を進める
+    // 再生時間を進める
     m_currentTime += dt;
 
     if (m_currentTime >= anim.secondsLength)
@@ -54,25 +71,20 @@ void AnimationComponent::update()
         {
             const auto& prevAnim = animations[m_prevAnimIndex];
             m_prevTime += dt;
-            // prev 側もループ or クランプ
             if (m_prevTime >= prevAnim.secondsLength)
             {
                 m_prevTime = std::fmod(m_prevTime, prevAnim.secondsLength);
             }
         }
 
-        // prev のポーズ
         std::vector<Model::Bone> prevBones = bones;
         evaluateAnimation(m_prevAnimIndex, m_prevTime, prevBones);
 
-        // current のポーズ
         std::vector<Model::Bone> currBones = bones;
         evaluateAnimation(m_animationIndex, m_currentTime, currBones);
 
-        // ブレンドして書き込み
         blendBones(prevBones, currBones, t, bones);
 
-        // フェード完了判定
         if (m_fadeElapsed >= m_fadeDuration)
         {
             m_fading = false;
@@ -87,7 +99,6 @@ void AnimationComponent::update()
     // 完了コールバック
     if (m_finished && m_onFinished)
     {
-        // コールバック内で play() される可能性があるため、先にコピーして呼ぶ
         auto callback = std::move(m_onFinished);
         m_onFinished = nullptr;
         callback();
@@ -121,13 +132,15 @@ void AnimationComponent::play(int animationIndex, bool loop, float speed)
     m_playing = true;
     m_paused = false;
     m_finished = false;
+
+    // ダイレクト再生時はステートマシンを無効化
+    m_useStateMachine = false;
 }
 
 void AnimationComponent::play(const std::string& animationName, bool loop, float speed)
 {
     int index = findAnimationIndex(animationName);
-    if (index >= 0)
-        play(index, loop, speed);
+    if (index >= 0) play(index, loop, speed);
 }
 
 void AnimationComponent::crossFade(int animationIndex, float fadeDuration, bool loop, float speed)
@@ -176,13 +189,14 @@ void AnimationComponent::crossFade(int animationIndex, float fadeDuration, bool 
     m_playing = true;
     m_paused = false;
     m_finished = false;
+
+    m_useStateMachine = false;
 }
 
 void AnimationComponent::crossFade(const std::string& animationName, float fadeDuration, bool loop, float speed)
 {
     int index = findAnimationIndex(animationName);
-    if (index >= 0)
-        crossFade(index, fadeDuration, loop, speed);
+    if (index >= 0) crossFade(index, fadeDuration, loop, speed);
 }
 
 void AnimationComponent::stop()
@@ -193,10 +207,43 @@ void AnimationComponent::stop()
     m_fading = false;
 }
 
+bool AnimationComponent::isPlaying() const
+{
+    if (m_useStateMachine) return m_stateMachine.isPlaying();
+    return m_playing && !m_paused;
+}
+
+bool AnimationComponent::isFading() const
+{
+    if (m_useStateMachine) return m_stateMachine.isFading();
+    return m_fading;
+}
+
+float AnimationComponent::getCurrentTime() const
+{
+    if (m_useStateMachine)
+    {
+        // ステートマシンモードでは正規化時間 × アニメーション長
+        const auto* state = m_stateMachine.getCurrentState();
+        if (state && m_model)
+        {
+            const auto& anims = m_model->getResource()->getModelData().animations;
+            int idx = state->getAnimationIndex();
+            if (idx >= 0 && idx < static_cast<int>(anims.size()))
+            {
+                return m_stateMachine.getNormalizedTime() * anims[idx].secondsLength;
+            }
+        }
+        return 0.0f;
+    }
+    return m_currentTime;
+}
+
 float AnimationComponent::getNormalizedTime() const
 {
-    if (!m_model || m_animationIndex < 0) return 0.0f;
+    if (m_useStateMachine) return m_stateMachine.getNormalizedTime();
 
+    if (!m_model || m_animationIndex < 0) return 0.0f;
     const auto& animations = m_model->getResource()->getModelData().animations;
     if (m_animationIndex >= static_cast<int>(animations.size())) return 0.0f;
 
@@ -204,13 +251,23 @@ float AnimationComponent::getNormalizedTime() const
     return (length > 0.0f) ? m_currentTime / length : 0.0f;
 }
 
+int AnimationComponent::getCurrentAnimationIndex() const
+{
+    if (m_useStateMachine)
+    {
+        const auto* state = m_stateMachine.getCurrentState();
+        return state ? state->getAnimationIndex() : -1;
+    }
+    return m_animationIndex;
+}
+
 const std::string& AnimationComponent::getCurrentAnimationName() const
 {
-    if (!m_model || m_animationIndex < 0) return s_emptyString;
+    if (m_useStateMachine) return m_stateMachine.getCurrentStateName();
 
+    if (!m_model || m_animationIndex < 0) return s_emptyString;
     const auto& animations = m_model->getResource()->getModelData().animations;
     if (m_animationIndex >= static_cast<int>(animations.size())) return s_emptyString;
-
     return animations[m_animationIndex].name;
 }
 
@@ -221,8 +278,7 @@ int AnimationComponent::findAnimationIndex(const std::string& name) const
     const auto& animations = m_model->getResource()->getModelData().animations;
     for (int i = 0; i < static_cast<int>(animations.size()); ++i)
     {
-        if (animations[i].name == name)
-            return i;
+        if (animations[i].name == name) return i;
     }
     return -1;
 }
@@ -288,8 +344,7 @@ void AnimationComponent::evaluateAnimation(int animIndex, float time,
     }
 }
 
-void AnimationComponent::blendBones(
-    const std::vector<Model::Bone>& a,
+void AnimationComponent::blendBones(const std::vector<Model::Bone>& a,
     const std::vector<Model::Bone>& b,
     float t,
     std::vector<Model::Bone>& out)
@@ -328,14 +383,16 @@ void AnimationComponent::drawSequencer()
     const auto& animations = m_model->getResource()->getModelData().animations;
     if (animations.empty()) return;
 
+    int currentAnimIdx = getCurrentAnimationIndex();
+
     int32_t endFrame = 1;
-    if (m_animationIndex >= 0 && m_animationIndex < static_cast<int>(animations.size()))
+    if (currentAnimIdx >= 0 && currentAnimIdx < static_cast<int>(animations.size()))
     {
-        endFrame = std::max(1, static_cast<int32_t>(animations[m_animationIndex].keyframes.size()) - 1);
+        endFrame = std::max(1, static_cast<int32_t>(animations[currentAnimIdx].keyframes.size()) - 1);
     }
 
-    float samplingTime = getSamplingTime(m_animationIndex);
-    m_seqCurrentFrame = static_cast<int32_t>(m_currentTime / samplingTime);
+    float samplingTime = getSamplingTime(currentAnimIdx);
+    m_seqCurrentFrame = static_cast<int32_t>(getCurrentTime() / samplingTime);
 
     int32_t startFrame = 0;
 
@@ -356,7 +413,15 @@ void AnimationComponent::drawSequencer()
 
                 if (ImGui::IsNeoTimelineSelected(ImGuiNeoTimelineIsSelectedFlags_NewlySelected))
                 {
-                    crossFade(animIdx, 0.2f, m_loop, m_speed);
+                    if (m_useStateMachine)
+                    {
+                        // ステートマシンモードの場合、対応するステートに強制遷移
+                        m_stateMachine.forceTransition(anim.name, 0.2f);
+                    }
+                    else
+                    {
+                        crossFade(animIdx, 0.2f, m_loop, m_speed);
+                    }
                 }
 
                 ImGui::EndNeoTimeLine();
@@ -366,8 +431,9 @@ void AnimationComponent::drawSequencer()
         ImGui::EndNeoSequencer();
     }
 
-    // ヘッドドラッグ → 再生時間に反映
-    if (m_animationIndex >= 0 && m_animationIndex < static_cast<int>(animations.size()))
+    // ヘッドドラッグ → 再生時間に反映（ダイレクト再生モードのみ）
+    if (!m_useStateMachine && m_animationIndex >= 0 &&
+        m_animationIndex < static_cast<int>(animations.size()))
     {
         int32_t expectedFrame = static_cast<int32_t>(m_currentTime / samplingTime);
         if (m_seqCurrentFrame != expectedFrame)
@@ -384,17 +450,14 @@ void AnimationComponent::drawSequencer()
 void AnimationComponent::drawDebugInfo()
 {
     const auto& animations = m_model->getResource()->getModelData().animations;
+    int currentAnimIdx = getCurrentAnimationIndex();
 
-    // 現在の再生情報
-    if (m_animationIndex >= 0 && m_animationIndex < static_cast<int>(animations.size()))
+    if (currentAnimIdx >= 0 && currentAnimIdx < static_cast<int>(animations.size()))
     {
-        const auto& anim = animations[m_animationIndex];
+        const auto& anim = animations[currentAnimIdx];
 
-        ImGui::Text("Playing : %s", anim.name.c_str());
-        ImGui::Text("Time    : %.2f / %.2f s", m_currentTime, anim.secondsLength);
-        ImGui::Text("Frame   : %d / %d",
-            m_seqCurrentFrame,
-            static_cast<int>(anim.keyframes.size()) - 1);
+        ImGui::Text("Playing : %s", getCurrentAnimationName().c_str());
+        ImGui::Text("Time    : %.2f / %.2f s", getCurrentTime(), anim.secondsLength);
     }
     else
     {
@@ -402,12 +465,10 @@ void AnimationComponent::drawDebugInfo()
     }
 
     // クロスフェード状態
-    if (m_fading && m_prevAnimIndex >= 0 && m_prevAnimIndex < static_cast<int>(animations.size()))
+    if (isFading())
     {
         ImGui::Separator();
-        ImGui::TextColored(ImVec4(1, 0.8f, 0.3f, 1), "CrossFade");
-        ImGui::Text("  From : %s", animations[m_prevAnimIndex].name.c_str());
-        ImGui::Text("  To   : %s", animations[m_animationIndex].name.c_str());
+        ImGui::TextColored(ImVec4(1, 0.8f, 0.3f, 1), "CrossFade in progress");
     }
 }
 
@@ -436,29 +497,44 @@ void AnimationComponent::inspectGUI()
         }
     }
 
-    // 再生速度
-    ImGui::SliderFloat("Speed", &m_speed, 0.0f, 3.0f, "%.2f");
+    // モード切替
+    ImGui::Separator();
+    ImGui::Checkbox("StateMachine Mode", &m_useStateMachine);
 
-    // 再生制御ボタン
-    ImGui::Checkbox("Loop", &m_loop);
-    ImGui::SameLine();
+    if (m_useStateMachine)
+    {
+        // ステートマシンモードのUI
+        ImGui::Separator();
+        if (ImGui::TreeNodeEx("StateMachine", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            m_stateMachine.drawDebugGUI();
+            ImGui::TreePop();
+        }
+    }
+    else
+    {
+        // ダイレクト再生モードのUI
+        ImGui::SliderFloat("Speed", &m_speed, 0.0f, 3.0f, "%.2f");
+        ImGui::Checkbox("Loop", &m_loop);
+        ImGui::SameLine();
 
-    if (m_playing && !m_paused)
-    {
-        if (ImGui::Button("Pause"))  pause();
-        ImGui::SameLine();
-        if (ImGui::Button("Stop"))   stop();
-    }
-    else if (m_paused)
-    {
-        if (ImGui::Button("Resume")) resume();
-        ImGui::SameLine();
-        if (ImGui::Button("Stop"))   stop();
-    }
-    else if (m_animationIndex >= 0)
-    {
-        if (ImGui::Button("Play"))
-            play(m_animationIndex, m_loop, m_speed);
+        if (m_playing && !m_paused)
+        {
+            if (ImGui::Button("Pause"))  pause();
+            ImGui::SameLine();
+            if (ImGui::Button("Stop"))   stop();
+        }
+        else if (m_paused)
+        {
+            if (ImGui::Button("Resume")) resume();
+            ImGui::SameLine();
+            if (ImGui::Button("Stop"))   stop();
+        }
+        else if (m_animationIndex >= 0)
+        {
+            if (ImGui::Button("Play"))
+                play(m_animationIndex, m_loop, m_speed);
+        }
     }
 
     ImGui::Separator();
