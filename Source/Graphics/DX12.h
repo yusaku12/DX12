@@ -144,6 +144,9 @@ public:
     //! シーンレンダーターゲット取得
     ID3D12Resource* getSceneRenderTarget() const { return m_sceneRenderTarget.Get(); }
 
+    //! シーン SRV インデックス取得（ポストエフェクトで使用）
+    UINT getSceneSrvIndex() const { return m_sceneSrvIndex; }
+
 private:
 
     //! DX12で使用するデバッグ機能

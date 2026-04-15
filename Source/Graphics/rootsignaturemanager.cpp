@@ -4,6 +4,7 @@ void RootSignatureManager::initialize()
 {
     buildPMXStandard();
     buildDebugPrimitive();
+    buildPostEffect();
 }
 
 ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
@@ -46,6 +47,22 @@ void RootSignatureManager::buildDebugPrimitive()
 
     // ルートシグネチャ生成
     createRootSignature(params, _countof(params), RootSignatureType::DebugPrimitive);
+}
+
+void RootSignatureManager::buildPostEffect()
+{
+    CD3DX12_ROOT_PARAMETER params[2] = {};
+
+    // エフェクトパラメータ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // シーンテクスチャ用 SRV テーブル (t0)
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange);
+
+    // ルートシグネチャ生成
+    createRootSignature(params, _countof(params), RootSignatureType::PostEffect);
 }
 
 void RootSignatureManager::createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type)

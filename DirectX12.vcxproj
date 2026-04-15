@@ -69,6 +69,7 @@
     <ClCompile Include="Source\Component\Component.cpp" />
     <ClCompile Include="Source\Component\FbxRenderComponent.cpp" />
     <ClCompile Include="Source\Component\IRenderComponent.cpp" />
+    <ClCompile Include="Source\Component\PostEffectComponent.cpp" />
     <ClCompile Include="Source\Component\RigidbodyComponent.cpp" />
     <ClCompile Include="Source\Component\TransformComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp">
@@ -165,6 +166,7 @@
     <ClInclude Include="Source\Component\FbxRenderComponent.h" />
     <ClInclude Include="Source\Component\IRenderComponent.h" />
     <ClInclude Include="Source\Component\Object.h" />
+    <ClInclude Include="Source\Component\PostEffectComponent.h" />
     <ClInclude Include="Source\Component\RigidbodyComponent.h" />
     <ClInclude Include="Source\Component\TransformComponent.h" />
     <ClInclude Include="Source\Editor\EditorContext.h" />
@@ -227,6 +229,7 @@
     <None Include="HLSL\FBX.hlsli" />
     <None Include="HLSL\PMX.hlsli" />
     <None Include="HLSL\Polygon.hlsli" />
+    <None Include="HLSL\PostEffect.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\DebugPrimitivePS.hlsl">
@@ -292,6 +295,13 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="HLSL\PostEffectVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
     </FxCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">

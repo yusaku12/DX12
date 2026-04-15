@@ -34,6 +34,9 @@ public:
     //! モデルのワールド空間 AABB を取得する（ピッキング・カリング用）
     bool getWorldAABB(Vector3& outCenter, Vector3& outExtents) const;
 
+    //! モデル取得
+    Model* getModel() const { return m_model.get(); }
+
 private:
 
     //! デバッグ描画モード
@@ -106,4 +109,5 @@ private:
     size_t m_wireframePSOKey = 0;
     DebugMode m_debugMode = DebugMode::None;
     TransformComponent* m_transform = nullptr;
+    std::unique_ptr<Model> m_model;
 };

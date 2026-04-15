@@ -31,11 +31,4 @@ public:
 
     //! 描画(マルチスレッド)
     virtual void render(ID3D12GraphicsCommandList* cmd) = 0;
-
-    //! モデル取得
-    Model* getModel() const { return m_model.get(); }
-
-protected:
-
-    std::unique_ptr<Model> m_model;
 };
