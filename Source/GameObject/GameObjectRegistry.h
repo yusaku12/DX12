@@ -1,6 +1,6 @@
-﻿#pragma once
+﻿#include "GameObject.h"
 
-class GameObject;
+#pragma once
 
 //=====================================================
 // GameObject の存在管理のみを行うレジストリ
@@ -30,6 +30,9 @@ public:
 
     //! 全ての登録オブジェクト取得
     const std::vector<GameObject*>& getAll() const { return m_objects; }
+
+    //! 指定タグを持つ最初の GameObject を返す（見つからない場合は nullptr）
+    GameObject* findByTag(Tag tag) const;
 
 private:
 

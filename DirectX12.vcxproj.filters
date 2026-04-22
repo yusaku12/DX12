@@ -74,6 +74,10 @@
     <ClCompile Include="Source\Component\AnimationComponent.cpp" />
     <ClCompile Include="Source\Editor\ScreenCapture.cpp" />
     <ClCompile Include="Source\Animation\AnimationStateMachine.cpp" />
+    <ClCompile Include="Source\Component\PostEffectComponent.cpp" />
+    <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
+    <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
+    <ClCompile Include="Source\PostEffect\GrayScaleEffect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -361,6 +365,18 @@
     <ClInclude Include="Source\Animation\AnimationStateMachine.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Component\PostEffectComponent.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PostEffect\PostEffectBase.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PostEffect\PostEffectRenderTargets.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PostEffect\GrayScaleEffect.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\Polygon.hlsli" />
@@ -376,6 +392,7 @@
     <None Include=".github\prompts\create-scene.prompt.md" />
     <None Include=".github\prompts\create-component.prompt.md" />
     <None Include=".github\copilot-instructions.md" />
+    <None Include="HLSL\PostEffect.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\PolygonVS.hlsl" />
@@ -386,5 +403,7 @@
     <FxCompile Include="HLSL\DebugPrimitivePS.hlsl" />
     <FxCompile Include="HLSL\FBXVS.hlsl" />
     <FxCompile Include="HLSL\FBXPS.hlsl" />
+    <FxCompile Include="HLSL\PostEffectVS.hlsl" />
+    <FxCompile Include="HLSL\GrayScalePS.hlsl" />
   </ItemGroup>
 </Project>

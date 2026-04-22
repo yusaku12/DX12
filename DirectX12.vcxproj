@@ -105,6 +105,9 @@
     </ClCompile>
     <ClCompile Include="Source\Physics\PhysicsWorld.cpp" />
     <ClCompile Include="Source\Physics\Raycast.cpp" />
+    <ClCompile Include="Source\PostEffect\GrayScaleEffect.cpp" />
+    <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
+    <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
     <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
@@ -201,6 +204,9 @@
     <ClInclude Include="Source\Physics\PhysicsWorld.h" />
     <ClInclude Include="Source\Physics\PhysXHelper.h" />
     <ClInclude Include="Source\Physics\Raycast.h" />
+    <ClInclude Include="Source\PostEffect\GrayScaleEffect.h" />
+    <ClInclude Include="Source\PostEffect\PostEffectBase.h" />
+    <ClInclude Include="Source\PostEffect\PostEffectRenderTargets.h" />
     <ClInclude Include="Source\Render\RenderManager.h" />
     <ClInclude Include="Source\Scene\ModelEditorScene.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
@@ -263,6 +269,14 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="HLSL\GrayScalePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
     </FxCompile>
     <FxCompile Include="HLSL\PMXPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

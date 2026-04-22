@@ -144,9 +144,6 @@ public:
     //! シーンレンダーターゲット取得
     ID3D12Resource* getSceneRenderTarget() const { return m_sceneRenderTarget.Get(); }
 
-    //! シーン SRV インデックス取得（ポストエフェクトで使用）
-    UINT getSceneSrvIndex() const { return m_sceneSrvIndex; }
-
 private:
 
     //! DX12で使用するデバッグ機能
@@ -190,6 +187,7 @@ private:
     D3D12_CPU_DESCRIPTOR_HANDLE m_sceneRTVHandle{};
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle = {};
     UINT m_sceneSrvIndex = 0;
+    UINT m_finalPostEffectSrv = 0;
     bool m_isSceneActive = false;
     ImVec2 m_sceneWindowPos = ImVec2(0, 0);
     ImVec2 m_sceneWindowSize = ImVec2(0, 0);

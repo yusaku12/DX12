@@ -1,4 +1,6 @@
 ﻿#include "pch.h"
+#include "GameObject\GameObject.h"
+#include "Component\PostEffectComponent.h"
 
 DX12* DX12::m_instance = nullptr;
 
@@ -326,7 +328,7 @@ void DX12::sceneImguiRender()
     ImGui::SameLine();
     ImGui::Separator();
 
-    ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(m_sceneSrvIndex).ptr;
+    ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(m_finalPostEffectSrv).ptr;
 
     // ウィンドウサイズにフィットさせて表示
     ImGui::Image(texID, ImGui::GetContentRegionAvail());
@@ -533,6 +535,9 @@ void DX12::screenResize(int width, int height)
     auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
     m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
 
+    // ポストエフェクト用 RenderTarget をリサイズ
+    PostEffectRenderTargets::Instance().resize(m_width, m_height);
+
     // コマンドリセット
     commandReset();
 }
@@ -656,6 +661,16 @@ void DX12::prepareBackBufferForImGui()
 
     // Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
     transitionSceneToSRV();
+
+    // 最終的なポストエフェクトのSRVを決定（なければSceneSRVのまま）
+    m_finalPostEffectSrv = m_sceneSrvIndex;
+    if (auto* obj = GameObjectRegistry::Instance().findByTag(Tag::PostEffect))
+    {
+        if (auto* post = obj->getComponent<PostEffectComponent>())
+        {
+            m_finalPostEffectSrv = post->execute(m_sceneSrvIndex);
+        }
+    }
 
     UINT bbIdx = m_dxgiSwapChain4->GetCurrentBackBufferIndex();
 

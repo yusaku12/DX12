@@ -4,6 +4,8 @@
 #include "Component\FbxRenderComponent.h"
 #include "Camera\FreeCameraComponent.h"
 #include "Component\AnimationComponent.h"
+#include "Component\PostEffectComponent.h"
+#include "PostEffect\GrayScaleEffect.h"
 
 void ModelEditorScene::onEnter()
 {
@@ -15,6 +17,11 @@ void ModelEditorScene::onEnter()
     object->addComponent<TransformComponent>();
     object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
     object->addComponent<AnimationComponent>();
+
+    GameObject* postEffectObj = new GameObject("PostEffectVolume");
+    postEffectObj->addTag(Tag::PostEffect);
+    auto* pe = postEffectObj->addComponent<PostEffectComponent>();
+    pe->addEffect<GrayScaleEffect>();
 }
 
 void ModelEditorScene::update()

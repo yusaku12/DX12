@@ -1,5 +1,4 @@
 ﻿#include "pch.h"
-#include "GameObject.h"
 
 void GameObjectRegistry::registryGameObject(GameObject* obj)
 {
@@ -57,4 +56,14 @@ void GameObjectRegistry::destroyMarkedObjects()
             ++it;
         }
     }
+}
+
+GameObject* GameObjectRegistry::findByTag(Tag tag) const
+{
+    for (auto* obj : m_objects)
+    {
+        if (obj && !obj->isDestroyed() && obj->hasTag(tag))
+            return obj;
+    }
+    return nullptr;
 }

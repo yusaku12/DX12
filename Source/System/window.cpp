@@ -26,6 +26,9 @@ Window::Window(HWND hwnd)
     // RootSignatureManager初期化
     RootSignatureManager::Instance().initialize();
 
+    // ポストエフェクト用ピンポンRT初期化
+    PostEffectRenderTargets::Instance().initialize();
+
     // TimeManager初期化
     TimeManager::Instance().initialize();
 

@@ -39,6 +39,7 @@
 #include <map>
 #include <thread>
 #include <future>
+#include <unordered_set>
 
 #undef ERROR
 #undef OPAQUE
@@ -69,6 +70,7 @@
 #include "Render\RenderManager.h"
 #include "Camera\CameraManager.h"
 #include "Editor\ScreenCapture.h"
+#include "PostEffect\PostEffectRenderTargets.h"
 
 //! 省略系
 using namespace DirectX;

@@ -16,6 +16,7 @@ enum class ShaderID : int
     DebugPrimitiveVS,
     DebugPrimitivePS,
     PostEffectVS,
+    GrayScalePS,
     MAX
 };
 
@@ -43,4 +44,5 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/DebugPrimitiveVS.hlsl",  "VS", "vs_5_0" },   //!< DebugVS
     ShaderDesc{ L"Shader/DebugPrimitivePS.hlsl",  "PS", "ps_5_0" },   //!< DebugPS
     ShaderDesc{ L"Shader/PostEffectVS.hlsl",  "VS", "vs_5_0" },       //!< PostEffectVS
+    ShaderDesc{ L"Shader/GrayScalePS.hlsl",  "PS", "ps_5_0" },        //!< GrayScalePS
 };

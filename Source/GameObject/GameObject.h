@@ -4,6 +4,15 @@
 #include "Component\Object.h"
 
 //=====================================================
+//! GameObject に付与できるタグ
+//=====================================================
+enum class Tag
+{
+    PostEffect,
+    MAX
+};
+
+//=====================================================
 // Component を束ねる箱
 // UnityEngine.GameObject 相当
 //=====================================================
@@ -97,6 +106,21 @@ public:
     //! 子オブジェクト一覧の取得
     const std::vector<GameObject*>& getChildren() const { return m_children; }
 
+    //! タグを追加する
+    void addTag(Tag tag) { m_tags.insert(tag); }
+
+    //! タグを削除する
+    void removeTag(Tag tag) { m_tags.erase(tag); }
+
+    //! 指定したタグを持っているか
+    bool hasTag(Tag tag) const { return m_tags.contains(tag); }
+
+    //! 全タグを削除する
+    void clearTags() { m_tags.clear(); }
+
+    //! タグ一覧の取得
+    const std::unordered_set<Tag>& getTags() const { return m_tags; }
+
 private:
 
     bool m_started = false;
@@ -106,4 +130,5 @@ private:
     std::unordered_map<std::type_index, Component*> m_componentMap; //!< 高速検索用
     GameObject* m_parent = nullptr;
     std::vector<GameObject*> m_children;
+    std::unordered_set<Tag> m_tags; //!< タグ一覧
 };
