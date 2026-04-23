@@ -44,9 +44,15 @@ protected:
     //! PSO 登録ヘルパー（派生クラスの initialize() で呼ぶ）
     void registerPSO(ShaderID psShaderID);
 
+    //! PSO 登録ヘルパー（RootSignatureType 指定版）
+    size_t registerPSO(ShaderID psShaderID, RootSignatureType rsType);
+
     //! フルスクリーン三角形を描画するヘルパー
     void drawFullscreenTriangle(ID3D12GraphicsCommandList* cmd);
 
     //! PSO をコマンドリストにセット
     void applyPSO(ID3D12GraphicsCommandList* cmd);
+
+    //! 指定キーの PSO をコマンドリストにセット
+    void applyPSO(size_t key, ID3D12GraphicsCommandList* cmd);
 };

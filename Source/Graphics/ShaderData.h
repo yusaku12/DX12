@@ -16,7 +16,10 @@ enum class ShaderID : int
     DebugPrimitiveVS,
     DebugPrimitivePS,
     PostEffectVS,
-    GrayScalePS,
+    BloomPrefilterPS,
+    BloomDownsamplePS,
+    BloomUpsamplePS,
+    BloomCompositePS,
     MAX
 };
 
@@ -35,14 +38,17 @@ struct ShaderDesc
 //--------------------------------------------------------------------------------
 static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTable =
 {
-    ShaderDesc{ L"Shader/PolygonVS.hlsl",  "VS", "vs_5_0" },          //!< TestPolygonVS
-    ShaderDesc{ L"Shader/PolygonPS.hlsl",  "PS", "ps_5_0" },          //!< TestPolygonPS
-    ShaderDesc{ L"Shader/PMXVS.hlsl",  "VS", "vs_5_0" },              //!< PMXVS
-    ShaderDesc{ L"Shader/PMXPS.hlsl",  "PS", "ps_5_0" },              //!< PMXPS
-    ShaderDesc{ L"Shader/FBXVS.hlsl",  "VS", "vs_5_0" },              //!< FBXVS
-    ShaderDesc{ L"Shader/FBXPS.hlsl",  "PS", "ps_5_0" },              //!< FBXPS
-    ShaderDesc{ L"Shader/DebugPrimitiveVS.hlsl",  "VS", "vs_5_0" },   //!< DebugVS
-    ShaderDesc{ L"Shader/DebugPrimitivePS.hlsl",  "PS", "ps_5_0" },   //!< DebugPS
-    ShaderDesc{ L"Shader/PostEffectVS.hlsl",  "VS", "vs_5_0" },       //!< PostEffectVS
-    ShaderDesc{ L"Shader/GrayScalePS.hlsl",  "PS", "ps_5_0" },        //!< GrayScalePS
+    ShaderDesc{ L"Shader/PolygonVS.hlsl",          "VS", "vs_5_0" },  //!< TestPolygonVS
+    ShaderDesc{ L"Shader/PolygonPS.hlsl",          "PS", "ps_5_0" },  //!< TestPolygonPS
+    ShaderDesc{ L"Shader/PMXVS.hlsl",              "VS", "vs_5_0" },  //!< PMXVS
+    ShaderDesc{ L"Shader/PMXPS.hlsl",              "PS", "ps_5_0" },  //!< PMXPS
+    ShaderDesc{ L"Shader/FBXVS.hlsl",              "VS", "vs_5_0" },  //!< FBXVS
+    ShaderDesc{ L"Shader/FBXPS.hlsl",              "PS", "ps_5_0" },  //!< FBXPS
+    ShaderDesc{ L"Shader/DebugPrimitiveVS.hlsl",   "VS", "vs_5_0" },  //!< DebugVS
+    ShaderDesc{ L"Shader/DebugPrimitivePS.hlsl",   "PS", "ps_5_0" },  //!< DebugPS
+    ShaderDesc{ L"Shader/PostEffectVS.hlsl",       "VS", "vs_5_0" },  //!< PostEffectVS
+    ShaderDesc{ L"Shader/BloomPrefilterPS.hlsl",   "PS", "ps_5_0" },  //!< BloomPrefilterPS
+    ShaderDesc{ L"Shader/BloomDownsamplePS.hlsl",  "PS", "ps_5_0" },  //!< BloomDownsamplePS
+    ShaderDesc{ L"Shader/BloomUpsamplePS.hlsl",    "PS", "ps_5_0" },  //!< BloomUpsamplePS
+    ShaderDesc{ L"Shader/BloomCompositePS.hlsl",   "PS", "ps_5_0" },  //!< BloomCompositePS
 };

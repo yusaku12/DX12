@@ -77,7 +77,7 @@
     <ClCompile Include="Source\Component\PostEffectComponent.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
-    <ClCompile Include="Source\PostEffect\GrayScaleEffect.cpp" />
+    <ClCompile Include="Source\PostEffect\BloomEffect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -374,7 +374,7 @@
     <ClInclude Include="Source\PostEffect\PostEffectRenderTargets.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
-    <ClInclude Include="Source\PostEffect\GrayScaleEffect.h">
+    <ClInclude Include="Source\PostEffect\BloomEffect.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
   </ItemGroup>
@@ -393,6 +393,7 @@
     <None Include=".github\prompts\create-component.prompt.md" />
     <None Include=".github\copilot-instructions.md" />
     <None Include="HLSL\PostEffect.hlsli" />
+    <None Include="Docs\PostEffect.md" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\PolygonVS.hlsl" />
@@ -404,6 +405,9 @@
     <FxCompile Include="HLSL\FBXVS.hlsl" />
     <FxCompile Include="HLSL\FBXPS.hlsl" />
     <FxCompile Include="HLSL\PostEffectVS.hlsl" />
-    <FxCompile Include="HLSL\GrayScalePS.hlsl" />
+    <FxCompile Include="HLSL\BloomUpsamplePS.hlsl" />
+    <FxCompile Include="HLSL\BloomPrefilterPS.hlsl" />
+    <FxCompile Include="HLSL\BloomCompositePS.hlsl" />
+    <FxCompile Include="HLSL\BloomDownsamplePS.hlsl" />
   </ItemGroup>
 </Project>

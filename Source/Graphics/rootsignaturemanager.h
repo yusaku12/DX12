@@ -8,6 +8,7 @@ enum class RootSignatureType : int
     PMXStandard,
     DebugPrimitive,
     PostEffect,
+    BloomComposite,
     Max
 };
 
@@ -51,6 +52,9 @@ private:
 
     //! PostEffectをビルド
     void buildPostEffect();
+
+    //! BloomCompositeをビルド
+    void buildBloomComposite();
 
     //! テスト
     void createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type);

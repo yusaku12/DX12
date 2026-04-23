@@ -5,7 +5,7 @@
 #include "Camera\FreeCameraComponent.h"
 #include "Component\AnimationComponent.h"
 #include "Component\PostEffectComponent.h"
-#include "PostEffect\GrayScaleEffect.h"
+#include "PostEffect\BloomEffect.h"
 
 void ModelEditorScene::onEnter()
 {
@@ -21,7 +21,7 @@ void ModelEditorScene::onEnter()
     GameObject* postEffectObj = new GameObject("PostEffectVolume");
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
-    pe->addEffect<GrayScaleEffect>();
+    pe->addEffect<BloomEffect>();
 }
 
 void ModelEditorScene::update()

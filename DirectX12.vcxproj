@@ -105,7 +105,7 @@
     </ClCompile>
     <ClCompile Include="Source\Physics\PhysicsWorld.cpp" />
     <ClCompile Include="Source\Physics\Raycast.cpp" />
-    <ClCompile Include="Source\PostEffect\GrayScaleEffect.cpp" />
+    <ClCompile Include="Source\PostEffect\BloomEffect.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
@@ -204,7 +204,7 @@
     <ClInclude Include="Source\Physics\PhysicsWorld.h" />
     <ClInclude Include="Source\Physics\PhysXHelper.h" />
     <ClInclude Include="Source\Physics\Raycast.h" />
-    <ClInclude Include="Source\PostEffect\GrayScaleEffect.h" />
+    <ClInclude Include="Source\PostEffect\BloomEffect.h" />
     <ClInclude Include="Source\PostEffect\PostEffectBase.h" />
     <ClInclude Include="Source\PostEffect\PostEffectRenderTargets.h" />
     <ClInclude Include="Source\Render\RenderManager.h" />
@@ -229,6 +229,7 @@
     <None Include=".github\prompts\debug-build.prompt.md" />
     <None Include=".github\prompts\physics-setup.prompt.md" />
     <None Include=".github\prompts\review-code.prompt.md" />
+    <None Include="Docs\PostEffect.md" />
     <None Include="HLSL\Common.hlsli" />
     <None Include="HLSL\CommonConstants.hlsli" />
     <None Include="HLSL\DebugPrimitive.hlsli" />
@@ -238,6 +239,38 @@
     <None Include="HLSL\PostEffect.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="HLSL\BloomPrefilterPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="HLSL\BloomCompositePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="HLSL\BloomDownsamplePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="HLSL\BloomUpsamplePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+    </FxCompile>
     <FxCompile Include="HLSL\DebugPrimitivePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -269,14 +302,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
-    </FxCompile>
-    <FxCompile Include="HLSL\GrayScalePS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
     </FxCompile>
     <FxCompile Include="HLSL\PMXPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

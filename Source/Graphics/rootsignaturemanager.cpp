@@ -5,6 +5,7 @@ void RootSignatureManager::initialize()
     buildPMXStandard();
     buildDebugPrimitive();
     buildPostEffect();
+    buildBloomComposite();
 }
 
 ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
@@ -63,6 +64,28 @@ void RootSignatureManager::buildPostEffect()
 
     // ルートシグネチャ生成
     createRootSignature(params, _countof(params), RootSignatureType::PostEffect);
+}
+
+void RootSignatureManager::buildBloomComposite()
+{
+    // Bloom 合成用: b0(パラメータ) + t0(元シーン) + t1(ブルームテクスチャ)
+    CD3DX12_ROOT_PARAMETER params[3] = {};
+
+    // エフェクトパラメータ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // 元シーン SRV テーブル (t0)
+    CD3DX12_DESCRIPTOR_RANGE srvRange0;
+    srvRange0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange0);
+
+    // ブルームテクスチャ SRV テーブル (t1)
+    CD3DX12_DESCRIPTOR_RANGE srvRange1;
+    srvRange1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+    params[2].InitAsDescriptorTable(1, &srvRange1);
+
+    // ルートシグネチャ生成
+    createRootSignature(params, _countof(params), RootSignatureType::BloomComposite);
 }
 
 void RootSignatureManager::createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type)

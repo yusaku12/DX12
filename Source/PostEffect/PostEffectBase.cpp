@@ -11,9 +11,22 @@ void PostEffectBase::registerPSO(ShaderID psShaderID)
     data.blendState = BlendState::OPAQUE;
     data.depthStencilState = DepthStencilState::DEPTH_NONE;
     data.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    // 入力レイアウトなし（VS で SV_VertexID から生成）
 
     m_psoKey = PSOCreator::Instance().registerPSO(data);
+}
+
+size_t PostEffectBase::registerPSO(ShaderID psShaderID, RootSignatureType rsType)
+{
+    PSOCreator::PSOData data{};
+    data.rootSignatureType = rsType;
+    data.vsShaderId = ShaderID::PostEffectVS;
+    data.psShaderId = psShaderID;
+    data.rasterizerState = RasterizerState::CULL_NONE;
+    data.blendState = BlendState::OPAQUE;
+    data.depthStencilState = DepthStencilState::DEPTH_NONE;
+    data.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+    return PSOCreator::Instance().registerPSO(data);
 }
 
 void PostEffectBase::drawFullscreenTriangle(ID3D12GraphicsCommandList* cmd)
@@ -28,4 +41,9 @@ void PostEffectBase::drawFullscreenTriangle(ID3D12GraphicsCommandList* cmd)
 void PostEffectBase::applyPSO(ID3D12GraphicsCommandList* cmd)
 {
     PSOCreator::Instance().setPSO(m_psoKey, cmd);
+}
+
+void PostEffectBase::applyPSO(size_t key, ID3D12GraphicsCommandList* cmd)
+{
+    PSOCreator::Instance().setPSO(key, cmd);
 }
