@@ -6,6 +6,7 @@
 #include "Component\AnimationComponent.h"
 #include "Component\PostEffectComponent.h"
 #include "PostEffect\BloomEffect.h"
+#include "PostEffect\ColorGradingEffect.h"
 
 void ModelEditorScene::onEnter()
 {
@@ -22,6 +23,7 @@ void ModelEditorScene::onEnter()
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
     pe->addEffect<BloomEffect>();
+    pe->addEffect<ColorGradingEffect>();
 }
 
 void ModelEditorScene::update()

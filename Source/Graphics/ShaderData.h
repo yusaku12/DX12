@@ -20,6 +20,7 @@ enum class ShaderID : int
     BloomDownsamplePS,
     BloomUpsamplePS,
     BloomCompositePS,
+    ColorGradingPS,
     MAX
 };
 
@@ -51,4 +52,5 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/BloomDownsamplePS.hlsl",  "PS", "ps_5_0" },  //!< BloomDownsamplePS
     ShaderDesc{ L"Shader/BloomUpsamplePS.hlsl",    "PS", "ps_5_0" },  //!< BloomUpsamplePS
     ShaderDesc{ L"Shader/BloomCompositePS.hlsl",   "PS", "ps_5_0" },  //!< BloomCompositePS
+    ShaderDesc{ L"Shader/ColorGradingPS.hlsl",     "PS", "ps_5_0" },  //!< ColorGradingPS
 };

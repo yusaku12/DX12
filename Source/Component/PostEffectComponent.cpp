@@ -31,7 +31,6 @@ void PostEffectComponent::inspectGUI()
         }
 
         ImGui::PopID();
-        ImGui::Separator();
     }
 }
 

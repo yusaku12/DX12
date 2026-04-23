@@ -106,6 +106,7 @@
     <ClCompile Include="Source\Physics\PhysicsWorld.cpp" />
     <ClCompile Include="Source\Physics\Raycast.cpp" />
     <ClCompile Include="Source\PostEffect\BloomEffect.cpp" />
+    <ClCompile Include="Source\PostEffect\ColorGradingEffect.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
@@ -205,6 +206,7 @@
     <ClInclude Include="Source\Physics\PhysXHelper.h" />
     <ClInclude Include="Source\Physics\Raycast.h" />
     <ClInclude Include="Source\PostEffect\BloomEffect.h" />
+    <ClInclude Include="Source\PostEffect\ColorGradingEffect.h" />
     <ClInclude Include="Source\PostEffect\PostEffectBase.h" />
     <ClInclude Include="Source\PostEffect\PostEffectRenderTargets.h" />
     <ClInclude Include="Source\Render\RenderManager.h" />
@@ -264,6 +266,14 @@
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
     </FxCompile>
     <FxCompile Include="HLSL\BloomUpsamplePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="HLSL\ColorGradingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>

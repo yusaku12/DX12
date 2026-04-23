@@ -78,6 +78,7 @@
     <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
     <ClCompile Include="Source\PostEffect\BloomEffect.cpp" />
+    <ClCompile Include="Source\PostEffect\ColorGradingEffect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -377,6 +378,9 @@
     <ClInclude Include="Source\PostEffect\BloomEffect.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
+    <ClInclude Include="Source\PostEffect\ColorGradingEffect.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\Polygon.hlsli" />
@@ -409,5 +413,6 @@
     <FxCompile Include="HLSL\BloomPrefilterPS.hlsl" />
     <FxCompile Include="HLSL\BloomCompositePS.hlsl" />
     <FxCompile Include="HLSL\BloomDownsamplePS.hlsl" />
+    <FxCompile Include="HLSL\ColorGradingPS.hlsl" />
   </ItemGroup>
 </Project>
