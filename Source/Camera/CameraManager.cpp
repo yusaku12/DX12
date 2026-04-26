@@ -57,8 +57,8 @@ void CameraManager::uploadCameraBufferToGPU()
     auto proj = mainCam->getProjection();
 
     GPUCameraBuffer camera{};
-    camera.view = view.Transpose();
-    camera.projection = proj.Transpose();
+    camera.view = view;
+    camera.projection = proj;
     camera.viewProjection = (view * proj);
     camera.cameraPos = mainCam->getPosition();
 

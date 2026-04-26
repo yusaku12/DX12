@@ -7,6 +7,7 @@
 #include "Component\PostEffectComponent.h"
 #include "PostEffect\BloomEffect.h"
 #include "PostEffect\ColorGradingEffect.h"
+#include "Component\SkyboxComponent.h"
 
 void ModelEditorScene::onEnter()
 {
@@ -18,6 +19,10 @@ void ModelEditorScene::onEnter()
     object->addComponent<TransformComponent>();
     object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
     object->addComponent<AnimationComponent>();
+
+    GameObject* skyboxObj = new GameObject("Skybox");
+    auto* skybox = skyboxObj->addComponent<SkyboxComponent>();
+    skybox->setCubemap(L"Data/Texture/test.dds");
 
     GameObject* postEffectObj = new GameObject("PostEffectVolume");
     postEffectObj->addTag(Tag::PostEffect);

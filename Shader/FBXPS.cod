@@ -8,6 +8,8 @@
 // {
 //
 //   float4 diffuse;                    // Offset:    0 Size:    16
+//   float3 pbr;                        // Offset:   16 Size:    12 [unused]
+//   float padding1;                    // Offset:   28 Size:     4 [unused]
 //
 // }
 //

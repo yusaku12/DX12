@@ -228,11 +228,13 @@ void FbxRenderComponent::createMaterialCBV()
         {
             const auto& m = modelData.materials[i];
             cb.diffuse = m.diffuseColor;
+            cb.pbr = Vector3{ m.metallic, m.roughness, m.ao };
         }
         else
         {
             // マテリアルが無い場合はデフォルト白
             cb.diffuse = Vector4{ 1.f, 1.f, 1.f, 1.f };
+            cb.pbr = Vector3{ 0.0f, 0.5f, 1.0f };
         }
         m_materialCB->update(cb, i);
     }
@@ -247,6 +249,7 @@ void FbxRenderComponent::updateMaterialCBV()
     {
         MaterialCB cb{};
         cb.diffuse = modelData.materials[i].diffuseColor;
+        cb.pbr = Vector3{ modelData.materials[i].metallic, modelData.materials[i].roughness, modelData.materials[i].ao };
         m_materialCB->update(cb, i);
     }
 }
@@ -268,7 +271,7 @@ size_t FbxRenderComponent::createPSO(RasterizerState rasterizer)
     PSOCreator::PSOData psoData{};
     psoData.rootSignatureType = RootSignatureType::PMXStandard;
     psoData.vsShaderId = ShaderID::FBXVS;
-    psoData.psShaderId = ShaderID::FBXPS;
+    psoData.psShaderId = ShaderID::PBRPS;
     psoData.rasterizerState = rasterizer;
     psoData.blendState = BlendState::ALPHA;
     psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
@@ -317,6 +320,13 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
         // CBV 更新 & ルートにセット
         m_modelCB->update(modelCBData, static_cast<UINT>(meshIdx));
         cmd->SetGraphicsRootConstantBufferView(1, m_modelCB->getGPUAddress(static_cast<UINT>(meshIdx)));
+
+        // IBL ディスクリプタをセット
+        auto iblHandle = IBLManager::Instance().getDescriptorHandle();
+        if (iblHandle.ptr != 0)
+        {
+            cmd->SetGraphicsRootDescriptorTable(4, iblHandle);
+        }
 
         // メッシュバッファをセット（現在処理中のメッシュのみ）
         m_model->getResource()->bindGpuMesh(cmd, meshIdx);
@@ -448,6 +458,25 @@ void FbxRenderComponent::imguiMaterialPanel()
             if (ImGui::ColorEdit4(colorId.c_str(), color, ImGuiColorEditFlags_Float | ImGuiColorEditFlags_AlphaBar))
             {
                 mat.diffuseColor = Vector4(color[0], color[1], color[2], color[3]);
+                materialChanged = true;
+            }
+
+            // PBR パラメータ
+            std::string metallicId = std::string(reinterpret_cast<const char*>(u8"メタリック##matMetal")) + std::to_string(i);
+            if (ImGui::SliderFloat(metallicId.c_str(), &mat.metallic, 0.0f, 1.0f))
+            {
+                materialChanged = true;
+            }
+
+            std::string roughnessId = std::string(reinterpret_cast<const char*>(u8"ラフネス##matRough")) + std::to_string(i);
+            if (ImGui::SliderFloat(roughnessId.c_str(), &mat.roughness, 0.0f, 1.0f))
+            {
+                materialChanged = true;
+            }
+
+            std::string aoId = std::string(reinterpret_cast<const char*>(u8"AO##matAO")) + std::to_string(i);
+            if (ImGui::SliderFloat(aoId.c_str(), &mat.ao, 0.0f, 1.0f))
+            {
                 materialChanged = true;
             }
 

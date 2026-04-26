@@ -71,7 +71,9 @@
     <ClCompile Include="Source\Component\IRenderComponent.cpp" />
     <ClCompile Include="Source\Component\PostEffectComponent.cpp" />
     <ClCompile Include="Source\Component\RigidbodyComponent.cpp" />
+    <ClCompile Include="Source\Component\SkyboxComponent.cpp" />
     <ClCompile Include="Source\Component\TransformComponent.cpp" />
+    <ClCompile Include="Source\Editor\CubemapToolWindow.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -85,6 +87,7 @@
     <ClCompile Include="Source\Graphics\DescriptorHeapManager.cpp" />
     <ClCompile Include="Source\Graphics\CommandListPool.cpp" />
     <ClCompile Include="Source\Graphics\DX12.cpp" />
+    <ClCompile Include="Source\Graphics\IBLManager.cpp" />
     <ClCompile Include="Source\Graphics\LoadTexture.cpp" />
     <ClCompile Include="Source\Graphics\PiplineState.cpp" />
     <ClCompile Include="Source\Graphics\PSOCreator.cpp" />
@@ -172,7 +175,9 @@
     <ClInclude Include="Source\Component\Object.h" />
     <ClInclude Include="Source\Component\PostEffectComponent.h" />
     <ClInclude Include="Source\Component\RigidbodyComponent.h" />
+    <ClInclude Include="Source\Component\SkyboxComponent.h" />
     <ClInclude Include="Source\Component\TransformComponent.h" />
+    <ClInclude Include="Source\Editor\CubemapToolWindow.h" />
     <ClInclude Include="Source\Editor\EditorContext.h" />
     <ClInclude Include="Source\Editor\EditorManager.h" />
     <ClInclude Include="Source\Editor\HierarchyWindow.h" />
@@ -182,6 +187,7 @@
     <ClInclude Include="Source\GameObject\GameObjectRegistry.h" />
     <ClInclude Include="Source\GameObject\ObjectPicker.h" />
     <ClInclude Include="Source\Graphics\ConstantBuffer.h" />
+    <ClInclude Include="Source\Graphics\IBLManager.h" />
     <ClInclude Include="Source\Graphics\IndexBuffer.h" />
     <ClInclude Include="Source\Graphics\PSOCreator.h" />
     <ClInclude Include="Source\Graphics\ShaderData.h" />
@@ -239,6 +245,7 @@
     <None Include="HLSL\PMX.hlsli" />
     <None Include="HLSL\Polygon.hlsli" />
     <None Include="HLSL\PostEffect.hlsli" />
+    <None Include="HLSL\SkyBox.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\BloomPrefilterPS.hlsl">
@@ -313,6 +320,14 @@
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
     </FxCompile>
+    <FxCompile Include="HLSL\PBRPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+    </FxCompile>
     <FxCompile Include="HLSL\PMXPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -351,6 +366,22 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="HLSL\SkyBoxPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+    </FxCompile>
+    <FxCompile Include="HLSL\SkyBoxVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
     </FxCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">

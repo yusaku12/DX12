@@ -9,6 +9,7 @@ enum class RootSignatureType : int
     DebugPrimitive,
     PostEffect,
     BloomComposite,
+    Skybox,
     Max
 };
 
@@ -55,6 +56,9 @@ private:
 
     //! BloomCompositeをビルド
     void buildBloomComposite();
+
+    //! Skyboxをビルド
+    void buildSkybox();
 
     //! テスト
     void createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type);

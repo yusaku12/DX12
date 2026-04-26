@@ -56,6 +56,8 @@ private:
     struct MaterialCB
     {
         Vector4 diffuse = {};
+        Vector3 pbr = { 0.0f, 0.5f, 1.0f };
+        float padding1 = 0.0f;
     };
 
     //! FBX ファイルを読み込む

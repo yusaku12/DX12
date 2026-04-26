@@ -13,6 +13,7 @@ enum class ShaderID : int
     PMXPS,
     FBXVS,
     FBXPS,
+    PBRPS,
     DebugPrimitiveVS,
     DebugPrimitivePS,
     PostEffectVS,
@@ -21,6 +22,8 @@ enum class ShaderID : int
     BloomUpsamplePS,
     BloomCompositePS,
     ColorGradingPS,
+    SkyboxVS,
+    SkyboxPS,
     MAX
 };
 
@@ -45,6 +48,7 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/PMXPS.hlsl",              "PS", "ps_5_0" },  //!< PMXPS
     ShaderDesc{ L"Shader/FBXVS.hlsl",              "VS", "vs_5_0" },  //!< FBXVS
     ShaderDesc{ L"Shader/FBXPS.hlsl",              "PS", "ps_5_0" },  //!< FBXPS
+    ShaderDesc{ L"Shader/PBRPS.hlsl",              "PS", "ps_5_0" },  //!< PBRPS
     ShaderDesc{ L"Shader/DebugPrimitiveVS.hlsl",   "VS", "vs_5_0" },  //!< DebugVS
     ShaderDesc{ L"Shader/DebugPrimitivePS.hlsl",   "PS", "ps_5_0" },  //!< DebugPS
     ShaderDesc{ L"Shader/PostEffectVS.hlsl",       "VS", "vs_5_0" },  //!< PostEffectVS
@@ -53,4 +57,6 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/BloomUpsamplePS.hlsl",    "PS", "ps_5_0" },  //!< BloomUpsamplePS
     ShaderDesc{ L"Shader/BloomCompositePS.hlsl",   "PS", "ps_5_0" },  //!< BloomCompositePS
     ShaderDesc{ L"Shader/ColorGradingPS.hlsl",     "PS", "ps_5_0" },  //!< ColorGradingPS
+    ShaderDesc{ L"Shader/SkyboxVS.hlsl",           "VS", "vs_5_0" },  //!< SkyboxVS
+    ShaderDesc{ L"Shader/SkyboxPS.hlsl",           "PS", "ps_5_0" },  //!< SkyboxPS
 };

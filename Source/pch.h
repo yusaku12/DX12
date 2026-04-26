@@ -71,6 +71,7 @@
 #include "Camera\CameraManager.h"
 #include "Editor\ScreenCapture.h"
 #include "PostEffect\PostEffectRenderTargets.h"
+#include "Graphics\IBLManager.h"
 
 //! 省略系
 using namespace DirectX;

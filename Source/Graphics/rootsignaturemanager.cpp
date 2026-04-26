@@ -6,6 +6,7 @@ void RootSignatureManager::initialize()
     buildDebugPrimitive();
     buildPostEffect();
     buildBloomComposite();
+    buildSkybox();
 }
 
 ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
@@ -15,7 +16,7 @@ ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType ty
 
 void RootSignatureManager::buildPMXStandard()
 {
-    CD3DX12_ROOT_PARAMETER params[4];
+    CD3DX12_ROOT_PARAMETER params[5];
 
     // Camera
     params[0].InitAsConstantBufferView(0);
@@ -29,8 +30,12 @@ void RootSignatureManager::buildPMXStandard()
     // Texture (SRV)
     CD3DX12_DESCRIPTOR_RANGE range;
     range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
-
     params[3].InitAsDescriptorTable(1, &range);
+
+    // IBL (SRV)
+    CD3DX12_DESCRIPTOR_RANGE range1;
+    range1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 2);
+    params[4].InitAsDescriptorTable(1, &range1);
 
     // ルートシグネチャ生成
     createRootSignature(params, _countof(params), RootSignatureType::PMXStandard);
@@ -86,6 +91,25 @@ void RootSignatureManager::buildBloomComposite()
 
     // ルートシグネチャ生成
     createRootSignature(params, _countof(params), RootSignatureType::BloomComposite);
+}
+
+void RootSignatureManager::buildSkybox()
+{
+    CD3DX12_ROOT_PARAMETER params[3] = {};
+
+    // カメラ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // Skybox パラメータ CBV (b1)
+    params[1].InitAsConstantBufferView(1);
+
+    // キューブマップ SRV テーブル (t0)
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[2].InitAsDescriptorTable(1, &srvRange);
+
+    // ルートシグネチャ生成
+    createRootSignature(params, _countof(params), RootSignatureType::Skybox);
 }
 
 void RootSignatureManager::createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type)

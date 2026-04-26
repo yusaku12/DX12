@@ -27,4 +27,6 @@ cbuffer Transform : register(b1)
 cbuffer Material : register(b2)
 {
     float4 diffuse;
+    float3 pbr; //!< x: metallic, y: roughness, z: ao
+    float padding1;
 };
