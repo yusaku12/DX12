@@ -10,6 +10,8 @@ public:
     //! PSOデータ構造体
     struct PSOData
     {
+        static constexpr UINT MaxRenderTargets = 8;
+
         RootSignatureType rootSignatureType = RootSignatureType::DebugPrimitive;
         ShaderID vsShaderId = ShaderID::MAX;
         ShaderID psShaderId = ShaderID::MAX;
@@ -18,6 +20,10 @@ public:
         DepthStencilState depthStencilState = DepthStencilState::DEPTH_DEFALT;
         std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
         D3D12_PRIMITIVE_TOPOLOGY_TYPE topologyType = {};
+
+        //! MRT 設定（0の場合はバックバッファ1枚）
+        UINT numRenderTargets = 0;
+        std::array<DXGI_FORMAT, MaxRenderTargets> rtvFormats = {};
 
         // ハッシュ値計算（inputLayoutは除外：enumの組み合わせで十分識別可能）
         size_t computeHash() const
@@ -30,6 +36,11 @@ public:
             hashCombine(h, static_cast<size_t>(blendState));
             hashCombine(h, static_cast<size_t>(depthStencilState));
             hashCombine(h, static_cast<size_t>(topologyType));
+            hashCombine(h, static_cast<size_t>(numRenderTargets));
+            for (auto fmt : rtvFormats)
+            {
+                hashCombine(h, static_cast<size_t>(fmt));
+            }
             return h;
         }
 
@@ -41,7 +52,9 @@ public:
                 && rasterizerState == other.rasterizerState
                 && blendState == other.blendState
                 && depthStencilState == other.depthStencilState
-                && topologyType == other.topologyType;
+                && topologyType == other.topologyType
+                && numRenderTargets == other.numRenderTargets
+                && rtvFormats == other.rtvFormats;
         }
 
     private:

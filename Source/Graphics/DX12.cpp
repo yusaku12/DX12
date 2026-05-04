@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "GameObject\GameObject.h"
 #include "Component\PostEffectComponent.h"
+#include "Camera/CameraComponent.h"
 
 DX12* DX12::m_instance = nullptr;
 
@@ -83,6 +84,9 @@ DX12::DX12(HWND hwnd)
     // post-pass 用コマンドアロケーターを作成
     hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_postCommandAllocator.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateCommandAllocator (post)");
+
+    hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_postCommandAllocator2.GetAddressOf()));
+    LOG_HR(hr, "Failed to CreateCommandAllocator (post2)");
 
     // コマンドリスト作成
     hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_graphicsCommandList.GetAddressOf()));
@@ -269,32 +273,42 @@ void DX12::initialize()
     LOG_HR(hr, "Failed to CreateFence");
 }
 
-void DX12::screenClear()
+void DX12::screenClear(RenderPath renderPath)
 {
     // DescriptorHeap
     DescriptorHeapManager::Instance().setDescriptorHeap();
 
-    // Scene用バリア
-    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        m_sceneRenderTarget.Get(),
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-        D3D12_RESOURCE_STATE_RENDER_TARGET);
+    auto* cmd = m_graphicsCommandList.Get();
 
-    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+    if (renderPath == RenderPath::Forward)
+    {
+        transitionSceneToRenderTarget();
 
-    // SceneRTVをセット
-    applySceneRenderTargets(m_graphicsCommandList.Get());
+        FLOAT clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
+        cmd->ClearRenderTargetView(m_sceneRTVHandle, clearColor, 0, nullptr);
 
-    //! Sceneクリア
-    FLOAT clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
-    m_graphicsCommandList->ClearRenderTargetView(
-        m_sceneRTVHandle,
-        clearColor,
-        0,
-        nullptr
-    );
+        cmd->ClearDepthStencilView(
+            m_dsvHandle,
+            D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            1.0f,
+            0,
+            0,
+            nullptr
+        );
 
-    // 深度ステンシルビューをセット
+        cmd->OMSetRenderTargets(1, &m_sceneRTVHandle, FALSE, &m_dsvHandle);
+        applyViewportAndScissor(cmd);
+        return;
+    }
+
+    auto& gbuffer = GBufferRenderTargets::Instance();
+
+    // GBuffer を RT に遷移 & クリア
+    gbuffer.transitionToRenderTarget(cmd);
+    gbuffer.clear(cmd);
+    gbuffer.setRenderTargets(cmd, m_dsvHandle);
+
+    // 深度ステンシルクリア
     m_graphicsCommandList->ClearDepthStencilView(
         m_dsvHandle,
         D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
@@ -518,28 +532,9 @@ void DX12::screenResize(int width, int height)
     m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
     m_sceneRTVHandle.ptr += BUFFER_COUNT * rtvSize;
 
-    m_device->CreateRenderTargetView(
-        m_sceneRenderTarget.Get(),
-        nullptr,
-        m_sceneRTVHandle
-    );
-
-    // Scene SRV 再作成
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = desc.BufferDesc.Format;
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = 1;
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-    // DescriptorHeapManager を使って SRV を作成し、インデックスを取得
-    auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
-    m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
-
-    // ポストエフェクト用 RenderTarget をリサイズ
+    // GBuffer / PostEffect リサイズ
+    DeferredRenderer::Instance().resize(m_width, m_height);
     PostEffectRenderTargets::Instance().resize(m_width, m_height);
-
-    // コマンドリセット
-    commandReset();
 }
 
 void DX12::enableDebugLayer()
@@ -659,18 +654,38 @@ void DX12::prepareBackBufferForImGui()
     m_postCommandAllocator->Reset();
     m_graphicsCommandList->Reset(m_postCommandAllocator.Get(), nullptr);
 
+    RenderPassContext context{};
+    context.renderPath = CameraManager::Instance().getMainRenderPath();
+    context.passMask = CameraManager::Instance().getMainRenderPassMask();
+    context.useMultiThreaded = RenderManager::Instance().isMultiThreadedEnabled();
+    context.sceneSrvIndex = m_sceneSrvIndex;
+    context.finalSrvIndex = m_sceneSrvIndex;
+
+    RenderPipeline::Instance().execute(context, RenderPassStage::BeforePostEffect);
+
+    if (context.requestWorkerFlush)
+    {
+        executeCommandList();
+
+        auto forwardLists = CommandListPool::Instance().getClosedCommandLists();
+        if (!forwardLists.empty())
+        {
+            m_commandQueue->ExecuteCommandLists(
+                static_cast<UINT>(forwardLists.size()),
+                forwardLists.data());
+        }
+        CommandListPool::Instance().resetAll();
+
+        m_postCommandAllocator2->Reset();
+        m_graphicsCommandList->Reset(m_postCommandAllocator2.Get(), nullptr);
+    }
+
     // Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
     transitionSceneToSRV();
 
-    // 最終的なポストエフェクトのSRVを決定（なければSceneSRVのまま）
-    m_finalPostEffectSrv = m_sceneSrvIndex;
-    if (auto* obj = GameObjectRegistry::Instance().findByTag(Tag::PostEffect))
-    {
-        if (auto* post = obj->getComponent<PostEffectComponent>())
-        {
-            m_finalPostEffectSrv = post->execute(m_sceneSrvIndex);
-        }
-    }
+    RenderPipeline::Instance().execute(context, RenderPassStage::PostEffect);
+
+    m_finalPostEffectSrv = context.finalSrvIndex;
 
     UINT bbIdx = m_dxgiSwapChain4->GetCurrentBackBufferIndex();
 
@@ -735,6 +750,7 @@ void DX12::commandReset()
     // 領域をクリア、次フレーム用に命令を積める状態にする
     m_commandAllocator->Reset();
     m_postCommandAllocator->Reset();
+    m_postCommandAllocator2->Reset();
     m_graphicsCommandList->Reset(m_commandAllocator.Get(), nullptr);
 }
 
@@ -770,4 +786,14 @@ void DX12::captureScreenshot()
 
     //! GPU待機して完全にコピーが完了するのを待つ
     safeGPUWait();
+}
+
+void DX12::transitionSceneToRenderTarget()
+{
+    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_sceneRenderTarget.Get(),
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+    m_graphicsCommandList->ResourceBarrier(1, &barrier);
 }

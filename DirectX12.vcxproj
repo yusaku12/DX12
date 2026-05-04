@@ -101,7 +101,6 @@
     <ClCompile Include="Source\Model\FbxLoad.cpp" />
     <ClCompile Include="Source\Model\Model.cpp" />
     <ClCompile Include="Source\Model\ModelResource.cpp" />
-    <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -111,8 +110,12 @@
     <ClCompile Include="Source\PostEffect\BloomEffect.cpp" />
     <ClCompile Include="Source\PostEffect\ColorGradingEffect.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
+    <ClCompile Include="Source\PostEffect\PostEffectManager.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
+    <ClCompile Include="Source\Render\DeferredRenderer.cpp" />
+    <ClCompile Include="Source\Render\GBufferRenderTargets.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
+    <ClCompile Include="Source\Render\RenderPipeline.cpp" />
     <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
@@ -206,7 +209,6 @@
     <ClInclude Include="Source\Model\FbxLoad.h" />
     <ClInclude Include="Source\Model\Model.h" />
     <ClInclude Include="Source\Model\ModelResource.h" />
-    <ClInclude Include="Source\Model\PmxLoad.h" />
     <ClInclude Include="Source\pch.h" />
     <ClInclude Include="Source\Physics\PhysicsWorld.h" />
     <ClInclude Include="Source\Physics\PhysXHelper.h" />
@@ -214,8 +216,13 @@
     <ClInclude Include="Source\PostEffect\BloomEffect.h" />
     <ClInclude Include="Source\PostEffect\ColorGradingEffect.h" />
     <ClInclude Include="Source\PostEffect\PostEffectBase.h" />
+    <ClInclude Include="Source\PostEffect\PostEffectManager.h" />
     <ClInclude Include="Source\PostEffect\PostEffectRenderTargets.h" />
+    <ClInclude Include="Source\Render\DeferredRenderer.h" />
+    <ClInclude Include="Source\Render\GBufferRenderTargets.h" />
     <ClInclude Include="Source\Render\RenderManager.h" />
+    <ClInclude Include="Source\Render\RenderPassBase.h" />
+    <ClInclude Include="Source\Render\RenderPipeline.h" />
     <ClInclude Include="Source\Scene\ModelEditorScene.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
@@ -242,8 +249,6 @@
     <None Include="HLSL\CommonConstants.hlsli" />
     <None Include="HLSL\DebugPrimitive.hlsli" />
     <None Include="HLSL\FBX.hlsli" />
-    <None Include="HLSL\PMX.hlsli" />
-    <None Include="HLSL\Polygon.hlsli" />
     <None Include="HLSL\PostEffect.hlsli" />
     <None Include="HLSL\SkyBox.hlsli" />
   </ItemGroup>
@@ -327,38 +332,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
-    </FxCompile>
-    <FxCompile Include="HLSL\PMXPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
-    </FxCompile>
-    <FxCompile Include="HLSL\PMXVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
-    </FxCompile>
-    <FxCompile Include="HLSL\PolygonPS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
-    </FxCompile>
-    <FxCompile Include="HLSL\PolygonVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
     </FxCompile>
     <FxCompile Include="HLSL\PostEffectVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

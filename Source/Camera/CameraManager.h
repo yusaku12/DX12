@@ -3,6 +3,8 @@
 #include "Graphics/ConstantBuffer.h"
 
 class CameraComponent;
+enum class RenderPath : int;
+enum class RenderPassFlags : unsigned int;
 
 //=====================================================
 // カメラマネージャ（シングルトン）
@@ -26,6 +28,12 @@ public:
 
     //! アクティブなメインカメラを返す（depth 最大、なければ nullptr）
     CameraComponent* getMainCamera() const;
+
+    //! メインカメラの描画パス取得
+    RenderPath getMainRenderPath() const;
+
+    //! メインカメラの描画パスマスク取得
+    RenderPassFlags getMainRenderPassMask() const;
 
     //! 初期化
     void initialize();

@@ -11,7 +11,7 @@ Window::Window(HWND hwnd)
     // DX12初期化
     m_dx12.initialize();
 
-    // CommandListPool初期化（ワーカースレッド用）
+    // CommandListPool初期化
     CommandListPool::Instance().initialize(m_dx12.getDevice(), 4);
 
     // imgui初期化
@@ -32,6 +32,9 @@ Window::Window(HWND hwnd)
     // ポストエフェクト用ピンポンRT初期化
     PostEffectRenderTargets::Instance().initialize();
 
+    // Deferred Renderer 初期化
+    DeferredRenderer::Instance().initialize();
+
     // TimeManager初期化
     TimeManager::Instance().initialize();
 
@@ -44,10 +47,13 @@ Window::Window(HWND hwnd)
     // デバックプリミティブ描画初期化
     DebugPrimitive::Instance().initialize();
 
-    // 物理マネージャー初期化（SceneManager より前に初期化すること）
+    // RenderPipeline初期化
+    RenderPipeline::Instance().initialize();
+
+    // 物理マネージャー初期化
     PhysicsWorld::Instance().initialize();
 
-    // シーンマネージャー初期化（onEnter で ColliderComponent 等が PhysicsWorld を使うため最後）
+    // シーンマネージャー初期化
     SceneManager::Instance().initialize();
 }
 
@@ -105,13 +111,10 @@ void Window::render()
     // フレーム開始処理
     TimeManager::Instance().frameStart(m_dx12.getGraphicsCommandList());
 
-    // 画面をクリア（メインコマンドリストにバリア・クリア・ビューポート・シザーを記録）
-    m_dx12.screenClear();
+    // 画面をクリア（描画パスに応じて切替）
+    m_dx12.screenClear(CameraManager::Instance().getMainRenderPath());
 
-    // デバックプリミティブ描画（メインコマンドリストで実行）
-    DebugPrimitive::Instance().render();
-
-    // シーンマネージャ描画（マルチスレッドでワーカーコマンドリストに記録）
+    // シーンマネージャ描画（GBuffer パスをワーカーコマンドに記録）
     SceneManager::Instance().draw();
 
     // バックバッファをimgui用に準備
@@ -151,7 +154,7 @@ void Window::imguiRender()
     m_dx12.sceneImguiRender();
 
     // RenderManagerのimgui描画
-    RenderManager::Instance().debugImgui();
+    //RenderManager::Instance().debugImgui();
 
     // EditorManagerのimgui描画
     EditorManager::Instance().imgui();

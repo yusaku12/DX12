@@ -35,11 +35,16 @@ public:
     int getPriority() const { return m_priority; }
     void setPriority(int priority) { m_priority = priority; }
 
+    //! ブレンドウェイト
+    virtual void setBlendWeight(float weight) { m_blendWeight = weight; }
+    float getBlendWeight() const { return m_blendWeight; }
+
 protected:
 
     bool m_enabled = true;
     int m_priority = 0;
-    size_t m_psoKey = 0;    //!< PSOCreator に登録したキー
+    float m_blendWeight = 1.0f; //!< ブレンドウェイト
+    size_t m_psoKey = 0;        //!< PSOCreator に登録したキー
 
     //! PSO 登録ヘルパー（派生クラスの initialize() で呼ぶ）
     void registerPSO(ShaderID psShaderID);

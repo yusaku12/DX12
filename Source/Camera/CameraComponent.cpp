@@ -51,6 +51,43 @@ void CameraComponent::inspectGUI()
     ImGui::DragFloat("Far", &m_farZ, 1.0f, 1.0f, 10000.0f);
     ImGui::DragInt("Depth", &m_depth, 1.0f, -100, 100);
 
+    const char* renderPathItems[] = { "Deferred", "Forward" };
+    int renderPath = static_cast<int>(m_renderPath);
+    if (ImGui::Combo("Render Path", &renderPath, renderPathItems, IM_ARRAYSIZE(renderPathItems)))
+    {
+        m_renderPath = static_cast<RenderPath>(renderPath);
+    }
+
+    ImGui::Separator();
+
+    ImGui::Text("Render Passes");
+
+    if (m_renderPath == RenderPath::Deferred)
+    {
+        bool gbuffer = isRenderPassEnabled(RenderPassFlags::GBuffer);
+        bool lighting = isRenderPassEnabled(RenderPassFlags::Lighting);
+
+        if (ImGui::Checkbox("GBuffer", &gbuffer))
+            setRenderPassEnabled(RenderPassFlags::GBuffer, gbuffer);
+
+        if (ImGui::Checkbox("Lighting (Include Forward)", &lighting))
+            setRenderPassEnabled(RenderPassFlags::Lighting, lighting);
+    }
+    else
+    {
+        bool forward = isRenderPassEnabled(RenderPassFlags::Forward);
+        if (ImGui::Checkbox("Forward", &forward))
+            setRenderPassEnabled(RenderPassFlags::Forward, forward);
+    }
+
+    bool post = isRenderPassEnabled(RenderPassFlags::PostEffect);
+    if (ImGui::Checkbox("PostEffect", &post))
+        setRenderPassEnabled(RenderPassFlags::PostEffect, post);
+
+    bool debug = isRenderPassEnabled(RenderPassFlags::Debug);
+    if (ImGui::Checkbox("Debug", &debug))
+        setRenderPassEnabled(RenderPassFlags::Debug, debug);
+
     ImGui::Separator();
 
     Vector3 pos = getPosition();

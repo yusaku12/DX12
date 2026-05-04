@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Scene.h"
 #include "GameObject\GameObject.h"
+#include "Camera/CameraComponent.h"
 
 void Scene::onExit()
 {
@@ -13,12 +14,12 @@ void Scene::onExit()
 
 void Scene::draw()
 {
-    if (m_useMultiThreadedRendering)
-    {
-        RenderManager::Instance().renderMultiThreaded();
-    }
-    else
-    {
-        RenderManager::Instance().render();
-    }
+    RenderManager::Instance().setMultiThreadedEnabled(m_useMultiThreadedRendering);
+
+    RenderPassContext context{};
+    context.renderPath = CameraManager::Instance().getMainRenderPath();
+    context.passMask = CameraManager::Instance().getMainRenderPassMask();
+    context.useMultiThreaded = m_useMultiThreadedRendering;
+
+    RenderPipeline::Instance().execute(context, RenderPassStage::Scene);
 }

@@ -28,6 +28,12 @@ public:
     //! 描画（マルチスレッド描画）
     void render(ID3D12GraphicsCommandList* cmd) override;
 
+    //! GBuffer 描画
+    void renderGBuffer(ID3D12GraphicsCommandList* cmd) override;
+
+    //! Forward 描画
+    void renderForward(ID3D12GraphicsCommandList* cmd) override;
+
     //! インスペクタ表示
     void inspectGUI() override;
 
@@ -75,6 +81,9 @@ private:
     //! PSO を構築（RasterizerState を指定）
     size_t createPSO(RasterizerState rasterizer);
 
+    //! GBuffer PSO を構築
+    size_t createGBufferPSO();
+
     //! 描画コア処理（PSO 別）
     void renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey);
 
@@ -109,6 +118,7 @@ private:
     std::unique_ptr<ConstantBuffer<MaterialCB>> m_materialCB;
     size_t m_solidPSOKey = 0;
     size_t m_wireframePSOKey = 0;
+    size_t m_gbufferPSOKey = 0;
     DebugMode m_debugMode = DebugMode::None;
     TransformComponent* m_transform = nullptr;
     std::unique_ptr<Model> m_model;

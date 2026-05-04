@@ -108,16 +108,24 @@ Microsoft::WRL::ComPtr<ID3D12PipelineState> PSOCreator::buildPSO(const PSOData& 
     gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
     gpipeline.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-    // ここのコードは改善必須
+    // レンダーターゲット設定
+    if (data.numRenderTargets == 0)
     {
-        // レンダーターゲット設定
         gpipeline.NumRenderTargets = 1;
         gpipeline.RTVFormats[0] = DX12::Instance().getBackBufferFormat();
-
-        // サンプル設定
-        gpipeline.SampleDesc.Count = 1;
-        gpipeline.SampleDesc.Quality = 0;
     }
+    else
+    {
+        gpipeline.NumRenderTargets = data.numRenderTargets;
+        for (UINT i = 0; i < data.numRenderTargets; ++i)
+        {
+            gpipeline.RTVFormats[i] = data.rtvFormats[i];
+        }
+    }
+
+    // サンプル設定
+    gpipeline.SampleDesc.Count = 1;
+    gpipeline.SampleDesc.Quality = 0;
 
     // パイプラインステート作成
     Microsoft::WRL::ComPtr<ID3D12PipelineState> pso;

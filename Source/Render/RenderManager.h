@@ -27,11 +27,29 @@ public:
     //! シングルスレッド描画（全登録コンポーネントを描画）
     void render();
 
+    //! GBuffer 描画（シングルスレッド）
+    void renderGBuffer();
+
+    //! Forward 描画（シングルスレッド）
+    void renderForward();
+
     //! マルチスレッド描画（全登録コンポーネントを並列でコマンド記録）
     void renderMultiThreaded();
 
+    //! GBuffer 描画（マルチスレッド）
+    void renderMultiThreadedGBuffer();
+
+    //! Forward 描画（マルチスレッド）
+    void renderMultiThreadedForward();
+
+    //! マルチスレッド使用フラグ設定
+    void setMultiThreadedEnabled(bool enabled) { m_useMultiThreaded = enabled; }
+
+    //! マルチスレッド使用フラグ取得
+    bool isMultiThreadedEnabled() const { return m_useMultiThreaded; }
+
     //! デバック描画
-    void debugImgui();
+    //void debugImgui();
 
     //! 登録数取得
     size_t getComponentCount() const { return m_components.size(); }
@@ -60,4 +78,6 @@ private:
     float m_totalMs = 0.0f;
     float m_singleEstimateMs = 0.0f;
     std::mutex m_timingMutex;
+
+    bool m_useMultiThreaded = true;
 };

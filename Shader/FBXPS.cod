@@ -60,11 +60,11 @@ dcl_temps 1
 //   v5.x <- input.worldPos.x; v5.y <- input.worldPos.y; v5.z <- input.worldPos.z; 
 //   o0.x <- <PS return value>.x; o0.y <- <PS return value>.y; o0.z <- <PS return value>.z; o0.w <- <PS return value>.w
 //
-#line 11 "C:\Users\2210359\Desktop\DirectX12\HLSL\FBXPS.hlsl"
+#line 10 "C:\Users\2210359\Desktop\DirectX12\HLSL\FBXPS.hlsl"
 sample_indexable(texture2d)(float,float,float,float) r0.xyzw, v4.xyxx, t0.xyzw, s2
 mul r0.xyzw, r0.xyzw, cb2[0].xyzw  // r0.x <- texColor.x; r0.y <- texColor.y; r0.z <- texColor.z; r0.w <- texColor.w
 
-#line 22
+#line 12
 mov o0.xyzw, r0.xyzw
 ret 
 // Approximately 4 instruction slots used

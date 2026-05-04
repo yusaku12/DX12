@@ -3,6 +3,8 @@
 #include "Component.h"
 #include "PostEffect\PostEffectBase.h"
 
+class TransformComponent;
+
 //=====================================================
 //! ポストエフェクトコンポーネント
 //! Unity の Volume に相当
@@ -16,6 +18,15 @@ public:
 
     //! 初期化
     void awake() override;
+
+    //! 有効化
+    void onEnable() override;
+
+    //! 無効化
+    void onDisable() override;
+
+    //! 破棄
+    void onDestroy() override;
 
     //! インスペクタ表示
     void inspectGUI() override;
@@ -67,13 +78,49 @@ public:
     //! @return 最終出力の SRV インデックス
     UINT execute(UINT sceneSrvIndex);
 
+    //! Volume チェーンを実行（PostEffectManager から呼ぶ）
+    bool executeChain(float volumeWeight);
+
     //! 有効なエフェクトが存在するか
     bool hasActiveEffects() const;
+
+    //! Volume 優先度
+    int getVolumePriority() const { return m_volumePriority; }
+    void setVolumePriority(int priority) { m_volumePriority = priority; }
+
+    //! 重み
+    float getWeight() const { return m_weight; }
+    void setWeight(float weight);
+
+    //! ブレンド距離
+    float getBlendDistance() const { return m_blendDistance; }
+    void setBlendDistance(float distance);
+
+    //! グローバル Volume
+    bool isGlobal() const { return m_isGlobal; }
+    void setGlobal(bool value) { m_isGlobal = value; }
+
+    //! カメラ位置に対するブレンドウェイト計算
+    float computeBlendWeight(const Vector3& cameraPos) const;
 
 private:
 
     //! 優先度順にソート
     void sortEffects();
 
+    //! Manager 登録
+    void registerToManager();
+
+    //! Manager 解除
+    void unregisterFromManager();
+
     std::vector<std::unique_ptr<PostEffectBase>> m_effects;
+
+    int m_volumePriority = 0;
+    float m_weight = 1.0f;
+    float m_blendDistance = 0.0f;
+    bool m_isGlobal = true;
+
+    TransformComponent* m_transform = nullptr;
+    bool m_registered = false;
 };

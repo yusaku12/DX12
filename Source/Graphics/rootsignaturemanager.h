@@ -5,11 +5,12 @@
 //------------------------------------------------
 enum class RootSignatureType : int
 {
-    PMXStandard,
+    FBXStandard,
     DebugPrimitive,
     PostEffect,
     BloomComposite,
     Skybox,
+    DeferredLighting,
     Max
 };
 
@@ -45,8 +46,8 @@ private:
 
     RootSignatureManager() = default;
 
-    //! PMXStandardをビルド
-    void buildPMXStandard();
+    //! FBXStandardをビルド
+    void buildFBXStandard();
 
     //! DebugPrimitiveをビルド
     void buildDebugPrimitive();
@@ -59,6 +60,9 @@ private:
 
     //! Skyboxをビルド
     void buildSkybox();
+
+    //! DeferredLightingをビルド
+    void buildDeferredLighting();
 
     //! テスト
     void createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type);

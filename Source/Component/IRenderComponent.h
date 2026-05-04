@@ -31,4 +31,10 @@ public:
 
     //! 描画(マルチスレッド)
     virtual void render(ID3D12GraphicsCommandList* cmd) = 0;
+
+    //! GBuffer 描画
+    virtual void renderGBuffer(ID3D12GraphicsCommandList* cmd);
+
+    //! Forward 描画
+    virtual void renderForward(ID3D12GraphicsCommandList* cmd);
 };

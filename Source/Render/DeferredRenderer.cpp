@@ -1,0 +1,54 @@
+﻿#include "pch.h"
+
+void DeferredRenderer::initialize()
+{
+    m_lightCB = std::make_unique<ConstantBuffer<LightParams>>();
+    m_lightCB->update(m_lightParams);
+
+    PSOCreator::PSOData pso{};
+    pso.rootSignatureType = RootSignatureType::DeferredLighting;
+    pso.vsShaderId = ShaderID::PostEffectVS;
+    pso.psShaderId = ShaderID::DeferredLightingPS;
+    pso.rasterizerState = RasterizerState::CULL_NONE;
+    pso.blendState = BlendState::OPAQUE;
+    pso.depthStencilState = DepthStencilState::DEPTH_NONE;
+    pso.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pso.numRenderTargets = 1;
+    pso.rtvFormats[0] = DX12::Instance().getBackBufferFormat();
+
+    m_lightingPsoKey = PSOCreator::Instance().registerPSO(pso);
+}
+
+void DeferredRenderer::resize(UINT width, UINT height)
+{
+    GBufferRenderTargets::Instance().resize(width, height);
+}
+
+void DeferredRenderer::renderLighting()
+{
+    auto* cmd = DX12::Instance().getGraphicsCommandList();
+    if (!cmd) return;
+
+    auto& gbuffer = GBufferRenderTargets::Instance();
+
+    gbuffer.transitionToSRV(cmd);
+
+    DX12::Instance().transitionSceneToRenderTarget();
+    DX12::Instance().applyViewportAndScissor(cmd);
+    DX12::Instance().applySceneRenderTargets(cmd);
+
+    DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
+
+    m_lightCB->update(m_lightParams);
+
+    PSOCreator::Instance().setPSO(m_lightingPsoKey, cmd);
+    cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
+    cmd->SetGraphicsRootConstantBufferView(1, m_lightCB->getGPUAddress());
+    cmd->SetGraphicsRootDescriptorTable(2,
+        DescriptorHeapManager::Instance().getGPUHandle(gbuffer.getSrvBaseIndex()));
+
+    cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    cmd->IASetVertexBuffers(0, 0, nullptr);
+    cmd->IASetIndexBuffer(nullptr);
+    cmd->DrawInstanced(3, 1, 0, 0);
+}

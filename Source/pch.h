@@ -72,6 +72,10 @@
 #include "Editor\ScreenCapture.h"
 #include "PostEffect\PostEffectRenderTargets.h"
 #include "Graphics\IBLManager.h"
+#include "Render\DeferredRenderer.h"
+#include "Render\GBufferRenderTargets.h"
+#include "PostEffect\PostEffectManager.h"
+#include "Render/RenderPipeline.h"
 
 //! 省略系
 using namespace DirectX;

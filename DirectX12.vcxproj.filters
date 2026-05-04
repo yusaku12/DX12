@@ -45,7 +45,6 @@
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
     <ClCompile Include="Source\Model\FbxLoad.cpp" />
-    <ClCompile Include="Source\Model\PmxLoad.cpp" />
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\TestScene.cpp" />
@@ -82,6 +81,10 @@
     <ClCompile Include="Source\Component\SkyboxComponent.cpp" />
     <ClCompile Include="Source\Editor\CubemapToolWindow.cpp" />
     <ClCompile Include="Source\Graphics\IBLManager.cpp" />
+    <ClCompile Include="Source\Render\GBufferRenderTargets.cpp" />
+    <ClCompile Include="Source\Render\DeferredRenderer.cpp" />
+    <ClCompile Include="Source\PostEffect\PostEffectManager.cpp" />
+    <ClCompile Include="Source\Render\RenderPipeline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -136,9 +139,6 @@
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\LoadTexture.h">
-      <Filter>�w�b�_�[ �t�@�C��</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Model\PmxLoad.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="External\imgui\imgui_neo_sequencer.h">
@@ -393,10 +393,23 @@
     <ClInclude Include="Source\Graphics\IBLManager.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Render\GBufferRenderTargets.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\DeferredRenderer.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PostEffect\PostEffectManager.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\RenderPassBase.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\RenderPipeline.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="HLSL\Polygon.hlsli" />
-    <None Include="HLSL\PMX.hlsli" />
     <None Include="HLSL\CommonConstants.hlsli" />
     <None Include="HLSL\Common.hlsli" />
     <None Include="HLSL\DebugPrimitive.hlsli" />
@@ -413,10 +426,6 @@
     <None Include="HLSL\SkyBox.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="HLSL\PolygonVS.hlsl" />
-    <FxCompile Include="HLSL\PolygonPS.hlsl" />
-    <FxCompile Include="HLSL\PMXVS.hlsl" />
-    <FxCompile Include="HLSL\PMXPS.hlsl" />
     <FxCompile Include="HLSL\DebugPrimitiveVS.hlsl" />
     <FxCompile Include="HLSL\DebugPrimitivePS.hlsl" />
     <FxCompile Include="HLSL\FBXVS.hlsl" />

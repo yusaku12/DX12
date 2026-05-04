@@ -7,13 +7,11 @@
 //--------------------------------------------------------------------------------
 enum class ShaderID : int
 {
-    TestPolygonVS,
-    TestPolygonPS,
-    PMXVS,
-    PMXPS,
     FBXVS,
     FBXPS,
     PBRPS,
+    GBufferPS,
+    DeferredLightingPS,
     DebugPrimitiveVS,
     DebugPrimitivePS,
     PostEffectVS,
@@ -42,13 +40,11 @@ struct ShaderDesc
 //--------------------------------------------------------------------------------
 static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTable =
 {
-    ShaderDesc{ L"Shader/PolygonVS.hlsl",          "VS", "vs_5_0" },  //!< TestPolygonVS
-    ShaderDesc{ L"Shader/PolygonPS.hlsl",          "PS", "ps_5_0" },  //!< TestPolygonPS
-    ShaderDesc{ L"Shader/PMXVS.hlsl",              "VS", "vs_5_0" },  //!< PMXVS
-    ShaderDesc{ L"Shader/PMXPS.hlsl",              "PS", "ps_5_0" },  //!< PMXPS
     ShaderDesc{ L"Shader/FBXVS.hlsl",              "VS", "vs_5_0" },  //!< FBXVS
     ShaderDesc{ L"Shader/FBXPS.hlsl",              "PS", "ps_5_0" },  //!< FBXPS
     ShaderDesc{ L"Shader/PBRPS.hlsl",              "PS", "ps_5_0" },  //!< PBRPS
+    ShaderDesc{ L"Shader/GBufferPS.hlsl",          "PS", "ps_5_0" },  //!< GBufferPS
+    ShaderDesc{ L"Shader/DeferredLightingPS.hlsl", "PS", "ps_5_0" },  //!< DeferredLightingPS
     ShaderDesc{ L"Shader/DebugPrimitiveVS.hlsl",   "VS", "vs_5_0" },  //!< DebugVS
     ShaderDesc{ L"Shader/DebugPrimitivePS.hlsl",   "PS", "ps_5_0" },  //!< DebugPS
     ShaderDesc{ L"Shader/PostEffectVS.hlsl",       "VS", "vs_5_0" },  //!< PostEffectVS

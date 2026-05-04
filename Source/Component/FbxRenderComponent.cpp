@@ -58,6 +58,16 @@ void FbxRenderComponent::render(ID3D12GraphicsCommandList* cmd)
     renderInternal(cmd, psoKey);
 }
 
+void FbxRenderComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
+{
+    if (!cmd) return;
+    renderInternal(cmd, m_gbufferPSOKey);
+}
+
+void FbxRenderComponent::renderForward(ID3D12GraphicsCommandList* cmd)
+{
+}
+
 void FbxRenderComponent::inspectGUI()
 {
     if (ImGui::BeginTabBar("FBXRender"))
@@ -204,9 +214,10 @@ void FbxRenderComponent::buildGPUResources()
     // マテリアル CBV
     createMaterialCBV();
 
-    // PSO（ソリッド + ワイヤーフレーム）
+    // PSO（ソリッド + ワイヤーフレーム + GBuffer）
     m_solidPSOKey = createPSO(RasterizerState::CULL_CLOCKWISE);
     m_wireframePSOKey = createPSO(RasterizerState::WIRE_FRAME);
+    m_gbufferPSOKey = createGBufferPSO();
 }
 
 void FbxRenderComponent::createMaterialCBV()
@@ -269,7 +280,7 @@ std::vector<D3D12_INPUT_ELEMENT_DESC> FbxRenderComponent::getInputLayout()
 size_t FbxRenderComponent::createPSO(RasterizerState rasterizer)
 {
     PSOCreator::PSOData psoData{};
-    psoData.rootSignatureType = RootSignatureType::PMXStandard;
+    psoData.rootSignatureType = RootSignatureType::FBXStandard;
     psoData.vsShaderId = ShaderID::FBXVS;
     psoData.psShaderId = ShaderID::PBRPS;
     psoData.rasterizerState = rasterizer;
@@ -280,11 +291,29 @@ size_t FbxRenderComponent::createPSO(RasterizerState rasterizer)
     return PSOCreator::Instance().registerPSO(psoData);
 }
 
+size_t FbxRenderComponent::createGBufferPSO()
+{
+    PSOCreator::PSOData psoData{};
+    psoData.rootSignatureType = RootSignatureType::FBXStandard;
+    psoData.vsShaderId = ShaderID::FBXVS;
+    psoData.psShaderId = ShaderID::GBufferPS;
+    psoData.rasterizerState = RasterizerState::CULL_CLOCKWISE;
+    psoData.blendState = BlendState::OPAQUE;
+    psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
+    psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoData.inputLayout = getInputLayout();
+    psoData.numRenderTargets = GBufferRenderTargets::RenderTargetCount;
+    psoData.rtvFormats[0] = GBufferRenderTargets::BaseColorFormat;
+    psoData.rtvFormats[1] = GBufferRenderTargets::NormalRoughnessFormat;
+    psoData.rtvFormats[2] = GBufferRenderTargets::WorldPosAoFormat;
+    return PSOCreator::Instance().registerPSO(psoData);
+}
+
 void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
 {
     // PSO とルートシグネチャをセット
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
-    cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::PMXStandard));
+    cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::FBXStandard));
     PSOCreator::Instance().setPSO(psoKey, cmd);
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());

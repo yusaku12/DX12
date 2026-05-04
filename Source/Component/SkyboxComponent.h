@@ -19,11 +19,11 @@ public:
     //! 初期化
     void awake() override;
 
-    //! 描画（シングルスレッド）
-    void render() override;
+    //! GBuffer 描画
+    void renderGBuffer(ID3D12GraphicsCommandList* cmd) override;
 
-    //! 描画（マルチスレッド）
-    void render(ID3D12GraphicsCommandList* cmd) override;
+    //! Forward 描画
+    void renderForward(ID3D12GraphicsCommandList* cmd) override;
 
     //! インスペクタ表示
     void inspectGUI() override;

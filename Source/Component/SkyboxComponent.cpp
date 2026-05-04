@@ -19,14 +19,11 @@ void SkyboxComponent::awake()
     }
 }
 
-void SkyboxComponent::render()
+void SkyboxComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
 {
-    auto cmd = DX12::Instance().getGraphicsCommandList();
-    if (!cmd) return;
-    render(cmd);
 }
 
-void SkyboxComponent::render(ID3D12GraphicsCommandList* cmd)
+void SkyboxComponent::renderForward(ID3D12GraphicsCommandList* cmd)
 {
     if (!cmd || !isActiveInHierarchy()) return;
     if (!m_cubemap || !m_cubemap->isValid()) return;

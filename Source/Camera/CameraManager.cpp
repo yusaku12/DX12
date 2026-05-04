@@ -31,6 +31,18 @@ CameraComponent* CameraManager::getMainCamera() const
     return best;
 }
 
+RenderPath CameraManager::getMainRenderPath() const
+{
+    CameraComponent* mainCam = getMainCamera();
+    return mainCam ? mainCam->getRenderPath() : RenderPath::Deferred;
+}
+
+RenderPassFlags CameraManager::getMainRenderPassMask() const
+{
+    CameraComponent* mainCam = getMainCamera();
+    return mainCam ? mainCam->getRenderPassMask() : RenderPassFlags::None;
+}
+
 void CameraManager::initialize()
 {
     // カメラ定数バッファ作成

@@ -3,6 +3,8 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
+enum class RenderPath : int;
+
 //=====================================================
 //! ImGui 用アロケータ
 //=====================================================
@@ -80,7 +82,7 @@ public:
     void initialize();
 
     //! 画面をクリア（Scene 用レンダーターゲットへ）
-    void screenClear();
+    void screenClear(RenderPath renderPath);
 
     //! シーンのimgui描画
     void sceneImguiRender();
@@ -106,6 +108,9 @@ public:
     //! スクリーンショットを撮影（Scene RT を PNG として保存）
     void captureScreenshot();
 
+    //! Scene RT を RENDER_TARGET に遷移
+    void transitionSceneToRenderTarget();
+
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
 
@@ -120,6 +125,9 @@ public:
 
     //! バックバッファ取得
     DXGI_FORMAT getBackBufferFormat() const { return m_backBufferFormat; }
+
+    //! DSV ハンドル取得
+    D3D12_CPU_DESCRIPTOR_HANDLE getDSVHandle() const { return m_dsvHandle; }
 
     //! imgui一時的なアロケータ
     ExampleDescriptorHeapAllocator& getExampleDescriptorHeapAllocator() { return m_exampleDescriptorHeapAllocator; }
@@ -171,6 +179,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_postCommandAllocator;
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_postCommandAllocator2;
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_graphicsCommandList;
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain4;

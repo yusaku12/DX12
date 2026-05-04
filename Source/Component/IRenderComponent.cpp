@@ -8,7 +8,6 @@ void IRenderComponent::start()
 
 void IRenderComponent::onDestroy()
 {
-    // シーン破棄時に必ず登録解除
     RenderManager::Instance().unregisterComponent(this);
 }
 
@@ -20,4 +19,14 @@ void IRenderComponent::onEnable()
 void IRenderComponent::onDisable()
 {
     RenderManager::Instance().unregisterComponent(this);
+}
+
+void IRenderComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
+{
+    render(cmd);
+}
+
+void IRenderComponent::renderForward(ID3D12GraphicsCommandList* cmd)
+{
+    render(cmd);
 }

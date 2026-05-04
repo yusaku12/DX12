@@ -2,11 +2,12 @@
 
 void RootSignatureManager::initialize()
 {
-    buildPMXStandard();
+    buildFBXStandard();
     buildDebugPrimitive();
     buildPostEffect();
     buildBloomComposite();
     buildSkybox();
+    buildDeferredLighting();
 }
 
 ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
@@ -14,7 +15,7 @@ ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType ty
     return m_rootSignatures[static_cast<size_t>(type)].Get();
 }
 
-void RootSignatureManager::buildPMXStandard()
+void RootSignatureManager::buildFBXStandard()
 {
     CD3DX12_ROOT_PARAMETER params[5];
 
@@ -38,7 +39,7 @@ void RootSignatureManager::buildPMXStandard()
     params[4].InitAsDescriptorTable(1, &range1);
 
     // ルートシグネチャ生成
-    createRootSignature(params, _countof(params), RootSignatureType::PMXStandard);
+    createRootSignature(params, _countof(params), RootSignatureType::FBXStandard);
 }
 
 void RootSignatureManager::buildDebugPrimitive()
@@ -110,6 +111,24 @@ void RootSignatureManager::buildSkybox()
 
     // ルートシグネチャ生成
     createRootSignature(params, _countof(params), RootSignatureType::Skybox);
+}
+
+void RootSignatureManager::buildDeferredLighting()
+{
+    CD3DX12_ROOT_PARAMETER params[3] = {};
+
+    // カメラ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // ライト用 CBV (b1)
+    params[1].InitAsConstantBufferView(1);
+
+    // GBuffer SRV テーブル (t0-t2)
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0);
+    params[2].InitAsDescriptorTable(1, &srvRange);
+
+    createRootSignature(params, _countof(params), RootSignatureType::DeferredLighting);
 }
 
 void RootSignatureManager::createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type)
