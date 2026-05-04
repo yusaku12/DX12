@@ -64,10 +64,6 @@ void FbxRenderComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
     renderInternal(cmd, m_gbufferPSOKey);
 }
 
-void FbxRenderComponent::renderForward(ID3D12GraphicsCommandList* cmd)
-{
-}
-
 void FbxRenderComponent::inspectGUI()
 {
     if (ImGui::BeginTabBar("FBXRender"))

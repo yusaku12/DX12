@@ -19,8 +19,16 @@ void SkyboxComponent::awake()
     }
 }
 
-void SkyboxComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
+void SkyboxComponent::render()
 {
+    auto cmd = DX12::Instance().getGraphicsCommandList();
+    if (!cmd) return;
+    render(cmd);
+}
+
+void SkyboxComponent::render(ID3D12GraphicsCommandList* cmd)
+{
+    renderForward(cmd);
 }
 
 void SkyboxComponent::renderForward(ID3D12GraphicsCommandList* cmd)
