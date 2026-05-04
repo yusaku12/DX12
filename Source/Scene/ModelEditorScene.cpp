@@ -17,14 +17,15 @@ void ModelEditorScene::onEnter()
 
     GameObject* object = new GameObject("ModelObject");
     object->addComponent<TransformComponent>();
-    object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
-    object->addComponent<AnimationComponent>();
+    //object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
+    //object->addComponent<AnimationComponent>();
 
     GameObject* skyboxObj = new GameObject("Skybox");
     auto* skybox = skyboxObj->addComponent<SkyboxComponent>();
     skybox->setCubemap(L"Data/Texture/test.dds");
 
     GameObject* postEffectObj = new GameObject("PostEffectVolume");
+    postEffectObj->addComponent<TransformComponent>();
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
     pe->addEffect<BloomEffect>();

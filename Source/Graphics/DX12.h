@@ -129,6 +129,9 @@ public:
     //! DSV ハンドル取得
     D3D12_CPU_DESCRIPTOR_HANDLE getDSVHandle() const { return m_dsvHandle; }
 
+    //! Scene RTV ハンドル取得
+    D3D12_CPU_DESCRIPTOR_HANDLE getSceneRTVHandle() const { return m_sceneRTVHandle; }
+
     //! imgui一時的なアロケータ
     ExampleDescriptorHeapAllocator& getExampleDescriptorHeapAllocator() { return m_exampleDescriptorHeapAllocator; }
 

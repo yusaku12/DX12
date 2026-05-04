@@ -5,7 +5,10 @@
 void PostEffectComponent::awake()
 {
     if (gameObject())
+    {
         m_transform = gameObject()->getComponent<TransformComponent>();
+        registerToManager();
+    }
 
     LOG_INFO("PostEffectComponent initialized");
 }

@@ -11,6 +11,9 @@ Window::Window(HWND hwnd)
     // DX12初期化
     m_dx12.initialize();
 
+    // GBufferRenderTargets初期化
+    GBufferRenderTargets::Instance().initialize();
+
     // CommandListPool初期化
     CommandListPool::Instance().initialize(m_dx12.getDevice(), 4);
 

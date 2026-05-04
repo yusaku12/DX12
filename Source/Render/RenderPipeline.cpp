@@ -10,7 +10,7 @@ namespace
 
         FLOAT clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
         auto* cmd = dx12.getGraphicsCommandList();
-        cmd->ClearRenderTargetView(dx12.getRTVDescriptorHeap()->GetCPUDescriptorHandleForHeapStart(), clearColor, 0, nullptr);
+        cmd->ClearRenderTargetView(dx12.getSceneRTVHandle(), clearColor, 0, nullptr);
 
         cmd->ClearDepthStencilView(
             dx12.getDSVHandle(),

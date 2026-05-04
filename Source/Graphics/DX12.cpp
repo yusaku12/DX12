@@ -532,9 +532,33 @@ void DX12::screenResize(int width, int height)
     m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
     m_sceneRTVHandle.ptr += BUFFER_COUNT * rtvSize;
 
+    m_device->CreateRenderTargetView(
+        m_sceneRenderTarget.Get(),
+        nullptr,
+        m_sceneRTVHandle
+    );
+
+    // Scene SRV 再作成（リサイズ後に必須）
+    {
+        if (m_sceneSrvIndex == 0 || m_sceneSrvIndex == UINT_MAX)
+            m_sceneSrvIndex = DescriptorHeapManager::Instance().allocateRange();
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format = desc.BufferDesc.Format;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = 1;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+        auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
+        m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
+    }
+
     // GBuffer / PostEffect リサイズ
     DeferredRenderer::Instance().resize(m_width, m_height);
     PostEffectRenderTargets::Instance().resize(m_width, m_height);
+
+    // コマンドリストを再オープン
+    commandReset();
 }
 
 void DX12::enableDebugLayer()

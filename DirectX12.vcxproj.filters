@@ -439,5 +439,7 @@
     <FxCompile Include="HLSL\SkyBoxVS.hlsl" />
     <FxCompile Include="HLSL\SkyBoxPS.hlsl" />
     <FxCompile Include="HLSL\PBRPS.hlsl" />
+    <FxCompile Include="HLSL\GBufferPS.hlsl" />
+    <FxCompile Include="HLSL\DeferredLightingPS.hlsl" />
   </ItemGroup>
 </Project>

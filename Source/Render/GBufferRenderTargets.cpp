@@ -63,6 +63,28 @@ void GBufferRenderTargets::createResources(UINT width, UINT height)
         D3D12_CLEAR_VALUE clearValue = {};
         clearValue.Format = formats[i];
 
+        if (i == 0)
+        {
+            clearValue.Color[0] = 0.0f;
+            clearValue.Color[1] = 0.0f;
+            clearValue.Color[2] = 0.0f;
+            clearValue.Color[3] = 0.0f;
+        }
+        else if (i == 1)
+        {
+            clearValue.Color[0] = 0.5f;
+            clearValue.Color[1] = 0.5f;
+            clearValue.Color[2] = 1.0f;
+            clearValue.Color[3] = 1.0f;
+        }
+        else
+        {
+            clearValue.Color[0] = 0.0f;
+            clearValue.Color[1] = 0.0f;
+            clearValue.Color[2] = 0.0f;
+            clearValue.Color[3] = 1.0f;
+        }
+
         CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
 
         HRESULT hr = device->CreateCommittedResource(
@@ -104,8 +126,16 @@ void GBufferRenderTargets::releaseResources()
 
 void GBufferRenderTargets::transitionToRenderTarget(ID3D12GraphicsCommandList* cmd)
 {
+    if (!cmd) return;
+
     for (UINT i = 0; i < RenderTargetCount; ++i)
     {
+        if (!m_renderTargets[i])
+        {
+            LOG_ERROR("GBufferRenderTargets: render target is null");
+            continue;
+        }
+
         if (m_states[i] != D3D12_RESOURCE_STATE_RENDER_TARGET)
         {
             auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -120,8 +150,16 @@ void GBufferRenderTargets::transitionToRenderTarget(ID3D12GraphicsCommandList* c
 
 void GBufferRenderTargets::transitionToSRV(ID3D12GraphicsCommandList* cmd)
 {
+    if (!cmd) return;
+
     for (UINT i = 0; i < RenderTargetCount; ++i)
     {
+        if (!m_renderTargets[i])
+        {
+            LOG_ERROR("GBufferRenderTargets: render target is null");
+            continue;
+        }
+
         if (m_states[i] != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
         {
             auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
