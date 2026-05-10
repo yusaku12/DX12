@@ -51,8 +51,14 @@ void DeferredRenderer::renderLighting()
     PSOCreator::Instance().setPSO(m_lightingPsoKey, cmd);
     cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
     cmd->SetGraphicsRootConstantBufferView(1, m_lightCB->getGPUAddress());
-    cmd->SetGraphicsRootDescriptorTable(2,
-        DescriptorHeapManager::Instance().getGPUHandle(srvBaseIndex));
+    cmd->SetGraphicsRootDescriptorTable(2, DescriptorHeapManager::Instance().getGPUHandle(srvBaseIndex));
+
+    // IBL ディスクリプタをセット
+    auto iblHandle = IBLManager::Instance().getDescriptorHandle();
+    if (iblHandle.ptr != 0)
+    {
+        cmd->SetGraphicsRootDescriptorTable(3, iblHandle);
+    }
 
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     cmd->IASetVertexBuffers(0, 0, nullptr);

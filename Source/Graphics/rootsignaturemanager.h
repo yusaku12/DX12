@@ -6,6 +6,7 @@
 enum class RootSignatureType : int
 {
     FBXStandard,
+    GBuffer,
     DebugPrimitive,
     PostEffect,
     BloomComposite,
@@ -48,6 +49,9 @@ private:
 
     //! FBXStandardをビルド
     void buildFBXStandard();
+
+    //! GBufferをビルド
+    void buildGBuffer();
 
     //! DebugPrimitiveをビルド
     void buildDebugPrimitive();

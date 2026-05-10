@@ -284,7 +284,7 @@ size_t FbxRenderComponent::createPSO(RasterizerState rasterizer)
     PSOCreator::PSOData psoData{};
     psoData.rootSignatureType = RootSignatureType::FBXStandard;
     psoData.vsShaderId = ShaderID::FBXVS;
-    psoData.psShaderId = ShaderID::PBRPS;
+    psoData.psShaderId = ShaderID::FBXPS;
     psoData.rasterizerState = rasterizer;
     psoData.blendState = BlendState::ALPHA;
     psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
@@ -296,7 +296,7 @@ size_t FbxRenderComponent::createPSO(RasterizerState rasterizer)
 size_t FbxRenderComponent::createGBufferPSO()
 {
     PSOCreator::PSOData psoData{};
-    psoData.rootSignatureType = RootSignatureType::FBXStandard;
+    psoData.rootSignatureType = RootSignatureType::GBuffer;
     psoData.vsShaderId = ShaderID::FBXVS;
     psoData.psShaderId = ShaderID::GBufferPS;
     psoData.rasterizerState = RasterizerState::CULL_CLOCKWISE;
@@ -315,7 +315,6 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
 {
     // PSO とルートシグネチャをセット
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
-    cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::FBXStandard));
     PSOCreator::Instance().setPSO(psoKey, cmd);
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
@@ -351,13 +350,6 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
         // CBV 更新 & ルートにセット
         m_modelCB->update(modelCBData, static_cast<UINT>(meshIdx));
         cmd->SetGraphicsRootConstantBufferView(1, m_modelCB->getGPUAddress(static_cast<UINT>(meshIdx)));
-
-        // IBL ディスクリプタをセット
-        auto iblHandle = IBLManager::Instance().getDescriptorHandle();
-        if (iblHandle.ptr != 0)
-        {
-            cmd->SetGraphicsRootDescriptorTable(4, iblHandle);
-        }
 
         // メッシュバッファをセット（現在処理中のメッシュのみ）
         m_model->getResource()->bindGpuMesh(cmd, meshIdx);
