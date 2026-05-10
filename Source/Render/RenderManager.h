@@ -24,6 +24,9 @@ public:
     //! 描画コンポーネント登録解除
     void unregisterComponent(IRenderComponent* comp);
 
+    //! 終了処理
+    void shutdown();
+
     //! シングルスレッド描画（全登録コンポーネントを描画）
     void render();
 

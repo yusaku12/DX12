@@ -39,6 +39,9 @@ public:
     //! 初期化
     void initialize();
 
+    //! 終了処理
+    void shutdown();
+
     //! シーン切り替え
     void loadScene(SceneId id);
 

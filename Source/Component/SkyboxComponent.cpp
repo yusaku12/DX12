@@ -24,6 +24,11 @@ void SkyboxComponent::render(ID3D12GraphicsCommandList* cmd)
     renderForward(cmd);
 }
 
+void SkyboxComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
+{
+    (void)cmd;
+}
+
 void SkyboxComponent::renderForward(ID3D12GraphicsCommandList* cmd)
 {
     if (!cmd || !isActiveInHierarchy()) return;

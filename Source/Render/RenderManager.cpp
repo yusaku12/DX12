@@ -41,6 +41,21 @@ void RenderManager::finalizeTimings(float totalMs)
     }
 }
 
+void RenderManager::shutdown()
+{
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_components.clear();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_timingMutex);
+        m_timings.clear();
+        m_totalMs = 0.0f;
+        m_singleEstimateMs = 0.0f;
+    }
+}
+
 void RenderManager::setupCommandList(RenderPassKind kind, ID3D12GraphicsCommandList* cmd)
 {
     auto& dx12 = DX12::Instance();

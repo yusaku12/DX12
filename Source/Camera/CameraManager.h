@@ -38,6 +38,9 @@ public:
     //! 初期化
     void initialize();
 
+    //! 終了処理
+    void shutdown();
+
     //! カメラ更新（GPU 定数バッファ更新を含む）
     void update();
 

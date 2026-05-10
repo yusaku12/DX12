@@ -52,6 +52,12 @@ void CameraManager::initialize()
     uploadCameraBufferToGPU();
 }
 
+void CameraManager::shutdown()
+{
+    m_cameras.clear();
+    m_cameraCB.reset();
+}
+
 void CameraManager::update()
 {
     // GPU 定数バッファを更新

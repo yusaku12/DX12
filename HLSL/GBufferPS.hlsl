@@ -31,6 +31,7 @@ GBufferOutput PS(VS_OUT input)
     //! アルベド（線形化）
     float3 albedo = pow(baseColor.rgb, 2.2f);
 
+    //! BaseColor の可視化を優先（αは固定）
     output.baseColor = float4(albedo, metallic);
     output.normalRoughness = float4(normal * 0.5f + 0.5f, roughness);
     output.worldPosAo = float4(input.worldPos, ao);

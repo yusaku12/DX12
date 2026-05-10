@@ -247,7 +247,7 @@ void FbxRenderComponent::createMaterialCBV()
         {
             // マテリアルが無い場合はデフォルト白
             cb.diffuse = Vector4{ 1.f, 1.f, 1.f, 1.f };
-            cb.pbr = Vector3{ 0.0f, 0.5f, 1.0f };
+            cb.pbr = Vector3{ 1.0f, 1.0f, 1.0f };
         }
         m_materialCB->update(cb, i);
     }

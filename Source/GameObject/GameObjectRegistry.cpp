@@ -58,6 +58,18 @@ void GameObjectRegistry::destroyMarkedObjects()
     }
 }
 
+void GameObjectRegistry::shutdown()
+{
+    for (auto* obj : m_objects)
+    {
+        if (obj)
+            obj->destroy();
+    }
+
+    destroyMarkedObjects();
+    m_objects.clear();
+}
+
 GameObject* GameObjectRegistry::findByTag(Tag tag) const
 {
     for (auto* obj : m_objects)

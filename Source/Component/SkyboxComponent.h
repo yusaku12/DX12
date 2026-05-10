@@ -25,6 +25,9 @@ public:
     //! 描画(マルチスレッド)
     void render(ID3D12GraphicsCommandList* cmd) override;
 
+    //! GBuffer 描画
+    void renderGBuffer(ID3D12GraphicsCommandList* cmd) override;
+
     //! Forward 描画
     void renderForward(ID3D12GraphicsCommandList* cmd) override;
 

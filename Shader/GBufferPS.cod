@@ -119,20 +119,20 @@ log r0.xyz, r0.xyzx
 mul r0.xyz, r0.xyzx, l(2.200000, 2.200000, 2.200000, 0.000000)
 exp r2.xyz, r0.xyzx  // r2.x <- albedo.x; r2.y <- albedo.y; r2.z <- albedo.z
 
-#line 34
+#line 35
 mov r2.xyz, r2.xyzx  // r2.x <- output.baseColor.x; r2.y <- output.baseColor.y; r2.z <- output.baseColor.z
 mov r2.w, r2.w  // r2.w <- output.baseColor.w
 
-#line 35
+#line 36
 mul r0.xyz, r1.xyzx, l(0.500000, 0.500000, 0.500000, 0.000000)
 add r3.xyz, r0.xyzx, l(0.500000, 0.500000, 0.500000, 0.000000)  // r3.x <- output.normalRoughness.x; r3.y <- output.normalRoughness.y; r3.z <- output.normalRoughness.z
 mov r3.w, r3.w  // r3.w <- output.normalRoughness.w
 
-#line 36
+#line 37
 mov r4.xyz, v5.xyzx  // r4.x <- output.worldPosAo.x; r4.y <- output.worldPosAo.y; r4.z <- output.worldPosAo.z
 mov r4.w, r4.w  // r4.w <- output.worldPosAo.w
 
-#line 38
+#line 39
 mov o0.xyzw, r2.xyzw
 mov o1.xyzw, r3.xyzw
 mov o2.xyzw, r4.xyzw

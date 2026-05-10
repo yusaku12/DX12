@@ -59,7 +59,7 @@ private:
     struct MaterialCB
     {
         Vector4 diffuse = {};
-        Vector3 pbr = { 0.0f, 0.5f, 1.0f };
+        Vector3 pbr = { 1.0f, 1.0f, 1.0f };
         float padding1 = 0.0f;
     };
 

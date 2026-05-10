@@ -12,6 +12,18 @@ void SceneManager::initialize()
     loadScene(SceneId::ModelEditor);
 }
 
+void SceneManager::shutdown()
+{
+    if (m_currentScene)
+    {
+        m_currentScene->onExit();
+    }
+
+    m_currentScene.reset();
+    m_nextScene.reset();
+    m_requestChange = false;
+}
+
 void SceneManager::loadScene(SceneId id)
 {
     size_t index = static_cast<size_t>(id);

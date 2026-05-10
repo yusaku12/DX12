@@ -62,6 +62,21 @@ Window::Window(HWND hwnd)
 
 Window::~Window()
 {
+    // GPU 完了待ち
+    m_dx12.safeGPUWait();
+
+    // シーン終了処理
+    SceneManager::Instance().shutdown();
+
+    // GameObject 破棄
+    GameObjectRegistry::Instance().shutdown();
+
+    // 描画終了処理
+    RenderManager::Instance().shutdown();
+
+    // CameraManager終了処理
+    CameraManager::Instance().shutdown();
+
     // ImGui がある場合は先に終了処理
     IMGUI_CTRL_FINALIZE();
 

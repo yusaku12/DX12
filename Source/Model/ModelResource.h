@@ -114,8 +114,8 @@ public:
         std::string name = {};
         std::array<std::string, static_cast<UINT>(TextureType::Max)>textureName;
         Vector4 diffuseColor = { 1,1,1,1 };
-        float metallic = 0.0f;
-        float roughness = 0.5f;
+        float metallic = 1.0f;
+        float roughness = 1.0f;
         float ao = 1.0f;
         bool visible = true;
     };

@@ -74,9 +74,9 @@ namespace
         void execute(RenderPassContext& context) override
         {
             if (context.useMultiThreaded)
-                RenderManager::Instance().renderMultiThreadedForward();
+                RenderManager::Instance().renderMultiThreaded();
             else
-                RenderManager::Instance().renderForward();
+                RenderManager::Instance().render();
         }
     };
 

@@ -28,5 +28,5 @@ void IRenderComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
 
 void IRenderComponent::renderForward(ID3D12GraphicsCommandList* cmd)
 {
-    render(cmd);
+    (void)cmd;
 }

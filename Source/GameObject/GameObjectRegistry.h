@@ -1,6 +1,6 @@
-﻿#include "GameObject.h"
+﻿#pragma once
 
-#pragma once
+#include "GameObject.h"
 
 //=====================================================
 // GameObject の存在管理のみを行うレジストリ
@@ -27,6 +27,9 @@ public:
 
     //! 削除予約されたオブジェクトを破棄
     void destroyMarkedObjects();
+
+    //! 終了処理（登録オブジェクトを破棄）
+    void shutdown();
 
     //! 全ての登録オブジェクト取得
     const std::vector<GameObject*>& getAll() const { return m_objects; }

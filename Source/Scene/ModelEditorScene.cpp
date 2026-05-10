@@ -13,8 +13,7 @@ void ModelEditorScene::onEnter()
 {
     GameObject* cameraObject = new GameObject("MainCamera");
     cameraObject->addComponent<TransformComponent>()->setPosition({ 0.0f, 9.0f, -23.0f });
-    auto* camera = cameraObject->addComponent<FreeCameraComponent>();
-    camera->setRenderPassEnabled(RenderPassFlags::Forward, false);
+    cameraObject->addComponent<FreeCameraComponent>();
     GameObject* object = new GameObject("ModelObject");
 
     object->addComponent<TransformComponent>();
