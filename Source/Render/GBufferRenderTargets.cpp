@@ -1,5 +1,22 @@
 ﻿#include "pch.h"
 
+namespace
+{
+    constexpr DXGI_FORMAT kGBufferFormats[GBufferRenderTargets::RenderTargetCount] =
+    {
+        GBufferRenderTargets::BaseColorFormat,
+        GBufferRenderTargets::NormalRoughnessFormat,
+        GBufferRenderTargets::WorldPosAoFormat
+    };
+
+    constexpr FLOAT kGBufferClearColors[GBufferRenderTargets::RenderTargetCount][4] =
+    {
+        { 0.0f, 0.0f, 0.0f, 0.0f },
+        { 0.5f, 0.5f, 1.0f, 1.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f }
+    };
+}
+
 void GBufferRenderTargets::initialize()
 {
     UINT width = DX12::Instance().getScreenWidth();
@@ -40,12 +57,7 @@ void GBufferRenderTargets::createResources(UINT width, UINT height)
         m_srvBaseIndex = DescriptorHeapManager::Instance().allocateRange(RenderTargetCount);
     }
 
-    DXGI_FORMAT formats[RenderTargetCount] =
-    {
-        BaseColorFormat,
-        NormalRoughnessFormat,
-        WorldPosAoFormat
-    };
+    auto rtvHandle = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
 
     for (UINT i = 0; i < RenderTargetCount; ++i)
     {
@@ -55,35 +67,14 @@ void GBufferRenderTargets::createResources(UINT width, UINT height)
         desc.Height = height;
         desc.DepthOrArraySize = 1;
         desc.MipLevels = 1;
-        desc.Format = formats[i];
+        desc.Format = kGBufferFormats[i];
         desc.SampleDesc.Count = 1;
         desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
         D3D12_CLEAR_VALUE clearValue = {};
-        clearValue.Format = formats[i];
-
-        if (i == 0)
-        {
-            clearValue.Color[0] = 0.0f;
-            clearValue.Color[1] = 0.0f;
-            clearValue.Color[2] = 0.0f;
-            clearValue.Color[3] = 0.0f;
-        }
-        else if (i == 1)
-        {
-            clearValue.Color[0] = 0.5f;
-            clearValue.Color[1] = 0.5f;
-            clearValue.Color[2] = 1.0f;
-            clearValue.Color[3] = 1.0f;
-        }
-        else
-        {
-            clearValue.Color[0] = 0.0f;
-            clearValue.Color[1] = 0.0f;
-            clearValue.Color[2] = 0.0f;
-            clearValue.Color[3] = 1.0f;
-        }
+        clearValue.Format = kGBufferFormats[i];
+        memcpy(clearValue.Color, kGBufferClearColors[i], sizeof(clearValue.Color));
 
         CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
 
@@ -98,13 +89,13 @@ void GBufferRenderTargets::createResources(UINT width, UINT height)
         LOG_HR(hr, "Failed to create GBuffer RT");
 
         // RTV
-        m_rtvHandles[i] = m_rtvHeap->GetCPUDescriptorHandleForHeapStart();
-        m_rtvHandles[i].ptr += static_cast<SIZE_T>(i) * rtvIncrement;
+        m_rtvHandles[i] = rtvHandle;
         device->CreateRenderTargetView(m_renderTargets[i].Get(), nullptr, m_rtvHandles[i]);
+        rtvHandle.ptr += rtvIncrement;
 
         // SRV
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.Format = formats[i];
+        srvDesc.Format = kGBufferFormats[i];
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = 1;
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -128,62 +119,119 @@ void GBufferRenderTargets::transitionToRenderTarget(ID3D12GraphicsCommandList* c
 {
     if (!cmd) return;
 
+    D3D12_RESOURCE_BARRIER barriers[RenderTargetCount];
+    UINT barrierCount = 0;
+    bool hasNull = false;
+
     for (UINT i = 0; i < RenderTargetCount; ++i)
     {
         if (!m_renderTargets[i])
         {
-            LOG_ERROR("GBufferRenderTargets: render target is null");
+            hasNull = true;
             continue;
         }
 
         if (m_states[i] != D3D12_RESOURCE_STATE_RENDER_TARGET)
         {
-            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            barriers[barrierCount++] = CD3DX12_RESOURCE_BARRIER::Transition(
                 m_renderTargets[i].Get(),
                 m_states[i],
                 D3D12_RESOURCE_STATE_RENDER_TARGET);
-            cmd->ResourceBarrier(1, &barrier);
             m_states[i] = D3D12_RESOURCE_STATE_RENDER_TARGET;
         }
     }
+
+    if (hasNull)
+        LOG_ERROR("GBufferRenderTargets: render target is null");
+
+    if (barrierCount > 0)
+        cmd->ResourceBarrier(barrierCount, barriers);
 }
 
 void GBufferRenderTargets::transitionToSRV(ID3D12GraphicsCommandList* cmd)
 {
     if (!cmd) return;
 
+    D3D12_RESOURCE_BARRIER barriers[RenderTargetCount];
+    UINT barrierCount = 0;
+    bool hasNull = false;
+
     for (UINT i = 0; i < RenderTargetCount; ++i)
     {
         if (!m_renderTargets[i])
         {
-            LOG_ERROR("GBufferRenderTargets: render target is null");
+            hasNull = true;
             continue;
         }
 
         if (m_states[i] != D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
         {
-            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            barriers[barrierCount++] = CD3DX12_RESOURCE_BARRIER::Transition(
                 m_renderTargets[i].Get(),
                 m_states[i],
                 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            cmd->ResourceBarrier(1, &barrier);
             m_states[i] = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
     }
+
+    if (hasNull)
+        LOG_ERROR("GBufferRenderTargets: render target is null");
+
+    if (barrierCount > 0)
+        cmd->ResourceBarrier(barrierCount, barriers);
 }
 
 void GBufferRenderTargets::clear(ID3D12GraphicsCommandList* cmd)
 {
-    FLOAT clearBase[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    FLOAT clearNormal[4] = { 0.5f, 0.5f, 1.0f, 1.0f };
-    FLOAT clearWorld[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    if (!cmd) return;
 
-    cmd->ClearRenderTargetView(m_rtvHandles[0], clearBase, 0, nullptr);
-    cmd->ClearRenderTargetView(m_rtvHandles[1], clearNormal, 0, nullptr);
-    cmd->ClearRenderTargetView(m_rtvHandles[2], clearWorld, 0, nullptr);
+    for (UINT i = 0; i < RenderTargetCount; ++i)
+    {
+        cmd->ClearRenderTargetView(m_rtvHandles[i], kGBufferClearColors[i], 0, nullptr);
+    }
 }
 
 void GBufferRenderTargets::setRenderTargets(ID3D12GraphicsCommandList* cmd, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle) const
 {
+    if (!cmd) return;
+
     cmd->OMSetRenderTargets(RenderTargetCount, m_rtvHandles, FALSE, &dsvHandle);
+}
+
+void GBufferRenderTargets::debugDrawImGui()
+{
+    ImGui::Begin("GBuffer");
+
+    if (m_srvBaseIndex == UINT_MAX)
+    {
+        ImGui::Text("GBuffer SRV is not initialized.");
+        ImGui::End();
+        return;
+    }
+
+    const char* labels[] =
+    {
+        "BaseColor",
+        "NormalRoughness",
+        "WorldPosAo"
+    };
+
+    static constexpr float previewWidth = 256.0f;
+
+    for (UINT i = 0; i < RenderTargetCount; ++i)
+    {
+        const UINT srvIndex = getSrvIndex(i);
+        if (srvIndex == UINT_MAX)
+        {
+            ImGui::Text("%s: SRV invalid", labels[i]);
+            continue;
+        }
+
+        ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(srvIndex).ptr;
+        ImGui::Text("%s", labels[i]);
+        ImGui::Image(texID, ImVec2(previewWidth, previewWidth));
+        ImGui::Separator();
+    }
+
+    ImGui::End();
 }

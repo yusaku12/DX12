@@ -30,6 +30,13 @@ void DeferredRenderer::renderLighting()
     if (!cmd) return;
 
     auto& gbuffer = GBufferRenderTargets::Instance();
+    const auto srvBaseIndex = gbuffer.getSrvBaseIndex();
+
+    if (srvBaseIndex == UINT_MAX)
+    {
+        LOG_ERROR("DeferredRenderer: GBuffer SRV is not initialized");
+        return;
+    }
 
     gbuffer.transitionToSRV(cmd);
 
@@ -45,7 +52,7 @@ void DeferredRenderer::renderLighting()
     cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
     cmd->SetGraphicsRootConstantBufferView(1, m_lightCB->getGPUAddress());
     cmd->SetGraphicsRootDescriptorTable(2,
-        DescriptorHeapManager::Instance().getGPUHandle(gbuffer.getSrvBaseIndex()));
+        DescriptorHeapManager::Instance().getGPUHandle(srvBaseIndex));
 
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     cmd->IASetVertexBuffers(0, 0, nullptr);

@@ -132,6 +132,9 @@ public:
     //! Scene RTV ハンドル取得
     D3D12_CPU_DESCRIPTOR_HANDLE getSceneRTVHandle() const { return m_sceneRTVHandle; }
 
+    //! フェンス取得
+    ID3D12Fence* getFence() const { return m_fence.Get(); }
+
     //! imgui一時的なアロケータ
     ExampleDescriptorHeapAllocator& getExampleDescriptorHeapAllocator() { return m_exampleDescriptorHeapAllocator; }
 

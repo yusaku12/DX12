@@ -20,7 +20,7 @@ public:
     void awake() override;
 
     //! 描画(シングルスレッド)
-    void render() override;
+    void render() override {};
 
     //! 描画(マルチスレッド)
     void render(ID3D12GraphicsCommandList* cmd) override;

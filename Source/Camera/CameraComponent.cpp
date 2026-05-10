@@ -66,12 +66,16 @@ void CameraComponent::inspectGUI()
     {
         bool gbuffer = isRenderPassEnabled(RenderPassFlags::GBuffer);
         bool lighting = isRenderPassEnabled(RenderPassFlags::Lighting);
+        bool forward = isRenderPassEnabled(RenderPassFlags::Forward);
 
         if (ImGui::Checkbox("GBuffer", &gbuffer))
             setRenderPassEnabled(RenderPassFlags::GBuffer, gbuffer);
 
-        if (ImGui::Checkbox("Lighting (Include Forward)", &lighting))
+        if (ImGui::Checkbox("Lighting", &lighting))
             setRenderPassEnabled(RenderPassFlags::Lighting, lighting);
+
+        if (ImGui::Checkbox("Forward (Transparent)", &forward))
+            setRenderPassEnabled(RenderPassFlags::Forward, forward);
     }
     else
     {

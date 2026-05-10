@@ -29,5 +29,7 @@ private:
     PostEffectManager() = default;
 
     std::vector<PostEffectComponent*> m_components;
+    std::vector<PostEffectComponent*> m_sortedComponents;
     std::mutex m_mutex;
+    bool m_dirty = false;
 };

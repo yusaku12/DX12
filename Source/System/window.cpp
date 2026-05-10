@@ -15,7 +15,7 @@ Window::Window(HWND hwnd)
     GBufferRenderTargets::Instance().initialize();
 
     // CommandListPool初期化
-    CommandListPool::Instance().initialize(m_dx12.getDevice(), 4);
+    CommandListPool::Instance().initialize(m_dx12.getDevice(), m_dx12.getFence(), 4);
 
     // imgui初期化
     IMGUI_CTRL_INITIALIZE();
@@ -157,7 +157,10 @@ void Window::imguiRender()
     m_dx12.sceneImguiRender();
 
     // RenderManagerのimgui描画
-    //RenderManager::Instance().debugImgui();
+    RenderManager::Instance().debugImgui();
+
+    // deferred renderer のimgui描画
+    GBufferRenderTargets::Instance().debugDrawImGui();
 
     // EditorManagerのimgui描画
     EditorManager::Instance().imgui();

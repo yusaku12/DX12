@@ -13,12 +13,13 @@ void ModelEditorScene::onEnter()
 {
     GameObject* cameraObject = new GameObject("MainCamera");
     cameraObject->addComponent<TransformComponent>()->setPosition({ 0.0f, 9.0f, -23.0f });
-    cameraObject->addComponent<FreeCameraComponent>();
-
+    auto* camera = cameraObject->addComponent<FreeCameraComponent>();
+    camera->setRenderPassEnabled(RenderPassFlags::Forward, false);
     GameObject* object = new GameObject("ModelObject");
+
     object->addComponent<TransformComponent>();
-    //object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
-    //object->addComponent<AnimationComponent>();
+    object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
+    object->addComponent<AnimationComponent>();
 
     GameObject* skyboxObj = new GameObject("Skybox");
     auto* skybox = skyboxObj->addComponent<SkyboxComponent>();

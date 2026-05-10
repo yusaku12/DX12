@@ -48,8 +48,8 @@ public:
     //! マルチスレッド使用フラグ取得
     bool isMultiThreadedEnabled() const { return m_useMultiThreaded; }
 
-    //! デバック描画
-    //void debugImgui();
+    //! デバッグImGui描画
+    void debugImgui();
 
     //! 登録数取得
     size_t getComponentCount() const { return m_components.size(); }
@@ -65,10 +65,44 @@ public:
 
 private:
 
+    enum class RenderPassKind
+    {
+        Default,
+        GBuffer,
+        Forward
+    };
+
     RenderManager() = default;
     ~RenderManager() = default;
     RenderManager(const RenderManager&) = delete;
     RenderManager& operator=(const RenderManager&) = delete;
+
+    //! 登録コンポーネントのコピー取得（スレッドセーフ）
+    std::vector<IRenderComponent*> copyComponents();
+
+    //! シングルスレッド描画用の計測情報記録
+    void recordSingleThreadTiming(const std::string& name, float totalMs);
+
+    //! マルチスレッド描画用の計測情報クリア
+    void clearTimings();
+
+    //! マルチスレッド描画用の計測情報追加
+    void addTiming(const std::string& name, float startMs, float durationMs, std::thread::id threadId);
+
+    //! 描画完了後の計測情報処理
+    void finalizeTimings(float totalMs);
+
+    //! コマンドリストの共通セットアップ
+    void setupCommandList(RenderPassKind kind, ID3D12GraphicsCommandList* cmd);
+
+    //! 描画コマンド記録の共通処理
+    void executeRender(RenderPassKind kind, IRenderComponent* comp, ID3D12GraphicsCommandList* cmd);
+
+    //! シングルスレッド描画の内部実装
+    void renderSingleThreadedInternal(RenderPassKind kind);
+
+    //! マルチスレッド描画の内部実装
+    void renderMultiThreadedInternal(RenderPassKind kind);
 
     std::vector<IRenderComponent*> m_components;
     std::mutex m_mutex;

@@ -1,9 +1,10 @@
 ﻿#include "pch.h"
 #include "CommandListPool.h"
 
-void CommandListPool::initialize(ID3D12Device* device, UINT poolSize)
+void CommandListPool::initialize(ID3D12Device* device, ID3D12Fence* fence, UINT poolSize)
 {
     m_device = device;
+    m_fence = fence;
     m_pool.resize(poolSize);
 
     for (auto& entry : m_pool)
@@ -25,6 +26,7 @@ void CommandListPool::initialize(ID3D12Device* device, UINT poolSize)
         entry.commandList->Close();
         entry.inUse = false;
         entry.closed = true;
+        entry.fenceValue = 0;
     }
 }
 
@@ -32,14 +34,23 @@ ID3D12GraphicsCommandList* CommandListPool::acquire()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    const UINT64 completedValue = m_fence ? m_fence->GetCompletedValue() : 0;
+
     for (auto& entry : m_pool)
     {
+        if (entry.inUse && entry.fenceValue != 0 && entry.fenceValue <= completedValue)
+        {
+            entry.inUse = false;
+            entry.fenceValue = 0;
+        }
+
         if (!entry.inUse)
         {
             entry.allocator->Reset();
             entry.commandList->Reset(entry.allocator.Get(), nullptr);
             entry.inUse = true;
             entry.closed = false;
+            entry.fenceValue = 0;
             return entry.commandList.Get();
         }
     }
@@ -61,6 +72,7 @@ ID3D12GraphicsCommandList* CommandListPool::acquire()
 
     newEntry.inUse = true;
     newEntry.closed = false;
+    newEntry.fenceValue = 0;
 
     auto* ptr = newEntry.commandList.Get();
     m_pool.push_back(std::move(newEntry));
@@ -100,18 +112,34 @@ std::vector<ID3D12CommandList*> CommandListPool::getClosedCommandLists() const
     return result;
 }
 
-void CommandListPool::resetAll()
+void CommandListPool::notifySubmitted(UINT64 fenceValue)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     for (auto& entry : m_pool)
     {
-        if (entry.inUse && !entry.closed)
+        if (entry.inUse && entry.closed && entry.fenceValue == 0)
         {
-            entry.commandList->Close();
-            entry.closed = true;
+            entry.fenceValue = fenceValue;
         }
-        entry.inUse = false;
+    }
+}
+
+void CommandListPool::resetCompleted()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (!m_fence) return;
+
+    const UINT64 completedValue = m_fence->GetCompletedValue();
+
+    for (auto& entry : m_pool)
+    {
+        if (entry.inUse && entry.closed && entry.fenceValue != 0 && entry.fenceValue <= completedValue)
+        {
+            entry.inUse = false;
+            entry.fenceValue = 0;
+        }
     }
 }
 

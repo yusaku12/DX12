@@ -42,6 +42,18 @@ public:
     //! OMSetRenderTargets 用
     void setRenderTargets(ID3D12GraphicsCommandList* cmd, D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle) const;
 
+    //! デバッグ描画（ImGui）
+    void debugDrawImGui();
+
+    //! SRV インデックス取得
+    UINT getSrvIndex(UINT index) const
+    {
+        if (m_srvBaseIndex == UINT_MAX || index >= RenderTargetCount)
+            return UINT_MAX;
+
+        return m_srvBaseIndex + index;
+    }
+
 private:
 
     GBufferRenderTargets() = default;

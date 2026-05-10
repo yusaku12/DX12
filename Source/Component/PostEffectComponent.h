@@ -14,6 +14,27 @@ class PostEffectComponent : public Component
 {
 public:
 
+    //! デバッグ統計
+    struct DebugStats
+    {
+        struct EffectEntry
+        {
+            std::string name;              //!< エフェクト名
+            UINT inputSrvIndex = UINT_MAX; //!< 入力 SRV
+            UINT outputSrvIndex = UINT_MAX;//!< 出力 SRV
+            bool enabled = false;          //!< 有効状態
+            bool executed = false;         //!< 実行されたか
+        };
+
+        int   executedEffects = 0;     //!< 実行されたエフェクト数
+        float lastVolumeWeight = 0.0f; //!< 最後に使われたボリュームウェイト
+        UINT  lastInputSrvIndex = 0;   //!< 最後の入力 SRV
+        UINT  lastOutputSrvIndex = 0;  //!< 最後の出力 SRV
+        bool  executed = false;        //!< 実行されたか
+
+        std::vector<EffectEntry> effects; //!< エフェクトごとの出力
+    };
+
     ~PostEffectComponent() override = default;
 
     //! 初期化
@@ -37,10 +58,10 @@ public:
     {
         static_assert(std::is_base_of_v<PostEffectBase, T>, "T must derive from PostEffectBase");
         //! 同じ型の重複チェック
-        if (getEffect<T>())
+        if (auto* existing = getEffect<T>())
         {
             LOG_WARN("PostEffect already exists, skipping add");
-            return getEffect<T>();
+            return existing;
         }
         auto effect = std::make_unique<T>(std::forward<Args>(args)...);
         effect->initialize();
@@ -74,8 +95,6 @@ public:
     }
 
     //! ポストエフェクトチェーンを実行
-    //! @param sceneSrvIndex シーン RT の SRV インデックス
-    //! @return 最終出力の SRV インデックス
     UINT execute(UINT sceneSrvIndex);
 
     //! Volume チェーンを実行（PostEffectManager から呼ぶ）
@@ -103,6 +122,9 @@ public:
     //! カメラ位置に対するブレンドウェイト計算
     float computeBlendWeight(const Vector3& cameraPos) const;
 
+    //! デバッグ統計取得
+    const DebugStats& getDebugStats() const { return m_debug; }
+
 private:
 
     //! 優先度順にソート
@@ -123,4 +145,6 @@ private:
 
     TransformComponent* m_transform = nullptr;
     bool m_registered = false;
+
+    DebugStats m_debug;
 };

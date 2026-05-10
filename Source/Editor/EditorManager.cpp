@@ -14,5 +14,5 @@ void EditorManager::imgui()
 {
     drawHierarchyWindow();
     drawInspectorWindow();
-    drawCubemapToolWindow();
+    //drawCubemapToolWindow();
 }

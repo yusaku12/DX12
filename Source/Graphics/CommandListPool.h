@@ -23,10 +23,11 @@ public:
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
         bool inUse = false;
         bool closed = false;
+        UINT64 fenceValue = 0;
     };
 
     //! 初期化
-    void initialize(ID3D12Device* device, UINT poolSize = 4);
+    void initialize(ID3D12Device* device, ID3D12Fence* fence, UINT poolSize = 4);
 
     //! コマンドリストを取得（使用中でないものがあれば再利用、なければ新規作成）
     ID3D12GraphicsCommandList* acquire();
@@ -37,8 +38,11 @@ public:
     //! コマンドリストが閉じられたことを通知（コマンドリストはこの時点で閉じている必要がある）
     std::vector<ID3D12CommandList*> getClosedCommandLists() const;
 
-    //! プール内のすべてのコマンドリストをリセットして再利用可能にする（フレーム開始時などに呼ぶ）
-    void resetAll();
+    //! GPU 提出済みのコマンドリストにフェンス値を紐付ける
+    void notifySubmitted(UINT64 fenceValue);
+
+    //! GPU 完了済みのコマンドリストを再利用可能にする
+    void resetCompleted();
 
     //! 現在プール内で使用中のコマンドリストの数を取得（デバッグ用）
     UINT getActiveCount() const;
@@ -51,6 +55,7 @@ private:
     CommandListPool& operator=(const CommandListPool&) = delete;
 
     ID3D12Device* m_device = nullptr;
+    ID3D12Fence* m_fence = nullptr;
     std::vector<CommandListEntry> m_pool;
     mutable std::mutex m_mutex;
 };

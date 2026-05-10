@@ -54,7 +54,13 @@ void FbxRenderComponent::render(ID3D12GraphicsCommandList* cmd)
 {
     if (!cmd) return;
 
-    size_t psoKey = (m_debugMode == DebugMode::Wireframe) ? m_wireframePSOKey : m_solidPSOKey;
+    // デバッグモードに応じた PSO で描画
+    size_t psoKey = m_solidPSOKey;
+    if (m_debugMode == DebugMode::Wireframe)
+    {
+        psoKey = m_wireframePSOKey;
+    }
+
     renderInternal(cmd, psoKey);
 }
 

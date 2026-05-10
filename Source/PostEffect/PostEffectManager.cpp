@@ -10,6 +10,7 @@ void PostEffectManager::registerComponent(PostEffectComponent* comp)
     if (it == m_components.end())
     {
         m_components.push_back(comp);
+        m_dirty = true;
     }
 }
 
@@ -17,7 +18,10 @@ void PostEffectManager::unregisterComponent(PostEffectComponent* comp)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    size_t before = m_components.size();
     std::erase(m_components, comp);
+    if (m_components.size() != before)
+        m_dirty = true;
 }
 
 UINT PostEffectManager::execute(UINT sceneSrvIndex)
@@ -25,20 +29,28 @@ UINT PostEffectManager::execute(UINT sceneSrvIndex)
     std::vector<PostEffectComponent*> comps;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        comps = m_components;
+
+        if (m_dirty)
+        {
+            m_sortedComponents = m_components;
+            std::sort(m_sortedComponents.begin(), m_sortedComponents.end(),
+                [](PostEffectComponent* a, PostEffectComponent* b)
+                {
+                    return a->getVolumePriority() < b->getVolumePriority();
+                });
+            m_dirty = false;
+        }
+
+        comps = m_sortedComponents;
     }
 
     if (comps.empty())
+    {
         return sceneSrvIndex;
+    }
 
     CameraComponent* cam = CameraManager::Instance().getMainCamera();
     Vector3 cameraPos = cam ? cam->getPosition() : Vector3::Zero;
-
-    std::sort(comps.begin(), comps.end(),
-        [](PostEffectComponent* a, PostEffectComponent* b)
-        {
-            return a->getVolumePriority() < b->getVolumePriority();
-        });
 
     auto& rt = PostEffectRenderTargets::Instance();
     rt.reset(sceneSrvIndex);
@@ -53,7 +65,9 @@ UINT PostEffectManager::execute(UINT sceneSrvIndex)
         if (weight <= 0.0f) continue;
 
         if (comp->executeChain(weight))
+        {
             any = true;
+        }
     }
 
     return any ? rt.getFinalOutputSrvIndex() : sceneSrvIndex;

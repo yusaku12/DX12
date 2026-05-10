@@ -671,8 +671,12 @@ void DX12::prepareBackBufferForImGui()
         m_commandQueue->ExecuteCommandLists(
             static_cast<UINT>(workerLists.size()),
             workerLists.data());
+
+        const UINT64 fenceValue = ++m_fenceValue;
+        m_commandQueue->Signal(m_fence.Get(), fenceValue);
+        CommandListPool::Instance().notifySubmitted(fenceValue);
     }
-    CommandListPool::Instance().resetAll();
+    CommandListPool::Instance().resetCompleted();
 
     // post-pass 用のアロケータでリセット（pre-pass アロケータは GPU 使用中のため触らない）
     m_postCommandAllocator->Reset();
@@ -697,8 +701,12 @@ void DX12::prepareBackBufferForImGui()
             m_commandQueue->ExecuteCommandLists(
                 static_cast<UINT>(forwardLists.size()),
                 forwardLists.data());
+
+            const UINT64 fenceValue = ++m_fenceValue;
+            m_commandQueue->Signal(m_fence.Get(), fenceValue);
+            CommandListPool::Instance().notifySubmitted(fenceValue);
         }
-        CommandListPool::Instance().resetAll();
+        CommandListPool::Instance().resetCompleted();
 
         m_postCommandAllocator2->Reset();
         m_graphicsCommandList->Reset(m_postCommandAllocator2.Get(), nullptr);

@@ -41,6 +41,15 @@ namespace
 
         void execute(RenderPassContext& context) override
         {
+            auto* cmd = DX12::Instance().getGraphicsCommandList();
+            if (!cmd) return;
+
+            auto& gbuffer = GBufferRenderTargets::Instance();
+            gbuffer.transitionToRenderTarget(cmd);
+            gbuffer.clear(cmd);
+            gbuffer.setRenderTargets(cmd, DX12::Instance().getDSVHandle());
+            DX12::Instance().applyViewportAndScissor(cmd);
+
             if (context.useMultiThreaded)
                 RenderManager::Instance().renderMultiThreadedGBuffer();
             else

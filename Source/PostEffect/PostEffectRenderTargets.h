@@ -40,6 +40,21 @@ public:
     //! 最終出力 SRV インデックス
     UINT getFinalOutputSrvIndex() const { return m_inputSrvIndex; }
 
+    //! ピンポン SRV インデックス取得
+    UINT getPingPongSrvIndex(int index) const
+    {
+        if (index < 0 || index >= PING_PONG_COUNT)
+            return UINT_MAX;
+
+        return m_srvIndices[index];
+    }
+
+    //! 書き込み先インデックス取得
+    int getWriteIndex() const { return m_writeIndex; }
+
+    //! 初期化済み判定
+    bool isInitialized() const { return m_initialized; }
+
 private:
 
     PostEffectRenderTargets() = default;
