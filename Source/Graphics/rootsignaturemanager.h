@@ -9,6 +9,7 @@ enum class RootSignatureType : int
     GBuffer,
     DebugPrimitive,
     PostEffect,
+    PostEffectDepth,
     BloomComposite,
     Skybox,
     DeferredLighting,
@@ -59,6 +60,9 @@ private:
     //! PostEffectをビルド
     void buildPostEffect();
 
+    //! PostEffectDepthをビルド
+    void buildPostEffectDepth();
+
     //! BloomCompositeをビルド
     void buildBloomComposite();
 
@@ -67,6 +71,12 @@ private:
 
     //! DeferredLightingをビルド
     void buildDeferredLighting();
+
+    //! 共通: FBX/GBuffer 系（CBV3 + SRVテーブル）
+    void buildModelMaterialSRV(UINT srvCount, RootSignatureType type);
+
+    //! 共通: PostEffect 系（CBV1 + SRVテーブル）
+    void buildPostEffectCommon(bool useDepth);
 
     //! テスト
     void createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type);

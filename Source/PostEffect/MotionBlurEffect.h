@@ -1,0 +1,43 @@
+﻿#pragma once
+
+#include "PostEffectBase.h"
+
+//=====================================================
+//! モーションブラーエフェクト
+//! Unity / Unreal 方式のスクリーン空間モーションブラー
+//=====================================================
+class MotionBlurEffect : public PostEffectBase
+{
+public:
+
+    MotionBlurEffect() { m_priority = 80; }
+
+    void initialize() override;
+    void render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex) override;
+    void inspectGUI() override;
+
+    const char* getName() const override { return "MotionBlur"; }
+    ShaderID getPixelShaderID() const override { return ShaderID::MotionBlurPS; }
+    bool needsDepth() const override { return true; }
+
+    void setShutterSpeed(float v) { m_shutterSpeed = std::max(v, 0.0f); }
+    void setMaxBlurRadius(float v) { m_maxBlurRadius = std::max(v, 0.0f); }
+
+private:
+
+    struct CBuffer
+    {
+        Matrix  currentViewProj{};
+        Matrix  prevViewProj{};
+        Matrix  invViewProj{};
+        Vector4 params0{}; //!< x=shutterSpeed y=maxBlurRadius z=deltaTime w=blendWeight
+        Vector4 params1{}; //!< x=nearZ y=farZ z=texelSize.x w=texelSize.y
+    };
+
+    std::unique_ptr<ConstantBuffer<CBuffer>> m_cb;
+    Matrix m_prevViewProj = Matrix::Identity;
+    bool m_hasPrev = false;
+
+    float m_shutterSpeed = 0.8f;
+    float m_maxBlurRadius = 12.0f;
+};

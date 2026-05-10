@@ -120,7 +120,15 @@ UINT PostEffectComponent::execute(UINT sceneSrvIndex)
     auto& rt = PostEffectRenderTargets::Instance();
     rt.reset(sceneSrvIndex);
 
+    const bool needDepth = requiresDepth();
+    if (needDepth)
+        DX12::Instance().transitionDepthToSRV();
+
     bool executed = executeChain(1.0f);
+
+    if (needDepth)
+        DX12::Instance().transitionDepthToWrite();
+
     if (executed)
         m_debug.lastOutputSrvIndex = rt.getFinalOutputSrvIndex();
 
@@ -207,6 +215,15 @@ bool PostEffectComponent::hasActiveEffects() const
 {
     return std::any_of(m_effects.begin(), m_effects.end(),
         [](const std::unique_ptr<PostEffectBase>& e) { return e->isEnabled(); });
+}
+
+bool PostEffectComponent::requiresDepth() const
+{
+    return std::any_of(m_effects.begin(), m_effects.end(),
+        [](const std::unique_ptr<PostEffectBase>& e)
+        {
+            return e->isEnabled() && e->needsDepth();
+        });
 }
 
 void PostEffectComponent::setWeight(float weight)

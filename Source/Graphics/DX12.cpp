@@ -238,7 +238,7 @@ void DX12::initialize()
         desc.Height = m_height;
         desc.DepthOrArraySize = 1;
         desc.MipLevels = 1;
-        desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
         desc.SampleDesc.Count = 1;
         desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -260,12 +260,31 @@ void DX12::initialize()
         );
         LOG_HR(hr, "Failed to Create DepthStencil");
 
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+        dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+        dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+
         //! DSV作成
         m_device->CreateDepthStencilView(
             m_depthStencil.Get(),
-            nullptr,
+            &dsvDesc,
             m_dsvHandle
         );
+
+        if (m_depthSrvIndex == UINT_MAX)
+            m_depthSrvIndex = DescriptorHeapManager::Instance().allocateRange();
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = 1;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+        auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_depthSrvIndex);
+        m_device->CreateShaderResourceView(m_depthStencil.Get(), &srvDesc, cpuHandle);
+
+        m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     }
 
     // フェンスを作成(GPU側の処理が完了したか知るための仕組み)
@@ -279,6 +298,8 @@ void DX12::screenClear(RenderPath renderPath)
     DescriptorHeapManager::Instance().setDescriptorHeap();
 
     auto* cmd = m_graphicsCommandList.Get();
+
+    transitionDepthToWrite();
 
     if (renderPath == RenderPath::Forward)
     {
@@ -320,6 +341,34 @@ void DX12::screenClear(RenderPath renderPath)
 
     // ビューポートとシザー矩形をセット
     applyViewportAndScissor(m_graphicsCommandList.Get());
+}
+
+void DX12::transitionDepthToSRV()
+{
+    if (!m_depthStencil) return;
+    if (m_depthState == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) return;
+
+    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_depthStencil.Get(),
+        m_depthState,
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+    m_depthState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+}
+
+void DX12::transitionDepthToWrite()
+{
+    if (!m_depthStencil) return;
+    if (m_depthState == D3D12_RESOURCE_STATE_DEPTH_WRITE) return;
+
+    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_depthStencil.Get(),
+        m_depthState,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+    m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 }
 
 void DX12::sceneImguiRender()
@@ -499,7 +548,7 @@ void DX12::screenResize(int width, int height)
         Ddesc.Height = m_height;
         Ddesc.DepthOrArraySize = 1;
         Ddesc.MipLevels = 1;
-        Ddesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        Ddesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
         Ddesc.SampleDesc.Count = 1;
         Ddesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         Ddesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -521,11 +570,30 @@ void DX12::screenResize(int width, int height)
         );
         LOG_HR(hr, "Depth recreate failed");
 
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+        dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+        dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+
         m_device->CreateDepthStencilView(
             m_depthStencil.Get(),
-            nullptr,
+            &dsvDesc,
             m_dsvHandle
         );
+
+        if (m_depthSrvIndex == UINT_MAX)
+            m_depthSrvIndex = DescriptorHeapManager::Instance().allocateRange();
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = 1;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+        auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_depthSrvIndex);
+        m_device->CreateShaderResourceView(m_depthStencil.Get(), &srvDesc, cpuHandle);
+
+        m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     }
 
     // Scene RTV 再作成

@@ -7,6 +7,8 @@
 #include "Component\PostEffectComponent.h"
 #include "PostEffect\BloomEffect.h"
 #include "PostEffect\ColorGradingEffect.h"
+#include "PostEffect\DepthOfFieldEffect.h"
+#include "PostEffect\MotionBlurEffect.h"
 #include "Component\SkyboxComponent.h"
 
 void ModelEditorScene::onEnter()
@@ -30,6 +32,8 @@ void ModelEditorScene::onEnter()
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
     pe->addEffect<BloomEffect>();
     pe->addEffect<ColorGradingEffect>();
+    //pe->addEffect<DepthOfFieldEffect>();
+    pe->addEffect<MotionBlurEffect>();
 }
 
 void ModelEditorScene::update()

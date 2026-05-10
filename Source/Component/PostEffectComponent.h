@@ -103,6 +103,9 @@ public:
     //! 有効なエフェクトが存在するか
     bool hasActiveEffects() const;
 
+    //! 深度テクスチャが必要か
+    bool requiresDepth() const;
+
     //! Volume 優先度
     int getVolumePriority() const { return m_volumePriority; }
     void setVolumePriority(int priority) { m_volumePriority = priority; }

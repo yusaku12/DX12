@@ -49,6 +49,19 @@ UINT PostEffectManager::execute(UINT sceneSrvIndex)
         return sceneSrvIndex;
     }
 
+    bool needDepth = false;
+    for (auto* comp : comps)
+    {
+        if (comp && comp->requiresDepth())
+        {
+            needDepth = true;
+            break;
+        }
+    }
+
+    if (needDepth)
+        DX12::Instance().transitionDepthToSRV();
+
     CameraComponent* cam = CameraManager::Instance().getMainCamera();
     Vector3 cameraPos = cam ? cam->getPosition() : Vector3::Zero;
 
@@ -69,6 +82,9 @@ UINT PostEffectManager::execute(UINT sceneSrvIndex)
             any = true;
         }
     }
+
+    if (needDepth)
+        DX12::Instance().transitionDepthToWrite();
 
     return any ? rt.getFinalOutputSrvIndex() : sceneSrvIndex;
 }

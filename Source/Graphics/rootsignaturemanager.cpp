@@ -6,6 +6,7 @@ void RootSignatureManager::initialize()
     buildGBuffer();
     buildDebugPrimitive();
     buildPostEffect();
+    buildPostEffectDepth();
     buildBloomComposite();
     buildSkybox();
     buildDeferredLighting();
@@ -18,46 +19,12 @@ ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType ty
 
 void RootSignatureManager::buildFBXStandard()
 {
-    CD3DX12_ROOT_PARAMETER params[4] = {};
-
-    // Camera
-    params[0].InitAsConstantBufferView(0);
-
-    // Model
-    params[1].InitAsConstantBufferView(1);
-
-    // Material
-    params[2].InitAsConstantBufferView(2);
-
-    // Texture (SRV)
-    CD3DX12_DESCRIPTOR_RANGE range;
-    range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-    params[3].InitAsDescriptorTable(1, &range);
-
-    // ルートシグネチャ生成
-    createRootSignature(params, _countof(params), RootSignatureType::FBXStandard);
+    buildModelMaterialSRV(1, RootSignatureType::FBXStandard);
 }
 
 void RootSignatureManager::buildGBuffer()
 {
-    CD3DX12_ROOT_PARAMETER params[4] = {};
-
-    // Camera
-    params[0].InitAsConstantBufferView(0);
-
-    // Model
-    params[1].InitAsConstantBufferView(1);
-
-    // Material
-    params[2].InitAsConstantBufferView(2);
-
-    // Texture (SRV)
-    CD3DX12_DESCRIPTOR_RANGE range;
-    range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
-    params[3].InitAsDescriptorTable(1, &range);
-
-    // ルートシグネチャ生成
-    createRootSignature(params, _countof(params), RootSignatureType::GBuffer);
+    buildModelMaterialSRV(2, RootSignatureType::GBuffer);
 }
 
 void RootSignatureManager::buildDebugPrimitive()
@@ -77,18 +44,12 @@ void RootSignatureManager::buildDebugPrimitive()
 
 void RootSignatureManager::buildPostEffect()
 {
-    CD3DX12_ROOT_PARAMETER params[2] = {};
+    buildPostEffectCommon(false);
+}
 
-    // エフェクトパラメータ用 CBV (b0)
-    params[0].InitAsConstantBufferView(0);
-
-    // シーンテクスチャ用 SRV テーブル (t0)
-    CD3DX12_DESCRIPTOR_RANGE srvRange;
-    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-    params[1].InitAsDescriptorTable(1, &srvRange);
-
-    // ルートシグネチャ生成
-    createRootSignature(params, _countof(params), RootSignatureType::PostEffect);
+void RootSignatureManager::buildPostEffectDepth()
+{
+    buildPostEffectCommon(true);
 }
 
 void RootSignatureManager::buildBloomComposite()
@@ -153,6 +114,66 @@ void RootSignatureManager::buildDeferredLighting()
     params[3].InitAsDescriptorTable(1, &range1);
 
     createRootSignature(params, _countof(params), RootSignatureType::DeferredLighting);
+}
+
+void RootSignatureManager::buildModelMaterialSRV(UINT srvCount, RootSignatureType type)
+{
+    CD3DX12_ROOT_PARAMETER params[4] = {};
+
+    // Camera
+    params[0].InitAsConstantBufferView(0);
+
+    // Model
+    params[1].InitAsConstantBufferView(1);
+
+    // Material
+    params[2].InitAsConstantBufferView(2);
+
+    // Texture (SRV)
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, srvCount, 0);
+    params[3].InitAsDescriptorTable(1, &srvRange);
+
+    // ルートシグネチャ生成
+    createRootSignature(params, _countof(params), type);
+}
+
+void RootSignatureManager::buildPostEffectCommon(bool useDepth)
+{
+    if (!useDepth)
+    {
+        CD3DX12_ROOT_PARAMETER params[2] = {};
+
+        // エフェクトパラメータ用 CBV (b0)
+        params[0].InitAsConstantBufferView(0);
+
+        // シーンテクスチャ用 SRV テーブル (t0)
+        CD3DX12_DESCRIPTOR_RANGE srvRange;
+        srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+        params[1].InitAsDescriptorTable(1, &srvRange);
+
+        // ルートシグネチャ生成
+        createRootSignature(params, _countof(params), RootSignatureType::PostEffect);
+        return;
+    }
+
+    CD3DX12_ROOT_PARAMETER params[3] = {};
+
+    // エフェクトパラメータ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // シーンテクスチャ用 SRV テーブル (t0)
+    CD3DX12_DESCRIPTOR_RANGE srvRange0;
+    srvRange0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange0);
+
+    // 深度テクスチャ用 SRV テーブル (t1)
+    CD3DX12_DESCRIPTOR_RANGE srvRange1;
+    srvRange1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+    params[2].InitAsDescriptorTable(1, &srvRange1);
+
+    // ルートシグネチャ生成
+    createRootSignature(params, _countof(params), RootSignatureType::PostEffectDepth);
 }
 
 void RootSignatureManager::createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type)

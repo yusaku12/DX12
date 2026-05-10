@@ -18,6 +18,8 @@ enum class ShaderID : int
     BloomDownsamplePS,
     BloomUpsamplePS,
     BloomCompositePS,
+    DepthOfFieldPS,
+    MotionBlurPS,
     ColorGradingPS,
     SkyboxVS,
     SkyboxPS,
@@ -50,6 +52,8 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/BloomDownsamplePS.hlsl",  "PS", "ps_5_0" },  //!< BloomDownsamplePS
     ShaderDesc{ L"Shader/BloomUpsamplePS.hlsl",    "PS", "ps_5_0" },  //!< BloomUpsamplePS
     ShaderDesc{ L"Shader/BloomCompositePS.hlsl",   "PS", "ps_5_0" },  //!< BloomCompositePS
+    ShaderDesc{ L"Shader/DepthOfFieldPS.hlsl",     "PS", "ps_5_0" },  //!< DepthOfFieldPS
+    ShaderDesc{ L"Shader/MotionBlurPS.hlsl",       "PS", "ps_5_0" },  //!< MotionBlurPS
     ShaderDesc{ L"Shader/ColorGradingPS.hlsl",     "PS", "ps_5_0" },  //!< ColorGradingPS
     ShaderDesc{ L"Shader/SkyboxVS.hlsl",           "VS", "vs_5_0" },  //!< SkyboxVS
     ShaderDesc{ L"Shader/SkyboxPS.hlsl",           "PS", "ps_5_0" },  //!< SkyboxPS

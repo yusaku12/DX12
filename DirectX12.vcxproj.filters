@@ -85,6 +85,8 @@
     <ClCompile Include="Source\Render\DeferredRenderer.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectManager.cpp" />
     <ClCompile Include="Source\Render\RenderPipeline.cpp" />
+    <ClCompile Include="Source\PostEffect\DepthOfFieldEffect.cpp" />
+    <ClCompile Include="Source\PostEffect\MotionBlurEffect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -408,6 +410,12 @@
     <ClInclude Include="Source\Render\RenderPipeline.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
+    <ClInclude Include="Source\PostEffect\DepthOfFieldEffect.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PostEffect\MotionBlurEffect.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\CommonConstants.hlsli" />
@@ -440,5 +448,7 @@
     <FxCompile Include="HLSL\SkyBoxPS.hlsl" />
     <FxCompile Include="HLSL\GBufferPS.hlsl" />
     <FxCompile Include="HLSL\DeferredLightingPS.hlsl" />
+    <FxCompile Include="HLSL\DepthOfFieldPS.hlsl" />
+    <FxCompile Include="HLSL\MotionBlurPS.hlsl" />
   </ItemGroup>
 </Project>

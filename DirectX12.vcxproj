@@ -109,6 +109,8 @@
     <ClCompile Include="Source\Physics\Raycast.cpp" />
     <ClCompile Include="Source\PostEffect\BloomEffect.cpp" />
     <ClCompile Include="Source\PostEffect\ColorGradingEffect.cpp" />
+    <ClCompile Include="Source\PostEffect\DepthOfFieldEffect.cpp" />
+    <ClCompile Include="Source\PostEffect\MotionBlurEffect.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectManager.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
@@ -215,6 +217,8 @@
     <ClInclude Include="Source\Physics\Raycast.h" />
     <ClInclude Include="Source\PostEffect\BloomEffect.h" />
     <ClInclude Include="Source\PostEffect\ColorGradingEffect.h" />
+    <ClInclude Include="Source\PostEffect\DepthOfFieldEffect.h" />
+    <ClInclude Include="Source\PostEffect\MotionBlurEffect.h" />
     <ClInclude Include="Source\PostEffect\PostEffectBase.h" />
     <ClInclude Include="Source\PostEffect\PostEffectManager.h" />
     <ClInclude Include="Source\PostEffect\PostEffectRenderTargets.h" />
@@ -253,6 +257,18 @@
     <None Include="HLSL\SkyBox.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="HLSL\MotionBlurPS.hlsl">
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="HLSL\DepthOfFieldPS.hlsl">
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
     <FxCompile Include="HLSL\DeferredLightingPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

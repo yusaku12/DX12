@@ -27,6 +27,9 @@ public:
     //! ピクセルシェーダーID
     virtual ShaderID getPixelShaderID() const = 0;
 
+    //! 深度テクスチャが必要か
+    virtual bool needsDepth() const { return false; }
+
     //! 有効/無効
     bool isEnabled() const { return m_enabled; }
     void setEnabled(bool value) { m_enabled = value; }

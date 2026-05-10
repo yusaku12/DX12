@@ -102,6 +102,12 @@ public:
     //! 現在の RenderTarget（Scene RT + DSV）をコマンドリストに設定
     void applySceneRenderTargets(ID3D12GraphicsCommandList* cmd) const;
 
+    //! 深度バッファを SRV に遷移
+    void transitionDepthToSRV();
+
+    //! 深度バッファを DEPTH_WRITE に遷移
+    void transitionDepthToWrite();
+
     //! フェンスを待つ
     void safeGPUWait();
 
@@ -131,6 +137,9 @@ public:
 
     //! Scene RTV ハンドル取得
     D3D12_CPU_DESCRIPTOR_HANDLE getSceneRTVHandle() const { return m_sceneRTVHandle; }
+
+    //! 深度 SRV インデックス取得
+    UINT getDepthSrvIndex() const { return m_depthSrvIndex; }
 
     //! フェンス取得
     ID3D12Fence* getFence() const { return m_fence.Get(); }
@@ -202,6 +211,8 @@ private:
     D3D12_CPU_DESCRIPTOR_HANDLE m_sceneRTVHandle{};
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle = {};
     UINT m_sceneSrvIndex = 0;
+    UINT m_depthSrvIndex = UINT_MAX;
+    D3D12_RESOURCE_STATES m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     UINT m_finalPostEffectSrv = 0;
     bool m_isSceneActive = false;
     ImVec2 m_sceneWindowPos = ImVec2(0, 0);
