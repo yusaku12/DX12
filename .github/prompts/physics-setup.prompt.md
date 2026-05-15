@@ -9,11 +9,37 @@ description: "物理演算（PhysX）のセットアップを行う"
 
 ## エンジンの物理構成
 
-- `PhysicsWorld` — PhysX 5.x のシングルトンラッパー
+- `PhysicsWorld` — PhysX 5.x シングルトン
 - `RigidbodyComponent` — 剛体（Dynamic / Kinematic / Static）
 - `ColliderComponent` — 衝突形状（Box / Sphere / Capsule / Plane）
-- `Physics::Raycast()` — レイキャストユーティリティ
+- `PhysicsWorld::raycast()` / `raycastAll()` — レイキャスト
 
-## セットアップパターン
+## 代表的なセットアップ
 
 ### 静的な地面
+- `TransformComponent` + `ColliderComponent`
+- `ColliderComponent::setPlaneShape()`
+- `RigidbodyComponent` を `Static` に設定（必要な場合）
+
+### 動的オブジェクト
+- `TransformComponent` + `RigidbodyComponent` + `ColliderComponent`
+- `RigidbodyComponent::setType(RigidbodyType::Dynamic)`
+- 形状設定: `setBoxShape` / `setSphereShape` / `setCapsuleShape`
+
+### トリガー
+- `ColliderComponent::setTrigger(true)`
+
+### レイキャスト
+- `PhysicsWorld::raycast(origin, dir, maxDistance, outHit)`
+- `PhysicsWorld::raycastAll(origin, dir, maxDistance, outHits)`
+
+## 注意事項
+
+- `PhysicsWorld::initialize()` はエンジン初期化で1回だけ
+- 物理同期は `PhysicsWorld::simulate()` 内で行われる
+- 破棄は `onDestroy()` で `RigidbodyComponent` / `ColliderComponent` を適切に解放
+
+## 出力
+
+- 必要な GameObject / Component 構成
+- コード断片（必要な場合）

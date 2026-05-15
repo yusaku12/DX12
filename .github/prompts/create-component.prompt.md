@@ -9,36 +9,43 @@ description: "新しい Component を作成する"
 
 ## 手順
 
-1. ユーザーが求める機能を理解する
+1. ユーザーの要件を理解する
 2. `Source/Component/` に `.h` と `.cpp` を作成する
-3. 以下のルールに従うこと:
+3. 以下のルールに従うこと
 
-### ヘッダーテンプレート
+## ヘッダー規約
+
 - `#pragma once`
-- `#include "Component\Component.h"` を含める
-- `Component` を public 継承
-- コンストラクタ: `default`、デストラクタ: `override = default`
-- 必要に応じて `awake()`, `start()`, `update()`, `lateUpdate()`, `inspectGUI()` をオーバーライド
-- メンバ変数は `m_` プレフィックス
-- 日本語コメント（`//!` Doxygen）
+- `#include "Component/Component.h"` を含める
+- `Component` もしくは `IRenderComponent` を public 継承
+- デストラクタ: `override = default`
+- 必要に応じて `awake()` / `start()` / `update()` / `lateUpdate()` / `onEnable()` / `onDisable()` / `onDestroy()` / `inspectGUI()` をオーバーライド
+- メンバ変数は `m_`、static は `s_` プレフィックス
+- コメントは日本語 `//!` Doxygen スタイル
 
-### ソーステンプレート
+## ソース規約
+
 - 先頭行は必ず `#include "pch.h"`
-- 他コンポーネント参照は `awake()` で `gameObject()->getComponent<T>()` で取得
+- 他コンポーネント参照は `awake()` で `gameObject()->getComponent<T>()` から取得
 - ImGui の GUI は `inspectGUI()` で実装
-- ログは `LOG_INFO` / `LOG_WARN` / `LOG_ERROR` マクロ使用
-- デルタタイム取得: `TimeManager::Instance().getDeltaTime()`
+- ログは `LOG_INFO` / `LOG_WARN` / `LOG_ERROR` を使用
+- デルタタイムは `TimeManager::Instance().getDeltaTime()`
+- リソース解放は `onDestroy()` で行う
 
-### 描画コンポーネントの場合
-- `IRenderComponent` を継承する
+## 描画コンポーネント（`IRenderComponent`）
+
+- `#include "Component/IRenderComponent.h"`
 - `render()` と `render(ID3D12GraphicsCommandList* cmd)` を実装
-- `Source/Component/IRenderComponent.h` を参照すること
+- Deferred 対応が必要なら `renderGBuffer()` / `renderForward()` をオーバーライド
+- 登録/解除は `IRenderComponent` が自動で行う（`start()`/`onEnable()`/`onDisable()`/`onDestroy()`）
 
-### プロジェクトへの登録
-- `DirectX12.vcxproj.filters` に `.cpp` と `.h` のエントリを追加する
+## プロジェクトへの登録
+
+- `DirectX12.vcxproj.filters` に `.cpp` と `.h` のエントリを追加
 - `.cpp` は `<ClCompile>` に、`.h` は `<ClInclude>` に追加
 
 ## 出力
+
 - ヘッダーファイル (.h)
 - ソースファイル (.cpp)
 - vcxproj.filters への追加差分の説明

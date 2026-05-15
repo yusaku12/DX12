@@ -9,20 +9,37 @@ description: "新しい HLSL シェーダーを作成する"
 
 ## プロジェクトのシェーダー構成
 
-- ディレクトリ: `HLSL/`
-- 共通ヘッダー: `CommonConstants.hlsli`（カメラ行列等）、`Common.hlsli`（汎用関数）
-- ファイル命名: `[機能名]VS.hlsl`, `[機能名]PS.hlsl`, `[機能名].hlsli`
+- HLSL ソース: `HLSL/`
+- コンパイル済み: `Shader/*.cso`
+- 共通ヘッダー: `HLSL/CommonConstants.hlsli`, `HLSL/Common.hlsli`
+- 命名: `[Name]VS.hlsl`, `[Name]PS.hlsl`, `[Name].hlsli`
 - `.editorconfig`: charset=utf-8, end_of_line=crlf, insert_final_newline=true
 
 ## 手順
 
 1. ユーザーの要件を理解する
-2. 共通ヘッダー (`HLSL/CommonConstants.hlsli`, `HLSL/Common.hlsli`) を確認する
-3. 入力レイアウト構造体を `.hlsli` に定義する
-4. 頂点シェーダー (`VS.hlsl`) を作成する
-5. ピクセルシェーダー (`PS.hlsl`) を作成する
-6. `DirectX12.vcxproj.filters` の `<FxCompile>` セクションに追加する
+2. 必要な `.hlsli`（入力レイアウト等）を作成
+3. `VS/PS` を `HLSL/` に作成
+4. `Source/Graphics/ShaderData.h` を更新する
+5. 必要なら RootSignature / PSO を更新する
+6. `DirectX12.vcxproj.filters` の `<FxCompile>` に追加する
 
-## C++ 側の連携
+## ShaderData 更新規則
 
-シェーダーの読み込みとPSO作成:
+- `enum class ShaderID` に新しいIDを追加
+- `shaderTable` に **必ず同数** の `ShaderDesc` を追加
+- `path` は `Shader/<Name>.hlsl` 形式（`ShaderManager` が `HLSL/<Name>.hlsl` を参照）
+- `profile` は `vs_5_0` / `ps_5_0`
+
+## PSO/RootSignature 連携
+
+- PostEffect 系は `PostEffectBase::registerPSO()` を使用
+- 通常描画は `PSOCreator::PSOData` を構成して登録
+- 新しいルートシグネチャが必要なら `RootSignatureManager` に追加
+
+## 出力
+
+- HLSL ファイル群
+- `ShaderData.h` 変更点
+- PSO / RS 変更点
+- vcxproj.filters 追加差分

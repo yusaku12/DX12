@@ -16,19 +16,24 @@ description: "ビルドエラーを解析して修正する"
 ## よくあるエラーパターン
 
 ### `#include "pch.h"` が先頭にない
-- 全 `.cpp` ファイルの1行目は必ず `#include "pch.h"` であること
+- 全 `.cpp` ファイルの1行目は必ず `#include "pch.h"`
 
 ### リンクエラー（未定義シンボル）
-- `.cpp` を `DirectX12.vcxproj.filters` に追加し忘れている可能性
-- ヘッダーで宣言したメソッドの実装が `.cpp` にない可能性
+- `.cpp` を `DirectX12.vcxproj.filters` に追加し忘れている
+- 宣言に対する定義が `.cpp` にない
 
 ### PhysX 関連エラー
-- `#define _SILENCE_CXX20_CISO646_REMOVED_WARNING` が `<PxPhysicsAPI.h>` のインクルード前に必要
+- `#define _SILENCE_CXX20_CISO646_REMOVED_WARNING` が `<PxPhysicsAPI.h>` の前に必要
 
-### DirectXMath 型の未定義
-- `pch.h` で `using namespace DirectX; using namespace SimpleMath;` が宣言済み
-- `Vector3`, `Matrix`, `Quaternion` 等は `SimpleMath` のラッパー型
+### Shader 関連エラー
+- `ShaderData.h` の `shaderTable` 数と `ShaderID::MAX` が一致していない
+- `HLSL/<Name>.hlsl` が存在しない（HotReload / コンパイル失敗）
+
+### RootSignature / PSO エラー
+- 新しい `RootSignatureType` を追加したのに `RootSignatureManager::initialize()` でビルドしていない
+- `PSOCreator::PSOData` の `rootSignatureType` が不一致
 
 ## 出力
+
 - エラーの原因説明
 - 修正コード
