@@ -25,9 +25,6 @@ namespace
         dx12.applyViewportAndScissor(cmd);
     }
 
-    //=====================================================
-    //! シャドウマップパス（GBuffer より前に実行）
-    //=====================================================
     class ShadowMapPass : public RenderPassBase
     {
     public:

@@ -17,11 +17,15 @@ void ModelEditorScene::onEnter()
     GameObject* cameraObject = new GameObject("MainCamera");
     cameraObject->addComponent<TransformComponent>()->setPosition({ 0.0f, 9.0f, -23.0f });
     cameraObject->addComponent<FreeCameraComponent>();
-    GameObject* object = new GameObject("ModelObject");
 
+    GameObject* object = new GameObject("ModelObject");
     object->addComponent<TransformComponent>();
     object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
     object->addComponent<AnimationComponent>();
+
+    GameObject* stage = new GameObject("Stage");
+    stage->addComponent<TransformComponent>();
+    stage->addComponent<FbxRenderComponent>("Data/Model/Grass.fbx");
 
     GameObject* skyboxObj = new GameObject("Skybox");
     auto* skybox = skyboxObj->addComponent<SkyboxComponent>();

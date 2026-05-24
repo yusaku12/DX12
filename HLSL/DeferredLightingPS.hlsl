@@ -108,7 +108,7 @@ float4 PS(PostEffectVSOut input) : SV_TARGET
 
     // シャドウ係数（ダイレクトライティングのみに適用、IBL アンビエントは除外）
     float3 viewPos  = mul(float4(worldPos, 1.0f), view).xyz;
-    float  viewDepth = -viewPos.z;  //!< RH 系: view 空間 Z は負なので反転
+    float  viewDepth = viewPos.z;  //!< LH 系: view 空間 Z は正なので反転不要
     float  shadowFactor = computeShadow(worldPos, viewDepth);
     direct *= shadowFactor;
 

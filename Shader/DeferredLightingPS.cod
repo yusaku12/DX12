@@ -330,7 +330,7 @@ mul r2.w, cb0[3].z, l(1.000000)
 add r0.x, r0.x, r2.w  // r0.x <- viewPos.z
 
 #line 111
-mov r0.x, -r0.x  // r0.x <- viewDepth
+mov r0.x, r0.x  // r0.x <- viewDepth
 
 #line 112
 nop 
