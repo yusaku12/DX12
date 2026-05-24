@@ -33,7 +33,7 @@ void FbxRenderComponent::update()
     if (!m_transform) return;
 
     // モデル行列更新
-    m_model->updateTransform(m_transform->getLocalMatrix());
+    m_model->updateTransform(m_transform->getWorldMatrix());
 
     // AABB 描画
     if (g_editor.selectedObject == gameObject())
@@ -359,17 +359,21 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
             modelCBData.boneTransforms[0] = Matrix::Identity;
         }
 
-        m_modelCB->update(modelCBData);
+        m_modelCB->update(modelCBData, static_cast<UINT>(meshIdx));
 
         // ShadowDepth ルートシグネチャ: params[1] = ボーントランスフォーム CBV (b1)
-        cmd->SetGraphicsRootConstantBufferView(1, m_modelCB->getGPUAddress());
+        cmd->SetGraphicsRootConstantBufferView(1, m_modelCB->getGPUAddress(static_cast<UINT>(meshIdx)));
 
-        // メッシュ描画
-        cmd->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
-        cmd->IASetIndexBuffer(&mesh.indexBufferView);
-        cmd->DrawIndexedInstanced(
-            static_cast<UINT>(mesh.indices.size()),
-            1, 0, 0, 0);
+        // メッシュバッファをセット（現在処理中のメッシュのみ）
+        m_model->getResource()->bindGpuMesh(cmd, meshIdx);
+
+        for (const auto& subset : mesh.subMeshes)
+        {
+            // サブセット単位の表示制御
+            if (!subset.visible) continue;
+
+            cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
+        }
     }
 }
 

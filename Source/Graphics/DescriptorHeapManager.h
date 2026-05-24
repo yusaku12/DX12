@@ -38,11 +38,14 @@ public:
     //! UAV作成
     UINT createUAV(ID3D12Resource* resource, ID3D12Resource* counterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
 
-    //! GPUハンドル取得
+    //! GPUハンドル取得（描画割り当て時に自動でオンデマンド同期します）
     D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index) const;
 
-    //! CPU ハンドル取得（shader-visible ヒープの CPU ハンドル）
+    //! CPU ハンドル取得（non-shader-visible ステージングヒープの CPU ハンドル：ビューの作成先として汎用利用）
     D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index) const;
+
+    //! CPU ハンドル取得（shader-visible 表示ヒープの CPU ハンドル）
+    D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandleVisible(UINT index) const;
 
     //! DescriptorHeap取得
     ID3D12DescriptorHeap* getHeap() const { return m_heap.Get(); }
@@ -62,7 +65,8 @@ private:
 
     static constexpr UINT InvalidIndex = UINT_MAX;
     std::vector<bool> m_used;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;      // shader-visible heap (bindable)
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;          // shader-visible heap (bindable)
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_stagingHeap;   // non-shader-visible heap (staging source)
     UINT m_maxCount = 0;
     UINT m_incrementSize = 0;
     mutable std::mutex m_mutex;

@@ -99,12 +99,12 @@ void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
     // メインカメラの視錐台（Frustum）を取得してカリング
     DirectX::BoundingFrustum cameraFrustum;
     bool hasFrustum = false;
-    if (CameraComponent* cam = CameraManager::Instance().getMainCamera())
-    {
-        DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, cam->getProjection());
-        cameraFrustum.Transform(cameraFrustum, cam->getView().Invert());
-        hasFrustum = true;
-    }
+    //if (CameraComponent* cam = CameraManager::Instance().getMainCamera())
+    //{
+    //    DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, cam->getProjection());
+    //    cameraFrustum.Transform(cameraFrustum, cam->getView().Invert());
+    //    hasFrustum = true;
+    //}
 
     if (kind == RenderPassKind::Default)
     {
@@ -152,12 +152,12 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
     // メインカメラの視錐台（Frustum）を取得して事前カリング
     DirectX::BoundingFrustum cameraFrustum;
     bool hasFrustum = false;
-    if (CameraComponent* cam = CameraManager::Instance().getMainCamera())
-    {
-        DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, cam->getProjection());
-        cameraFrustum.Transform(cameraFrustum, cam->getView().Invert());
-        hasFrustum = true;
-    }
+    //if (CameraComponent* cam = CameraManager::Instance().getMainCamera())
+    //{
+    //    DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, cam->getProjection());
+    //    cameraFrustum.Transform(cameraFrustum, cam->getView().Invert());
+    //    hasFrustum = true;
+    //}
 
     std::vector<IRenderComponent*> activeComps;
     activeComps.reserve(comps.size());

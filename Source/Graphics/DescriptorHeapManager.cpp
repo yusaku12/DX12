@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "DescriptorHeapManager.h"
 
 void DescriptorHeapManager::initialize(UINT maxCount)
 {
@@ -7,7 +8,7 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     m_maxCount = maxCount;
     m_used.assign(maxCount, false);
 
-    // shader-visible Descriptor Heap 作成 (CPU直接書き込み対応のデフォルトパターン)
+    // shader-visible Descriptor Heap 作成
     D3D12_DESCRIPTOR_HEAP_DESC desc = {};
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     desc.NumDescriptors = maxCount;
@@ -16,6 +17,13 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_heap));
     LOG_HR(hr, "DescriptorHeap CreateDescriptorHeap failed");
     m_incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // Non-shader-visible (Staging) Descriptor Heap 作成 (すべてのビューの一時的な作成宛先)
+    D3D12_DESCRIPTOR_HEAP_DESC stagingDesc = desc;
+    stagingDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+    hr = device->CreateDescriptorHeap(&stagingDesc, IID_PPV_ARGS(&m_stagingHeap));
+    LOG_HR(hr, "DescriptorHeap CreateStagingDescriptorHeap failed");
 
     // 既存コードの互換性を保つため、インデックス0を予約している既存実装の挙動を尊重
     if (maxCount > 0)
@@ -47,9 +55,13 @@ UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHAD
     UINT index = allocateRange();
     if (index == InvalidIndex) return InvalidIndex;
 
-    // Direct CPU write to shader-visible heap (No intermediate copy needed, maximum performance)
-    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(index);
-    device->CreateShaderResourceView(resource, &desc, dstHandle);
+    // getCPUHandle が staging 側を返すため、自動的に非表示ヒープに作成されます
+    D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
+    device->CreateShaderResourceView(resource, &desc, stagingHandle);
+
+    // シェーダー可視ヒープに手前で即時同期コピー
+    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandleVisible(index);
+    device->CopyDescriptorsSimple(1, dstHandle, stagingHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     return index;
 }
@@ -61,7 +73,15 @@ UINT DescriptorHeapManager::createCBV(const D3D12_CONSTANT_BUFFER_VIEW_DESC& des
 
     UINT index = allocateRange();
     if (index == InvalidIndex) return InvalidIndex;
-    device->CreateConstantBufferView(&desc, getCPUHandle(index));
+
+    // getCPUHandle が staging 側を返す
+    D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
+    device->CreateConstantBufferView(&desc, stagingHandle);
+
+    // 即時複製コピー
+    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandleVisible(index);
+    device->CopyDescriptorsSimple(1, dstHandle, stagingHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
     return index;
 }
 
@@ -73,9 +93,13 @@ UINT DescriptorHeapManager::createUAV(ID3D12Resource* resource, ID3D12Resource* 
     UINT index = allocateRange();
     if (index == InvalidIndex) return InvalidIndex;
 
-    // Direct CPU write to shader-visible heap for maximum performance
-    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(index);
-    device->CreateUnorderedAccessView(resource, counterResource, &desc, dstHandle);
+    // getCPUHandle が staging 側を返す
+    D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
+    device->CreateUnorderedAccessView(resource, counterResource, &desc, stagingHandle);
+
+    // 即時複製コピー
+    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandleVisible(index);
+    device->CopyDescriptorsSimple(1, dstHandle, stagingHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     return index;
 }
@@ -86,6 +110,25 @@ D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getGPUHandle(UINT index) cons
     if (index == InvalidIndex || index >= m_maxCount || !m_heap)
         return h;
 
+    // 描画のためにバインドされる直前に、Staging からメインヒープへとオンデマンド同期を行います。
+    // ビュー1つの同期だけでなく、マテリアル等の descriptor テーブル（複数テクスチャスロット）を想定し、
+    // 安全に最大 16 スロット分の領域を丸ごと一瞬でバルクコピー（一括同期）します。
+    const auto device = DX12::Instance().getDevice();
+    if (device && m_stagingHeap)
+    {
+        UINT copyCount = std::min(16u, m_maxCount - index);
+
+        D3D12_CPU_DESCRIPTOR_HANDLE srcStagingHandle = getCPUHandle(index);
+        D3D12_CPU_DESCRIPTOR_HANDLE dstVisibleHandle = getCPUHandleVisible(index);
+
+        device->CopyDescriptorsSimple(
+            copyCount,
+            dstVisibleHandle,
+            srcStagingHandle,
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+        );
+    }
+
     h = m_heap->GetGPUDescriptorHandleForHeapStart();
     h.ptr += static_cast<SIZE_T>(index) * m_incrementSize;
     return h;
@@ -93,6 +136,19 @@ D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getGPUHandle(UINT index) cons
 
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getCPUHandle(UINT index) const
 {
+    // ビュー構築時に安全に指定できるよう、常に Non-Shader-Visible ステージングヒープを返します。
+    D3D12_CPU_DESCRIPTOR_HANDLE h = {};
+    if (index == InvalidIndex || index >= m_maxCount || !m_stagingHeap)
+        return h;
+
+    h = m_stagingHeap->GetCPUDescriptorHandleForHeapStart();
+    h.ptr += static_cast<SIZE_T>(index) * m_incrementSize;
+    return h;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getCPUHandleVisible(UINT index) const
+{
+    // 同期先の Shader-Visible ヒープです
     D3D12_CPU_DESCRIPTOR_HANDLE h = {};
     if (index == InvalidIndex || index >= m_maxCount || !m_heap)
         return h;
@@ -153,20 +209,33 @@ bool DescriptorHeapManager::copyDescriptorsRange(UINT dstIndex, const std::vecto
     const auto device = DX12::Instance().getDevice();
     if (!device) return false;
 
-    // Direct Copy between regions of the shader-visible heap for maximum performance (no double copy)
     for (size_t i = 0; i < srcIndices.size(); ++i)
     {
         UINT src = srcIndices[i];
         UINT dst = dstIndex + static_cast<UINT>(i);
-        if (src == InvalidIndex || dst >= m_maxCount) return false;
+        if (dst >= m_maxCount) break;
 
-        D3D12_CPU_DESCRIPTOR_HANDLE srcHandle = getCPUHandle(src);
-        D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(dst);
+        // もしコピー元に InvalidIndex (テクスチャ未設定などでフォールバックや未ロード状態など)
+        // などの無効インデックスが存在しても、処理を一括中断させず、安全にそのスロットだけを飛ばして次に進めます。
+        if (src == InvalidIndex) continue;
 
+        D3D12_CPU_DESCRIPTOR_HANDLE srcStagingHandle = getCPUHandle(src);
+        D3D12_CPU_DESCRIPTOR_HANDLE dstShaderVisibleHandle = getCPUHandleVisible(dst);
+        D3D12_CPU_DESCRIPTOR_HANDLE dstStagingHandle = getCPUHandle(dst);
+
+        // 1. コピー元（ステージング）から同期先（シェーダー可視）へコピー
         device->CopyDescriptorsSimple(
             1,
-            dstHandle,
-            srcHandle,
+            dstShaderVisibleHandle,
+            srcStagingHandle,
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+        );
+
+        // 2. 将来的なコピーの整合性維持のため、同時にステージング側宛先インデックスにも同期保存
+        device->CopyDescriptorsSimple(
+            1,
+            dstStagingHandle,
+            srcStagingHandle,
             D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
         );
     }

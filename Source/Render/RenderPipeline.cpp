@@ -32,7 +32,7 @@ namespace
     {
     public:
         RenderPassId getId()    const override { return RenderPassId::ShadowMap; }
-        const char*  getName()  const override { return "ShadowMap"; }
+        const char* getName()  const override { return "ShadowMap"; }
         int          getPriority() const override { return -10; }
         RenderPassStage getStage() const override { return RenderPassStage::Scene; }
 
@@ -42,7 +42,7 @@ namespace
                 && HasRenderPass(context.passMask, RenderPassFlags::ShadowMap);
         }
 
-        void execute(RenderPassContext& context) override
+        void execute(RenderPassContext&) override
         {
             auto* cmd = DX12::Instance().getGraphicsCommandList();
             if (!cmd) return;
@@ -52,7 +52,7 @@ namespace
             // 光源方向を DeferredRenderer から同期
             shadow.update(DeferredRenderer::Instance().getLightDirection());
 
-            // 4 カスケード描画
+            // カスケード描画
             for (int cascade = 0; cascade < ShadowMapRenderer::CascadeCount; ++cascade)
             {
                 shadow.beginCascadePass(cmd, cascade);
@@ -229,11 +229,11 @@ namespace
 void RenderPipeline::initialize()
 {
     registerPass(std::make_unique<ShadowMapPass>());
-    registerPass(std::make_unique<GBufferPass>(),     { RenderPassId::ShadowMap });
+    registerPass(std::make_unique<GBufferPass>(), { RenderPassId::ShadowMap });
     registerPass(std::make_unique<ForwardScenePass>());
-    registerPass(std::make_unique<LightingPass>(),    { RenderPassId::GBuffer });
-    registerPass(std::make_unique<ForwardPass>(),     { RenderPassId::Lighting });
-    registerPass(std::make_unique<DebugPass>(),       { RenderPassId::Forward });
+    registerPass(std::make_unique<LightingPass>(), { RenderPassId::GBuffer });
+    registerPass(std::make_unique<ForwardPass>(), { RenderPassId::Lighting });
+    registerPass(std::make_unique<DebugPass>(), { RenderPassId::Forward });
     registerPass(std::make_unique<PostEffectPass>());
 }
 

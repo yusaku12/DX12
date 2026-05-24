@@ -151,6 +151,10 @@ void DebugPrimitive::render()
     PSOCreator::Instance().setPSO(m_meshPsoKey);
 
     auto cmd = DX12::Instance().getGraphicsCommandList();
+
+    // ルートシグネチャを設定してから、定数バッファの割り当てや描画処理を実行
+    cmd->SetGraphicsRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::DebugPrimitive));
+
     cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 
