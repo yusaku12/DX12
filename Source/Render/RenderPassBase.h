@@ -7,6 +7,7 @@
 //=====================================================
 enum class RenderPassId : int
 {
+    ShadowMap,
     GBuffer,
     Lighting,
     ForwardScene,

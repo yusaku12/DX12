@@ -7,7 +7,7 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     m_maxCount = maxCount;
     m_used.assign(maxCount, false);
 
-    // shader-visible Descriptor Heap 作成（既存）
+    // shader-visible Descriptor Heap 作成 (CPU直接書き込み対応のデフォルトパターン)
     D3D12_DESCRIPTOR_HEAP_DESC desc = {};
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     desc.NumDescriptors = maxCount;
@@ -16,14 +16,6 @@ void DescriptorHeapManager::initialize(UINT maxCount)
     HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_heap));
     LOG_HR(hr, "DescriptorHeap CreateDescriptorHeap failed");
     m_incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-    // CPU-only Descriptor Heap 作成（コピー元として使う）
-    D3D12_DESCRIPTOR_HEAP_DESC cpuDesc = {};
-    cpuDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    cpuDesc.NumDescriptors = maxCount;
-    cpuDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE; // CPU-only
-    hr = device->CreateDescriptorHeap(&cpuDesc, IID_PPV_ARGS(&m_cpuHeap));
-    LOG_HR(hr, "DescriptorHeap CreateDescriptorHeap (CPU-only) failed");
 
     // 既存コードの互換性を保つため、インデックス0を予約している既存実装の挙動を尊重
     if (maxCount > 0)
@@ -55,18 +47,9 @@ UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHAD
     UINT index = allocateRange();
     if (index == InvalidIndex) return InvalidIndex;
 
-    // まず CPU-only ヒープに書く（読み取り可能なソースを作る）
-    D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = getCPUHandleCpuHeap(index);
-    device->CreateShaderResourceView(resource, &desc, cpuHandle);
-
-    // CPU-only から shader-visible ヒープへコピー
-    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(index); // shader-visible の CPU ハンドル
-    device->CopyDescriptorsSimple(
-        1,
-        dstHandle,
-        cpuHandle,
-        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-    );
+    // Direct CPU write to shader-visible heap (No intermediate copy needed, maximum performance)
+    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(index);
+    device->CreateShaderResourceView(resource, &desc, dstHandle);
 
     return index;
 }
@@ -89,7 +72,11 @@ UINT DescriptorHeapManager::createUAV(ID3D12Resource* resource, ID3D12Resource* 
 
     UINT index = allocateRange();
     if (index == InvalidIndex) return InvalidIndex;
-    device->CreateUnorderedAccessView(resource, counterResource, &desc, getCPUHandle(index));
+
+    // Direct CPU write to shader-visible heap for maximum performance
+    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(index);
+    device->CreateUnorderedAccessView(resource, counterResource, &desc, dstHandle);
+
     return index;
 }
 
@@ -111,17 +98,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getCPUHandle(UINT index) cons
         return h;
 
     h = m_heap->GetCPUDescriptorHandleForHeapStart();
-    h.ptr += static_cast<SIZE_T>(index) * m_incrementSize;
-    return h;
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getCPUHandleCpuHeap(UINT index) const
-{
-    D3D12_CPU_DESCRIPTOR_HANDLE h = {};
-    if (index == InvalidIndex || index >= m_maxCount || !m_cpuHeap)
-        return h;
-
-    h = m_cpuHeap->GetCPUDescriptorHandleForHeapStart();
     h.ptr += static_cast<SIZE_T>(index) * m_incrementSize;
     return h;
 }
@@ -177,13 +153,14 @@ bool DescriptorHeapManager::copyDescriptorsRange(UINT dstIndex, const std::vecto
     const auto device = DX12::Instance().getDevice();
     if (!device) return false;
 
+    // Direct Copy between regions of the shader-visible heap for maximum performance (no double copy)
     for (size_t i = 0; i < srcIndices.size(); ++i)
     {
         UINT src = srcIndices[i];
         UINT dst = dstIndex + static_cast<UINT>(i);
         if (src == InvalidIndex || dst >= m_maxCount) return false;
 
-        D3D12_CPU_DESCRIPTOR_HANDLE srcHandle = getCPUHandleCpuHeap(src);
+        D3D12_CPU_DESCRIPTOR_HANDLE srcHandle = getCPUHandle(src);
         D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandle(dst);
 
         device->CopyDescriptorsSimple(

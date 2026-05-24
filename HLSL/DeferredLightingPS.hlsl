@@ -1,6 +1,7 @@
 #include "PostEffect.hlsli"
 #include "Common.hlsli"
 #include "CommonConstants.hlsli"
+#include "Shadow.hlsli"
 
 Texture2D normalRoughnessTex : register(t1);
 Texture2D worldPosAoTex : register(t2);
@@ -104,6 +105,12 @@ float4 PS(PostEffectVSOut input) : SV_TARGET
     float3 diffuseTerm = kD * albedo / PI;
 
     float3 direct = (diffuseTerm + specular) * lightColor * lightIntensity * NdotL;
+
+    // シャドウ係数（ダイレクトライティングのみに適用、IBL アンビエントは除外）
+    float3 viewPos  = mul(float4(worldPos, 1.0f), view).xyz;
+    float  viewDepth = -viewPos.z;  //!< RH 系: view 空間 Z は負なので反転
+    float  shadowFactor = computeShadow(worldPos, viewDepth);
+    direct *= shadowFactor;
 
     // IBL
     float3 irradiance = irradianceTex.Sample(samplerStates[LINEAR_CLAMP], normal).rgb;

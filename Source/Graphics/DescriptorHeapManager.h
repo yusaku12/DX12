@@ -44,9 +44,6 @@ public:
     //! CPU ハンドル取得（shader-visible ヒープの CPU ハンドル）
     D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index) const;
 
-    //! CPU ハンドル取得（CPU-only ヒープの CPU ハンドル）
-    D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandleCpuHeap(UINT index) const;
-
     //! DescriptorHeap取得
     ID3D12DescriptorHeap* getHeap() const { return m_heap.Get(); }
 
@@ -56,7 +53,7 @@ public:
     //! 複数のインデックス割り当て（連続領域を確保）
     UINT allocateRange(UINT count = 1);
 
-    //! 連続領域に既存 SRV インデックス群をコピーする（1 件ずつコピー）
+    //! 連続領域に既存 SRV インデックス群をコピーする
     bool copyDescriptorsRange(UINT dstIndex, const std::vector<UINT>& srcIndices);
 
 private:
@@ -66,7 +63,6 @@ private:
     static constexpr UINT InvalidIndex = UINT_MAX;
     std::vector<bool> m_used;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;      // shader-visible heap (bindable)
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_cpuHeap;   // CPU-only heap (作成時の一時ソース用)
     UINT m_maxCount = 0;
     UINT m_incrementSize = 0;
     mutable std::mutex m_mutex;

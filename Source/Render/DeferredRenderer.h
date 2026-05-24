@@ -24,6 +24,9 @@ public:
     //! ライティングパスのみ
     void renderLighting();
 
+    //! 光源方向の取得（ShadowMapRenderer が参照）
+    const Vector3& getLightDirection() const { return m_lightParams.direction; }
+
 private:
 
     DeferredRenderer() = default;

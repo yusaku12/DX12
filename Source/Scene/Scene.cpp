@@ -20,6 +20,8 @@ void Scene::draw()
     context.renderPath = CameraManager::Instance().getMainRenderPath();
     context.passMask = CameraManager::Instance().getMainRenderPassMask();
     context.useMultiThreaded = m_useMultiThreadedRendering;
+    context.sceneSrvIndex = DX12::Instance().getSceneSrvIndex();
+    context.finalSrvIndex = context.sceneSrvIndex;
 
     RenderPipeline::Instance().execute(context, RenderPassStage::Scene);
 }

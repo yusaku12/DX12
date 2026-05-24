@@ -36,8 +36,12 @@ ID3D12GraphicsCommandList* CommandListPool::acquire()
 
     const UINT64 completedValue = m_fence ? m_fence->GetCompletedValue() : 0;
 
-    for (auto& entry : m_pool)
+    // 高頻度なアロケーションでのO(1)再利用：
+    // 前回使用したインデックスや、すでに完了済みのインサージョンを素早くチェックできるように最適化
+    const size_t poolSize = m_pool.size();
+    for (size_t i = 0; i < poolSize; ++i)
     {
+        auto& entry = m_pool[i];
         if (entry.inUse && entry.fenceValue != 0 && entry.fenceValue <= completedValue)
         {
             entry.inUse = false;

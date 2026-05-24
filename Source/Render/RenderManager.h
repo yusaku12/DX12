@@ -45,6 +45,9 @@ public:
     //! Forward 描画（マルチスレッド）
     void renderMultiThreadedForward();
 
+    //! シャドウ深度描画（シングルスレッド・カスケード境界カリング対応）
+    void renderShadowCasters(const DirectX::BoundingOrientedBox& cascadeOBB);
+
     //! マルチスレッド使用フラグ設定
     void setMultiThreadedEnabled(bool enabled) { m_useMultiThreaded = enabled; }
 

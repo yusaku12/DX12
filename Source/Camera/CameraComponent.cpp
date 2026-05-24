@@ -92,6 +92,10 @@ void CameraComponent::inspectGUI()
     if (ImGui::Checkbox("Debug", &debug))
         setRenderPassEnabled(RenderPassFlags::Debug, debug);
 
+    bool shadow = isRenderPassEnabled(RenderPassFlags::ShadowMap);
+    if (ImGui::Checkbox("ShadowMap", &shadow))
+        setRenderPassEnabled(RenderPassFlags::ShadowMap, shadow);
+
     ImGui::Separator();
 
     Vector3 pos = getPosition();

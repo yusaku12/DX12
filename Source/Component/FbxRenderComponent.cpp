@@ -216,10 +216,11 @@ void FbxRenderComponent::buildGPUResources()
     // マテリアル CBV
     createMaterialCBV();
 
-    // PSO（ソリッド + ワイヤーフレーム + GBuffer）
-    m_solidPSOKey = createPSO(RasterizerState::CULL_CLOCKWISE);
+    // PSO（ソリッド + ワイヤーフレーム + GBuffer + シャドウ深度）
+    m_solidPSOKey     = createPSO(RasterizerState::CULL_CLOCKWISE);
     m_wireframePSOKey = createPSO(RasterizerState::WIRE_FRAME);
-    m_gbufferPSOKey = createGBufferPSO();
+    m_gbufferPSOKey   = createGBufferPSO();
+    m_shadowPSOKey    = createShadowDepthPSO();
 }
 
 void FbxRenderComponent::createMaterialCBV()
@@ -309,6 +310,67 @@ size_t FbxRenderComponent::createGBufferPSO()
     psoData.rtvFormats[1] = GBufferRenderTargets::NormalRoughnessFormat;
     psoData.rtvFormats[2] = GBufferRenderTargets::WorldPosAoFormat;
     return PSOCreator::Instance().registerPSO(psoData);
+}
+
+size_t FbxRenderComponent::createShadowDepthPSO()
+{
+    PSOCreator::PSOData psoData{};
+    psoData.rootSignatureType  = RootSignatureType::ShadowDepth;
+    psoData.vsShaderId         = ShaderID::ShadowDepthVS;
+    psoData.psShaderId         = ShaderID::ShadowDepthPS;
+    psoData.rasterizerState    = RasterizerState::CULL_CLOCKWISE;
+    psoData.blendState         = BlendState::OPAQUE;
+    psoData.depthStencilState  = DepthStencilState::DEPTH_DEFALT;
+    psoData.topologyType       = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoData.inputLayout        = getInputLayout();
+    psoData.depthOnly          = true;
+    psoData.dsvFormat          = DXGI_FORMAT_D32_FLOAT;
+    return PSOCreator::Instance().registerPSO(psoData);
+}
+
+void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
+{
+    if (!m_model) return;
+
+    PSOCreator::Instance().setPSO(m_shadowPSOKey, cmd);
+    cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    const auto& modelData = m_model->getResource()->getModelData();
+
+    for (size_t meshIdx = 0; meshIdx < modelData.meshes.size(); ++meshIdx)
+    {
+        const auto& mesh = modelData.meshes[meshIdx];
+        if (!mesh.visible) continue;
+
+        // ボーントランスフォームを組み立て
+        ModelCB modelCBData{};
+        if (!mesh.nodeIndices.empty())
+        {
+            for (size_t i = 0; i < mesh.nodeIndices.size(); ++i)
+            {
+                const Matrix worldTransform  = m_model->getBone().at(mesh.nodeIndices.at(i)).worldTransform;
+                const Matrix offsetTransform = mesh.offsetTransforms.at(i);
+                modelCBData.boneTransforms[i] = offsetTransform * worldTransform;
+            }
+        }
+        else
+        {
+            // ボーンなしの場合はワールド行列を単位変換として入れる
+            modelCBData.boneTransforms[0] = Matrix::Identity;
+        }
+
+        m_modelCB->update(modelCBData);
+
+        // ShadowDepth ルートシグネチャ: params[1] = ボーントランスフォーム CBV (b1)
+        cmd->SetGraphicsRootConstantBufferView(1, m_modelCB->getGPUAddress());
+
+        // メッシュ描画
+        cmd->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
+        cmd->IASetIndexBuffer(&mesh.indexBufferView);
+        cmd->DrawIndexedInstanced(
+            static_cast<UINT>(mesh.indices.size()),
+            1, 0, 0, 0);
+    }
 }
 
 void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)

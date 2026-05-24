@@ -76,6 +76,7 @@
 #include "Render\GBufferRenderTargets.h"
 #include "PostEffect\PostEffectManager.h"
 #include "Render/RenderPipeline.h"
+#include "Render/ShadowMapRenderer.h"
 
 //! 省略系
 using namespace DirectX;

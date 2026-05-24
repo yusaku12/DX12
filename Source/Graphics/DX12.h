@@ -117,6 +117,21 @@ public:
     //! Scene RT を RENDER_TARGET に遷移
     void transitionSceneToRenderTarget();
 
+    //! Scene RT を RENDER_TARGET に遷移（指定コマンドリスト）
+    void transitionSceneToRenderTarget(ID3D12GraphicsCommandList* cmd);
+
+    //! Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
+    void transitionSceneToSRV();
+
+    //! Scene RT を SRV に遷移（指定コマンドリスト）
+    void transitionSceneToSRV(ID3D12GraphicsCommandList* cmd);
+
+    //! Scene SRV インデックス取得
+    UINT getSceneSrvIndex() const { return m_sceneSrvIndex; }
+
+    //! 最終出力 SRV インデックス設定
+    void setFinalPostEffectSrv(UINT srvIndex) { m_finalPostEffectSrv = srvIndex; }
+
     //! デバイス取得
     ID3D12Device* getDevice() const { return m_device.Get(); }
 
@@ -181,9 +196,6 @@ private:
     //! コマンドリスト実行
     void executeCommandList();
 
-    //! Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
-    void transitionSceneToSRV();
-
     //! Debug Layer の警告を出力ウィンドウにフラッシュ
     void flushDebugMessages();
 
@@ -213,6 +225,7 @@ private:
     UINT m_sceneSrvIndex = 0;
     UINT m_depthSrvIndex = UINT_MAX;
     D3D12_RESOURCE_STATES m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+    D3D12_RESOURCE_STATES m_sceneState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     UINT m_finalPostEffectSrv = 0;
     bool m_isSceneActive = false;
     ImVec2 m_sceneWindowPos = ImVec2(0, 0);

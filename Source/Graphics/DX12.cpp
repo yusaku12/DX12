@@ -190,6 +190,7 @@ void DX12::initialize()
             IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf())
         );
         LOG_HR(hr, "Failed to create scene render target");
+        m_sceneState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 
         // RTVヒープの最後を Scene 用に使う
         m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
@@ -407,12 +408,21 @@ void DX12::sceneImguiRender()
 
 void DX12::transitionSceneToSRV()
 {
+    transitionSceneToSRV(m_graphicsCommandList.Get());
+}
+
+void DX12::transitionSceneToSRV(ID3D12GraphicsCommandList* cmd)
+{
+    if (!m_sceneRenderTarget || !cmd) return;
+    if (m_sceneState == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) return;
+
     auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
         m_sceneRenderTarget.Get(),
-        D3D12_RESOURCE_STATE_RENDER_TARGET,
+        m_sceneState,
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+    cmd->ResourceBarrier(1, &barrier);
+    m_sceneState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 }
 
 void DX12::screenClearCleanup()
@@ -890,10 +900,19 @@ void DX12::captureScreenshot()
 
 void DX12::transitionSceneToRenderTarget()
 {
+    transitionSceneToRenderTarget(m_graphicsCommandList.Get());
+}
+
+void DX12::transitionSceneToRenderTarget(ID3D12GraphicsCommandList* cmd)
+{
+    if (!m_sceneRenderTarget || !cmd) return;
+    if (m_sceneState == D3D12_RESOURCE_STATE_RENDER_TARGET) return;
+
     auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
         m_sceneRenderTarget.Get(),
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+        m_sceneState,
         D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+    cmd->ResourceBarrier(1, &barrier);
+    m_sceneState = D3D12_RESOURCE_STATE_RENDER_TARGET;
 }

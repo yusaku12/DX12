@@ -38,6 +38,9 @@ Window::Window(HWND hwnd)
     // Deferred Renderer 初期化
     DeferredRenderer::Instance().initialize();
 
+    // シャドウマップレンダラー初期化
+    ShadowMapRenderer::Instance().initialize();
+
     // TimeManager初期化
     TimeManager::Instance().initialize();
 

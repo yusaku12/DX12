@@ -23,6 +23,11 @@ enum class ShaderID : int
     ColorGradingPS,
     SkyboxVS,
     SkyboxPS,
+    GpuEffectVS,
+    GpuEffectPS,
+    GpuEffectCS,
+    ShadowDepthVS,
+    ShadowDepthPS,
     MAX
 };
 
@@ -57,4 +62,9 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/ColorGradingPS.hlsl",     "PS", "ps_5_0" },  //!< ColorGradingPS
     ShaderDesc{ L"Shader/SkyboxVS.hlsl",           "VS", "vs_5_0" },  //!< SkyboxVS
     ShaderDesc{ L"Shader/SkyboxPS.hlsl",           "PS", "ps_5_0" },  //!< SkyboxPS
+    ShaderDesc{ L"Shader/GpuEffectVS.hlsl",        "VS", "vs_5_0" },  //!< GpuEffectVS
+    ShaderDesc{ L"Shader/GpuEffectPS.hlsl",        "PS", "ps_5_0" },  //!< GpuEffectPS
+    ShaderDesc{ L"Shader/GpuEffectCS.hlsl",        "CS", "cs_5_0" },  //!< GpuEffectCS
+    ShaderDesc{ L"Shader/ShadowDepthVS.hlsl",      "VS", "vs_5_0" },  //!< ShadowDepthVS
+    ShaderDesc{ L"Shader/ShadowDepthPS.hlsl",      "PS", "ps_5_0" },  //!< ShadowDepthPS
 };

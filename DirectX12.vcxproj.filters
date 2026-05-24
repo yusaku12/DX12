@@ -85,8 +85,10 @@
     <ClCompile Include="Source\Render\DeferredRenderer.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectManager.cpp" />
     <ClCompile Include="Source\Render\RenderPipeline.cpp" />
+    <ClCompile Include="Source\Render\ShadowMapRenderer.cpp" />
     <ClCompile Include="Source\PostEffect\DepthOfFieldEffect.cpp" />
     <ClCompile Include="Source\PostEffect\MotionBlurEffect.cpp" />
+    <ClCompile Include="Source\Component\GpuEffectComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -416,6 +418,12 @@
     <ClInclude Include="Source\PostEffect\MotionBlurEffect.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Component\GpuEffectComponent.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\ShadowMapRenderer.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\CommonConstants.hlsli" />
@@ -425,6 +433,8 @@
     <None Include="HLSL\PostEffect.hlsli" />
     <None Include="Docs\PostEffect.md" />
     <None Include="HLSL\SkyBox.hlsli" />
+    <None Include="HLSL\GpuEffect.hlsli" />
+    <None Include="HLSL\Shadow.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="HLSL\DebugPrimitiveVS.hlsl" />
@@ -443,5 +453,10 @@
     <FxCompile Include="HLSL\DeferredLightingPS.hlsl" />
     <FxCompile Include="HLSL\DepthOfFieldPS.hlsl" />
     <FxCompile Include="HLSL\MotionBlurPS.hlsl" />
+    <FxCompile Include="HLSL\GpuEffectCS.hlsl" />
+    <FxCompile Include="HLSL\GpuEffectVS.hlsl" />
+    <FxCompile Include="HLSL\GpuEffectPS.hlsl" />
+    <FxCompile Include="HLSL\ShadowDepthVS.hlsl" />
+    <FxCompile Include="HLSL\ShadowDepthPS.hlsl" />
   </ItemGroup>
 </Project>

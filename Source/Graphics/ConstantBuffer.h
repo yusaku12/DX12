@@ -30,22 +30,85 @@ public:
         }
     }
 
-    //! コピー禁止
     ConstantBuffer(const ConstantBuffer&) = delete;
     ConstantBuffer& operator=(const ConstantBuffer&) = delete;
 
     //! ムーブ
-    ConstantBuffer(ConstantBuffer&&) noexcept = default;
-    ConstantBuffer& operator=(ConstantBuffer&&) noexcept = default;
+    ConstantBuffer(ConstantBuffer&& other) noexcept
+        : m_elementCount(other.m_elementCount)
+        , m_elementSize(other.m_elementSize)
+        , m_bufferSize(other.m_bufferSize)
+        , m_mapped(other.m_mapped)
+        , m_uploadBuffer(std::move(other.m_uploadBuffer))
+        , m_cbvIndices(std::move(other.m_cbvIndices))
+    {
+        other.m_elementCount = 0;
+        other.m_elementSize = 0;
+        other.m_bufferSize = 0;
+        other.m_mapped = nullptr;
+    }
+
+    ConstantBuffer& operator=(ConstantBuffer&& other) noexcept
+    {
+        if (this != &other)
+        {
+            cleanup();
+            m_elementCount = other.m_elementCount;
+            m_elementSize = other.m_elementSize;
+            m_bufferSize = other.m_bufferSize;
+            m_mapped = other.m_mapped;
+            m_uploadBuffer = std::move(other.m_uploadBuffer);
+            m_cbvIndices = std::move(other.m_cbvIndices);
+
+            other.m_elementCount = 0;
+            other.m_elementSize = 0;
+            other.m_bufferSize = 0;
+            other.m_mapped = nullptr;
+        }
+        return *this;
+    }
 
     //! デストラクタ（CBV 解放と Unmap）
     ~ConstantBuffer()
+    {
+        cleanup();
+    }
+
+    //! データ更新
+    void update(const T& data, UINT index = 0)
+    {
+        assert(index < m_elementCount && "ConstantBuffer::update out of bounds");
+        if (m_mapped && index < m_elementCount)
+        {
+            memcpy(m_mapped + index * m_elementSize, &data, sizeof(T));
+        }
+    }
+
+    //! ルートパラメータ作成
+    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index = 0) const
+    {
+        assert(index < m_elementCount && "ConstantBuffer::getGPUHandle out of bounds");
+        if (index >= m_elementCount) return {};
+        return DescriptorHeapManager::Instance().getGPUHandle(m_cbvIndices[index]);
+    }
+
+    //! GPU仮想アドレス取得
+    D3D12_GPU_VIRTUAL_ADDRESS getGPUAddress(UINT index = 0) const
+    {
+        assert(index < m_elementCount && "ConstantBuffer::getGPUAddress out of bounds");
+        if (index >= m_elementCount) return 0;
+        return m_uploadBuffer->getResource()->GetGPUVirtualAddress() + index * m_elementSize;
+    }
+
+private:
+
+    void cleanup()
     {
         // Unmap しておく
         if (m_uploadBuffer)
         {
             auto res = m_uploadBuffer->getResource();
-            if (res)
+            if (res && m_mapped)
             {
                 res->Unmap(0, nullptr);
             }
@@ -63,26 +126,6 @@ public:
 
         m_mapped = nullptr;
     }
-
-    //! データ更新
-    void update(const T& data, UINT index = 0)
-    {
-        memcpy(m_mapped + index * m_elementSize, &data, sizeof(T));
-    }
-
-    //! ルートパラメータ作成
-    D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index = 0) const
-    {
-        return DescriptorHeapManager::Instance().getGPUHandle(m_cbvIndices[index]);
-    }
-
-    //! GPU仮想アドレス取得
-    D3D12_GPU_VIRTUAL_ADDRESS getGPUAddress(UINT index = 0) const
-    {
-        return m_uploadBuffer->getResource()->GetGPUVirtualAddress() + index * m_elementSize;
-    }
-
-private:
 
     UINT m_elementCount = 0;
     UINT m_elementSize = 0;

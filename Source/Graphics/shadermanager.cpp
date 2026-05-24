@@ -45,12 +45,19 @@ void ShaderManager::loadShader(ShaderID id)
 
     const std::wstring csoPath = getCsoPath(shader.desc);
 
+    // CSO が存在すれば読み込む
     if (std::filesystem::exists(csoPath))
     {
         if (SUCCEEDED(D3DReadFileToBlob(csoPath.c_str(), shader.blob.ReleaseAndGetAddressOf())))
         {
             LOG_INFO(("Loaded CSO: " + wstringToString(csoPath) + " (" + std::to_string(shader.blob->GetBufferSize()) + " bytes)").c_str());
         }
+    }
+
+    // CSO が読み込めなかった場合は HLSL からコンパイル（初回ビルド時など）
+    if (!shader.blob)
+    {
+        reloadShader(id);
     }
 
     const std::wstring hlslPath = getHlslPath(shader.desc);

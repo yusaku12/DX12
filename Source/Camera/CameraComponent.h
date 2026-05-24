@@ -19,11 +19,12 @@ enum class RenderPath : int
 enum class RenderPassFlags : unsigned int
 {
     None = 0,
-    GBuffer = 1 << 0,
-    Lighting = 1 << 1,
-    Forward = 1 << 2,
+    GBuffer    = 1 << 0,
+    Lighting   = 1 << 1,
+    Forward    = 1 << 2,
     PostEffect = 1 << 3,
-    Debug = 1 << 4
+    Debug      = 1 << 4,
+    ShadowMap  = 1 << 5,
 };
 
 inline RenderPassFlags operator|(RenderPassFlags a, RenderPassFlags b)
@@ -171,7 +172,8 @@ private:
         | RenderPassFlags::Lighting
         | RenderPassFlags::Forward
         | RenderPassFlags::PostEffect
-        | RenderPassFlags::Debug;
+        | RenderPassFlags::Debug
+        | RenderPassFlags::ShadowMap;
 
     bool m_initialized = false; //!< awake 完了フラグ（onEnable の早期呼び出しを防ぐ）
     bool m_registered = false; //!< CameraManager 登録済みフラグ

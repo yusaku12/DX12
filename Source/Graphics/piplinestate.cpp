@@ -100,6 +100,24 @@ void PiplineState::initSamplerState()
         desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         desc.ShaderRegister = 5; //!< s5
     }
+
+    // シャドウ PCF 用比較サンプラー（s6）
+    {
+        m_shadowComparisonSampler = {};
+        m_shadowComparisonSampler.Filter           = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+        m_shadowComparisonSampler.AddressU         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        m_shadowComparisonSampler.AddressV         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        m_shadowComparisonSampler.AddressW         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        m_shadowComparisonSampler.MipLODBias       = 0.0f;
+        m_shadowComparisonSampler.MinLOD           = 0.0f;
+        m_shadowComparisonSampler.MaxLOD           = 0.0f;
+        m_shadowComparisonSampler.MaxAnisotropy    = 1;
+        m_shadowComparisonSampler.ComparisonFunc   = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        m_shadowComparisonSampler.BorderColor      = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+        m_shadowComparisonSampler.ShaderRegister   = 6; //!< s6
+        m_shadowComparisonSampler.RegisterSpace    = 0;
+        m_shadowComparisonSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    }
 }
 
 void PiplineState::initBlendState()

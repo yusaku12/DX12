@@ -25,6 +25,12 @@ public:
         UINT numRenderTargets = 0;
         std::array<DXGI_FORMAT, MaxRenderTargets> rtvFormats = {};
 
+        //! 深度専用パス（カラー RT なし、シャドウマップ用）
+        bool depthOnly = false;
+
+        //! DSV フォーマット（UNKNOWN の場合は D24_UNORM_S8_UINT）
+        DXGI_FORMAT dsvFormat = DXGI_FORMAT_UNKNOWN;
+
         // ハッシュ値計算（inputLayoutは除外：enumの組み合わせで十分識別可能）
         size_t computeHash() const
         {
@@ -37,6 +43,8 @@ public:
             hashCombine(h, static_cast<size_t>(depthStencilState));
             hashCombine(h, static_cast<size_t>(topologyType));
             hashCombine(h, static_cast<size_t>(numRenderTargets));
+            hashCombine(h, static_cast<size_t>(depthOnly ? 1u : 0u));
+            hashCombine(h, static_cast<size_t>(dsvFormat));
             for (auto fmt : rtvFormats)
             {
                 hashCombine(h, static_cast<size_t>(fmt));
@@ -54,6 +62,8 @@ public:
                 && depthStencilState == other.depthStencilState
                 && topologyType == other.topologyType
                 && numRenderTargets == other.numRenderTargets
+                && depthOnly == other.depthOnly
+                && dsvFormat == other.dsvFormat
                 && rtvFormats == other.rtvFormats;
         }
 

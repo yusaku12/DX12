@@ -10,6 +10,9 @@ void RootSignatureManager::initialize()
     buildBloomComposite();
     buildSkybox();
     buildDeferredLighting();
+    buildGpuEffectRender();
+    buildGpuEffectCompute();
+    buildShadowDepth();
 }
 
 ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
@@ -95,7 +98,7 @@ void RootSignatureManager::buildSkybox()
 
 void RootSignatureManager::buildDeferredLighting()
 {
-    CD3DX12_ROOT_PARAMETER params[4] = {};
+    CD3DX12_ROOT_PARAMETER params[6] = {};
 
     // カメラ用 CBV (b0)
     params[0].InitAsConstantBufferView(0);
@@ -108,12 +111,62 @@ void RootSignatureManager::buildDeferredLighting()
     srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0);
     params[2].InitAsDescriptorTable(1, &srvRange);
 
-    // IBL (SRV)
+    // IBL SRV テーブル (t3-t4)
     CD3DX12_DESCRIPTOR_RANGE range1;
     range1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 3);
     params[3].InitAsDescriptorTable(1, &range1);
 
-    createRootSignature(params, _countof(params), RootSignatureType::DeferredLighting);
+    // シャドウパラメータ CBV (b2)
+    params[4].InitAsConstantBufferView(2);
+
+    // シャドウマップ SRV テーブル (t5)
+    CD3DX12_DESCRIPTOR_RANGE shadowRange;
+    shadowRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
+    params[5].InitAsDescriptorTable(1, &shadowRange);
+
+    // 比較サンプラー付きで生成
+    createRootSignatureWithShadowSampler(params, _countof(params), RootSignatureType::DeferredLighting);
+}
+
+void RootSignatureManager::buildShadowDepth()
+{
+    CD3DX12_ROOT_PARAMETER params[2] = {};
+
+    // 光源 VP 行列 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // ボーントランスフォーム CBV (b1)
+    params[1].InitAsConstantBufferView(1);
+
+    createRootSignature(params, _countof(params), RootSignatureType::ShadowDepth);
+}
+
+void RootSignatureManager::buildGpuEffectRender()
+{
+    CD3DX12_ROOT_PARAMETER params[2] = {};
+    params[0].InitAsConstantBufferView(static_cast<int>(CBVType::Camera));
+
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange);
+
+    createRootSignature(params, _countof(params), RootSignatureType::GpuEffectRender);
+}
+
+void RootSignatureManager::buildGpuEffectCompute()
+{
+    CD3DX12_ROOT_PARAMETER params[3] = {};
+    params[0].InitAsConstantBufferView(0);
+
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange);
+
+    CD3DX12_DESCRIPTOR_RANGE uavRange;
+    uavRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 2, 0);
+    params[2].InitAsDescriptorTable(1, &uavRange);
+
+    createRootSignature(params, _countof(params), RootSignatureType::GpuEffectCompute);
 }
 
 void RootSignatureManager::buildModelMaterialSRV(UINT srvCount, RootSignatureType type)
@@ -207,6 +260,55 @@ void RootSignatureManager::createRootSignature(const CD3DX12_ROOT_PARAMETER* par
     }
 
     // ルートシグネチャを生成
+    hr = device->CreateRootSignature(
+        0,
+        blob->GetBufferPointer(),
+        blob->GetBufferSize(),
+        IID_PPV_ARGS(&m_rootSignatures[static_cast<size_t>(type)])
+    );
+
+    assert(SUCCEEDED(hr));
+}
+
+void RootSignatureManager::createRootSignatureWithShadowSampler(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type)
+{
+    auto device = DX12::Instance().getDevice();
+
+    // 標準 6 サンプラー + 比較サンプラー 1 = 計 7 サンプラー
+    constexpr UINT TotalSamplers = static_cast<UINT>(SamplerState::MAX) + 1;
+    D3D12_STATIC_SAMPLER_DESC samplers[TotalSamplers] = {};
+
+    const auto* std = PiplineState::Instance().getSamplerStates();
+    for (UINT i = 0; i < static_cast<UINT>(SamplerState::MAX); ++i)
+        samplers[i] = std[i];
+
+    samplers[static_cast<UINT>(SamplerState::MAX)] = PiplineState::Instance().getShadowComparisonSampler();
+
+    CD3DX12_ROOT_SIGNATURE_DESC desc;
+    desc.Init(
+        paramCount,
+        params,
+        TotalSamplers,
+        samplers,
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+    );
+
+    Microsoft::WRL::ComPtr<ID3DBlob> blob;
+    Microsoft::WRL::ComPtr<ID3DBlob> error;
+
+    HRESULT hr = D3D12SerializeRootSignature(
+        &desc,
+        D3D_ROOT_SIGNATURE_VERSION_1,
+        &blob,
+        &error);
+
+    if (FAILED(hr))
+    {
+        if (error)
+            OutputDebugStringA((char*)error->GetBufferPointer());
+        assert(false);
+    }
+
     hr = device->CreateRootSignature(
         0,
         blob->GetBufferPointer(),

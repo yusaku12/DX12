@@ -75,6 +75,9 @@ public:
     const D3D12_DEPTH_STENCIL_DESC& getDepthStencilState(DepthStencilState state) const { return m_depthStencilState[static_cast<int>(state)]; };
     const D3D12_RASTERIZER_DESC& getRasterizerState(RasterizerState state) const { return m_rasterizerState[static_cast<int>(state)]; };
 
+    //! シャドウ PCF 用比較サンプラー（s6）取得
+    const D3D12_STATIC_SAMPLER_DESC& getShadowComparisonSampler() const { return m_shadowComparisonSampler; }
+
 private:
 
     PiplineState() = default;
@@ -97,4 +100,7 @@ private:
     D3D12_BLEND_DESC m_blendState[static_cast<int>(BlendState::MAX)] = {};
     D3D12_DEPTH_STENCIL_DESC m_depthStencilState[static_cast<int>(DepthStencilState::MAX)] = {};
     D3D12_RASTERIZER_DESC m_rasterizerState[static_cast<int>(RasterizerState::MAX)] = {};
+
+    //! シャドウ PCF 用比較サンプラー（s6）
+    D3D12_STATIC_SAMPLER_DESC m_shadowComparisonSampler = {};
 };

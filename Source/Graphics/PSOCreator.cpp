@@ -30,8 +30,14 @@ void PSOCreator::setPSO(size_t key)
     auto cmd = DX12::Instance().getGraphicsCommandList();
     const auto& entry = it->second;
 
-    cmd->SetGraphicsRootSignature(
-        RootSignatureManager::Instance().getRootSignature(entry.data.rootSignatureType));
+    // 現在バインドされているルートシグネチャと異なる場合のみ Set してオーバーヘッドを抑える
+    static ID3D12RootSignature* lastRootSig = nullptr;
+    ID3D12RootSignature* nextRootSig = RootSignatureManager::Instance().getRootSignature(entry.data.rootSignatureType);
+    if (nextRootSig != lastRootSig)
+    {
+        cmd->SetGraphicsRootSignature(nextRootSig);
+        lastRootSig = nextRootSig;
+    }
     cmd->SetPipelineState(entry.pipelineState.Get());
 }
 
@@ -86,8 +92,17 @@ Microsoft::WRL::ComPtr<ID3D12PipelineState> PSOCreator::buildPSO(const PSOData& 
     // シェーダ設定
     gpipeline.VS.pShaderBytecode = ShaderManager::Instance().getShaderBlob(data.vsShaderId)->GetBufferPointer();
     gpipeline.VS.BytecodeLength = ShaderManager::Instance().getShaderBlob(data.vsShaderId)->GetBufferSize();
-    gpipeline.PS.pShaderBytecode = ShaderManager::Instance().getShaderBlob(data.psShaderId)->GetBufferPointer();
-    gpipeline.PS.BytecodeLength = ShaderManager::Instance().getShaderBlob(data.psShaderId)->GetBufferSize();
+
+    // PS: MAX の場合は深度専用パス（PS なし）
+    if (data.psShaderId != ShaderID::MAX)
+    {
+        auto* psBlob = ShaderManager::Instance().getShaderBlob(data.psShaderId);
+        if (psBlob)
+        {
+            gpipeline.PS.pShaderBytecode = psBlob->GetBufferPointer();
+            gpipeline.PS.BytecodeLength  = psBlob->GetBufferSize();
+        }
+    }
 
     // ラスタライザステート設定
     gpipeline.RasterizerState = PiplineState::Instance().getRasterizerState(data.rasterizerState);
@@ -106,10 +121,19 @@ Microsoft::WRL::ComPtr<ID3D12PipelineState> PSOCreator::buildPSO(const PSOData& 
     gpipeline.SampleMask = UINT_MAX;
     gpipeline.PrimitiveTopologyType = data.topologyType;
     gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
-    gpipeline.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+    // DSV フォーマット（明示指定があれば使用、なければデフォルト D24_UNORM_S8_UINT）
+    gpipeline.DSVFormat = (data.dsvFormat != DXGI_FORMAT_UNKNOWN)
+        ? data.dsvFormat
+        : DXGI_FORMAT_D24_UNORM_S8_UINT;
 
     // レンダーターゲット設定
-    if (data.numRenderTargets == 0)
+    if (data.depthOnly)
+    {
+        //! 深度専用パス: カラー RT なし（シャドウマップ用）
+        gpipeline.NumRenderTargets = 0;
+    }
+    else if (data.numRenderTargets == 0)
     {
         gpipeline.NumRenderTargets = 1;
         gpipeline.RTVFormats[0] = DX12::Instance().getBackBufferFormat();

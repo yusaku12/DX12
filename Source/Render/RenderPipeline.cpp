@@ -6,10 +6,10 @@ namespace
     void clearSceneRT()
     {
         auto& dx12 = DX12::Instance();
-        dx12.transitionSceneToRenderTarget();
+        auto* cmd = dx12.getGraphicsCommandList();
+        dx12.transitionSceneToRenderTarget(cmd);
 
         FLOAT clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
-        auto* cmd = dx12.getGraphicsCommandList();
         cmd->ClearRenderTargetView(dx12.getSceneRTVHandle(), clearColor, 0, nullptr);
 
         cmd->ClearDepthStencilView(
@@ -24,6 +24,51 @@ namespace
         dx12.applySceneRenderTargets(cmd);
         dx12.applyViewportAndScissor(cmd);
     }
+
+    //=====================================================
+    //! シャドウマップパス（GBuffer より前に実行）
+    //=====================================================
+    class ShadowMapPass : public RenderPassBase
+    {
+    public:
+        RenderPassId getId()    const override { return RenderPassId::ShadowMap; }
+        const char*  getName()  const override { return "ShadowMap"; }
+        int          getPriority() const override { return -10; }
+        RenderPassStage getStage() const override { return RenderPassStage::Scene; }
+
+        bool isEnabled(const RenderPassContext& context) const override
+        {
+            return context.renderPath == RenderPath::Deferred
+                && HasRenderPass(context.passMask, RenderPassFlags::ShadowMap);
+        }
+
+        void execute(RenderPassContext& context) override
+        {
+            auto* cmd = DX12::Instance().getGraphicsCommandList();
+            if (!cmd) return;
+
+            auto& shadow = ShadowMapRenderer::Instance();
+
+            // 光源方向を DeferredRenderer から同期
+            shadow.update(DeferredRenderer::Instance().getLightDirection());
+
+            // 4 カスケード描画
+            for (int cascade = 0; cascade < ShadowMapRenderer::CascadeCount; ++cascade)
+            {
+                shadow.beginCascadePass(cmd, cascade);
+
+                // 光源 VP を ShadowDepth ルートパラメータ 0 にバインド
+                cmd->SetGraphicsRootSignature(
+                    RootSignatureManager::Instance().getRootSignature(RootSignatureType::ShadowDepth));
+                cmd->SetGraphicsRootConstantBufferView(0, shadow.getLightVPCBAddress(cascade));
+
+                RenderManager::Instance().renderShadowCasters(shadow.getCascadeOBB(cascade));
+            }
+
+            // DeferredLighting で使用できるよう SRV へ遷移
+            shadow.transitionToSRV(cmd);
+        }
+    };
 
     class GBufferPass : public RenderPassBase
     {
@@ -130,6 +175,7 @@ namespace
             else
             {
                 auto* cmd = DX12::Instance().getGraphicsCommandList();
+                DX12::Instance().transitionSceneToRenderTarget(cmd);
                 DX12::Instance().applySceneRenderTargets(cmd);
                 DX12::Instance().applyViewportAndScissor(cmd);
                 RenderManager::Instance().renderForward();
@@ -153,6 +199,7 @@ namespace
         void execute(RenderPassContext&) override
         {
             auto* cmd = DX12::Instance().getGraphicsCommandList();
+            DX12::Instance().transitionSceneToRenderTarget(cmd);
             DX12::Instance().applySceneRenderTargets(cmd);
             DX12::Instance().applyViewportAndScissor(cmd);
             DebugPrimitive::Instance().render();
@@ -181,11 +228,12 @@ namespace
 
 void RenderPipeline::initialize()
 {
-    registerPass(std::make_unique<GBufferPass>());
+    registerPass(std::make_unique<ShadowMapPass>());
+    registerPass(std::make_unique<GBufferPass>(),     { RenderPassId::ShadowMap });
     registerPass(std::make_unique<ForwardScenePass>());
-    registerPass(std::make_unique<LightingPass>(), { RenderPassId::GBuffer });
-    registerPass(std::make_unique<ForwardPass>(), { RenderPassId::Lighting });
-    registerPass(std::make_unique<DebugPass>(), { RenderPassId::Forward });
+    registerPass(std::make_unique<LightingPass>(),    { RenderPassId::GBuffer });
+    registerPass(std::make_unique<ForwardPass>(),     { RenderPassId::Lighting });
+    registerPass(std::make_unique<DebugPass>(),       { RenderPassId::Forward });
     registerPass(std::make_unique<PostEffectPass>());
 }
 

@@ -40,7 +40,7 @@ void DeferredRenderer::renderLighting()
 
     gbuffer.transitionToSRV(cmd);
 
-    DX12::Instance().transitionSceneToRenderTarget();
+    DX12::Instance().transitionSceneToRenderTarget(cmd);
     DX12::Instance().applyViewportAndScissor(cmd);
     DX12::Instance().applySceneRenderTargets(cmd);
 
@@ -59,6 +59,10 @@ void DeferredRenderer::renderLighting()
     {
         cmd->SetGraphicsRootDescriptorTable(3, iblHandle);
     }
+
+    // シャドウパラメータとシャドウマップをバインド（params[4], params[5]）
+    cmd->SetGraphicsRootConstantBufferView(4, ShadowMapRenderer::Instance().getShadowParamsCBAddress());
+    cmd->SetGraphicsRootDescriptorTable(5, ShadowMapRenderer::Instance().getShadowMapSRVHandle());
 
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     cmd->IASetVertexBuffers(0, 0, nullptr);

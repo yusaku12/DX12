@@ -67,6 +67,7 @@ void RenderManager::setupCommandList(RenderPassKind kind, ID3D12GraphicsCommandL
     }
     else
     {
+        dx12.transitionSceneToRenderTarget(cmd);
         dx12.applySceneRenderTargets(cmd);
     }
 }
@@ -95,10 +96,29 @@ void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
     auto comps = copyComponents();
     if (comps.empty()) return;
 
+    // メインカメラの視錐台（Frustum）を取得してカリング
+    DirectX::BoundingFrustum cameraFrustum;
+    bool hasFrustum = false;
+    if (CameraComponent* cam = CameraManager::Instance().getMainCamera())
+    {
+        DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, cam->getProjection());
+        cameraFrustum.Transform(cameraFrustum, cam->getView().Invert());
+        hasFrustum = true;
+    }
+
     if (kind == RenderPassKind::Default)
     {
         for (auto* comp : comps)
         {
+            Vector3 center, extents;
+            if (hasFrustum && comp->getWorldAABB(center, extents))
+            {
+                DirectX::BoundingBox box(center, extents);
+                if (cameraFrustum.Contains(box) == DirectX::DISJOINT)
+                {
+                    continue; //!< カメラ範囲外のためカリング
+                }
+            }
             comp->render();
         }
         return;
@@ -109,6 +129,15 @@ void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
 
     for (auto* comp : comps)
     {
+        Vector3 center, extents;
+        if (hasFrustum && comp->getWorldAABB(center, extents))
+        {
+            DirectX::BoundingBox box(center, extents);
+            if (cameraFrustum.Contains(box) == DirectX::DISJOINT)
+            {
+                continue; //!< カメラ範囲外のためカリング
+            }
+        }
         executeRender(kind, comp, cmd);
     }
 }
@@ -120,13 +149,41 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
     auto comps = copyComponents();
     if (comps.empty()) return;
 
-    if (comps.size() == 1)
+    // メインカメラの視錐台（Frustum）を取得して事前カリング
+    DirectX::BoundingFrustum cameraFrustum;
+    bool hasFrustum = false;
+    if (CameraComponent* cam = CameraManager::Instance().getMainCamera())
+    {
+        DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, cam->getProjection());
+        cameraFrustum.Transform(cameraFrustum, cam->getView().Invert());
+        hasFrustum = true;
+    }
+
+    std::vector<IRenderComponent*> activeComps;
+    activeComps.reserve(comps.size());
+    for (auto* comp : comps)
+    {
+        Vector3 center, extents;
+        if (hasFrustum && comp->getWorldAABB(center, extents))
+        {
+            DirectX::BoundingBox box(center, extents);
+            if (cameraFrustum.Contains(box) == DirectX::DISJOINT)
+            {
+                continue; //!< カメラ範囲外のためタスク起動前にカリング
+            }
+        }
+        activeComps.push_back(comp);
+    }
+
+    if (activeComps.empty()) return;
+
+    if (activeComps.size() == 1)
     {
         auto start = Clock::now();
 
         if (kind == RenderPassKind::Default)
         {
-            comps[0]->render();
+            activeComps[0]->render();
         }
         else
         {
@@ -137,12 +194,12 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
                 {
                     setupCommandList(kind, cmd);
                 }
-                executeRender(kind, comps[0], cmd);
+                executeRender(kind, activeComps[0], cmd);
             }
         }
 
         auto end = Clock::now();
-        recordSingleThreadTiming(comps[0]->getName(), std::chrono::duration<float, std::milli>(end - start).count());
+        recordSingleThreadTiming(activeComps[0]->getName(), std::chrono::duration<float, std::milli>(end - start).count());
         return;
     }
 
@@ -152,9 +209,9 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
     clearTimings();
 
     std::vector<std::pair<ID3D12GraphicsCommandList*, std::future<void>>> tasks;
-    tasks.reserve(comps.size());
+    tasks.reserve(activeComps.size());
 
-    for (auto* comp : comps)
+    for (auto* comp : activeComps)
     {
         auto* cmd = pool.acquire();
         setupCommandList(kind, cmd);
@@ -242,6 +299,28 @@ void RenderManager::renderMultiThreadedGBuffer()
 void RenderManager::renderMultiThreadedForward()
 {
     renderMultiThreadedInternal(RenderPassKind::Forward);
+}
+
+void RenderManager::renderShadowCasters(const DirectX::BoundingOrientedBox& cascadeOBB)
+{
+    auto comps = copyComponents();
+    if (comps.empty()) return;
+
+    auto cmd = DX12::Instance().getGraphicsCommandList();
+
+    for (auto* comp : comps)
+    {
+        Vector3 center, extents;
+        if (comp->getWorldAABB(center, extents))
+        {
+            DirectX::BoundingBox box(center, extents);
+            if (cascadeOBB.Contains(box) == DirectX::DISJOINT)
+            {
+                continue; //!< カスケード範囲外なので影描画から除外（culling）
+            }
+        }
+        comp->renderShadowDepth(cmd);
+    }
 }
 
 void RenderManager::debugImgui()

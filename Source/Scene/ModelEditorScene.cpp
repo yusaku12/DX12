@@ -10,6 +10,7 @@
 #include "PostEffect\DepthOfFieldEffect.h"
 #include "PostEffect\MotionBlurEffect.h"
 #include "Component\SkyboxComponent.h"
+#include "Component\GpuEffectComponent.h"
 
 void ModelEditorScene::onEnter()
 {
@@ -34,6 +35,11 @@ void ModelEditorScene::onEnter()
     pe->addEffect<ColorGradingEffect>();
     //pe->addEffect<DepthOfFieldEffect>();
     pe->addEffect<MotionBlurEffect>();
+
+    GameObject* gpuEffectObj = new GameObject("GpuEffect");
+    gpuEffectObj->addComponent<TransformComponent>();
+    auto* gpuEffect = gpuEffectObj->addComponent<GpuEffectComponent>();
+    gpuEffect->setTexture(L"Data/Texture/particle.png");
 }
 
 void ModelEditorScene::update()

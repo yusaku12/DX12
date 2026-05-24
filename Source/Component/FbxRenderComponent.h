@@ -31,11 +31,14 @@ public:
     //! GBuffer 描画
     void renderGBuffer(ID3D12GraphicsCommandList* cmd) override;
 
+    //! シャドウ深度描画
+    void renderShadowDepth(ID3D12GraphicsCommandList* cmd) override;
+
     //! インスペクタ表示
     void inspectGUI() override;
 
     //! モデルのワールド空間 AABB を取得する（ピッキング・カリング用）
-    bool getWorldAABB(Vector3& outCenter, Vector3& outExtents) const;
+    bool getWorldAABB(Vector3& outCenter, Vector3& outExtents) const override;
 
     //! モデル取得
     Model* getModel() const { return m_model.get(); }
@@ -81,6 +84,9 @@ private:
     //! GBuffer PSO を構築
     size_t createGBufferPSO();
 
+    //! シャドウ深度 PSO を構築
+    size_t createShadowDepthPSO();
+
     //! 描画コア処理（PSO 別）
     void renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey);
 
@@ -113,9 +119,10 @@ private:
 
     std::unique_ptr<ConstantBuffer<ModelCB>> m_modelCB;
     std::unique_ptr<ConstantBuffer<MaterialCB>> m_materialCB;
-    size_t m_solidPSOKey = 0;
-    size_t m_wireframePSOKey = 0;
-    size_t m_gbufferPSOKey = 0;
+    size_t m_solidPSOKey      = 0;
+    size_t m_wireframePSOKey  = 0;
+    size_t m_gbufferPSOKey    = 0;
+    size_t m_shadowPSOKey     = 0;
     DebugMode m_debugMode = DebugMode::None;
     TransformComponent* m_transform = nullptr;
     std::unique_ptr<Model> m_model;

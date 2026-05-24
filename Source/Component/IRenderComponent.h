@@ -37,4 +37,10 @@ public:
 
     //! Forward 描画
     virtual void renderForward(ID3D12GraphicsCommandList* cmd);
+
+    //! シャドウ深度描画
+    virtual void renderShadowDepth(ID3D12GraphicsCommandList* cmd) { (void)cmd; }
+
+    //! 境界ボックス（AABB）の取得（カリングに利用）。有効な境界が存在する場合は true を返す。
+    virtual bool getWorldAABB(Vector3& outCenter, Vector3& outExtents) const { (void)outCenter; (void)outExtents; return false; }
 };

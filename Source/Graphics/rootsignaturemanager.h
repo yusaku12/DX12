@@ -13,6 +13,9 @@ enum class RootSignatureType : int
     BloomComposite,
     Skybox,
     DeferredLighting,
+    GpuEffectRender,
+    GpuEffectCompute,
+    ShadowDepth,
     Max
 };
 
@@ -72,14 +75,26 @@ private:
     //! DeferredLightingをビルド
     void buildDeferredLighting();
 
+    //! GpuEffectRenderをビルド
+    void buildGpuEffectRender();
+
+    //! GpuEffectComputeをビルド
+    void buildGpuEffectCompute();
+
+    //! ShadowDepthをビルド（シャドウ深度パス用）
+    void buildShadowDepth();
+
     //! 共通: FBX/GBuffer 系（CBV3 + SRVテーブル）
     void buildModelMaterialSRV(UINT srvCount, RootSignatureType type);
 
     //! 共通: PostEffect 系（CBV1 + SRVテーブル）
     void buildPostEffectCommon(bool useDepth);
 
-    //! テスト
+    //! 共通: RootSignature をビルド（標準サンプラー 6 枚）
     void createRootSignature(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type);
+
+    //! 共通: RootSignature をビルド（標準サンプラー + シャドウ比較サンプラー）
+    void createRootSignatureWithShadowSampler(const CD3DX12_ROOT_PARAMETER* params, UINT paramCount, RootSignatureType type);
 
     RootSignatureType m_buildingType = RootSignatureType::Max;
     std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, static_cast<size_t>(RootSignatureType::Max)> m_rootSignatures;
