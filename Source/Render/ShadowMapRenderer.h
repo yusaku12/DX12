@@ -1,4 +1,6 @@
-#pragma once
+﻿#pragma once
+
+#include "Graphics\ConstantBuffer.h"
 
 //=====================================================
 //! Cascaded Shadow Maps (CSM) レンダラー
@@ -8,7 +10,7 @@ class ShadowMapRenderer
 {
 public:
 
-    static constexpr int   CascadeCount  = 4;        //!< カスケード数
+    static constexpr int   CascadeCount = 4;        //!< カスケード数
     static constexpr UINT  ShadowMapSize = 2048;      //!< カスケードごとの解像度
     static constexpr float CascadeLambda = 0.75f;     //!< λ ブレンド係数（対数 vs 一様分割）
 
@@ -51,7 +53,7 @@ public:
     void setLightDirection(const Vector3& dir) { m_lightDir = dir; }
 
     //! 深度バイアスの設定
-    void setShadowBias(float bias)         { m_shadowParams.shadowBias     = bias; }
+    void setShadowBias(float bias) { m_shadowParams.shadowBias = bias; }
 
     //! 影強度の設定 [0, 1]
     void setShadowStrength(float strength) { m_shadowParams.shadowStrength = strength; }
@@ -61,7 +63,7 @@ public:
 
 private:
 
-    ShadowMapRenderer()  = default;
+    ShadowMapRenderer() = default;
     ~ShadowMapRenderer() = default;
 
     //=====================================================
@@ -73,7 +75,7 @@ private:
     {
         Matrix lightViewProj;       //!< このカスケードの光源 VP 行列
         float  cascadeIndex = 0.0f;
-        float  pad[3]       = {};
+        float  pad[3] = {};
     };
 
     //! DeferredLighting に渡すシャドウパラメータ全体（b2）
@@ -81,9 +83,9 @@ private:
     {
         Matrix  lightViewProj[CascadeCount];  //!< 全カスケードの光源 VP 行列
         Vector4 cascadeSplits;                //!< ビュー空間カスケード分割距離（正値）
-        float   shadowBias      = 0.002f;
-        float   shadowStrength  = 1.0f;
-        float   shadowPadding[2]= {};
+        float   shadowBias = 0.002f;
+        float   shadowStrength = 1.0f;
+        float   shadowPadding[2] = {};
     };
 
     //=====================================================
@@ -103,7 +105,7 @@ private:
     D3D12_RESOURCE_STATES                        m_textureState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;                   //!< DSV ヒープ（CPU 専用）
-    D3D12_CPU_DESCRIPTOR_HANDLE                  m_dsvHandles[CascadeCount]   = {};
+    D3D12_CPU_DESCRIPTOR_HANDLE                  m_dsvHandles[CascadeCount] = {};
 
     UINT m_srvIndex = UINT_MAX;                                                //!< DescriptorHeapManager 内の SRV インデックス
 

@@ -192,7 +192,7 @@ void ShadowMapRenderer::computeCascades()
         lsCenter.y = std::floor(lsCenter.y / texelSize) * texelSize;
 
         // 正射影行列（minZ を -50 延長してカメラ背後のシャドウキャスターをカバー）
-        const Matrix lightProj = Matrix::CreateOrthographicOffCenterRH(
+        const Matrix lightProj = Matrix::CreateOrthographicOffCenter(
             lsCenter.x - maxRadius,
             lsCenter.x + maxRadius,
             lsCenter.y - maxRadius,
@@ -232,7 +232,7 @@ Matrix ShadowMapRenderer::buildLightView(const Vector3& center, const Vector3& l
     // 上ベクトル（光源方向と平行にならないよう選択）
     const Vector3 up = (std::abs(lightDir.y) < 0.99f) ? Vector3::UnitY : Vector3::UnitZ;
 
-    return Matrix::CreateLookAtRH(eye, center, up);
+    return Matrix::CreateLookAt(eye, center, up);
 }
 
 //-----------------------------------------------------
