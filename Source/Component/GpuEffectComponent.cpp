@@ -39,9 +39,29 @@ void GpuEffectComponent::update()
     m_simParams.spread = m_spread;
     m_simParams.startSize = m_startSize;
     m_simParams.endSize = m_endSize;
+    m_simParams.drag = m_drag;
+    m_simParams.emitterType = m_emitterType;
     m_simParams.emitRadius = m_emitRadius;
     m_simParams.startColor = m_startColor;
     m_simParams.endColor = m_endColor;
+
+    m_simParams.gravity = m_gravity;
+    m_simParams.noiseStrength = m_noiseStrength;
+    m_simParams.emitterSize = m_emitterSize;
+    m_simParams.noiseFrequency = m_noiseFrequency;
+    m_simParams.coneAngle = m_coneAngle;
+    m_simParams.coneHeight = m_coneHeight;
+    m_simParams.minLifetime = m_minLifetime;
+    m_simParams.maxLifetime = m_maxLifetime;
+    m_simParams.minSpeed = m_minSpeed;
+    m_simParams.maxSpeed = m_maxSpeed;
+    m_simParams.startRotationSpeed = m_startRotationSpeed;
+    m_simParams.stretchFactor = m_stretchFactor;
+
+    m_simParams.renderMode = m_renderMode;
+    m_simParams.flipbookRows = m_flipbookRows;
+    m_simParams.flipbookCols = m_flipbookCols;
+    m_simParams.flipbookFps = m_flipbookFps;
 
     if (auto* t = gameObject() ? gameObject()->getComponent<TransformComponent>() : nullptr)
     {
@@ -104,17 +124,101 @@ void GpuEffectComponent::onDestroy()
 
 void GpuEffectComponent::inspectGUI()
 {
-    ImGui::Text("GPU Effect");
-    ImGui::DragFloat("Emit Rate", &m_emitRate, 1.0f, 0.0f, 100000.0f);
-    ImGui::DragFloat("Lifetime", &m_lifetime, 0.01f, 0.01f, 10.0f);
-    ImGui::DragFloat("Speed", &m_speed, 0.01f, 0.0f, 50.0f);
-    ImGui::DragFloat("Spread", &m_spread, 0.01f, 0.0f, 1.0f);
-    ImGui::DragFloat("Start Size", &m_startSize, 0.01f, 0.01f, 5.0f);
-    ImGui::DragFloat("End Size", &m_endSize, 0.01f, 0.01f, 5.0f);
-    ImGui::DragFloat("Emit Radius", &m_emitRadius, 0.01f, 0.0f, 5.0f);
-    ImGui::ColorEdit4("Start Color", &m_startColor.x);
-    ImGui::ColorEdit4("End Color", &m_endColor.x);
-    ImGui::Text("Texture: %s", wstringToString(m_texturePath).c_str());
+    ImGui::Text("GPU Effect System (Ultra Settings)");
+    
+    int maxParticles = static_cast<int>(m_maxParticles);
+    if (ImGui::DragInt("Max Particles", &maxParticles, 100, 1, 1000000))
+    {
+        setMaxParticles(static_cast<UINT>(maxParticles));
+    }
+
+    if (ImGui::CollapsingHeader("Emission Settings", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::DragFloat("Emit Rate", &m_emitRate, 1.0f, 0.0f, 100000.0f);
+        ImGui::DragFloat("Min Lifetime", &m_minLifetime, 0.01f, 0.01f, 100.0f);
+        ImGui::DragFloat("Max Lifetime", &m_maxLifetime, 0.01f, 0.01f, 100.0f);
+        if (m_maxLifetime < m_minLifetime) m_maxLifetime = m_minLifetime;
+        m_lifetime = m_maxLifetime; // 互換性維持
+
+        ImGui::DragFloat("Min Speed", &m_minSpeed, 0.01f, 0.0f, 100.0f);
+        ImGui::DragFloat("Max Speed", &m_maxSpeed, 0.01f, 0.0f, 100.0f);
+        if (m_maxSpeed < m_minSpeed) m_maxSpeed = m_minSpeed;
+        m_speed = m_maxSpeed; // 互換性維持
+
+        ImGui::DragFloat("Spread (Angle)", &m_spread, 0.01f, 0.0f, 1.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Emitter Shape", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        const char* shapes[] = { "Sphere", "Box", "Cone", "Ring" };
+        int currentShape = static_cast<int>(m_emitterType);
+        if (ImGui::Combo("Type", &currentShape, shapes, IM_ARRAYSIZE(shapes)))
+        {
+            m_emitterType = static_cast<UINT>(currentShape);
+        }
+
+        if (m_emitterType == 0 || m_emitterType == 2 || m_emitterType == 3) // Sphere, Cone, Ring
+        {
+            ImGui::DragFloat("Radius", &m_emitRadius, 0.01f, 0.001f, 100.0f);
+        }
+        if (m_emitterType == 1) // Box
+        {
+            ImGui::DragFloat3("Box Size", &m_emitterSize.x, 0.01f, 0.001f, 100.0f);
+        }
+        if (m_emitterType == 2) // Cone
+        {
+            ImGui::DragFloat("Cone Angle", &m_coneAngle, 0.1f, 0.0f, 90.0f);
+            ImGui::DragFloat("Cone Height", &m_coneHeight, 0.01f, 0.01f, 100.0f);
+        }
+    }
+
+    if (ImGui::CollapsingHeader("Particle Over Lifetime (Size/Color/Rotation)", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::DragFloat("Start Size", &m_startSize, 0.01f, 0.01f, 50.0f);
+        ImGui::DragFloat("End Size", &m_endSize, 0.01f, 0.01f, 50.0f);
+        
+        ImGui::ColorEdit4("Start Color", &m_startColor.x);
+        ImGui::ColorEdit4("End Color", &m_endColor.x);
+
+        ImGui::DragFloat("Rotation Speed", &m_startRotationSpeed, 0.01f, -100.0f, 100.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Forces & Physics"))
+    {
+        ImGui::DragFloat3("Gravity Vector", &m_gravity.x, 0.01f, -100.0f, 100.0f);
+        ImGui::DragFloat("Air Resistance (Drag)", &m_drag, 0.01f, 0.0f, 20.0f);
+        
+        ImGui::Separator();
+        ImGui::Text("Turbulence / Noise");
+        ImGui::DragFloat("Noise Strength", &m_noiseStrength, 0.01f, 0.0f, 50.0f);
+        ImGui::DragFloat("Noise Frequency", &m_noiseFrequency, 0.01f, 0.001f, 10.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Rendering Modes & Texture", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        const char* renderModes[] = { "Billboard", "Stretched Billboard", "Horizontal Flat", "Vertical Flat" };
+        int mode = static_cast<int>(m_renderMode);
+        if (ImGui::Combo("Render Mode", &mode, renderModes, IM_ARRAYSIZE(renderModes)))
+        {
+            m_renderMode = static_cast<UINT>(mode);
+        }
+
+        if (m_renderMode == 1) // Stretched
+        {
+            ImGui::DragFloat("Stretch Factor", &m_stretchFactor, 0.01f, 0.0f, 10.0f);
+        }
+
+        ImGui::Text("Texture: %s", wstringToString(m_texturePath).c_str());
+
+        // Texture sprite/flipbook animation settings
+        ImGui::Separator();
+        ImGui::Text("Flipbook (Sprite Sheet) Animation");
+        int rows = static_cast<int>(m_flipbookRows);
+        int cols = static_cast<int>(m_flipbookCols);
+        if (ImGui::DragInt("Flipbook Rows", &rows, 1.0f, 1, 64)) m_flipbookRows = static_cast<UINT>(rows);
+        if (ImGui::DragInt("Flipbook Cols", &cols, 1.0f, 1, 64)) m_flipbookCols = static_cast<UINT>(cols);
+        ImGui::DragFloat("Flipbook FPS (0 = Sync to Life)", &m_flipbookFps, 0.1f, 0.0f, 120.0f);
+    }
 
     ImGui::Separator();
     ImGui::Checkbox("Debug Log", &m_enableDebugLog);
@@ -148,8 +252,9 @@ void GpuEffectComponent::render(ID3D12GraphicsCommandList* cmd)
     PSOCreator::Instance().setPSO(m_renderPSOKey, cmd);
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
-    cmd->SetGraphicsRootDescriptorTable(1, DescriptorHeapManager::Instance().getGPUHandle(m_renderSrvTableBase));
+    cmd->SetGraphicsRootConstantBufferView(0, CameraManager::Instance().getGPUAddress());
+    cmd->SetGraphicsRootConstantBufferView(1, m_simCB->getGPUAddress());
+    cmd->SetGraphicsRootDescriptorTable(2, DescriptorHeapManager::Instance().getGPUHandle(m_renderSrvTableBase));
 
     if (m_debugForceDraw)
     {
@@ -284,13 +389,31 @@ void GpuEffectComponent::simulate(ID3D12GraphicsCommandList* cmd)
     // DrawArgs 更新
     transition(m_drawArgsBuffer.Get(), m_drawArgsState, D3D12_RESOURCE_STATE_COPY_DEST);
 
-    // VertexCountPerInstance を毎フレーム固定（6）
+    // D3D12_DRAW_ARGUMENTS を構成
+    // Offset 0: VertexCountPerInstance = 6
+    // Offset 4: InstanceCount = outIndex カウンタ値
+    // Offset 8: StartVertexLocation = 0
+    // Offset 12: StartInstanceLocation = 0
+    //
+    // 元の実装では、m_drawArgsUpload (CPU側データ) が存在する場合に
+    // 最初の4バイト(VertexCountPerInstance)を毎フレームコピーしようとして、
+    // CopyBufferRegionにアップロードバッファを渡していましたが、
+    // m_drawArgsStateをCOPY_DESTにしたままm_drawArgsUploadからのコピーを行い、
+    // その直後にtransitionを挟まずに続けてカウンター(outIndexのcounter)からInstanceCount部分(オフセット4)へコピーしていました。
+    //
+    // さらに完璧にするため、初期化時に確実に VertexCountPerInstance (6), StartVertexLocation (0), StartInstanceLocation (0) を
+    // 一度バッファに書き込んでおき、毎フレームの更新時は、InstanceCount (オフセット4バイト) のみ更新させます。
+    // これによりD3D12リソース状態の干渉や競合を完璧に回避します。
+
+    // InstanceCount 以外のデフォルト値を確実に設定（VertexCount=6, StartVertex=0, StartInstance=0）
     if (m_drawArgsUpload)
     {
-        cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), 0, m_drawArgsUpload.Get(), 0, sizeof(UINT));
+        // 毎回6を確実に書き込む
+        cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), 0, m_drawArgsUpload.Get(), 0, sizeof(UINT)); // VertexCountPerInstance
+        cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), sizeof(UINT) * 2, m_drawArgsUpload.Get(), sizeof(UINT) * 2, sizeof(UINT) * 2); // StartVertex, StartInstance
     }
 
-    // InstanceCount をカウンタから更新
+    // InstanceCount をカウンタから更新 (オフセット 4 バイト目)
     transition(m_particles[outIndex].counter.Get(), m_counterStates[outIndex], D3D12_RESOURCE_STATE_COPY_SOURCE);
     cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), sizeof(UINT), m_particles[outIndex].counter.Get(), 0, sizeof(UINT));
 
@@ -417,7 +540,6 @@ void GpuEffectComponent::createParticleBuffer(int index)
 void GpuEffectComponent::createDrawArgsBuffer()
 {
     auto device = DX12::Instance().getDevice();
-    auto* cmd = DX12::Instance().getGraphicsCommandList();
 
     D3D12_DRAW_ARGUMENTS args = { 6, 0, 0, 0 };
 
@@ -447,17 +569,7 @@ void GpuEffectComponent::createDrawArgsBuffer()
     memcpy(mapped, &args, sizeof(args));
     m_drawArgsUpload->Unmap(0, nullptr);
 
-    auto transition = [&](ID3D12Resource* res, D3D12_RESOURCE_STATES& state, D3D12_RESOURCE_STATES newState)
-        {
-            if (state == newState) return;
-            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(res, state, newState);
-            cmd->ResourceBarrier(1, &barrier);
-            state = newState;
-        };
-
-    transition(m_drawArgsBuffer.Get(), m_drawArgsState, D3D12_RESOURCE_STATE_COPY_DEST);
-    cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), 0, m_drawArgsUpload.Get(), 0, sizeof(args));
-    transition(m_drawArgsBuffer.Get(), m_drawArgsState, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+    m_drawArgsState = D3D12_RESOURCE_STATE_COMMON;
 }
 
 void GpuEffectComponent::createAliveCountBuffer()

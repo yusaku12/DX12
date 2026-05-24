@@ -143,12 +143,13 @@ void RootSignatureManager::buildShadowDepth()
 
 void RootSignatureManager::buildGpuEffectRender()
 {
-    CD3DX12_ROOT_PARAMETER params[2] = {};
+    CD3DX12_ROOT_PARAMETER params[3] = {};
     params[0].InitAsConstantBufferView(static_cast<int>(CBVType::Camera));
+    params[1].InitAsConstantBufferView(1); // register(b1)
 
     CD3DX12_DESCRIPTOR_RANGE srvRange;
     srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0);
-    params[1].InitAsDescriptorTable(1, &srvRange);
+    params[2].InitAsDescriptorTable(1, &srvRange);
 
     createRootSignature(params, _countof(params), RootSignatureType::GpuEffectRender);
 }

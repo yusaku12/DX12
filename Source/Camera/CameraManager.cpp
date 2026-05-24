@@ -78,6 +78,7 @@ void CameraManager::uploadCameraBufferToGPU()
     camera.view = view;
     camera.projection = proj;
     camera.viewProjection = (view * proj);
+    camera.viewInverse = view.Invert();
     camera.cameraPos = mainCam->getPosition();
 
     m_cameraCB->update(camera);

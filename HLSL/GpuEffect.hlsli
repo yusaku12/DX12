@@ -6,6 +6,7 @@ struct Particle
     float lifetime;
     float size;
     float rotation;
-    float2 padding;
+    float rotationSpeed;
+    float stretch;
     float4 color;
 };

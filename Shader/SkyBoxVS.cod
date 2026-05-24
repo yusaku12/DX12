@@ -10,8 +10,9 @@
 //   row_major float4x4 view;           // Offset:    0 Size:    64
 //   row_major float4x4 projection;     // Offset:   64 Size:    64
 //   row_major float4x4 viewProjection; // Offset:  128 Size:    64 [unused]
-//   float3 eye;                        // Offset:  192 Size:    12 [unused]
-//   float padding0;                    // Offset:  204 Size:     4 [unused]
+//   row_major float4x4 viewInverse;    // Offset:  192 Size:    64 [unused]
+//   float3 eye;                        // Offset:  256 Size:    12 [unused]
+//   float padding0;                    // Offset:  268 Size:     4 [unused]
 //
 // }
 //

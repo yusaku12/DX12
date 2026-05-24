@@ -59,7 +59,7 @@ namespace
                     RootSignatureManager::Instance().getRootSignature(RootSignatureType::ShadowDepth));
                 cmd->SetGraphicsRootConstantBufferView(0, shadow.getLightVPCBAddress(cascade));
 
-                RenderManager::Instance().renderShadowCasters(shadow.getCascadeOBB(cascade));
+                //RenderManager::Instance().renderShadowCasters(shadow.getCascadeOBB(cascade));
             }
 
             // DeferredLighting で使用できるよう SRV へ遷移

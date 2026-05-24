@@ -58,6 +58,7 @@ private:
         Matrix view;            //!< ビュー行列
         Matrix projection;      //!< プロジェクション行列
         Matrix viewProjection;  //!< ビュー×プロジェクション行列
+        Matrix viewInverse;     //!< ビュー行列の逆行列
         Vector3 cameraPos;      //!< カメラ座標
         float padding;          //!< パディング
     };

@@ -61,7 +61,8 @@ private:
         float lifetime = 0.0f;
         float size = 0.0f;
         float rotation = 0.0f;
-        Vector2 padding = Vector2::Zero;
+        float rotationSpeed = 0.0f;
+        float stretch = 1.0f;
         Vector4 color = Vector4::One;
     };
 
@@ -79,13 +80,35 @@ private:
 
         float startSize = 0.0f;
         float endSize = 0.0f;
-        Vector2 padding0 = Vector2::Zero;
+        float drag = 0.0f;
+        UINT emitterType = 0;
 
         Vector3 emitOrigin = Vector3::Zero;
         float emitRadius = 0.0f;
 
         Vector4 startColor = Vector4::One;
         Vector4 endColor = Vector4::One;
+
+        Vector3 gravity = Vector3::Zero;
+        float noiseStrength = 0.0f;
+
+        Vector3 emitterSize = Vector3::One;
+        float noiseFrequency = 1.0f;
+
+        float coneAngle = 30.0f;
+        float coneHeight = 1.0f;
+        float minLifetime = 1.0f;
+        float maxLifetime = 2.0f;
+
+        float minSpeed = 1.0f;
+        float maxSpeed = 3.0f;
+        float startRotationSpeed = 0.0f;
+        float stretchFactor = 0.0f;
+
+        UINT renderMode = 0;
+        UINT flipbookRows = 1;
+        UINT flipbookCols = 1;
+        float flipbookFps = 0.0f;
     };
 
     struct ParticleBuffer
@@ -128,9 +151,31 @@ private:
     float m_spread = 0.6f;
     float m_startSize = 0.2f;
     float m_endSize = 0.8f;
-    float m_emitRadius = 0.0f;
+    float m_drag = 0.0f;
+    UINT m_emitterType = 0; // 0: Sphere, 1: Box, 2: Cone, 3: Ring
+    float m_emitRadius = 1.0f;
     Vector4 m_startColor = Vector4(1, 1, 1, 1);
     Vector4 m_endColor = Vector4(1, 1, 1, 0);
+
+    Vector3 m_gravity = Vector3(0.0f, -9.8f, 0.0f);
+    float m_noiseStrength = 0.0f;
+    Vector3 m_emitterSize = Vector3(1.0f, 1.0f, 1.0f);
+    float m_noiseFrequency = 1.0f;
+
+    float m_coneAngle = 30.0f;
+    float m_coneHeight = 1.0f;
+    float m_minLifetime = 1.0f;
+    float m_maxLifetime = 2.0f;
+
+    float m_minSpeed = 1.0f;
+    float m_maxSpeed = 3.0f;
+    float m_startRotationSpeed = 0.0f;
+    float m_stretchFactor = 0.0f;
+
+    UINT m_renderMode = 0;
+    UINT m_flipbookRows = 1;
+    UINT m_flipbookCols = 1;
+    float m_flipbookFps = 0.0f;
 
     std::unique_ptr<ConstantBuffer<SimParams>> m_simCB;
     SimParams m_simParams;
