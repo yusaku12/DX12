@@ -109,6 +109,11 @@ private:
         UINT flipbookRows = 1;
         UINT flipbookCols = 1;
         float flipbookFps = 0.0f;
+
+        UINT randomSeed = 0;
+        UINT _pad0 = 0;
+        UINT _pad1 = 0;
+        UINT _pad2 = 0;
     };
 
     struct ParticleBuffer

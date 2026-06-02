@@ -38,12 +38,34 @@ cbuffer SimParams : register(b0)
     float maxSpeed;
     float startRotationSpeed;
     float stretchFactor;
+
+    uint renderMode;
+    uint flipbookRows;
+    uint flipbookCols;
+    float flipbookFps;
+
+    uint randomSeed;
+    uint _pad0;
+    uint _pad1;
+    uint _pad2;
 };
 
 ByteAddressBuffer aliveCountBuffer : register(t0);
 
 ConsumeStructuredBuffer<Particle> particlesIn : register(u0);
 AppendStructuredBuffer<Particle> particlesOut : register(u1);
+
+uint pcgHash(uint input)
+{
+    uint state = input * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+float hash1u(uint n)
+{
+    return float(pcgHash(n)) / 4294967295.0;
+}
 
 float hash1(float n)
 {
@@ -92,17 +114,17 @@ float3 curlNoise(float3 p)
     return normalize(float3(x, y, z) + 0.0001);
 }
 
-float3 randomDirection(uint seed, float time)
+float3 randomDirection(uint seed)
 {
-    float a = hash1(seed * 12.9898 + time) * 6.2831853;
-    float b = hash1(seed * 78.233 + time) * 2.0 - 1.0;
+    float a = hash1u(seed) * 6.2831853;
+    float b = hash1u(seed + 1u) * 2.0 - 1.0;
     float r = sqrt(saturate(1.0 - b * b));
     return float3(r * cos(a), b, r * sin(a));
 }
 
-float3 generateVelocity(uint index, uint seed, float3 dir)
+float3 generateVelocity(uint seed, float3 dir)
 {
-    float spd = lerp(minSpeed, maxSpeed, hash1(seed * 3.7 + index * 1.3));
+    float spd = lerp(minSpeed, maxSpeed, hash1u(seed));
     return dir * spd;
 }
 
@@ -159,13 +181,14 @@ void CS(uint3 id : SV_DispatchThreadID)
         }
     }
     
-    // スレッド全体でエミットの処理：すべてのスレッドで一意のインデックスを持つようにする
-    // 元の実装では、index >= aliveCount で判定していたが、GPUのDispatchグループサイズ(groups = (maxParticles + 255) / 256)に
-    // よってはスレッドID(id.x)が aliveCount から (aliveCount + maxSpawn) の間に達しないスレッドが別々にエミットを処理しない可能性がありました。
-    // エミット専用の完全に独立した判定に修正します。
-    if (index < maxSpawn)
+    // エミット処理：aliveCount以降のスレッドが担当し、更新スレッドと重複しない
+    if (index >= aliveCount)
     {
-        uint seed = index + uint(totalTime * 1337.13f + deltaTime * 725.91f);
+        uint emitIndex = index - aliveCount;
+        if (emitIndex < maxSpawn)
+    {
+        // CPU側で事前計算されたフレームシードを使用し、粒子ごとにユニークなシードを確保
+        uint seed = pcgHash(randomSeed + emitIndex * 7919u);
 
         float3 localPos = float3(0, 0, 0);
         float3 initialDir = float3(0, 1, 0);
@@ -173,27 +196,27 @@ void CS(uint3 id : SV_DispatchThreadID)
         // 形状に応じたエミッション
         if (emitterType == 0) // Sphere
         {
-            float3 dir = randomDirection(seed, totalTime);
-            float r = emitRadius * hash1(seed * 73.1 + 0.1);
+            float3 dir = randomDirection(seed);
+            float r = emitRadius * hash1u(pcgHash(seed + 100u));
             localPos = dir * r;
             initialDir = normalize(lerp(float3(0, 1, 0), dir, spread));
         }
         else if (emitterType == 1) // Box
         {
             float3 dir = float3(
-                hash1(seed * 11.2 + 0.2) * 2.0 - 1.0,
-                hash1(seed * 43.1 + 0.3) * 2.0 - 1.0,
-                hash1(seed * 89.4 + 0.4) * 2.0 - 1.0
+                hash1u(pcgHash(seed + 200u)) * 2.0 - 1.0,
+                hash1u(pcgHash(seed + 201u)) * 2.0 - 1.0,
+                hash1u(pcgHash(seed + 202u)) * 2.0 - 1.0
             );
             localPos = dir * emitterSize;
             initialDir = normalize(lerp(float3(0, 1, 0), dir, spread));
         }
         else if (emitterType == 2) // Cone
         {
-            float angle = hash1(seed * 15.3 + 0.5) * 6.2831853;
-            float rRatio = hash1(seed * 27.5 + 0.6);
+            float angle = hash1u(pcgHash(seed + 300u)) * 6.2831853;
+            float rRatio = hash1u(pcgHash(seed + 301u));
             float r = emitRadius * rRatio;
-            float h = hash1(seed * 49.9 + 0.7) * coneHeight;
+            float h = hash1u(pcgHash(seed + 302u)) * coneHeight;
             localPos = float3(r * cos(angle), h, r * sin(angle));
 
             float coneSpread = lerp(0.001, sin(coneAngle * 0.01745329), spread);
@@ -202,22 +225,23 @@ void CS(uint3 id : SV_DispatchThreadID)
         }
         else if (emitterType == 3) // Ring
         {
-            float angle = hash1(seed * 31.8 + 0.8) * 6.2831853;
+            float angle = hash1u(pcgHash(seed + 400u)) * 6.2831853;
             localPos = float3(cos(angle), 0.0, sin(angle)) * emitRadius;
             initialDir = normalize(lerp(float3(0, 1, 0), float3(cos(angle), 0.0, sin(angle)), spread));
         }
 
         Particle p = (Particle)0;
         p.position = emitOrigin + localPos;
-        p.velocity = generateVelocity(index, seed, initialDir);
+        p.velocity = generateVelocity(pcgHash(seed + 500u), initialDir);
         p.age = 0.0;
-        p.lifetime = lerp(minLifetime, maxLifetime, hash1(seed * 91.3 + 0.9));
+        p.lifetime = lerp(minLifetime, maxLifetime, hash1u(pcgHash(seed + 600u)));
         p.size = startSize;
-        p.rotation = hash1(seed * 54.1 + 0.12) * 6.2831853;
-        p.rotationSpeed = (hash1(seed * 22.4 + 0.15) * 2.0 - 1.0) * startRotationSpeed;
+        p.rotation = hash1u(pcgHash(seed + 700u)) * 6.2831853;
+        p.rotationSpeed = (hash1u(pcgHash(seed + 800u)) * 2.0 - 1.0) * startRotationSpeed;
         p.stretch = 1.0;
         p.color = startColor;
 
         particlesOut.Append(p);
+        }
     }
 }
