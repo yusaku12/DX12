@@ -343,6 +343,13 @@ void GpuEffectComponent::simulate(ID3D12GraphicsCommandList* cmd)
         transition(m_aliveCountBuffer.Get(), m_aliveCountState, D3D12_RESOURCE_STATE_COPY_DEST);
         cmd->CopyBufferRegion(m_aliveCountBuffer.Get(), 0, m_counterResetUpload.Get(), 0, sizeof(UINT));
 
+        // DrawArgs の静的部分を一度だけ初期化 (VertexCount=6, StartVertex=0, StartInstance=0)
+        if (m_drawArgsUpload)
+        {
+            transition(m_drawArgsBuffer.Get(), m_drawArgsState, D3D12_RESOURCE_STATE_COPY_DEST);
+            cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), 0, m_drawArgsUpload.Get(), 0, sizeof(D3D12_DRAW_ARGUMENTS));
+        }
+
         m_countersInitialized = true;
     }
 
@@ -386,34 +393,9 @@ void GpuEffectComponent::simulate(ID3D12GraphicsCommandList* cmd)
     auto counterUavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(m_particles[outIndex].counter.Get());
     cmd->ResourceBarrier(1, &counterUavBarrier);
 
-    // DrawArgs 更新
+    // DrawArgs 更新: InstanceCount のみ毎フレーム更新
+    // 静的部分 (VertexCount=6, StartVertex=0, StartInstance=0) は初期化時に設定済み
     transition(m_drawArgsBuffer.Get(), m_drawArgsState, D3D12_RESOURCE_STATE_COPY_DEST);
-
-    // D3D12_DRAW_ARGUMENTS を構成
-    // Offset 0: VertexCountPerInstance = 6
-    // Offset 4: InstanceCount = outIndex カウンタ値
-    // Offset 8: StartVertexLocation = 0
-    // Offset 12: StartInstanceLocation = 0
-    //
-    // 元の実装では、m_drawArgsUpload (CPU側データ) が存在する場合に
-    // 最初の4バイト(VertexCountPerInstance)を毎フレームコピーしようとして、
-    // CopyBufferRegionにアップロードバッファを渡していましたが、
-    // m_drawArgsStateをCOPY_DESTにしたままm_drawArgsUploadからのコピーを行い、
-    // その直後にtransitionを挟まずに続けてカウンター(outIndexのcounter)からInstanceCount部分(オフセット4)へコピーしていました。
-    //
-    // さらに完璧にするため、初期化時に確実に VertexCountPerInstance (6), StartVertexLocation (0), StartInstanceLocation (0) を
-    // 一度バッファに書き込んでおき、毎フレームの更新時は、InstanceCount (オフセット4バイト) のみ更新させます。
-    // これによりD3D12リソース状態の干渉や競合を完璧に回避します。
-
-    // InstanceCount 以外のデフォルト値を確実に設定（VertexCount=6, StartVertex=0, StartInstance=0）
-    if (m_drawArgsUpload)
-    {
-        // 毎回6を確実に書き込む
-        cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), 0, m_drawArgsUpload.Get(), 0, sizeof(UINT)); // VertexCountPerInstance
-        cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), sizeof(UINT) * 2, m_drawArgsUpload.Get(), sizeof(UINT) * 2, sizeof(UINT) * 2); // StartVertex, StartInstance
-    }
-
-    // InstanceCount をカウンタから更新 (オフセット 4 バイト目)
     transition(m_particles[outIndex].counter.Get(), m_counterStates[outIndex], D3D12_RESOURCE_STATE_COPY_SOURCE);
     cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), sizeof(UINT), m_particles[outIndex].counter.Get(), 0, sizeof(UINT));
 
@@ -457,7 +439,12 @@ void GpuEffectComponent::setMaxParticles(UINT maxParticles)
 void GpuEffectComponent::initializeResources()
 {
     m_simCB = std::make_unique<ConstantBuffer<SimParams>>(1);
-    setTexture(m_texturePath);
+
+    // テクスチャをロード (ディスクリプタテーブル未割当なので updateDescriptorTables は後で呼ぶ)
+    if (!m_texturePath.empty())
+    {
+        m_texture = TextureManager::Instance().load(m_texturePath);
+    }
 
     createParticleBuffer(0);
     createParticleBuffer(1);

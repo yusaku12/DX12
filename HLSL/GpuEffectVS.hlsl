@@ -114,7 +114,7 @@ VSOut VS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
         else
         {
             right = float3(view._11, view._12, view._13);
-            up = float3(view._22, view._22, view._23); // フォールバック
+            up = float3(view._21, view._22, view._23); // フォールバック
         }
 
         // 速度に基づいた引き伸ばしスケール
