@@ -63,6 +63,19 @@ void GpuEffectComponent::update()
     m_simParams.flipbookCols = m_flipbookCols;
     m_simParams.flipbookFps = m_flipbookFps;
 
+    // CPU側でフレームごとのランダムシードを事前計算 (GPU側の冗長なALU演算を削減)
+    {
+        UINT timeAsUint = 0;
+        float totalTime = m_simParams.totalTime;
+        memcpy(&timeAsUint, &totalTime, sizeof(UINT));
+        UINT dtAsUint = 0;
+        memcpy(&dtAsUint, &dt, sizeof(UINT));
+        UINT input = timeAsUint ^ dtAsUint;
+        UINT state = input * 747796405u + 2891336453u;
+        UINT word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+        m_simParams.randomSeed = (word >> 22u) ^ word;
+    }
+
     if (auto* t = gameObject() ? gameObject()->getComponent<TransformComponent>() : nullptr)
     {
         m_simParams.emitOrigin = t->getPosition();

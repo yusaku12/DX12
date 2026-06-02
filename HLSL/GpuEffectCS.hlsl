@@ -38,6 +38,16 @@ cbuffer SimParams : register(b0)
     float maxSpeed;
     float startRotationSpeed;
     float stretchFactor;
+
+    uint renderMode;
+    uint flipbookRows;
+    uint flipbookCols;
+    float flipbookFps;
+
+    uint randomSeed;
+    uint _pad0;
+    uint _pad1;
+    uint _pad2;
 };
 
 ByteAddressBuffer aliveCountBuffer : register(t0);
@@ -172,12 +182,13 @@ void CS(uint3 id : SV_DispatchThreadID)
     }
     
     // エミット処理：aliveCount以降のスレッドが担当し、更新スレッドと重複しない
-    uint emitIndex = index - aliveCount;
-    if (index >= aliveCount && emitIndex < maxSpawn)
+    if (index >= aliveCount)
     {
-        // フレームごとに異なるベースシードを生成し、粒子ごとにユニークなシードを確保
-        uint frameHash = pcgHash(asuint(totalTime) ^ asuint(deltaTime));
-        uint seed = pcgHash(frameHash + emitIndex * 7919u);
+        uint emitIndex = index - aliveCount;
+        if (emitIndex < maxSpawn)
+    {
+        // CPU側で事前計算されたフレームシードを使用し、粒子ごとにユニークなシードを確保
+        uint seed = pcgHash(randomSeed + emitIndex * 7919u);
 
         float3 localPos = float3(0, 0, 0);
         float3 initialDir = float3(0, 1, 0);
@@ -231,5 +242,6 @@ void CS(uint3 id : SV_DispatchThreadID)
         p.color = startColor;
 
         particlesOut.Append(p);
+        }
     }
 }

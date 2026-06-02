@@ -45,6 +45,11 @@ cbuffer SimParams : register(b1)
     uint flipbookRows;
     uint flipbookCols;
     float flipbookFps;
+
+    uint randomSeed;
+    uint _pad0;
+    uint _pad1;
+    uint _pad2;
 };
 
 StructuredBuffer<Particle> particles : register(t0);
