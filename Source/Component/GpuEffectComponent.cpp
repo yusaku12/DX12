@@ -3,6 +3,30 @@
 #include "Graphics/LoadTexture.h"
 #include "Component/TransformComponent.h"
 
+namespace
+{
+    float nextRandom01(UINT& state)
+    {
+        state = state * 747796405u + 2891336453u;
+        UINT word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+        return static_cast<float>((word >> 22u) ^ word) / 4294967295.0f;
+    }
+
+    Vector3 randomDirection(UINT& state)
+    {
+        float angle = nextRandom01(state) * XM_2PI;
+        float y = nextRandom01(state) * 2.0f - 1.0f;
+        float radius = std::sqrt(std::max(0.0f, 1.0f - y * y));
+        return Vector3(radius * std::cos(angle), y, radius * std::sin(angle));
+    }
+
+    Vector3 randomSpherePoint(UINT& state, float radius)
+    {
+        float scale = std::cbrt(nextRandom01(state));
+        return randomDirection(state) * (radius * scale);
+    }
+}
+
 void GpuEffectComponent::awake()
 {
 }
@@ -81,6 +105,8 @@ void GpuEffectComponent::update()
         m_simParams.emitOrigin = t->getPosition();
     }
 
+    simulateParticles(dt);
+
     if (!m_simCB)
     {
         if (shouldOutputDebugLog())
@@ -89,6 +115,7 @@ void GpuEffectComponent::update()
     }
 
     m_simCB->update(m_simParams);
+    syncParticleBuffer();
 }
 
 void GpuEffectComponent::onEnable()
@@ -111,6 +138,7 @@ void GpuEffectComponent::onDestroy()
 {
     IRenderComponent::onDestroy();
 
+    if (m_particleSrvIndex != UINT_MAX) DescriptorHeapManager::Instance().free(m_particleSrvIndex);
     for (auto& p : m_particles)
     {
         if (p.srvIndex != UINT_MAX) DescriptorHeapManager::Instance().free(p.srvIndex);
@@ -123,6 +151,9 @@ void GpuEffectComponent::onDestroy()
 
     m_particles[0] = {};
     m_particles[1] = {};
+    m_particlesCpu.clear();
+    m_particleBuffer.Reset();
+    m_particleBufferMapped = nullptr;
     m_aliveCountBuffer.Reset();
     m_drawArgsBuffer.Reset();
     m_drawArgsUpload.Reset();
@@ -137,101 +168,27 @@ void GpuEffectComponent::onDestroy()
 
 void GpuEffectComponent::inspectGUI()
 {
-    ImGui::Text("GPU Effect System (Ultra Settings)");
-    
+    ImGui::Text("GPU Effect System");
+
     int maxParticles = static_cast<int>(m_maxParticles);
     if (ImGui::DragInt("Max Particles", &maxParticles, 100, 1, 1000000))
     {
         setMaxParticles(static_cast<UINT>(maxParticles));
     }
 
-    if (ImGui::CollapsingHeader("Emission Settings", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        ImGui::DragFloat("Emit Rate", &m_emitRate, 1.0f, 0.0f, 100000.0f);
-        ImGui::DragFloat("Min Lifetime", &m_minLifetime, 0.01f, 0.01f, 100.0f);
-        ImGui::DragFloat("Max Lifetime", &m_maxLifetime, 0.01f, 0.01f, 100.0f);
-        if (m_maxLifetime < m_minLifetime) m_maxLifetime = m_minLifetime;
-        m_lifetime = m_maxLifetime; // 互換性維持
+    ImGui::DragFloat("Emit Rate", &m_emitRate, 1.0f, 0.0f, 100000.0f);
+    ImGui::DragFloat("Lifetime", &m_lifetime, 0.01f, 0.01f, 100.0f);
+    ImGui::DragFloat("Speed", &m_speed, 0.01f, 0.0f, 100.0f);
+    ImGui::DragFloat("Spread", &m_spread, 0.01f, 0.0f, 1.0f);
+    ImGui::DragFloat("Radius", &m_emitRadius, 0.01f, 0.0f, 100.0f);
+    ImGui::DragFloat("Start Size", &m_startSize, 0.01f, 0.01f, 50.0f);
+    ImGui::DragFloat("End Size", &m_endSize, 0.01f, 0.01f, 50.0f);
+    ImGui::ColorEdit4("Start Color", &m_startColor.x);
+    ImGui::ColorEdit4("End Color", &m_endColor.x);
+    ImGui::DragFloat3("Gravity", &m_gravity.x, 0.01f, -100.0f, 100.0f);
+    ImGui::DragFloat("Drag", &m_drag, 0.01f, 0.0f, 20.0f);
 
-        ImGui::DragFloat("Min Speed", &m_minSpeed, 0.01f, 0.0f, 100.0f);
-        ImGui::DragFloat("Max Speed", &m_maxSpeed, 0.01f, 0.0f, 100.0f);
-        if (m_maxSpeed < m_minSpeed) m_maxSpeed = m_minSpeed;
-        m_speed = m_maxSpeed; // 互換性維持
-
-        ImGui::DragFloat("Spread (Angle)", &m_spread, 0.01f, 0.0f, 1.0f);
-    }
-
-    if (ImGui::CollapsingHeader("Emitter Shape", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        const char* shapes[] = { "Sphere", "Box", "Cone", "Ring" };
-        int currentShape = static_cast<int>(m_emitterType);
-        if (ImGui::Combo("Type", &currentShape, shapes, IM_ARRAYSIZE(shapes)))
-        {
-            m_emitterType = static_cast<UINT>(currentShape);
-        }
-
-        if (m_emitterType == 0 || m_emitterType == 2 || m_emitterType == 3) // Sphere, Cone, Ring
-        {
-            ImGui::DragFloat("Radius", &m_emitRadius, 0.01f, 0.001f, 100.0f);
-        }
-        if (m_emitterType == 1) // Box
-        {
-            ImGui::DragFloat3("Box Size", &m_emitterSize.x, 0.01f, 0.001f, 100.0f);
-        }
-        if (m_emitterType == 2) // Cone
-        {
-            ImGui::DragFloat("Cone Angle", &m_coneAngle, 0.1f, 0.0f, 90.0f);
-            ImGui::DragFloat("Cone Height", &m_coneHeight, 0.01f, 0.01f, 100.0f);
-        }
-    }
-
-    if (ImGui::CollapsingHeader("Particle Over Lifetime (Size/Color/Rotation)", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        ImGui::DragFloat("Start Size", &m_startSize, 0.01f, 0.01f, 50.0f);
-        ImGui::DragFloat("End Size", &m_endSize, 0.01f, 0.01f, 50.0f);
-        
-        ImGui::ColorEdit4("Start Color", &m_startColor.x);
-        ImGui::ColorEdit4("End Color", &m_endColor.x);
-
-        ImGui::DragFloat("Rotation Speed", &m_startRotationSpeed, 0.01f, -100.0f, 100.0f);
-    }
-
-    if (ImGui::CollapsingHeader("Forces & Physics"))
-    {
-        ImGui::DragFloat3("Gravity Vector", &m_gravity.x, 0.01f, -100.0f, 100.0f);
-        ImGui::DragFloat("Air Resistance (Drag)", &m_drag, 0.01f, 0.0f, 20.0f);
-        
-        ImGui::Separator();
-        ImGui::Text("Turbulence / Noise");
-        ImGui::DragFloat("Noise Strength", &m_noiseStrength, 0.01f, 0.0f, 50.0f);
-        ImGui::DragFloat("Noise Frequency", &m_noiseFrequency, 0.01f, 0.001f, 10.0f);
-    }
-
-    if (ImGui::CollapsingHeader("Rendering Modes & Texture", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        const char* renderModes[] = { "Billboard", "Stretched Billboard", "Horizontal Flat", "Vertical Flat" };
-        int mode = static_cast<int>(m_renderMode);
-        if (ImGui::Combo("Render Mode", &mode, renderModes, IM_ARRAYSIZE(renderModes)))
-        {
-            m_renderMode = static_cast<UINT>(mode);
-        }
-
-        if (m_renderMode == 1) // Stretched
-        {
-            ImGui::DragFloat("Stretch Factor", &m_stretchFactor, 0.01f, 0.0f, 10.0f);
-        }
-
-        ImGui::Text("Texture: %s", wstringToString(m_texturePath).c_str());
-
-        // Texture sprite/flipbook animation settings
-        ImGui::Separator();
-        ImGui::Text("Flipbook (Sprite Sheet) Animation");
-        int rows = static_cast<int>(m_flipbookRows);
-        int cols = static_cast<int>(m_flipbookCols);
-        if (ImGui::DragInt("Flipbook Rows", &rows, 1.0f, 1, 64)) m_flipbookRows = static_cast<UINT>(rows);
-        if (ImGui::DragInt("Flipbook Cols", &cols, 1.0f, 1, 64)) m_flipbookCols = static_cast<UINT>(cols);
-        ImGui::DragFloat("Flipbook FPS (0 = Sync to Life)", &m_flipbookFps, 0.1f, 0.0f, 120.0f);
-    }
+    ImGui::Text("Texture: %s", wstringToString(m_texturePath).c_str());
 
     ImGui::Separator();
     ImGui::Checkbox("Debug Log", &m_enableDebugLog);
@@ -241,15 +198,12 @@ void GpuEffectComponent::inspectGUI()
     {
         m_debugLogInterval = std::clamp(interval, 1, 600);
     }
-
-    ImGui::Checkbox("Force Draw (No ExecuteIndirect)", &m_debugForceDraw);
-    ImGui::Checkbox("Force DrawArgs InstanceCount=1", &m_debugForceIndirectArgs);
 }
 
 void GpuEffectComponent::render()
 {
     auto* cmd = DX12::Instance().getGraphicsCommandList();
-    renderForward(cmd);
+    render(cmd);
 }
 
 void GpuEffectComponent::render(ID3D12GraphicsCommandList* cmd)
@@ -269,50 +223,17 @@ void GpuEffectComponent::render(ID3D12GraphicsCommandList* cmd)
     cmd->SetGraphicsRootConstantBufferView(1, m_simCB->getGPUAddress());
     cmd->SetGraphicsRootDescriptorTable(2, DescriptorHeapManager::Instance().getGPUHandle(m_renderSrvTableBase));
 
-    if (m_debugForceDraw)
+    if (m_aliveParticleCount == 0)
     {
-        cmd->DrawInstanced(6, 1, 0, 0);
-        if (shouldOutputDebugLog())
-            LOG_INFO("GpuEffect: ForceDraw executed");
         return;
     }
 
-    if (m_debugForceIndirectArgs && m_drawArgsUpload)
-    {
-        D3D12_DRAW_ARGUMENTS args = { 6, 1, 0, 0 };
-
-        void* mapped = nullptr;
-        m_drawArgsUpload->Map(0, nullptr, &mapped);
-        memcpy(mapped, &args, sizeof(args));
-        m_drawArgsUpload->Unmap(0, nullptr);
-
-        auto transition = [&](D3D12_RESOURCE_STATES newState)
-            {
-                if (m_drawArgsState == newState) return;
-                auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_drawArgsBuffer.Get(), m_drawArgsState, newState);
-                cmd->ResourceBarrier(1, &barrier);
-                m_drawArgsState = newState;
-            };
-
-        transition(D3D12_RESOURCE_STATE_COPY_DEST);
-        cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), 0, m_drawArgsUpload.Get(), 0, sizeof(args));
-        transition(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
-    }
-
-    if (!m_drawCommandSignature)
-    {
-        if (shouldOutputDebugLog())
-            LOG_WARN("GpuEffect: draw command signature is null");
-        return;
-    }
-
-    cmd->ExecuteIndirect(m_drawCommandSignature.Get(), 1, m_drawArgsBuffer.Get(), 0, nullptr, 0);
+    cmd->DrawInstanced(6, m_aliveParticleCount, 0, 0);
 
     if (shouldOutputDebugLog())
     {
-        LOG_INFO("GpuEffect: draw executed (srv=%u, uav=%u, emit=%u)",
-            m_particles[m_currentIndex].srvIndex,
-            m_particles[m_currentIndex].uavIndex,
+        LOG_INFO("GpuEffect: draw executed (particles=%u, emit=%u)",
+            m_aliveParticleCount,
             m_simParams.emitCount);
     }
 }
@@ -326,99 +247,92 @@ void GpuEffectComponent::renderForward(ID3D12GraphicsCommandList* cmd)
         return;
     }
 
-    simulate(cmd);
     render(cmd);
+}
+
+void GpuEffectComponent::simulateParticles(float dt)
+{
+    if (m_maxParticles == 0)
+    {
+        m_aliveParticleCount = 0;
+        m_particlesCpu.clear();
+        return;
+    }
+
+    std::vector<Particle> nextParticles;
+    nextParticles.reserve(m_maxParticles);
+
+    for (const auto& particle : m_particlesCpu)
+    {
+        Particle updated = particle;
+        updated.age += dt;
+
+        if (updated.age >= updated.lifetime)
+        {
+            continue;
+        }
+
+        updated.velocity += m_gravity * dt;
+        updated.velocity *= std::max(0.0f, 1.0f - m_drag * dt);
+        updated.position += updated.velocity * dt;
+
+        float t = std::clamp(updated.age / std::max(updated.lifetime, 0.0001f), 0.0f, 1.0f);
+        updated.size = std::lerp(m_startSize, m_endSize, t);
+        updated.color = Vector4(
+            std::lerp(m_startColor.x, m_endColor.x, t),
+            std::lerp(m_startColor.y, m_endColor.y, t),
+            std::lerp(m_startColor.z, m_endColor.z, t),
+            std::lerp(m_startColor.w, m_endColor.w, t));
+        updated.rotation += updated.rotationSpeed * dt;
+
+        nextParticles.push_back(updated);
+    }
+
+    UINT seed = m_simParams.randomSeed;
+    for (UINT i = 0; i < m_simParams.emitCount && nextParticles.size() < m_maxParticles; ++i)
+    {
+        Particle particle{};
+        particle.position = m_simParams.emitOrigin + randomSpherePoint(seed, m_emitRadius);
+
+        Vector3 direction = randomDirection(seed);
+        direction.Normalize();
+        direction = Vector3::Lerp(Vector3::UnitY, direction, m_spread);
+        float speedT = nextRandom01(seed);
+        particle.velocity = direction * std::lerp(m_minSpeed, m_maxSpeed, speedT);
+        particle.age = 0.0f;
+        particle.lifetime = std::lerp(m_minLifetime, m_maxLifetime, nextRandom01(seed));
+        particle.size = m_startSize;
+        particle.rotation = nextRandom01(seed) * XM_2PI;
+        particle.rotationSpeed = (nextRandom01(seed) * 2.0f - 1.0f) * m_startRotationSpeed;
+        particle.stretch = 1.0f;
+        particle.color = m_startColor;
+
+        nextParticles.push_back(particle);
+    }
+
+    m_particlesCpu.swap(nextParticles);
+    m_aliveParticleCount = static_cast<UINT>(m_particlesCpu.size());
+}
+
+void GpuEffectComponent::syncParticleBuffer()
+{
+    if (!m_particleBufferMapped)
+    {
+        return;
+    }
+
+    if (m_aliveParticleCount == 0)
+    {
+        return;
+    }
+
+    memcpy(m_particleBufferMapped, m_particlesCpu.data(), sizeof(Particle) * m_aliveParticleCount);
 }
 
 void GpuEffectComponent::simulate(ID3D12GraphicsCommandList* cmd)
 {
-    if (!cmd || !m_initialized) return;
-
-    int inIndex = m_currentIndex;
-    int outIndex = 1 - m_currentIndex;
-
-    auto transition = [&](ID3D12Resource* res, D3D12_RESOURCE_STATES& state, D3D12_RESOURCE_STATES newState)
-        {
-            if (!res || state == newState) return;
-            auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(res, state, newState);
-            cmd->ResourceBarrier(1, &barrier);
-            state = newState;
-        };
-
-    if (!m_countersInitialized && m_counterResetUpload)
-    {
-        for (int i = 0; i < 2; ++i)
-        {
-            transition(m_particles[i].counter.Get(), m_counterStates[i], D3D12_RESOURCE_STATE_COPY_DEST);
-            cmd->CopyBufferRegion(m_particles[i].counter.Get(), 0, m_counterResetUpload.Get(), 0, sizeof(UINT));
-        }
-
-        transition(m_aliveCountBuffer.Get(), m_aliveCountState, D3D12_RESOURCE_STATE_COPY_DEST);
-        cmd->CopyBufferRegion(m_aliveCountBuffer.Get(), 0, m_counterResetUpload.Get(), 0, sizeof(UINT));
-
-        // DrawArgs の静的部分を一度だけ初期化 (VertexCount=6, StartVertex=0, StartInstance=0)
-        if (m_drawArgsUpload)
-        {
-            transition(m_drawArgsBuffer.Get(), m_drawArgsState, D3D12_RESOURCE_STATE_COPY_DEST);
-            cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), 0, m_drawArgsUpload.Get(), 0, sizeof(D3D12_DRAW_ARGUMENTS));
-        }
-
-        m_countersInitialized = true;
-    }
-
-    // コピー前の状態遷移
-    transition(m_particles[outIndex].counter.Get(), m_counterStates[outIndex], D3D12_RESOURCE_STATE_COPY_DEST);
-    transition(m_particles[inIndex].counter.Get(), m_counterStates[inIndex], D3D12_RESOURCE_STATE_COPY_SOURCE);
-    transition(m_aliveCountBuffer.Get(), m_aliveCountState, D3D12_RESOURCE_STATE_COPY_DEST);
-
-    // カウンタリセット
-    cmd->CopyBufferRegion(m_particles[outIndex].counter.Get(), 0, m_counterResetUpload.Get(), 0, sizeof(UINT));
-
-    // aliveCount を取得
-    cmd->CopyBufferRegion(m_aliveCountBuffer.Get(), 0, m_particles[inIndex].counter.Get(), 0, sizeof(UINT));
-
-    // aliveCount を SRV 化
-    transition(m_aliveCountBuffer.Get(), m_aliveCountState, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-    // バッファを UAV 化
-    transition(m_particles[inIndex].buffer.Get(), m_particleStates[inIndex], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    transition(m_particles[outIndex].buffer.Get(), m_particleStates[outIndex], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    transition(m_particles[inIndex].counter.Get(), m_counterStates[inIndex], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    transition(m_particles[outIndex].counter.Get(), m_counterStates[outIndex], D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-    DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
-    cmd->SetComputeRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::GpuEffectCompute));
-    cmd->SetPipelineState(m_computePSO.Get());
-
-    cmd->SetComputeRootConstantBufferView(0, m_simCB->getGPUAddress());
-    cmd->SetComputeRootDescriptorTable(1, DescriptorHeapManager::Instance().getGPUHandle(m_aliveCountSrvIndex));
-
-    updateDescriptorTables();
-    cmd->SetComputeRootDescriptorTable(2, DescriptorHeapManager::Instance().getGPUHandle(m_computeUavTableBase));
-
-    constexpr UINT THREADS = 256;
-    UINT groups = (m_maxParticles + THREADS - 1) / THREADS;
-    cmd->Dispatch(groups, 1, 1);
-
-    auto uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(m_particles[outIndex].buffer.Get());
-    cmd->ResourceBarrier(1, &uavBarrier);
-
-    auto counterUavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(m_particles[outIndex].counter.Get());
-    cmd->ResourceBarrier(1, &counterUavBarrier);
-
-    // DrawArgs 更新: InstanceCount のみ毎フレーム更新
-    // 静的部分 (VertexCount=6, StartVertex=0, StartInstance=0) は初期化時に設定済み
-    transition(m_drawArgsBuffer.Get(), m_drawArgsState, D3D12_RESOURCE_STATE_COPY_DEST);
-    transition(m_particles[outIndex].counter.Get(), m_counterStates[outIndex], D3D12_RESOURCE_STATE_COPY_SOURCE);
-    cmd->CopyBufferRegion(m_drawArgsBuffer.Get(), sizeof(UINT), m_particles[outIndex].counter.Get(), 0, sizeof(UINT));
-
-    transition(m_drawArgsBuffer.Get(), m_drawArgsState, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
-
-    // 描画用に SRV 化
-    transition(m_particles[outIndex].buffer.Get(), m_particleStates[outIndex], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-    m_currentIndex = outIndex;
-    updateDescriptorTables();
+    UNREFERENCED_PARAMETER(cmd);
+    syncParticleBuffer();
 }
 
 void GpuEffectComponent::setTexture(const std::wstring& path)
@@ -436,16 +350,12 @@ void GpuEffectComponent::setMaxParticles(UINT maxParticles)
 
     m_maxParticles = maxParticles;
 
-    for (auto& p : m_particles)
+    if (m_particlesCpu.size() > m_maxParticles)
     {
-        if (p.srvIndex != UINT_MAX) DescriptorHeapManager::Instance().free(p.srvIndex);
-        if (p.uavIndex != UINT_MAX) DescriptorHeapManager::Instance().free(p.uavIndex);
+        m_particlesCpu.resize(m_maxParticles);
     }
 
-    m_particles[0] = {};
-    m_particles[1] = {};
     createParticleBuffer(0);
-    createParticleBuffer(1);
     updateDescriptorTables();
 }
 
@@ -460,12 +370,7 @@ void GpuEffectComponent::initializeResources()
     }
 
     createParticleBuffer(0);
-    createParticleBuffer(1);
-    createAliveCountBuffer();
-    createDrawArgsBuffer();
     createPipelines();
-
-    m_computeUavTableBase = DescriptorHeapManager::Instance().allocateRange(2);
     m_renderSrvTableBase = DescriptorHeapManager::Instance().allocateRange(2);
 
     updateDescriptorTables();
@@ -473,68 +378,48 @@ void GpuEffectComponent::initializeResources()
 
 void GpuEffectComponent::createParticleBuffer(int index)
 {
-    auto device = DX12::Instance().getDevice();
-    UINT64 bufferSize = sizeof(Particle) * m_maxParticles;
+    UNREFERENCED_PARAMETER(index);
 
-    auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-    CD3DX12_HEAP_PROPERTIES defaultHeapProps(D3D12_HEAP_TYPE_DEFAULT);
+    if (m_particleSrvIndex != UINT_MAX)
+    {
+        DescriptorHeapManager::Instance().free(m_particleSrvIndex);
+        m_particleSrvIndex = UINT_MAX;
+    }
+
+    m_particleBuffer.Reset();
+    m_particleBufferMapped = nullptr;
+
+    auto device = DX12::Instance().getDevice();
+    UINT64 bufferSize = std::max<UINT64>(1, sizeof(Particle) * m_maxParticles);
+    auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+    CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
     HRESULT hr = device->CreateCommittedResource(
-        &defaultHeapProps,
+        &uploadHeapProps,
         D3D12_HEAP_FLAG_NONE,
         &resDesc,
-        D3D12_RESOURCE_STATE_COMMON,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr,
-        IID_PPV_ARGS(m_particles[index].buffer.GetAddressOf()));
-    LOG_HR(hr, "GpuEffect: create particle buffer failed");
+        IID_PPV_ARGS(m_particleBuffer.GetAddressOf()));
+    LOG_HR(hr, "GpuEffect: create particle upload buffer failed");
 
-    auto counterDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(UINT), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-    hr = device->CreateCommittedResource(
-        &defaultHeapProps,
-        D3D12_HEAP_FLAG_NONE,
-        &counterDesc,
-        D3D12_RESOURCE_STATE_COMMON,
-        nullptr,
-        IID_PPV_ARGS(m_particles[index].counter.GetAddressOf()));
-    LOG_HR(hr, "GpuEffect: create counter buffer failed");
-
-    m_particleStates[index] = D3D12_RESOURCE_STATE_COMMON;
-    m_counterStates[index] = D3D12_RESOURCE_STATE_COMMON;
+    if (m_particleBuffer)
+    {
+        void* mapped = nullptr;
+        hr = m_particleBuffer->Map(0, nullptr, &mapped);
+        LOG_HR(hr, "GpuEffect: map particle upload buffer failed");
+        m_particleBufferMapped = reinterpret_cast<Particle*>(mapped);
+    }
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
     srvDesc.Format = DXGI_FORMAT_UNKNOWN;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Buffer.FirstElement = 0;
     srvDesc.Buffer.NumElements = m_maxParticles;
     srvDesc.Buffer.StructureByteStride = sizeof(Particle);
+    srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
-    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.Buffer.NumElements = m_maxParticles;
-    uavDesc.Buffer.StructureByteStride = sizeof(Particle);
-
-    m_particles[index].srvIndex = DescriptorHeapManager::Instance().createSRV(m_particles[index].buffer.Get(), srvDesc);
-    m_particles[index].uavIndex = DescriptorHeapManager::Instance().createUAV(m_particles[index].buffer.Get(), m_particles[index].counter.Get(), uavDesc);
-
-    if (!m_counterResetUpload)
-    {
-        UINT zero = 0;
-        auto uploadDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(UINT));
-        CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
-        HRESULT hr2 = device->CreateCommittedResource(
-            &uploadHeapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &uploadDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(m_counterResetUpload.GetAddressOf()));
-        LOG_HR(hr2, "GpuEffect: create counter reset upload failed");
-
-        void* mapped = nullptr;
-        m_counterResetUpload->Map(0, nullptr, &mapped);
-        memcpy(mapped, &zero, sizeof(UINT));
-        m_counterResetUpload->Unmap(0, nullptr);
-    }
+    m_particleSrvIndex = DescriptorHeapManager::Instance().createSRV(m_particleBuffer.Get(), srvDesc);
 }
 
 void GpuEffectComponent::createDrawArgsBuffer()
@@ -611,50 +496,15 @@ void GpuEffectComponent::createPipelines()
     psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     psoData.inputLayout = {};
     m_renderPSOKey = PSOCreator::Instance().registerPSO(psoData);
-
-    // Compute PSO
-    D3D12_COMPUTE_PIPELINE_STATE_DESC desc{};
-    desc.pRootSignature = RootSignatureManager::Instance().getRootSignature(RootSignatureType::GpuEffectCompute);
-    auto* blob = ShaderManager::Instance().getShaderBlob(ShaderID::GpuEffectCS);
-    desc.CS.pShaderBytecode = blob->GetBufferPointer();
-    desc.CS.BytecodeLength = blob->GetBufferSize();
-
-    HRESULT hr = DX12::Instance().getDevice()->CreateComputePipelineState(&desc, IID_PPV_ARGS(m_computePSO.GetAddressOf()));
-    LOG_HR(hr, "GpuEffect: create compute PSO failed");
-
-    if (!m_drawCommandSignature)
-    {
-        D3D12_INDIRECT_ARGUMENT_DESC arg{};
-        arg.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
-
-        D3D12_COMMAND_SIGNATURE_DESC sigDesc{};
-        sigDesc.ByteStride = sizeof(D3D12_DRAW_ARGUMENTS);
-        sigDesc.NumArgumentDescs = 1;
-        sigDesc.pArgumentDescs = &arg;
-
-        hr = DX12::Instance().getDevice()->CreateCommandSignature(
-            &sigDesc, nullptr, IID_PPV_ARGS(m_drawCommandSignature.GetAddressOf()));
-        LOG_HR(hr, "GpuEffect: create command signature failed");
-    }
 }
 
 void GpuEffectComponent::updateDescriptorTables()
 {
-    if (m_computeUavTableBase != UINT_MAX)
-    {
-        std::vector<UINT> uavIndices =
-        {
-            m_particles[m_currentIndex].uavIndex,
-            m_particles[1 - m_currentIndex].uavIndex
-        };
-        DescriptorHeapManager::Instance().copyDescriptorsRange(m_computeUavTableBase, uavIndices);
-    }
-
-    if (m_renderSrvTableBase != UINT_MAX && m_texture)
+    if (m_renderSrvTableBase != UINT_MAX && m_texture && m_particleSrvIndex != UINT_MAX)
     {
         std::vector<UINT> srvIndices =
         {
-            m_particles[m_currentIndex].srvIndex,
+            m_particleSrvIndex,
             m_texture->getSRVIndex()
         };
         DescriptorHeapManager::Instance().copyDescriptorsRange(m_renderSrvTableBase, srvIndices);

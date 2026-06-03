@@ -35,6 +35,14 @@
 //   float maxSpeed;                    // Offset:  148 Size:     4
 //   float startRotationSpeed;          // Offset:  152 Size:     4
 //   float stretchFactor;               // Offset:  156 Size:     4
+//   uint renderMode;                   // Offset:  160 Size:     4 [unused]
+//   uint flipbookRows;                 // Offset:  164 Size:     4 [unused]
+//   uint flipbookCols;                 // Offset:  168 Size:     4 [unused]
+//   float flipbookFps;                 // Offset:  172 Size:     4 [unused]
+//   uint randomSeed;                   // Offset:  176 Size:     4
+//   uint _pad0;                        // Offset:  180 Size:     4 [unused]
+//   uint _pad1;                        // Offset:  184 Size:     4 [unused]
+//   uint _pad2;                        // Offset:  188 Size:     4 [unused]
 //
 // }
 //
@@ -103,7 +111,7 @@
 // no Output
 cs_5_0
 dcl_globalFlags refactoringAllowed | skipOptimization
-dcl_constantbuffer CB0[10], immediateIndexed
+dcl_constantbuffer CB0[12], immediateIndexed
 dcl_resource_raw t0
 dcl_uav_structured u0, 64
 dcl_uav_structured u1, 64
@@ -114,13 +122,13 @@ dcl_thread_group 256, 1, 1
 // Initial variable locations:
 //   vThreadID.x <- id.x; vThreadID.y <- id.y; vThreadID.z <- id.z
 //
-#line 112 "C:\Users\2210359\Desktop\DirectX12\HLSL\GpuEffectCS.hlsl"
+#line 134 "C:\Users\2210359\Desktop\DirectX12\HLSL\GpuEffectCS.hlsl"
 ld_raw_indexable(raw_buffer)(mixed,mixed,mixed,mixed) r0.x, l(0), t0.xxxx  // r0.x <- aliveCount
 
-#line 113
+#line 135
 mov r0.y, vThreadID.x  // r0.y <- index
 
-#line 118
+#line 140
 ult r0.z, r0.x, cb0[1].x
 ineg r0.w, r0.x
 iadd r0.w, r0.w, cb0[1].x
@@ -128,365 +136,236 @@ umin r0.w, r0.w, cb0[0].w
 mov r1.x, l(0)
 movc r0.z, r0.z, r0.w, r1.x  // r0.z <- maxSpawn
 
-#line 120
-ult r0.x, r0.y, r0.x
-if_nz r0.x
+#line 142
+ult r0.w, r0.y, r0.x
+if_nz r0.w
 
-#line 122
+#line 144
   imm_atomic_consume r1.x, u0
   ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r2.x, r1.x, l(0), u0.xxxx  // r2.x <- p.position.x
   ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r2.y, r1.x, l(4), u0.xxxx  // r2.y <- p.position.y
   ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r2.z, r1.x, l(8), u0.xxxx  // r2.z <- p.position.z
-  ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r0.x, r1.x, l(12), u0.xxxx
+  ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r0.w, r1.x, l(12), u0.xxxx
   ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r3.x, r1.x, l(16), u0.xxxx  // r3.x <- p.velocity.x
   ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r3.y, r1.x, l(20), u0.xxxx  // r3.y <- p.velocity.y
   ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r3.z, r1.x, l(24), u0.xxxx  // r3.z <- p.velocity.z
-  ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r0.w, r1.x, l(28), u0.xxxx  // r0.w <- p.lifetime
-  ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r1.y, r1.x, l(36), u0.xxxx  // r1.y <- p.rotation
+  ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r1.y, r1.x, l(28), u0.xxxx  // r1.y <- p.lifetime
+  ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r1.z, r1.x, l(36), u0.xxxx  // r1.z <- p.rotation
   ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r1.x, r1.x, l(40), u0.xxxx  // r1.x <- p.rotationSpeed
-  mov r0.x, r0.x  // r0.x <- p.age
+  mov r0.w, r0.w  // r0.w <- p.age
 
-#line 123
-  add r0.x, r0.x, cb0[0].x
+#line 145
+  add r0.w, r0.w, cb0[0].x
 
-#line 125
-  lt r1.z, r0.x, r0.w
-  if_nz r1.z
+#line 147
+  lt r1.w, r0.w, r1.y
+  if_nz r1.w
 
-#line 128
+#line 150
     mul r4.xyz, cb0[0].xxxx, cb0[6].xyzx
     add r3.xyz, r3.xyzx, r4.xyzx
 
-#line 129
-    mul r1.z, cb0[0].x, cb0[2].z
-    mov r1.z, -r1.z
-    add r1.z, r1.z, l(1.000000)
-    max r1.z, r1.z, l(0.000000)
-    min r1.z, r1.z, l(1.000000)
-    mul r3.xyz, r1.zzzz, r3.xyzx
+#line 151
+    mul r1.w, cb0[0].x, cb0[2].z
+    mov r1.w, -r1.w
+    add r1.w, r1.w, l(1.000000)
+    max r1.w, r1.w, l(0.000000)
+    min r1.w, r1.w, l(1.000000)
+    mul r3.xyz, r1.wwww, r3.xyzx
 
-#line 132
-    lt r1.z, l(0.000000), cb0[6].w
-    if_nz r1.z
+#line 154
+    lt r1.w, l(0.000000), cb0[6].w
+    if_nz r1.w
 
-#line 134
+#line 156
       nop 
       mul r4.xyz, r2.xyzx, cb0[7].wwww
       add r4.xyz, r4.xyzx, cb0[0].yyyy
 
-#line 76
+#line 98
       mov r5.z, l(0.100000)  // r5.z <- e
 
-#line 77
+#line 99
       mov r5.xy, l(0,0,0,0)
       mov r6.xyz, r5.zyyz  // r6.x <- dx.x; r6.y <- dx.y; r6.z <- dx.z
 
-#line 78
+#line 100
       mov r7.xyz, r5.yzyy  // r7.x <- dy.x; r7.y <- dy.y; r7.z <- dy.z
 
-#line 79
+#line 101
       mov r5.xyz, r5.xyzx  // r5.x <- dz.x; r5.y <- dz.y; r5.z <- dz.z
 
-#line 81
+#line 103
       nop 
       mov r8.xyz, -r6.xyzx
       add r8.xyz, r4.xyzx, r8.xyzx
 
-#line 62
+#line 84
       round_ni r9.xyz, r8.xyzx  // r9.x <- p.x; r9.y <- p.y; r9.z <- p.z
 
-#line 63
+#line 85
       frc r8.xyz, r8.xyzx  // r8.x <- f.x; r8.y <- f.y; r8.z <- f.z
 
-#line 64
+#line 86
       mul r10.xyz, r8.xyzx, r8.xyzx
       mul r8.xyz, r8.xyzx, l(2.000000, 2.000000, 2.000000, 0.000000)
       mov r8.xyz, -r8.xyzx
       add r8.xyz, r8.xyzx, l(3.000000, 3.000000, 3.000000, 0.000000)
       mul r8.xyz, r8.xyzx, r10.xyzx  // r8.x <- f.x; r8.y <- f.y; r8.z <- f.z
 
-#line 66
-      mul r1.z, r9.y, l(57.000000)
-      add r1.z, r1.z, r9.x
-      mul r1.w, r9.z, l(113.000000)
-      add r1.z, r1.w, r1.z  // r1.z <- n
-
-#line 67
-      nop 
-      add r1.w, r1.z, l(0.000000)
-
-#line 50
-      sincos r1.w, null, r1.w
-      mul r1.w, r1.w, l(43758.546875)
-      frc r1.w, r1.w  // r1.w <- <hash1 return value>
-
-#line 67
-      nop 
-      add r2.w, r1.z, l(1.000000)
-
-#line 50
-      sincos r2.w, null, r2.w
-      mul r2.w, r2.w, l(43758.546875)
-      frc r2.w, r2.w  // r2.w <- <hash1 return value>
-
-#line 67
-      mov r3.w, -r1.w
-      add r2.w, r2.w, r3.w
-      mul r2.w, r2.w, r8.x
-      add r1.w, r1.w, r2.w
-      nop 
-      add r2.w, r1.z, l(57.000000)
-
-#line 50
-      sincos r2.w, null, r2.w
-      mul r2.w, r2.w, l(43758.546875)
-      frc r2.w, r2.w  // r2.w <- <hash1 return value>
-
-#line 67
-      nop 
-      add r3.w, r1.z, l(58.000000)
-
-#line 50
-      sincos r3.w, null, r3.w
-      mul r3.w, r3.w, l(43758.546875)
-      frc r3.w, r3.w  // r3.w <- <hash1 return value>
-
-#line 67
-      mov r4.w, -r2.w
-      add r3.w, r3.w, r4.w
-      mul r3.w, r3.w, r8.x
-      add r2.w, r2.w, r3.w
-      mov r3.w, -r1.w
-      add r2.w, r2.w, r3.w
-      mul r2.w, r2.w, r8.y
-      add r1.w, r1.w, r2.w
-      nop 
-      add r2.w, r1.z, l(113.000000)
-
-#line 50
-      sincos r2.w, null, r2.w
-      mul r2.w, r2.w, l(43758.546875)
-      frc r2.w, r2.w  // r2.w <- <hash1 return value>
-
-#line 67
-      nop 
-      add r3.w, r1.z, l(114.000000)
-
-#line 50
-      sincos r3.w, null, r3.w
-      mul r3.w, r3.w, l(43758.546875)
-      frc r3.w, r3.w  // r3.w <- <hash1 return value>
-
-#line 67
-      mov r4.w, -r2.w
-      add r3.w, r3.w, r4.w
-      mul r3.w, r3.w, r8.x
-      add r2.w, r2.w, r3.w
-      nop 
-      add r3.w, r1.z, l(170.000000)
-
-#line 50
-      sincos r3.w, null, r3.w
-      mul r3.w, r3.w, l(43758.546875)
-      frc r3.w, r3.w  // r3.w <- <hash1 return value>
-
-#line 67
-      nop 
-      add r1.z, r1.z, l(171.000000)
-
-#line 50
-      sincos r1.z, null, r1.z
-      mul r1.z, r1.z, l(43758.546875)
-      frc r1.z, r1.z  // r1.z <- <hash1 return value>
-
-#line 67
-      mov r4.w, -r3.w
-      add r1.z, r1.z, r4.w
-      mul r1.z, r1.z, r8.x
-      add r1.z, r1.z, r3.w
-      mov r3.w, -r2.w
-      add r1.z, r1.z, r3.w
-      mul r1.z, r1.z, r8.y
-      add r1.z, r1.z, r2.w
-      mov r2.w, -r1.w
-      add r1.z, r1.z, r2.w
-      mul r1.z, r1.z, r8.z
-      add r1.z, r1.z, r1.w  // r1.z <- <noise3 return value>
-
-#line 81
-      mov r1.z, r1.z  // r1.z <- p_x0
-
-#line 82
-      nop 
-      add r6.xyz, r4.xyzx, r6.xyzx
-
-#line 62
-      round_ni r8.xyz, r6.xyzx  // r8.x <- p.x; r8.y <- p.y; r8.z <- p.z
-
-#line 63
-      frc r6.xyz, r6.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
-
-#line 64
-      mul r9.xyz, r6.xyzx, r6.xyzx
-      mul r6.xyz, r6.xyzx, l(2.000000, 2.000000, 2.000000, 0.000000)
-      mov r6.xyz, -r6.xyzx
-      add r6.xyz, r6.xyzx, l(3.000000, 3.000000, 3.000000, 0.000000)
-      mul r6.xyz, r6.xyzx, r9.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
-
-#line 66
-      mul r1.w, r8.y, l(57.000000)
-      add r1.w, r1.w, r8.x
-      mul r2.w, r8.z, l(113.000000)
+#line 88
+      mul r1.w, r9.y, l(57.000000)
+      add r1.w, r1.w, r9.x
+      mul r2.w, r9.z, l(113.000000)
       add r1.w, r1.w, r2.w  // r1.w <- n
 
-#line 67
+#line 89
       nop 
       add r2.w, r1.w, l(0.000000)
 
-#line 50
+#line 72
       sincos r2.w, null, r2.w
       mul r2.w, r2.w, l(43758.546875)
       frc r2.w, r2.w  // r2.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r3.w, r1.w, l(1.000000)
 
-#line 50
+#line 72
       sincos r3.w, null, r3.w
       mul r3.w, r3.w, l(43758.546875)
       frc r3.w, r3.w  // r3.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r4.w, -r2.w
       add r3.w, r3.w, r4.w
-      mul r3.w, r3.w, r6.x
+      mul r3.w, r3.w, r8.x
       add r2.w, r2.w, r3.w
       nop 
       add r3.w, r1.w, l(57.000000)
 
-#line 50
+#line 72
       sincos r3.w, null, r3.w
       mul r3.w, r3.w, l(43758.546875)
       frc r3.w, r3.w  // r3.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r4.w, r1.w, l(58.000000)
 
-#line 50
+#line 72
       sincos r4.w, null, r4.w
       mul r4.w, r4.w, l(43758.546875)
       frc r4.w, r4.w  // r4.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r5.w, -r3.w
       add r4.w, r4.w, r5.w
-      mul r4.w, r4.w, r6.x
+      mul r4.w, r4.w, r8.x
       add r3.w, r3.w, r4.w
       mov r4.w, -r2.w
       add r3.w, r3.w, r4.w
-      mul r3.w, r3.w, r6.y
+      mul r3.w, r3.w, r8.y
       add r2.w, r2.w, r3.w
       nop 
       add r3.w, r1.w, l(113.000000)
 
-#line 50
+#line 72
       sincos r3.w, null, r3.w
       mul r3.w, r3.w, l(43758.546875)
       frc r3.w, r3.w  // r3.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r4.w, r1.w, l(114.000000)
 
-#line 50
+#line 72
       sincos r4.w, null, r4.w
       mul r4.w, r4.w, l(43758.546875)
       frc r4.w, r4.w  // r4.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r5.w, -r3.w
       add r4.w, r4.w, r5.w
-      mul r4.w, r4.w, r6.x
+      mul r4.w, r4.w, r8.x
       add r3.w, r3.w, r4.w
       nop 
       add r4.w, r1.w, l(170.000000)
 
-#line 50
+#line 72
       sincos r4.w, null, r4.w
       mul r4.w, r4.w, l(43758.546875)
       frc r4.w, r4.w  // r4.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r1.w, r1.w, l(171.000000)
 
-#line 50
+#line 72
       sincos r1.w, null, r1.w
       mul r1.w, r1.w, l(43758.546875)
       frc r1.w, r1.w  // r1.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r5.w, -r4.w
       add r1.w, r1.w, r5.w
-      mul r1.w, r1.w, r6.x
+      mul r1.w, r1.w, r8.x
       add r1.w, r1.w, r4.w
       mov r4.w, -r3.w
       add r1.w, r1.w, r4.w
-      mul r1.w, r1.w, r6.y
+      mul r1.w, r1.w, r8.y
       add r1.w, r1.w, r3.w
       mov r3.w, -r2.w
       add r1.w, r1.w, r3.w
-      mul r1.w, r1.w, r6.z
+      mul r1.w, r1.w, r8.z
       add r1.w, r1.w, r2.w  // r1.w <- <noise3 return value>
 
-#line 82
-      mov r1.w, r1.w  // r1.w <- p_x1
+#line 103
+      mov r1.w, r1.w  // r1.w <- p_x0
 
-#line 83
+#line 104
       nop 
-      mov r6.xyz, -r7.xyzx
       add r6.xyz, r4.xyzx, r6.xyzx
 
-#line 62
-      round_ni r8.xyz, r6.xyzx
+#line 84
+      round_ni r8.xyz, r6.xyzx  // r8.x <- p.x; r8.y <- p.y; r8.z <- p.z
 
-#line 63
+#line 85
       frc r6.xyz, r6.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
 
-#line 64
+#line 86
       mul r9.xyz, r6.xyzx, r6.xyzx
       mul r6.xyz, r6.xyzx, l(2.000000, 2.000000, 2.000000, 0.000000)
       mov r6.xyz, -r6.xyzx
       add r6.xyz, r6.xyzx, l(3.000000, 3.000000, 3.000000, 0.000000)
       mul r6.xyz, r6.xyzx, r9.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
 
-#line 66
+#line 88
       mul r2.w, r8.y, l(57.000000)
       add r2.w, r2.w, r8.x
       mul r3.w, r8.z, l(113.000000)
       add r2.w, r2.w, r3.w  // r2.w <- n
 
-#line 67
+#line 89
       nop 
       add r3.w, r2.w, l(0.000000)
 
-#line 50
+#line 72
       sincos r3.w, null, r3.w
       mul r3.w, r3.w, l(43758.546875)
       frc r3.w, r3.w  // r3.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r4.w, r2.w, l(1.000000)
 
-#line 50
+#line 72
       sincos r4.w, null, r4.w
       mul r4.w, r4.w, l(43758.546875)
       frc r4.w, r4.w  // r4.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r5.w, -r3.w
       add r4.w, r4.w, r5.w
       mul r4.w, r4.w, r6.x
@@ -494,21 +373,21 @@ if_nz r0.x
       nop 
       add r4.w, r2.w, l(57.000000)
 
-#line 50
+#line 72
       sincos r4.w, null, r4.w
       mul r4.w, r4.w, l(43758.546875)
       frc r4.w, r4.w  // r4.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r5.w, r2.w, l(58.000000)
 
-#line 50
+#line 72
       sincos r5.w, null, r5.w
       mul r5.w, r5.w, l(43758.546875)
       frc r5.w, r5.w  // r5.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r6.w, -r4.w
       add r5.w, r5.w, r6.w
       mul r5.w, r5.w, r6.x
@@ -520,21 +399,21 @@ if_nz r0.x
       nop 
       add r4.w, r2.w, l(113.000000)
 
-#line 50
+#line 72
       sincos r4.w, null, r4.w
       mul r4.w, r4.w, l(43758.546875)
       frc r4.w, r4.w  // r4.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r5.w, r2.w, l(114.000000)
 
-#line 50
+#line 72
       sincos r5.w, null, r5.w
       mul r5.w, r5.w, l(43758.546875)
       frc r5.w, r5.w  // r5.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r6.w, -r4.w
       add r5.w, r5.w, r6.w
       mul r5.w, r5.w, r6.x
@@ -542,21 +421,21 @@ if_nz r0.x
       nop 
       add r5.w, r2.w, l(170.000000)
 
-#line 50
+#line 72
       sincos r5.w, null, r5.w
       mul r5.w, r5.w, l(43758.546875)
       frc r5.w, r5.w  // r5.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r2.w, r2.w, l(171.000000)
 
-#line 50
+#line 72
       sincos r2.w, null, r2.w
       mul r2.w, r2.w, l(43758.546875)
       frc r2.w, r2.w  // r2.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r6.w, -r5.w
       add r2.w, r2.w, r6.w
       mul r2.w, r2.w, r6.x
@@ -570,51 +449,52 @@ if_nz r0.x
       mul r2.w, r2.w, r6.z
       add r2.w, r2.w, r3.w  // r2.w <- <noise3 return value>
 
-#line 83
-      mov r2.w, r2.w  // r2.w <- p_y0
+#line 104
+      mov r2.w, r2.w  // r2.w <- p_x1
+
+#line 105
+      nop 
+      mov r6.xyz, -r7.xyzx
+      add r6.xyz, r4.xyzx, r6.xyzx
 
 #line 84
-      nop 
-      add r6.xyz, r4.xyzx, r7.xyzx
+      round_ni r8.xyz, r6.xyzx
 
-#line 62
-      round_ni r7.xyz, r6.xyzx  // r7.x <- p.x; r7.y <- p.y; r7.z <- p.z
-
-#line 63
+#line 85
       frc r6.xyz, r6.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
 
-#line 64
-      mul r8.xyz, r6.xyzx, r6.xyzx
+#line 86
+      mul r9.xyz, r6.xyzx, r6.xyzx
       mul r6.xyz, r6.xyzx, l(2.000000, 2.000000, 2.000000, 0.000000)
       mov r6.xyz, -r6.xyzx
       add r6.xyz, r6.xyzx, l(3.000000, 3.000000, 3.000000, 0.000000)
-      mul r6.xyz, r6.xyzx, r8.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
+      mul r6.xyz, r6.xyzx, r9.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
 
-#line 66
-      mul r3.w, r7.y, l(57.000000)
-      add r3.w, r3.w, r7.x
-      mul r4.w, r7.z, l(113.000000)
+#line 88
+      mul r3.w, r8.y, l(57.000000)
+      add r3.w, r3.w, r8.x
+      mul r4.w, r8.z, l(113.000000)
       add r3.w, r3.w, r4.w  // r3.w <- n
 
-#line 67
+#line 89
       nop 
       add r4.w, r3.w, l(0.000000)
 
-#line 50
+#line 72
       sincos r4.w, null, r4.w
       mul r4.w, r4.w, l(43758.546875)
       frc r4.w, r4.w  // r4.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r5.w, r3.w, l(1.000000)
 
-#line 50
+#line 72
       sincos r5.w, null, r5.w
       mul r5.w, r5.w, l(43758.546875)
       frc r5.w, r5.w  // r5.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r6.w, -r4.w
       add r5.w, r5.w, r6.w
       mul r5.w, r5.w, r6.x
@@ -622,23 +502,23 @@ if_nz r0.x
       nop 
       add r5.w, r3.w, l(57.000000)
 
-#line 50
+#line 72
       sincos r5.w, null, r5.w
       mul r5.w, r5.w, l(43758.546875)
       frc r5.w, r5.w  // r5.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r6.w, r3.w, l(58.000000)
 
-#line 50
+#line 72
       sincos r6.w, null, r6.w
       mul r6.w, r6.w, l(43758.546875)
       frc r6.w, r6.w  // r6.w <- <hash1 return value>
 
-#line 67
-      mov r7.x, -r5.w
-      add r6.w, r6.w, r7.x
+#line 89
+      mov r7.w, -r5.w
+      add r6.w, r6.w, r7.w
       mul r6.w, r6.w, r6.x
       add r5.w, r5.w, r6.w
       mov r6.w, -r4.w
@@ -648,45 +528,45 @@ if_nz r0.x
       nop 
       add r5.w, r3.w, l(113.000000)
 
-#line 50
+#line 72
       sincos r5.w, null, r5.w
       mul r5.w, r5.w, l(43758.546875)
       frc r5.w, r5.w  // r5.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r6.w, r3.w, l(114.000000)
 
-#line 50
+#line 72
       sincos r6.w, null, r6.w
       mul r6.w, r6.w, l(43758.546875)
       frc r6.w, r6.w  // r6.w <- <hash1 return value>
 
-#line 67
-      mov r7.x, -r5.w
-      add r6.w, r6.w, r7.x
+#line 89
+      mov r7.w, -r5.w
+      add r6.w, r6.w, r7.w
       mul r6.w, r6.w, r6.x
       add r5.w, r5.w, r6.w
       nop 
       add r6.w, r3.w, l(170.000000)
 
-#line 50
+#line 72
       sincos r6.w, null, r6.w
       mul r6.w, r6.w, l(43758.546875)
       frc r6.w, r6.w  // r6.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r3.w, r3.w, l(171.000000)
 
-#line 50
+#line 72
       sincos r3.w, null, r3.w
       mul r3.w, r3.w, l(43758.546875)
       frc r3.w, r3.w  // r3.w <- <hash1 return value>
 
-#line 67
-      mov r7.x, -r6.w
-      add r3.w, r3.w, r7.x
+#line 89
+      mov r7.w, -r6.w
+      add r3.w, r3.w, r7.w
       mul r3.w, r3.w, r6.x
       add r3.w, r3.w, r6.w
       mov r6.x, -r5.w
@@ -698,52 +578,51 @@ if_nz r0.x
       mul r3.w, r3.w, r6.z
       add r3.w, r3.w, r4.w  // r3.w <- <noise3 return value>
 
+#line 105
+      mov r3.w, r3.w  // r3.w <- p_y0
+
+#line 106
+      nop 
+      add r6.xyz, r4.xyzx, r7.xyzx
+
 #line 84
-      mov r3.w, r3.w  // r3.w <- p_y1
+      round_ni r7.xyz, r6.xyzx  // r7.x <- p.x; r7.y <- p.y; r7.z <- p.z
 
 #line 85
-      nop 
-      mov r6.xyz, -r5.xyzx
-      add r6.xyz, r4.xyzx, r6.xyzx
-
-#line 62
-      round_ni r7.xyz, r6.xyzx  // r7.x <- p.x
-
-#line 63
       frc r6.xyz, r6.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
 
-#line 64
+#line 86
       mul r8.xyz, r6.xyzx, r6.xyzx
       mul r6.xyz, r6.xyzx, l(2.000000, 2.000000, 2.000000, 0.000000)
       mov r6.xyz, -r6.xyzx
       add r6.xyz, r6.xyzx, l(3.000000, 3.000000, 3.000000, 0.000000)
       mul r6.xyz, r6.xyzx, r8.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
 
-#line 66
+#line 88
       mul r4.w, r7.y, l(57.000000)
       add r4.w, r4.w, r7.x
       mul r5.w, r7.z, l(113.000000)
       add r4.w, r4.w, r5.w  // r4.w <- n
 
-#line 67
+#line 89
       nop 
       add r5.w, r4.w, l(0.000000)
 
-#line 50
+#line 72
       sincos r5.w, null, r5.w
       mul r5.w, r5.w, l(43758.546875)
       frc r5.w, r5.w  // r5.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r6.w, r4.w, l(1.000000)
 
-#line 50
+#line 72
       sincos r6.w, null, r6.w
       mul r6.w, r6.w, l(43758.546875)
       frc r6.w, r6.w  // r6.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r7.x, -r5.w
       add r6.w, r6.w, r7.x
       mul r6.w, r6.w, r6.x
@@ -751,21 +630,21 @@ if_nz r0.x
       nop 
       add r6.w, r4.w, l(57.000000)
 
-#line 50
+#line 72
       sincos r6.w, null, r6.w
       mul r6.w, r6.w, l(43758.546875)
       frc r6.w, r6.w  // r6.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r7.x, r4.w, l(58.000000)
 
-#line 50
+#line 72
       sincos r7.x, null, r7.x
       mul r7.x, r7.x, l(43758.546875)
       frc r7.x, r7.x  // r7.x <- <hash1 return value>
 
-#line 67
+#line 89
       mov r7.y, -r6.w
       add r7.x, r7.y, r7.x
       mul r7.x, r6.x, r7.x
@@ -777,21 +656,21 @@ if_nz r0.x
       nop 
       add r6.w, r4.w, l(113.000000)
 
-#line 50
+#line 72
       sincos r6.w, null, r6.w
       mul r6.w, r6.w, l(43758.546875)
       frc r6.w, r6.w  // r6.w <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r7.x, r4.w, l(114.000000)
 
-#line 50
+#line 72
       sincos r7.x, null, r7.x
       mul r7.x, r7.x, l(43758.546875)
       frc r7.x, r7.x  // r7.x <- <hash1 return value>
 
-#line 67
+#line 89
       mov r7.y, -r6.w
       add r7.x, r7.y, r7.x
       mul r7.x, r6.x, r7.x
@@ -799,21 +678,21 @@ if_nz r0.x
       nop 
       add r7.x, r4.w, l(170.000000)
 
-#line 50
+#line 72
       sincos r7.x, null, r7.x
       mul r7.x, r7.x, l(43758.546875)
       frc r7.x, r7.x  // r7.x <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r4.w, r4.w, l(171.000000)
 
-#line 50
+#line 72
       sincos r4.w, null, r4.w
       mul r4.w, r4.w, l(43758.546875)
       frc r4.w, r4.w  // r4.w <- <hash1 return value>
 
-#line 67
+#line 89
       mov r7.y, -r7.x
       add r4.w, r4.w, r7.y
       mul r4.w, r4.w, r6.x
@@ -827,125 +706,254 @@ if_nz r0.x
       mul r4.w, r4.w, r6.z
       add r4.w, r4.w, r5.w  // r4.w <- <noise3 return value>
 
+#line 106
+      mov r4.w, r4.w  // r4.w <- p_y1
+
+#line 107
+      nop 
+      mov r6.xyz, -r5.xyzx
+      add r6.xyz, r4.xyzx, r6.xyzx
+
+#line 84
+      round_ni r7.xyz, r6.xyzx  // r7.x <- p.x; r7.y <- p.y
+
 #line 85
-      mov r4.w, r4.w  // r4.w <- p_z0
+      frc r6.xyz, r6.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
 
 #line 86
+      mul r8.xyz, r6.xyzx, r6.xyzx
+      mul r6.xyz, r6.xyzx, l(2.000000, 2.000000, 2.000000, 0.000000)
+      mov r6.xyz, -r6.xyzx
+      add r6.xyz, r6.xyzx, l(3.000000, 3.000000, 3.000000, 0.000000)
+      mul r6.xyz, r6.xyzx, r8.xyzx  // r6.x <- f.x; r6.y <- f.y; r6.z <- f.z
+
+#line 88
+      mul r5.w, r7.y, l(57.000000)
+      add r5.w, r5.w, r7.x
+      mul r6.w, r7.z, l(113.000000)
+      add r5.w, r5.w, r6.w  // r5.w <- n
+
+#line 89
+      nop 
+      add r6.w, r5.w, l(0.000000)
+
+#line 72
+      sincos r6.w, null, r6.w
+      mul r6.w, r6.w, l(43758.546875)
+      frc r6.w, r6.w  // r6.w <- <hash1 return value>
+
+#line 89
+      nop 
+      add r7.x, r5.w, l(1.000000)
+
+#line 72
+      sincos r7.x, null, r7.x
+      mul r7.x, r7.x, l(43758.546875)
+      frc r7.x, r7.x  // r7.x <- <hash1 return value>
+
+#line 89
+      mov r7.y, -r6.w
+      add r7.x, r7.y, r7.x
+      mul r7.x, r6.x, r7.x
+      add r6.w, r6.w, r7.x
+      nop 
+      add r7.x, r5.w, l(57.000000)
+
+#line 72
+      sincos r7.x, null, r7.x
+      mul r7.x, r7.x, l(43758.546875)
+      frc r7.x, r7.x  // r7.x <- <hash1 return value>
+
+#line 89
+      nop 
+      add r7.y, r5.w, l(58.000000)
+
+#line 72
+      sincos r7.y, null, r7.y
+      mul r7.y, r7.y, l(43758.546875)
+      frc r7.y, r7.y  // r7.y <- <hash1 return value>
+
+#line 89
+      mov r7.z, -r7.x
+      add r7.y, r7.z, r7.y
+      mul r7.y, r6.x, r7.y
+      add r7.x, r7.y, r7.x
+      mov r7.y, -r6.w
+      add r7.x, r7.y, r7.x
+      mul r7.x, r6.y, r7.x
+      add r6.w, r6.w, r7.x
+      nop 
+      add r7.x, r5.w, l(113.000000)
+
+#line 72
+      sincos r7.x, null, r7.x
+      mul r7.x, r7.x, l(43758.546875)
+      frc r7.x, r7.x  // r7.x <- <hash1 return value>
+
+#line 89
+      nop 
+      add r7.y, r5.w, l(114.000000)
+
+#line 72
+      sincos r7.y, null, r7.y
+      mul r7.y, r7.y, l(43758.546875)
+      frc r7.y, r7.y  // r7.y <- <hash1 return value>
+
+#line 89
+      mov r7.z, -r7.x
+      add r7.y, r7.z, r7.y
+      mul r7.y, r6.x, r7.y
+      add r7.x, r7.y, r7.x
+      nop 
+      add r7.y, r5.w, l(170.000000)
+
+#line 72
+      sincos r7.y, null, r7.y
+      mul r7.y, r7.y, l(43758.546875)
+      frc r7.y, r7.y  // r7.y <- <hash1 return value>
+
+#line 89
+      nop 
+      add r5.w, r5.w, l(171.000000)
+
+#line 72
+      sincos r5.w, null, r5.w
+      mul r5.w, r5.w, l(43758.546875)
+      frc r5.w, r5.w  // r5.w <- <hash1 return value>
+
+#line 89
+      mov r7.z, -r7.y
+      add r5.w, r5.w, r7.z
+      mul r5.w, r5.w, r6.x
+      add r5.w, r5.w, r7.y
+      mov r6.x, -r7.x
+      add r5.w, r5.w, r6.x
+      mul r5.w, r5.w, r6.y
+      add r5.w, r5.w, r7.x
+      mov r6.x, -r6.w
+      add r5.w, r5.w, r6.x
+      mul r5.w, r5.w, r6.z
+      add r5.w, r5.w, r6.w  // r5.w <- <noise3 return value>
+
+#line 107
+      mov r5.w, r5.w  // r5.w <- p_z0
+
+#line 108
       nop 
       add r4.xyz, r4.xyzx, r5.xyzx
 
-#line 62
+#line 84
       round_ni r5.xyz, r4.xyzx  // r5.x <- p.x; r5.y <- p.y; r5.z <- p.z
 
-#line 63
+#line 85
       frc r4.xyz, r4.xyzx  // r4.x <- f.x; r4.y <- f.y; r4.z <- f.z
 
-#line 64
+#line 86
       mul r6.xyz, r4.xyzx, r4.xyzx
       mul r4.xyz, r4.xyzx, l(2.000000, 2.000000, 2.000000, 0.000000)
       mov r4.xyz, -r4.xyzx
       add r4.xyz, r4.xyzx, l(3.000000, 3.000000, 3.000000, 0.000000)
       mul r4.xyz, r4.xyzx, r6.xyzx  // r4.x <- f.x; r4.y <- f.y; r4.z <- f.z
 
-#line 66
+#line 88
       mul r5.y, r5.y, l(57.000000)
       add r5.x, r5.y, r5.x
       mul r5.y, r5.z, l(113.000000)
       add r5.x, r5.y, r5.x  // r5.x <- n
 
-#line 67
+#line 89
       nop 
       add r5.y, r5.x, l(0.000000)
 
-#line 50
+#line 72
       sincos r5.y, null, r5.y
       mul r5.y, r5.y, l(43758.546875)
       frc r5.y, r5.y  // r5.y <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r5.z, r5.x, l(1.000000)
 
-#line 50
+#line 72
       sincos r5.z, null, r5.z
       mul r5.z, r5.z, l(43758.546875)
       frc r5.z, r5.z  // r5.z <- <hash1 return value>
 
-#line 67
-      mov r5.w, -r5.y
-      add r5.z, r5.w, r5.z
+#line 89
+      mov r6.x, -r5.y
+      add r5.z, r5.z, r6.x
       mul r5.z, r4.x, r5.z
       add r5.y, r5.z, r5.y
       nop 
       add r5.z, r5.x, l(57.000000)
 
-#line 50
+#line 72
       sincos r5.z, null, r5.z
       mul r5.z, r5.z, l(43758.546875)
       frc r5.z, r5.z  // r5.z <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
-      add r5.w, r5.x, l(58.000000)
+      add r6.x, r5.x, l(58.000000)
 
-#line 50
-      sincos r5.w, null, r5.w
-      mul r5.w, r5.w, l(43758.546875)
-      frc r5.w, r5.w  // r5.w <- <hash1 return value>
+#line 72
+      sincos r6.x, null, r6.x
+      mul r6.x, r6.x, l(43758.546875)
+      frc r6.x, r6.x  // r6.x <- <hash1 return value>
 
-#line 67
-      mov r6.x, -r5.z
-      add r5.w, r5.w, r6.x
-      mul r5.w, r4.x, r5.w
-      add r5.z, r5.w, r5.z
-      mov r5.w, -r5.y
-      add r5.z, r5.w, r5.z
+#line 89
+      mov r6.y, -r5.z
+      add r6.x, r6.y, r6.x
+      mul r6.x, r4.x, r6.x
+      add r5.z, r5.z, r6.x
+      mov r6.x, -r5.y
+      add r5.z, r5.z, r6.x
       mul r5.z, r4.y, r5.z
       add r5.y, r5.z, r5.y
       nop 
       add r5.z, r5.x, l(113.000000)
 
-#line 50
+#line 72
       sincos r5.z, null, r5.z
       mul r5.z, r5.z, l(43758.546875)
       frc r5.z, r5.z  // r5.z <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
-      add r5.w, r5.x, l(114.000000)
+      add r6.x, r5.x, l(114.000000)
 
-#line 50
-      sincos r5.w, null, r5.w
-      mul r5.w, r5.w, l(43758.546875)
-      frc r5.w, r5.w  // r5.w <- <hash1 return value>
+#line 72
+      sincos r6.x, null, r6.x
+      mul r6.x, r6.x, l(43758.546875)
+      frc r6.x, r6.x  // r6.x <- <hash1 return value>
 
-#line 67
-      mov r6.x, -r5.z
-      add r5.w, r5.w, r6.x
-      mul r5.w, r4.x, r5.w
-      add r5.z, r5.w, r5.z
+#line 89
+      mov r6.y, -r5.z
+      add r6.x, r6.y, r6.x
+      mul r6.x, r4.x, r6.x
+      add r5.z, r5.z, r6.x
       nop 
-      add r5.w, r5.x, l(170.000000)
+      add r6.x, r5.x, l(170.000000)
 
-#line 50
-      sincos r5.w, null, r5.w
-      mul r5.w, r5.w, l(43758.546875)
-      frc r5.w, r5.w  // r5.w <- <hash1 return value>
+#line 72
+      sincos r6.x, null, r6.x
+      mul r6.x, r6.x, l(43758.546875)
+      frc r6.x, r6.x  // r6.x <- <hash1 return value>
 
-#line 67
+#line 89
       nop 
       add r5.x, r5.x, l(171.000000)
 
-#line 50
+#line 72
       sincos r5.x, null, r5.x
       mul r5.x, r5.x, l(43758.546875)
       frc r5.x, r5.x  // r5.x <- <hash1 return value>
 
-#line 67
-      mov r6.x, -r5.w
-      add r5.x, r5.x, r6.x
+#line 89
+      mov r6.y, -r6.x
+      add r5.x, r5.x, r6.y
       mul r4.x, r4.x, r5.x
-      add r4.x, r4.x, r5.w
+      add r4.x, r4.x, r6.x
       mov r5.x, -r5.z
       add r4.x, r4.x, r5.x
       mul r4.x, r4.x, r4.y
@@ -955,527 +963,1002 @@ if_nz r0.x
       mul r4.x, r4.x, r4.z
       add r4.x, r4.x, r5.y  // r4.x <- <noise3 return value>
 
-#line 86
+#line 108
       mov r4.x, r4.x  // r4.x <- p_z1
 
-#line 88
-      mov r4.y, -r2.w
-      add r4.y, r3.w, r4.y
+#line 110
+      mov r4.y, -r3.w
+      add r4.y, r4.y, r4.w
       mov r4.z, -r4.x
       add r4.y, r4.z, r4.y
-      add r5.x, r4.w, r4.y  // r5.x <- x
+      add r5.x, r5.w, r4.y  // r5.x <- x
 
-#line 89
-      mov r4.y, -r4.w
+#line 111
+      mov r4.y, -r5.w
       add r4.x, r4.y, r4.x
-      mov r4.y, -r1.w
+      mov r4.y, -r2.w
       add r4.x, r4.y, r4.x
-      add r5.y, r1.z, r4.x  // r5.y <- y
+      add r5.y, r1.w, r4.x  // r5.y <- y
 
-#line 90
-      mov r1.z, -r1.z
-      add r1.z, r1.z, r1.w
-      mov r1.w, -r3.w
-      add r1.z, r1.w, r1.z
-      add r5.z, r2.w, r1.z  // r5.z <- z
+#line 112
+      mov r1.w, -r1.w
+      add r1.w, r1.w, r2.w
+      mov r2.w, -r4.w
+      add r1.w, r1.w, r2.w
+      add r5.z, r3.w, r1.w  // r5.z <- z
 
-#line 92
+#line 114
       add r4.xyz, r5.xyzx, l(0.000100, 0.000100, 0.000100, 0.000000)
-      dp3 r1.z, r4.xyzx, r4.xyzx
-      rsq r1.z, r1.z
-      mul r4.xyz, r1.zzzz, r4.xyzx  // r4.x <- <curlNoise return value>.x; r4.y <- <curlNoise return value>.y; r4.z <- <curlNoise return value>.z
+      dp3 r1.w, r4.xyzx, r4.xyzx
+      rsq r1.w, r1.w
+      mul r4.xyz, r1.wwww, r4.xyzx  // r4.x <- <curlNoise return value>.x; r4.y <- <curlNoise return value>.y; r4.z <- <curlNoise return value>.z
 
-#line 134
+#line 156
       mul r4.xyz, r4.xyzx, cb0[6].wwww  // r4.x <- noiseForce.x; r4.y <- noiseForce.y; r4.z <- noiseForce.z
 
-#line 135
+#line 157
       mul r4.xyz, r4.xyzx, cb0[0].xxxx
       add r3.xyz, r3.xyzx, r4.xyzx
 
-#line 136
+#line 158
     endif 
 
-#line 138
+#line 160
     mul r4.xyz, r3.xyzx, cb0[0].xxxx
     add r2.xyz, r2.xyzx, r4.xyzx
 
-#line 141
-    mul r1.z, r1.x, cb0[0].x
-    add r1.y, r1.z, r1.y
+#line 163
+    mul r1.w, r1.x, cb0[0].x
+    add r1.z, r1.w, r1.z
 
-#line 144
-    div r1.z, r0.x, r0.w
-    max r1.z, r1.z, l(0.000000)
-    min r1.z, r1.z, l(1.000000)  // r1.z <- t
+#line 166
+    div r1.w, r0.w, r1.y
+    max r1.w, r1.w, l(0.000000)
+    min r1.w, r1.w, l(1.000000)  // r1.w <- t
 
-#line 145
-    mov r1.w, -cb0[2].x
-    add r1.w, r1.w, cb0[2].y
-    mul r1.w, r1.w, r1.z
-    add r1.w, r1.w, cb0[2].x  // r1.w <- p.size
+#line 167
+    mov r2.w, -cb0[2].x
+    add r2.w, r2.w, cb0[2].y
+    mul r2.w, r1.w, r2.w
+    add r2.w, r2.w, cb0[2].x  // r2.w <- p.size
 
-#line 146
+#line 168
     mov r4.xyzw, -cb0[4].xyzw
     add r4.xyzw, r4.xyzw, cb0[5].xyzw
-    mul r4.xyzw, r1.zzzz, r4.xyzw
+    mul r4.xyzw, r1.wwww, r4.xyzw
     add r4.xyzw, r4.xyzw, cb0[4].xyzw  // r4.x <- p.color.x; r4.y <- p.color.y; r4.z <- p.color.z; r4.w <- p.color.w
 
-#line 149
-    lt r1.z, l(0.000000), cb0[9].w
-    if_nz r1.z
+#line 171
+    lt r1.w, l(0.000000), cb0[9].w
+    if_nz r1.w
 
-#line 151
-      dp3 r1.z, r3.xyzx, r3.xyzx
-      sqrt r1.z, r1.z
-      mul r1.z, r1.z, cb0[9].w
-      add r1.z, r1.z, l(1.000000)  // r1.z <- p.stretch
+#line 173
+      dp3 r1.w, r3.xyzx, r3.xyzx
+      sqrt r1.w, r1.w
+      mul r1.w, r1.w, cb0[9].w
+      add r1.w, r1.w, l(1.000000)  // r1.w <- p.stretch
 
-#line 152
+#line 174
     else 
 
-#line 155
-      mov r1.z, l(1.000000)  // r1.z <- p.stretch
+#line 177
+      mov r1.w, l(1.000000)  // r1.w <- p.stretch
 
-#line 156
+#line 178
     endif 
 
-#line 158
+#line 180
     imm_atomic_alloc r5.x, u1
     store_structured u1.x, r5.x, l(0), r2.x
     store_structured u1.x, r5.x, l(4), r2.y
     store_structured u1.x, r5.x, l(8), r2.z
-    store_structured u1.x, r5.x, l(12), r0.x
+    store_structured u1.x, r5.x, l(12), r0.w
     store_structured u1.x, r5.x, l(16), r3.x
     store_structured u1.x, r5.x, l(20), r3.y
     store_structured u1.x, r5.x, l(24), r3.z
-    store_structured u1.x, r5.x, l(28), r0.w
-    store_structured u1.x, r5.x, l(32), r1.w
-    store_structured u1.x, r5.x, l(36), r1.y
+    store_structured u1.x, r5.x, l(28), r1.y
+    store_structured u1.x, r5.x, l(32), r2.w
+    store_structured u1.x, r5.x, l(36), r1.z
     store_structured u1.x, r5.x, l(40), r1.x
-    store_structured u1.x, r5.x, l(44), r1.z
+    store_structured u1.x, r5.x, l(44), r1.w
     store_structured u1.x, r5.x, l(48), r4.x
     store_structured u1.x, r5.x, l(52), r4.y
     store_structured u1.x, r5.x, l(56), r4.z
     store_structured u1.x, r5.x, l(60), r4.w
 
-#line 159
+#line 181
   endif 
 
-#line 160
+#line 182
 endif 
 
-#line 166
-ult r0.x, r0.y, r0.z
-if_nz r0.x
+#line 185
+uge r0.w, r0.y, r0.x
+if_nz r0.w
 
-#line 168
-  mul r0.x, cb0[0].y, l(1337.130005)
-  mul r0.z, cb0[0].x, l(725.909973)
-  add r0.x, r0.z, r0.x
-  ftou r0.x, r0.x
-  iadd r0.x, r0.x, r0.y  // r0.x <- seed
-
-#line 170
-  itof r1.xyz, l(0, 0, 0, 0)  // r1.x <- localPos.x; r1.y <- localPos.y; r1.z <- localPos.z
-
-#line 171
-  itof r2.xyz, l(0, 1, 0, 0)  // r2.x <- initialDir.x; r2.y <- initialDir.y; r2.z <- initialDir.z
-
-#line 174
-  if_z cb0[2].w
-
-#line 176
-    nop 
-    mov r0.x, r0.x
-    mov r0.z, cb0[0].y
-
-#line 97
-    nop 
-    utof r0.w, r0.x
-    mul r0.w, r0.w, l(12.989800)
-    add r0.w, r0.z, r0.w
-
-#line 50
-    sincos r0.w, null, r0.w
-    mul r0.w, r0.w, l(43758.546875)
-    frc r0.w, r0.w  // r0.w <- <hash1 return value>
-
-#line 97
-    mul r0.w, r0.w, l(6.283185)  // r0.w <- a
-
-#line 98
-    nop 
-    utof r1.w, r0.x
-    mul r1.w, r1.w, l(78.233002)
-    add r0.z, r0.z, r1.w
-
-#line 50
-    sincos r0.z, null, r0.z
-    mul r0.z, r0.z, l(43758.546875)
-    frc r0.z, r0.z  // r0.z <- <hash1 return value>
-
-#line 98
-    mul r0.z, r0.z, l(2.000000)
-    mov r1.w, l(-1.000000)
-    add r3.y, r0.z, r1.w  // r3.y <- b
-
-#line 99
-    mul r0.z, r3.y, r3.y
-    mov r0.z, -r0.z
-    add r0.z, r0.z, l(1.000000)
-    max r0.z, r0.z, l(0.000000)
-    min r0.z, r0.z, l(1.000000)
-    sqrt r0.z, r0.z  // r0.z <- r
-
-#line 100
-    sincos null, r1.w, r0.w
-    mul r3.x, r0.z, r1.w  // r3.x <- <randomDirection return value>.x
-    sincos r0.w, null, r0.w
-    mul r3.z, r0.w, r0.z  // r3.z <- <randomDirection return value>.z
-    mov r3.y, r3.y  // r3.y <- <randomDirection return value>.y
-
-#line 176
-    mov r3.xyz, r3.xyzx  // r3.x <- dir.x; r3.y <- dir.y; r3.z <- dir.z
-
-#line 177
-    nop 
-    utof r0.z, r0.x
-    mul r0.z, r0.z, l(73.099998)
-    add r0.z, r0.z, l(0.100000)
-
-#line 50
-    sincos r0.z, null, r0.z
-    mul r0.z, r0.z, l(43758.546875)
-    frc r0.z, r0.z  // r0.z <- <hash1 return value>
-
-#line 177
-    mul r0.z, r0.z, cb0[3].w  // r0.z <- r
-
-#line 178
-    mul r1.xyz, r0.zzzz, r3.xyzx
-
-#line 179
-    itof r4.xyz, l(0, 1, 0, 0)
-    mov r5.xyz, -r4.xyzx
-    add r3.xyz, r3.xyzx, r5.xyzx
-    mul r3.xyz, r3.xyzx, cb0[1].wwww
-    add r3.xyz, r3.xyzx, r4.xyzx
-    dp3 r0.z, r3.xyzx, r3.xyzx
-    rsq r0.z, r0.z
-    mul r2.xyz, r0.zzzz, r3.xyzx
-
-#line 180
-  else 
-
-#line 174
-    mov r0.z, cb0[2].w  // r0.z <- emitterType
-
-#line 181
-    mov r0.w, l(1)
-    ieq r0.w, r0.w, r0.z
-    if_nz r0.w
-
-#line 183
-      nop 
-      utof r0.w, r0.x
-      mul r0.w, r0.w, l(11.200000)
-      add r0.w, r0.w, l(0.200000)
-
-#line 50
-      sincos r0.w, null, r0.w
-      mul r0.w, r0.w, l(43758.546875)
-      frc r0.w, r0.w  // r0.w <- <hash1 return value>
-
-#line 183
-      mul r0.w, r0.w, l(2.000000)
-      mov r1.w, l(-1.000000)
-      add r3.x, r0.w, r1.w  // r3.x <- dir.x
-      nop 
-      utof r0.w, r0.x
-      mul r0.w, r0.w, l(43.099998)
-      add r0.w, r0.w, l(0.300000)
-
-#line 50
-      sincos r0.w, null, r0.w
-      mul r0.w, r0.w, l(43758.546875)
-      frc r0.w, r0.w  // r0.w <- <hash1 return value>
-
-#line 183
-      mul r0.w, r0.w, l(2.000000)
-      mov r1.w, l(-1.000000)
-      add r3.y, r0.w, r1.w  // r3.y <- dir.y
-      nop 
-      utof r0.w, r0.x
-      mul r0.w, r0.w, l(89.400002)
-      add r0.w, r0.w, l(0.400000)
-
-#line 50
-      sincos r0.w, null, r0.w
-      mul r0.w, r0.w, l(43758.546875)
-      frc r0.w, r0.w  // r0.w <- <hash1 return value>
-
-#line 183
-      mul r0.w, r0.w, l(2.000000)
-      mov r1.w, l(-1.000000)
-      add r3.z, r0.w, r1.w  // r3.z <- dir.z
+#line 187
+  ineg r0.x, r0.x
+  iadd r0.x, r0.x, r0.y  // r0.x <- emitIndex
 
 #line 188
-      mul r1.xyz, r3.xyzx, cb0[7].xyzx
-
-#line 189
-      itof r4.xyz, l(0, 1, 0, 0)
-      mov r5.xyz, -r4.xyzx
-      add r3.xyz, r3.xyzx, r5.xyzx
-      mul r3.xyz, r3.xyzx, cb0[1].wwww
-      add r3.xyz, r3.xyzx, r4.xyzx
-      dp3 r0.w, r3.xyzx, r3.xyzx
-      rsq r0.w, r0.w
-      mul r2.xyz, r0.wwww, r3.xyzx
-
-#line 190
-    else 
+  ult r0.y, r0.x, r0.z
+  if_nz r0.y
 
 #line 191
-      mov r0.w, l(2)
-      ieq r0.w, r0.w, r0.z
-      if_nz r0.w
+    nop 
+    imul null, r0.x, r0.x, l(7919)
+    iadd r0.x, r0.x, cb0[11].x
+
+#line 60
+    imul null, r0.x, r0.x, l(0x2c9277b5)
+    iadd r0.x, r0.x, l(0xac564b05)  // r0.x <- state
+
+#line 61
+    ushr r0.y, r0.x, l(28)
+    iadd r0.y, r0.y, l(4)
+    ushr r0.y, r0.x, r0.y
+    xor r0.x, r0.x, r0.y
+    imul null, r0.x, r0.x, l(0x108ef2d9)  // r0.x <- word
+
+#line 62
+    ushr r0.y, r0.x, l(22)
+    xor r0.x, r0.x, r0.y  // r0.x <- <pcgHash return value>
+
+#line 191
+    mov r0.x, r0.x  // r0.x <- seed
 
 #line 193
-        nop 
-        utof r0.w, r0.x
-        mul r0.w, r0.w, l(15.300000)
-        add r0.w, r0.w, l(0.500000)
-
-#line 50
-        sincos r0.w, null, r0.w
-        mul r0.w, r0.w, l(43758.546875)
-        frc r0.w, r0.w  // r0.w <- <hash1 return value>
-
-#line 193
-        mul r0.w, r0.w, l(6.283185)  // r0.w <- angle
+    itof r0.yzw, l(0, 0, 0, 0)  // r0.y <- localPos.x; r0.z <- localPos.y; r0.w <- localPos.z
 
 #line 194
-        nop 
-        utof r1.w, r0.x
-        mul r1.w, r1.w, l(27.500000)
-        add r1.w, r1.w, l(0.600000)
-
-#line 50
-        sincos r1.w, null, r1.w
-        mul r1.w, r1.w, l(43758.546875)
-        frc r1.w, r1.w  // r1.w <- <hash1 return value>
-
-#line 194
-        mov r1.w, r1.w  // r1.w <- rRatio
-
-#line 195
-        mul r1.w, r1.w, cb0[3].w  // r1.w <- r
-
-#line 196
-        nop 
-        utof r2.w, r0.x
-        mul r2.w, r2.w, l(49.900002)
-        add r2.w, r2.w, l(0.700000)
-
-#line 50
-        sincos r2.w, null, r2.w
-        mul r2.w, r2.w, l(43758.546875)
-        frc r2.w, r2.w  // r2.w <- <hash1 return value>
-
-#line 196
-        mul r1.y, r2.w, cb0[8].y  // r1.y <- h
+    itof r1.xyz, l(0, 1, 0, 0)  // r1.x <- initialDir.x; r1.y <- initialDir.y; r1.z <- initialDir.z
 
 #line 197
-        sincos null, r2.w, r0.w
-        mul r1.x, r1.w, r2.w
-        sincos r2.w, null, r0.w
-        mul r1.z, r1.w, r2.w
-        mov r1.y, r1.y  // r1.y <- localPos.y
+    if_z cb0[2].w
 
 #line 199
-        mul r1.w, cb0[8].x, l(0.017453)
-        sincos r1.w, null, r1.w
-        mov r2.w, l(-0.001000)
-        add r1.w, r1.w, r2.w
-        mul r1.w, r1.w, cb0[1].w
-        add r1.w, r1.w, l(0.001000)  // r1.w <- coneSpread
+      nop 
+      mov r1.w, r0.x
+
+#line 119
+      nop 
+      mov r1.w, r1.w
+
+#line 67
+      nop 
+      mov r1.w, r1.w
+
+#line 60
+      imul null, r2.x, r1.w, l(0x2c9277b5)
+      iadd r2.x, r2.x, l(0xac564b05)  // r2.x <- state
+
+#line 61
+      ushr r2.y, r2.x, l(28)
+      iadd r2.y, r2.y, l(4)
+      ushr r2.y, r2.x, r2.y
+      xor r2.x, r2.x, r2.y
+      imul null, r2.x, r2.x, l(0x108ef2d9)  // r2.x <- word
+
+#line 62
+      ushr r2.y, r2.x, l(22)
+      xor r2.x, r2.x, r2.y  // r2.x <- <pcgHash return value>
+
+#line 67
+      utof r2.x, r2.x
+      div r2.x, r2.x, l(4294967296.000000)  // r2.x <- <hash1u return value>
+
+#line 119
+      mul r2.x, r2.x, l(6.283185)  // r2.x <- a
+
+#line 120
+      nop 
+      iadd r1.w, r1.w, l(1)
+
+#line 67
+      nop 
+      mov r1.w, r1.w
+
+#line 60
+      imul null, r1.w, r1.w, l(0x2c9277b5)
+      iadd r1.w, r1.w, l(0xac564b05)  // r1.w <- state
+
+#line 61
+      ushr r2.y, r1.w, l(28)
+      iadd r2.y, r2.y, l(4)
+      ushr r2.y, r1.w, r2.y
+      xor r1.w, r1.w, r2.y
+      imul null, r1.w, r1.w, l(0x108ef2d9)  // r1.w <- word
+
+#line 62
+      ushr r2.y, r1.w, l(22)
+      xor r1.w, r1.w, r2.y  // r1.w <- <pcgHash return value>
+
+#line 67
+      utof r1.w, r1.w
+      div r1.w, r1.w, l(4294967296.000000)  // r1.w <- <hash1u return value>
+
+#line 120
+      mul r1.w, r1.w, l(2.000000)
+      mov r2.y, l(-1.000000)
+      add r3.y, r1.w, r2.y  // r3.y <- b
+
+#line 121
+      mul r1.w, r3.y, r3.y
+      mov r1.w, -r1.w
+      add r1.w, r1.w, l(1.000000)
+      max r1.w, r1.w, l(0.000000)
+      min r1.w, r1.w, l(1.000000)
+      sqrt r1.w, r1.w  // r1.w <- r
+
+#line 122
+      sincos null, r2.y, r2.x
+      mul r3.x, r1.w, r2.y  // r3.x <- <randomDirection return value>.x
+      sincos r2.x, null, r2.x
+      mul r3.z, r1.w, r2.x  // r3.z <- <randomDirection return value>.z
+      mov r3.y, r3.y  // r3.y <- <randomDirection return value>.y
+
+#line 199
+      mov r3.xyz, r3.xyzx  // r3.x <- dir.x; r3.y <- dir.y; r3.z <- dir.z
 
 #line 200
-        sincos null, r3.x, r0.w
-        sincos r3.z, null, r0.w
-        itof r3.y, l(0)
-        mul r3.xyz, r1.wwww, r3.xyzx  // r3.x <- radialDir.x; r3.y <- radialDir.y; r3.z <- radialDir.z
+      nop 
+      nop 
+      iadd r1.w, r0.x, l(100)
+
+#line 60
+      imul null, r1.w, r1.w, l(0x2c9277b5)
+      iadd r1.w, r1.w, l(0xac564b05)  // r1.w <- state
+
+#line 61
+      ushr r2.x, r1.w, l(28)
+      iadd r2.x, r2.x, l(4)
+      ushr r2.x, r1.w, r2.x
+      xor r1.w, r1.w, r2.x
+      imul null, r1.w, r1.w, l(0x108ef2d9)  // r1.w <- word
+
+#line 62
+      ushr r2.x, r1.w, l(22)
+      xor r1.w, r1.w, r2.x  // r1.w <- <pcgHash return value>
+
+#line 200
+      mov r1.w, r1.w
+
+#line 67
+      nop 
+      mov r1.w, r1.w
+
+#line 60
+      imul null, r1.w, r1.w, l(0x2c9277b5)
+      iadd r1.w, r1.w, l(0xac564b05)  // r1.w <- state
+
+#line 61
+      ushr r2.x, r1.w, l(28)
+      iadd r2.x, r2.x, l(4)
+      ushr r2.x, r1.w, r2.x
+      xor r1.w, r1.w, r2.x
+      imul null, r1.w, r1.w, l(0x108ef2d9)  // r1.w <- word
+
+#line 62
+      ushr r2.x, r1.w, l(22)
+      xor r1.w, r1.w, r2.x  // r1.w <- <pcgHash return value>
+
+#line 67
+      utof r1.w, r1.w
+      div r1.w, r1.w, l(4294967296.000000)  // r1.w <- <hash1u return value>
+
+#line 200
+      mul r1.w, r1.w, cb0[3].w  // r1.w <- r
 
 #line 201
-        itof r4.xyz, l(0, 1, 0, 0)
-        add r3.xyz, r3.xyzx, r4.xyzx
-        dp3 r0.w, r3.xyzx, r3.xyzx
-        rsq r0.w, r0.w
-        mul r2.xyz, r0.wwww, r3.xyzx
+      mul r0.yzw, r1.wwww, r3.xxyz
 
 #line 202
-      else 
+      itof r2.xyz, l(0, 1, 0, 0)
+      mov r4.xyz, -r2.xyzx
+      add r3.xyz, r3.xyzx, r4.xyzx
+      mul r3.xyz, r3.xyzx, cb0[1].wwww
+      add r2.xyz, r2.xyzx, r3.xyzx
+      dp3 r1.w, r2.xyzx, r2.xyzx
+      rsq r1.w, r1.w
+      mul r1.xyz, r1.wwww, r2.xyzx
 
 #line 203
-        mov r0.w, l(3)
-        ieq r0.z, r0.w, r0.z
-        if_nz r0.z
+    else 
 
-#line 205
-          nop 
-          utof r0.z, r0.x
-          mul r0.z, r0.z, l(31.799999)
-          add r0.z, r0.z, l(0.800000)
+#line 197
+      mov r1.w, cb0[2].w  // r1.w <- emitterType
 
-#line 50
-          sincos r0.z, null, r0.z
-          mul r0.z, r0.z, l(43758.546875)
-          frc r0.z, r0.z  // r0.z <- <hash1 return value>
-
-#line 205
-          mul r0.z, r0.z, l(6.283185)  // r0.z <- angle
+#line 204
+      mov r2.x, l(1)
+      ieq r2.x, r1.w, r2.x
+      if_nz r2.x
 
 #line 206
-          sincos null, r3.x, r0.z
-          sincos r3.z, null, r0.z
-          mov r3.y, l(0)
-          mul r1.xyz, r3.xyzx, cb0[3].wwww
+        nop 
+        nop 
+        iadd r2.x, r0.x, l(200)
 
-#line 207
+#line 60
+        imul null, r2.x, r2.x, l(0x2c9277b5)
+        iadd r2.x, r2.x, l(0xac564b05)  // r2.x <- state
+
+#line 61
+        ushr r2.y, r2.x, l(28)
+        iadd r2.y, r2.y, l(4)
+        ushr r2.y, r2.x, r2.y
+        xor r2.x, r2.x, r2.y
+        imul null, r2.x, r2.x, l(0x108ef2d9)  // r2.x <- word
+
+#line 62
+        ushr r2.y, r2.x, l(22)
+        xor r2.x, r2.x, r2.y  // r2.x <- <pcgHash return value>
+
+#line 206
+        mov r2.x, r2.x
+
+#line 67
+        nop 
+        mov r2.x, r2.x
+
+#line 60
+        imul null, r2.x, r2.x, l(0x2c9277b5)
+        iadd r2.x, r2.x, l(0xac564b05)  // r2.x <- state
+
+#line 61
+        ushr r2.y, r2.x, l(28)
+        iadd r2.y, r2.y, l(4)
+        ushr r2.y, r2.x, r2.y
+        xor r2.x, r2.x, r2.y
+        imul null, r2.x, r2.x, l(0x108ef2d9)  // r2.x <- word
+
+#line 62
+        ushr r2.y, r2.x, l(22)
+        xor r2.x, r2.x, r2.y  // r2.x <- <pcgHash return value>
+
+#line 67
+        utof r2.x, r2.x
+        div r2.x, r2.x, l(4294967296.000000)  // r2.x <- <hash1u return value>
+
+#line 206
+        mul r2.x, r2.x, l(2.000000)
+        mov r2.y, l(-1.000000)
+        add r2.x, r2.y, r2.x  // r2.x <- dir.x
+        nop 
+        nop 
+        iadd r2.w, r0.x, l(201)
+
+#line 60
+        imul null, r2.w, r2.w, l(0x2c9277b5)
+        iadd r2.w, r2.w, l(0xac564b05)  // r2.w <- state
+
+#line 61
+        ushr r3.x, r2.w, l(28)
+        iadd r3.x, r3.x, l(4)
+        ushr r3.x, r2.w, r3.x
+        xor r2.w, r2.w, r3.x
+        imul null, r2.w, r2.w, l(0x108ef2d9)  // r2.w <- word
+
+#line 62
+        ushr r3.x, r2.w, l(22)
+        xor r2.w, r2.w, r3.x  // r2.w <- <pcgHash return value>
+
+#line 206
+        mov r2.w, r2.w
+
+#line 67
+        nop 
+        mov r2.w, r2.w
+
+#line 60
+        imul null, r2.w, r2.w, l(0x2c9277b5)
+        iadd r2.w, r2.w, l(0xac564b05)  // r2.w <- state
+
+#line 61
+        ushr r3.x, r2.w, l(28)
+        iadd r3.x, r3.x, l(4)
+        ushr r3.x, r2.w, r3.x
+        xor r2.w, r2.w, r3.x
+        imul null, r2.w, r2.w, l(0x108ef2d9)  // r2.w <- word
+
+#line 62
+        ushr r3.x, r2.w, l(22)
+        xor r2.w, r2.w, r3.x  // r2.w <- <pcgHash return value>
+
+#line 67
+        utof r2.w, r2.w
+        div r2.w, r2.w, l(4294967296.000000)  // r2.w <- <hash1u return value>
+
+#line 206
+        mul r2.w, r2.w, l(2.000000)
+        mov r3.x, l(-1.000000)
+        add r2.y, r2.w, r3.x  // r2.y <- dir.y
+        nop 
+        nop 
+        iadd r2.w, r0.x, l(202)
+
+#line 60
+        imul null, r2.w, r2.w, l(0x2c9277b5)
+        iadd r2.w, r2.w, l(0xac564b05)  // r2.w <- state
+
+#line 61
+        ushr r3.x, r2.w, l(28)
+        iadd r3.x, r3.x, l(4)
+        ushr r3.x, r2.w, r3.x
+        xor r2.w, r2.w, r3.x
+        imul null, r2.w, r2.w, l(0x108ef2d9)  // r2.w <- word
+
+#line 62
+        ushr r3.x, r2.w, l(22)
+        xor r2.w, r2.w, r3.x  // r2.w <- <pcgHash return value>
+
+#line 206
+        mov r2.w, r2.w
+
+#line 67
+        nop 
+        mov r2.w, r2.w
+
+#line 60
+        imul null, r2.w, r2.w, l(0x2c9277b5)
+        iadd r2.w, r2.w, l(0xac564b05)  // r2.w <- state
+
+#line 61
+        ushr r3.x, r2.w, l(28)
+        iadd r3.x, r3.x, l(4)
+        ushr r3.x, r2.w, r3.x
+        xor r2.w, r2.w, r3.x
+        imul null, r2.w, r2.w, l(0x108ef2d9)  // r2.w <- word
+
+#line 62
+        ushr r3.x, r2.w, l(22)
+        xor r2.w, r2.w, r3.x  // r2.w <- <pcgHash return value>
+
+#line 67
+        utof r2.w, r2.w
+        div r2.w, r2.w, l(4294967296.000000)  // r2.w <- <hash1u return value>
+
+#line 206
+        mul r2.w, r2.w, l(2.000000)
+        mov r3.x, l(-1.000000)
+        add r2.z, r2.w, r3.x  // r2.z <- dir.z
+
+#line 211
+        mul r0.yzw, r2.xxyz, cb0[7].xxyz
+
+#line 212
+        itof r3.xyz, l(0, 1, 0, 0)
+        mov r4.xyz, -r3.xyzx
+        add r2.xyz, r2.xyzx, r4.xyzx
+        mul r2.xyz, r2.xyzx, cb0[1].wwww
+        add r2.xyz, r2.xyzx, r3.xyzx
+        dp3 r2.w, r2.xyzx, r2.xyzx
+        rsq r2.w, r2.w
+        mul r1.xyz, r2.wwww, r2.xyzx
+
+#line 213
+      else 
+
+#line 214
+        mov r2.x, l(2)
+        ieq r2.x, r1.w, r2.x
+        if_nz r2.x
+
+#line 216
+          nop 
+          nop 
+          iadd r2.x, r0.x, l(300)
+
+#line 60
+          imul null, r2.x, r2.x, l(0x2c9277b5)
+          iadd r2.x, r2.x, l(0xac564b05)  // r2.x <- state
+
+#line 61
+          ushr r2.y, r2.x, l(28)
+          iadd r2.y, r2.y, l(4)
+          ushr r2.y, r2.x, r2.y
+          xor r2.x, r2.x, r2.y
+          imul null, r2.x, r2.x, l(0x108ef2d9)  // r2.x <- word
+
+#line 62
+          ushr r2.y, r2.x, l(22)
+          xor r2.x, r2.x, r2.y  // r2.x <- <pcgHash return value>
+
+#line 216
+          mov r2.x, r2.x
+
+#line 67
+          nop 
+          mov r2.x, r2.x
+
+#line 60
+          imul null, r2.x, r2.x, l(0x2c9277b5)
+          iadd r2.x, r2.x, l(0xac564b05)  // r2.x <- state
+
+#line 61
+          ushr r2.y, r2.x, l(28)
+          iadd r2.y, r2.y, l(4)
+          ushr r2.y, r2.x, r2.y
+          xor r2.x, r2.x, r2.y
+          imul null, r2.x, r2.x, l(0x108ef2d9)  // r2.x <- word
+
+#line 62
+          ushr r2.y, r2.x, l(22)
+          xor r2.x, r2.x, r2.y  // r2.x <- <pcgHash return value>
+
+#line 67
+          utof r2.x, r2.x
+          div r2.x, r2.x, l(4294967296.000000)  // r2.x <- <hash1u return value>
+
+#line 216
+          mul r2.x, r2.x, l(6.283185)  // r2.x <- angle
+
+#line 217
+          nop 
+          nop 
+          iadd r2.y, r0.x, l(301)
+
+#line 60
+          imul null, r2.y, r2.y, l(0x2c9277b5)
+          iadd r2.y, r2.y, l(0xac564b05)  // r2.y <- state
+
+#line 61
+          ushr r2.z, r2.y, l(28)
+          iadd r2.z, r2.z, l(4)
+          ushr r2.z, r2.y, r2.z
+          xor r2.y, r2.y, r2.z
+          imul null, r2.y, r2.y, l(0x108ef2d9)  // r2.y <- word
+
+#line 62
+          ushr r2.z, r2.y, l(22)
+          xor r2.y, r2.y, r2.z  // r2.y <- <pcgHash return value>
+
+#line 217
+          mov r2.y, r2.y
+
+#line 67
+          nop 
+          mov r2.y, r2.y
+
+#line 60
+          imul null, r2.y, r2.y, l(0x2c9277b5)
+          iadd r2.y, r2.y, l(0xac564b05)  // r2.y <- state
+
+#line 61
+          ushr r2.z, r2.y, l(28)
+          iadd r2.z, r2.z, l(4)
+          ushr r2.z, r2.y, r2.z
+          xor r2.y, r2.y, r2.z
+          imul null, r2.y, r2.y, l(0x108ef2d9)  // r2.y <- word
+
+#line 62
+          ushr r2.z, r2.y, l(22)
+          xor r2.y, r2.y, r2.z  // r2.y <- <pcgHash return value>
+
+#line 67
+          utof r2.y, r2.y
+          div r2.y, r2.y, l(4294967296.000000)  // r2.y <- <hash1u return value>
+
+#line 217
+          mov r2.y, r2.y  // r2.y <- rRatio
+
+#line 218
+          mul r2.y, r2.y, cb0[3].w  // r2.y <- r
+
+#line 219
+          nop 
+          nop 
+          iadd r2.z, r0.x, l(302)
+
+#line 60
+          imul null, r2.z, r2.z, l(0x2c9277b5)
+          iadd r2.z, r2.z, l(0xac564b05)  // r2.z <- state
+
+#line 61
+          ushr r2.w, r2.z, l(28)
+          iadd r2.w, r2.w, l(4)
+          ushr r2.w, r2.z, r2.w
+          xor r2.z, r2.z, r2.w
+          imul null, r2.z, r2.z, l(0x108ef2d9)  // r2.z <- word
+
+#line 62
+          ushr r2.w, r2.z, l(22)
+          xor r2.z, r2.z, r2.w  // r2.z <- <pcgHash return value>
+
+#line 219
+          mov r2.z, r2.z
+
+#line 67
+          nop 
+          mov r2.z, r2.z
+
+#line 60
+          imul null, r2.z, r2.z, l(0x2c9277b5)
+          iadd r2.z, r2.z, l(0xac564b05)  // r2.z <- state
+
+#line 61
+          ushr r2.w, r2.z, l(28)
+          iadd r2.w, r2.w, l(4)
+          ushr r2.w, r2.z, r2.w
+          xor r2.z, r2.z, r2.w
+          imul null, r2.z, r2.z, l(0x108ef2d9)  // r2.z <- word
+
+#line 62
+          ushr r2.w, r2.z, l(22)
+          xor r2.z, r2.z, r2.w  // r2.z <- <pcgHash return value>
+
+#line 67
+          utof r2.z, r2.z
+          div r2.z, r2.z, l(4294967296.000000)  // r2.z <- <hash1u return value>
+
+#line 219
+          mul r0.z, r2.z, cb0[8].y  // r0.z <- h
+
+#line 220
+          sincos null, r2.z, r2.x
+          mul r0.y, r2.z, r2.y
+          sincos r2.z, null, r2.x
+          mul r0.w, r2.z, r2.y
+          mov r0.z, r0.z  // r0.z <- localPos.y
+
+#line 222
+          mul r2.y, cb0[8].x, l(0.017453)
+          sincos r2.y, null, r2.y
+          mov r2.z, l(-0.001000)
+          add r2.y, r2.z, r2.y
+          mul r2.y, r2.y, cb0[1].w
+          add r2.y, r2.y, l(0.001000)  // r2.y <- coneSpread
+
+#line 223
+          sincos null, r3.x, r2.x
+          sincos r3.z, null, r2.x
+          itof r3.y, l(0)
+          mul r2.xyz, r2.yyyy, r3.xyzx  // r2.x <- radialDir.x; r2.y <- radialDir.y; r2.z <- radialDir.z
+
+#line 224
           itof r3.xyz, l(0, 1, 0, 0)
-          sincos null, r4.x, r0.z
-          sincos r4.z, null, r0.z
-          mov r5.xyz, -r3.xyzx
-          mov r4.y, l(0)
-          add r4.xyz, r4.xyzx, r5.xyzx
-          mul r4.xyz, r4.xyzx, cb0[1].wwww
-          add r3.xyz, r3.xyzx, r4.xyzx
-          dp3 r0.z, r3.xyzx, r3.xyzx
-          rsq r0.z, r0.z
-          mul r2.xyz, r0.zzzz, r3.xyzx
+          add r2.xyz, r2.xyzx, r3.xyzx
+          dp3 r2.w, r2.xyzx, r2.xyzx
+          rsq r2.w, r2.w
+          mul r1.xyz, r2.wwww, r2.xyzx
 
-#line 208
+#line 225
+        else 
+
+#line 226
+          mov r2.x, l(3)
+          ieq r1.w, r1.w, r2.x
+          if_nz r1.w
+
+#line 228
+            nop 
+            nop 
+            iadd r1.w, r0.x, l(400)
+
+#line 60
+            imul null, r1.w, r1.w, l(0x2c9277b5)
+            iadd r1.w, r1.w, l(0xac564b05)  // r1.w <- state
+
+#line 61
+            ushr r2.x, r1.w, l(28)
+            iadd r2.x, r2.x, l(4)
+            ushr r2.x, r1.w, r2.x
+            xor r1.w, r1.w, r2.x
+            imul null, r1.w, r1.w, l(0x108ef2d9)  // r1.w <- word
+
+#line 62
+            ushr r2.x, r1.w, l(22)
+            xor r1.w, r1.w, r2.x  // r1.w <- <pcgHash return value>
+
+#line 228
+            mov r1.w, r1.w
+
+#line 67
+            nop 
+            mov r1.w, r1.w
+
+#line 60
+            imul null, r1.w, r1.w, l(0x2c9277b5)
+            iadd r1.w, r1.w, l(0xac564b05)  // r1.w <- state
+
+#line 61
+            ushr r2.x, r1.w, l(28)
+            iadd r2.x, r2.x, l(4)
+            ushr r2.x, r1.w, r2.x
+            xor r1.w, r1.w, r2.x
+            imul null, r1.w, r1.w, l(0x108ef2d9)  // r1.w <- word
+
+#line 62
+            ushr r2.x, r1.w, l(22)
+            xor r1.w, r1.w, r2.x  // r1.w <- <pcgHash return value>
+
+#line 67
+            utof r1.w, r1.w
+            div r1.w, r1.w, l(4294967296.000000)  // r1.w <- <hash1u return value>
+
+#line 228
+            mul r1.w, r1.w, l(6.283185)  // r1.w <- angle
+
+#line 229
+            sincos null, r2.x, r1.w
+            sincos r2.z, null, r1.w
+            mov r2.y, l(0)
+            mul r0.yzw, r2.xxyz, cb0[3].wwww
+
+#line 230
+            itof r2.xyz, l(0, 1, 0, 0)
+            sincos null, r3.x, r1.w
+            sincos r3.z, null, r1.w
+            mov r4.xyz, -r2.xyzx
+            mov r3.y, l(0)
+            add r3.xyz, r3.xyzx, r4.xyzx
+            mul r3.xyz, r3.xyzx, cb0[1].wwww
+            add r2.xyz, r2.xyzx, r3.xyzx
+            dp3 r1.w, r2.xyzx, r2.xyzx
+            rsq r1.w, r1.w
+            mul r1.xyz, r1.wwww, r2.xyzx
+
+#line 231
+          endif 
         endif 
       endif 
     endif 
+
+#line 234
+    add r0.yzw, r0.yyzw, cb0[3].xxyz  // r0.y <- p.position.x; r0.z <- p.position.y; r0.w <- p.position.z
+
+#line 235
+    nop 
+    nop 
+    iadd r1.w, r0.x, l(500)
+
+#line 60
+    imul null, r1.w, r1.w, l(0x2c9277b5)
+    iadd r1.w, r1.w, l(0xac564b05)  // r1.w <- state
+
+#line 61
+    ushr r2.x, r1.w, l(28)
+    iadd r2.x, r2.x, l(4)
+    ushr r2.x, r1.w, r2.x
+    xor r1.w, r1.w, r2.x
+    imul null, r1.w, r1.w, l(0x108ef2d9)  // r1.w <- word
+
+#line 62
+    ushr r2.x, r1.w, l(22)
+    xor r1.w, r1.w, r2.x  // r1.w <- <pcgHash return value>
+
+#line 235
+    mov r1.w, r1.w
+    mov r1.xyz, r1.xyzx
+
+#line 127
+    nop 
+    mov r1.w, r1.w
+
+#line 67
+    nop 
+    mov r1.w, r1.w
+
+#line 60
+    imul null, r1.w, r1.w, l(0x2c9277b5)
+    iadd r1.w, r1.w, l(0xac564b05)  // r1.w <- state
+
+#line 61
+    ushr r2.x, r1.w, l(28)
+    iadd r2.x, r2.x, l(4)
+    ushr r2.x, r1.w, r2.x
+    xor r1.w, r1.w, r2.x
+    imul null, r1.w, r1.w, l(0x108ef2d9)  // r1.w <- word
+
+#line 62
+    ushr r2.x, r1.w, l(22)
+    xor r1.w, r1.w, r2.x  // r1.w <- <pcgHash return value>
+
+#line 67
+    utof r1.w, r1.w
+    div r1.w, r1.w, l(4294967296.000000)  // r1.w <- <hash1u return value>
+
+#line 127
+    mov r2.x, -cb0[9].x
+    add r2.x, r2.x, cb0[9].y
+    mul r1.w, r1.w, r2.x
+    add r1.w, r1.w, cb0[9].x  // r1.w <- spd
+
+#line 128
+    mul r1.xyz, r1.wwww, r1.xyzx  // r1.x <- <generateVelocity return value>.x; r1.y <- <generateVelocity return value>.y; r1.z <- <generateVelocity return value>.z
+
+#line 235
+    mov r1.xyz, r1.xyzx  // r1.x <- p.velocity.x; r1.y <- p.velocity.y; r1.z <- p.velocity.z
+
+#line 236
+    mov r1.w, l(0)  // r1.w <- p.age
+
+#line 237
+    nop 
+    nop 
+    iadd r2.x, r0.x, l(600)
+
+#line 60
+    imul null, r2.x, r2.x, l(0x2c9277b5)
+    iadd r2.x, r2.x, l(0xac564b05)  // r2.x <- state
+
+#line 61
+    ushr r2.y, r2.x, l(28)
+    iadd r2.y, r2.y, l(4)
+    ushr r2.y, r2.x, r2.y
+    xor r2.x, r2.x, r2.y
+    imul null, r2.x, r2.x, l(0x108ef2d9)  // r2.x <- word
+
+#line 62
+    ushr r2.y, r2.x, l(22)
+    xor r2.x, r2.x, r2.y  // r2.x <- <pcgHash return value>
+
+#line 237
+    mov r2.x, r2.x
+
+#line 67
+    nop 
+    mov r2.x, r2.x
+
+#line 60
+    imul null, r2.x, r2.x, l(0x2c9277b5)
+    iadd r2.x, r2.x, l(0xac564b05)  // r2.x <- state
+
+#line 61
+    ushr r2.y, r2.x, l(28)
+    iadd r2.y, r2.y, l(4)
+    ushr r2.y, r2.x, r2.y
+    xor r2.x, r2.x, r2.y
+    imul null, r2.x, r2.x, l(0x108ef2d9)  // r2.x <- word
+
+#line 62
+    ushr r2.y, r2.x, l(22)
+    xor r2.x, r2.x, r2.y  // r2.x <- <pcgHash return value>
+
+#line 67
+    utof r2.x, r2.x
+    div r2.x, r2.x, l(4294967296.000000)  // r2.x <- <hash1u return value>
+
+#line 237
+    mov r2.y, -cb0[8].z
+    add r2.y, r2.y, cb0[8].w
+    mul r2.x, r2.y, r2.x
+    add r2.x, r2.x, cb0[8].z  // r2.x <- p.lifetime
+
+#line 238
+    mov r2.y, cb0[2].x  // r2.y <- p.size
+
+#line 239
+    nop 
+    nop 
+    iadd r2.z, r0.x, l(700)
+
+#line 60
+    imul null, r2.z, r2.z, l(0x2c9277b5)
+    iadd r2.z, r2.z, l(0xac564b05)  // r2.z <- state
+
+#line 61
+    ushr r2.w, r2.z, l(28)
+    iadd r2.w, r2.w, l(4)
+    ushr r2.w, r2.z, r2.w
+    xor r2.z, r2.z, r2.w
+    imul null, r2.z, r2.z, l(0x108ef2d9)  // r2.z <- word
+
+#line 62
+    ushr r2.w, r2.z, l(22)
+    xor r2.z, r2.z, r2.w  // r2.z <- <pcgHash return value>
+
+#line 239
+    mov r2.z, r2.z
+
+#line 67
+    nop 
+    mov r2.z, r2.z
+
+#line 60
+    imul null, r2.z, r2.z, l(0x2c9277b5)
+    iadd r2.z, r2.z, l(0xac564b05)  // r2.z <- state
+
+#line 61
+    ushr r2.w, r2.z, l(28)
+    iadd r2.w, r2.w, l(4)
+    ushr r2.w, r2.z, r2.w
+    xor r2.z, r2.z, r2.w
+    imul null, r2.z, r2.z, l(0x108ef2d9)  // r2.z <- word
+
+#line 62
+    ushr r2.w, r2.z, l(22)
+    xor r2.z, r2.z, r2.w  // r2.z <- <pcgHash return value>
+
+#line 67
+    utof r2.z, r2.z
+    div r2.z, r2.z, l(4294967296.000000)  // r2.z <- <hash1u return value>
+
+#line 239
+    mul r2.z, r2.z, l(6.283185)  // r2.z <- p.rotation
+
+#line 240
+    nop 
+    nop 
+    iadd r0.x, r0.x, l(800)
+
+#line 60
+    imul null, r0.x, r0.x, l(0x2c9277b5)
+    iadd r0.x, r0.x, l(0xac564b05)  // r0.x <- state
+
+#line 61
+    ushr r2.w, r0.x, l(28)
+    iadd r2.w, r2.w, l(4)
+    ushr r2.w, r0.x, r2.w
+    xor r0.x, r0.x, r2.w
+    imul null, r0.x, r0.x, l(0x108ef2d9)  // r0.x <- word
+
+#line 62
+    ushr r2.w, r0.x, l(22)
+    xor r0.x, r0.x, r2.w  // r0.x <- <pcgHash return value>
+
+#line 240
+    mov r0.x, r0.x
+
+#line 67
+    nop 
+    mov r0.x, r0.x
+
+#line 60
+    imul null, r0.x, r0.x, l(0x2c9277b5)
+    iadd r0.x, r0.x, l(0xac564b05)  // r0.x <- state
+
+#line 61
+    ushr r2.w, r0.x, l(28)
+    iadd r2.w, r2.w, l(4)
+    ushr r2.w, r0.x, r2.w
+    xor r0.x, r0.x, r2.w
+    imul null, r0.x, r0.x, l(0x108ef2d9)  // r0.x <- word
+
+#line 62
+    ushr r2.w, r0.x, l(22)
+    xor r0.x, r0.x, r2.w  // r0.x <- <pcgHash return value>
+
+#line 67
+    utof r0.x, r0.x
+    div r0.x, r0.x, l(4294967296.000000)  // r0.x <- <hash1u return value>
+
+#line 240
+    mul r0.x, r0.x, l(2.000000)
+    mov r2.w, l(-1.000000)
+    add r0.x, r0.x, r2.w
+    mul r0.x, r0.x, cb0[9].z  // r0.x <- p.rotationSpeed
+
+#line 241
+    mov r2.w, l(1.000000)  // r2.w <- p.stretch
+
+#line 242
+    mov r3.xyzw, cb0[4].xyzw  // r3.x <- p.color.x; r3.y <- p.color.y; r3.z <- p.color.z; r3.w <- p.color.w
+
+#line 244
+    imm_atomic_alloc r4.x, u1
+    store_structured u1.x, r4.x, l(0), r0.y
+    store_structured u1.x, r4.x, l(4), r0.z
+    store_structured u1.x, r4.x, l(8), r0.w
+    store_structured u1.x, r4.x, l(12), r1.w
+    store_structured u1.x, r4.x, l(16), r1.x
+    store_structured u1.x, r4.x, l(20), r1.y
+    store_structured u1.x, r4.x, l(24), r1.z
+    store_structured u1.x, r4.x, l(28), r2.x
+    store_structured u1.x, r4.x, l(32), r2.y
+    store_structured u1.x, r4.x, l(36), r2.z
+    store_structured u1.x, r4.x, l(40), r0.x
+    store_structured u1.x, r4.x, l(44), r2.w
+    store_structured u1.x, r4.x, l(48), r3.x
+    store_structured u1.x, r4.x, l(52), r3.y
+    store_structured u1.x, r4.x, l(56), r3.z
+    store_structured u1.x, r4.x, l(60), r3.w
+
+#line 245
   endif 
 
-#line 211
-  add r1.xyz, r1.xyzx, cb0[3].xyzx  // r1.x <- p.position.x; r1.y <- p.position.y; r1.z <- p.position.z
-
-#line 212
-  nop 
-  mov r0.y, r0.y
-  mov r0.x, r0.x
-  mov r2.xyz, r2.xyzx
-
-#line 105
-  nop 
-  utof r0.z, r0.x
-  mul r0.z, r0.z, l(3.700000)
-  utof r0.y, r0.y
-  mul r0.y, r0.y, l(1.300000)
-  add r0.y, r0.y, r0.z
-
-#line 50
-  sincos r0.y, null, r0.y
-  mul r0.y, r0.y, l(43758.546875)
-  frc r0.y, r0.y  // r0.y <- <hash1 return value>
-
-#line 105
-  mov r0.z, -cb0[9].x
-  add r0.z, r0.z, cb0[9].y
-  mul r0.y, r0.z, r0.y
-  add r0.y, r0.y, cb0[9].x  // r0.y <- spd
-
-#line 106
-  mul r0.yzw, r0.yyyy, r2.xxyz  // r0.y <- <generateVelocity return value>.x; r0.z <- <generateVelocity return value>.y; r0.w <- <generateVelocity return value>.z
-
-#line 212
-  mov r0.yzw, r0.yyzw  // r0.y <- p.velocity.x; r0.z <- p.velocity.y; r0.w <- p.velocity.z
-
-#line 213
-  mov r1.w, l(0)  // r1.w <- p.age
-
-#line 214
-  nop 
-  utof r2.x, r0.x
-  mul r2.x, r2.x, l(91.300003)
-  add r2.x, r2.x, l(0.900000)
-
-#line 50
-  sincos r2.x, null, r2.x
-  mul r2.x, r2.x, l(43758.546875)
-  frc r2.x, r2.x  // r2.x <- <hash1 return value>
-
-#line 214
-  mov r2.y, -cb0[8].z
-  add r2.y, r2.y, cb0[8].w
-  mul r2.x, r2.y, r2.x
-  add r2.x, r2.x, cb0[8].z  // r2.x <- p.lifetime
-
-#line 215
-  mov r2.y, cb0[2].x  // r2.y <- p.size
-
-#line 216
-  nop 
-  utof r2.z, r0.x
-  mul r2.z, r2.z, l(54.099998)
-  add r2.z, r2.z, l(0.120000)
-
-#line 50
-  sincos r2.z, null, r2.z
-  mul r2.z, r2.z, l(43758.546875)
-  frc r2.z, r2.z  // r2.z <- <hash1 return value>
-
-#line 216
-  mul r2.z, r2.z, l(6.283185)  // r2.z <- p.rotation
-
-#line 217
-  nop 
-  utof r0.x, r0.x
-  mul r0.x, r0.x, l(22.400000)
-  add r0.x, r0.x, l(0.150000)
-
-#line 50
-  sincos r0.x, null, r0.x
-  mul r0.x, r0.x, l(43758.546875)
-  frc r0.x, r0.x  // r0.x <- <hash1 return value>
-
-#line 217
-  mul r0.x, r0.x, l(2.000000)
-  mov r2.w, l(-1.000000)
-  add r0.x, r0.x, r2.w
-  mul r0.x, r0.x, cb0[9].z  // r0.x <- p.rotationSpeed
-
-#line 218
-  mov r2.w, l(1.000000)  // r2.w <- p.stretch
-
-#line 219
-  mov r3.xyzw, cb0[4].xyzw  // r3.x <- p.color.x; r3.y <- p.color.y; r3.z <- p.color.z; r3.w <- p.color.w
-
-#line 221
-  imm_atomic_alloc r4.x, u1
-  store_structured u1.x, r4.x, l(0), r1.x
-  store_structured u1.x, r4.x, l(4), r1.y
-  store_structured u1.x, r4.x, l(8), r1.z
-  store_structured u1.x, r4.x, l(12), r1.w
-  store_structured u1.x, r4.x, l(16), r0.y
-  store_structured u1.x, r4.x, l(20), r0.z
-  store_structured u1.x, r4.x, l(24), r0.w
-  store_structured u1.x, r4.x, l(28), r2.x
-  store_structured u1.x, r4.x, l(32), r2.y
-  store_structured u1.x, r4.x, l(36), r2.z
-  store_structured u1.x, r4.x, l(40), r0.x
-  store_structured u1.x, r4.x, l(44), r2.w
-  store_structured u1.x, r4.x, l(48), r3.x
-  store_structured u1.x, r4.x, l(52), r3.y
-  store_structured u1.x, r4.x, l(56), r3.z
-  store_structured u1.x, r4.x, l(60), r3.w
-
-#line 222
+#line 246
 endif 
 
-#line 223
+#line 247
 ret 
-// Approximately 861 instruction slots used
+// Approximately 1114 instruction slots used

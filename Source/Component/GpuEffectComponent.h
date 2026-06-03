@@ -6,7 +6,7 @@
 class LoadTexture;
 
 //=====================================================
-//! GPU エフェクト（Compute + Indirect Draw）コンポーネント
+//! GPU エフェクトコンポーネント
 //=====================================================
 class GpuEffectComponent : public IRenderComponent
 {
@@ -130,6 +130,12 @@ private:
     //! パーティクルバッファ生成
     void createParticleBuffer(int index);
 
+    //! CPU 粒子を GPU バッファへ反映
+    void syncParticleBuffer();
+
+    //! CPU 側で粒子を更新
+    void simulateParticles(float dt);
+
     //! 描画引数バッファ生成
     void createDrawArgsBuffer();
 
@@ -185,8 +191,15 @@ private:
     std::unique_ptr<ConstantBuffer<SimParams>> m_simCB;
     SimParams m_simParams;
 
+    std::vector<Particle> m_particlesCpu;
+
     ParticleBuffer m_particles[2];
     int m_currentIndex = 0;
+
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_particleBuffer;
+    Particle* m_particleBufferMapped = nullptr;
+    UINT m_particleSrvIndex = UINT_MAX;
+    UINT m_aliveParticleCount = 0;
 
     Microsoft::WRL::ComPtr<ID3D12Resource> m_aliveCountBuffer;
     UINT m_aliveCountSrvIndex = UINT_MAX;
@@ -213,7 +226,4 @@ private:
     bool m_enableDebugLog = false; //!< デバッグログ有効
     int m_debugLogInterval = 60;  //!< ログ間隔（フレーム）
     int m_debugFrameCounter = 0;  //!< フレームカウンタ
-
-    bool m_debugForceDraw = false;       //!< 直接描画で確認する
-    bool m_debugForceIndirectArgs = false; //!< DrawArgs を強制上書きする
 };
