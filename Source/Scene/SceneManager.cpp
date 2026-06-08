@@ -1,15 +1,15 @@
 ﻿#include "pch.h"
-#include "TestScene.h"
 #include "ModelEditorScene.h"
+#include "ParticleScene.h"
 
 void SceneManager::initialize()
 {
     // シーン登録
-    registerScene<TestScene>(SceneId::TEST);
+    registerScene<ParticleScene>(SceneId::ParticleEditor);
     registerScene<ModelEditorScene>(SceneId::ModelEditor);
 
     // 最初のシーンを読み込み
-    loadScene(SceneId::ModelEditor);
+    loadScene(SceneId::ParticleEditor);
 }
 
 void SceneManager::shutdown()

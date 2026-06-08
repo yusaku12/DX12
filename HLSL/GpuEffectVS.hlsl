@@ -3,53 +3,10 @@
 
 cbuffer SimParams : register(b1)
 {
-    float deltaTime;
-    float totalTime;
-    float emitRate;
-    uint emitCount;
-
-    uint maxParticles;
-    float lifetime;
-    float speed;
-    float spread;
-
-    float startSize;
-    float endSize;
-    float drag;
-    uint emitterType;
-
-    float3 emitOrigin;
-    float emitRadius;
-
-    float4 startColor;
-    float4 endColor;
-
-    float3 gravity;
-    float noiseStrength;
-
-    float3 emitterSize;
-    float noiseFrequency;
-
-    float coneAngle;
-    float coneHeight;
-    float minLifetime;
-    float maxLifetime;
-
-    float minSpeed;
-    float maxSpeed;
-    float startRotationSpeed;
-    float stretchFactor;
-
-    // 追加パラメータ (描画用)
     uint renderMode; // 0: Billboard, 1: Stretched, 2: Horizontal, 3: Vertical
     uint flipbookRows;
     uint flipbookCols;
     float flipbookFps;
-
-    uint randomSeed;
-    uint _pad0;
-    uint _pad1;
-    uint _pad2;
 };
 
 StructuredBuffer<Particle> particles : register(t0);
@@ -94,11 +51,15 @@ VSOut VS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     float c = cos(p.rotation);
     float2 rotated = float2(local.x * c - local.y * s, local.x * s + local.y * c);
 
+    const float kEps = 0.0001;
+    float3 camPos = float3(viewInverse._41, viewInverse._42, viewInverse._43);
+    float3 cameraRight = normalize(float3(viewInverse._11, viewInverse._12, viewInverse._13));
+    float3 cameraUp = normalize(float3(viewInverse._21, viewInverse._22, viewInverse._23));
+    float3 cameraForward = -normalize(float3(viewInverse._31, viewInverse._32, viewInverse._33));
+
     if (renderMode == 0) // 通常のビルボード
     {
-        float3 right = float3(view._11, view._12, view._13);
-        float3 up = float3(view._21, view._22, view._23);
-        worldPos += right * rotated.x + up * rotated.y;
+        worldPos += cameraRight * rotated.x + cameraUp * rotated.y;
     }
     else if (renderMode == 1) // Stretched Billboard (速度方向に伸びる)
     {
@@ -107,19 +68,29 @@ VSOut VS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
         float velLen = length(velocity);
         
         float3 up = float3(0, 1, 0);
-        float3 right = float3(1, 0, 0);
+        float3 right = cameraRight;
 
         if (velLen > 0.001)
         {
             up = velocity / velLen;
-            float3 camPos = float3(viewInverse._41, viewInverse._42, viewInverse._43);
             float3 toCam = normalize(camPos - p.position);
-            right = normalize(cross(up, toCam));
+
+            float3 rightRaw = cross(up, toCam);
+            float rightLen = length(rightRaw);
+            if (rightLen > kEps)
+            {
+                right = rightRaw / rightLen;
+            }
+            else
+            {
+                // 速度方向と視線が平行に近い場合のフォールバック
+                right = cameraRight;
+            }
         }
         else
         {
-            right = float3(view._11, view._12, view._13);
-            up = float3(view._21, view._22, view._23); // フォールバック
+            right = cameraRight;
+            up = cameraUp; // フォールバック
         }
 
         // 速度に基づいた引き伸ばしスケール
@@ -129,17 +100,60 @@ VSOut VS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
         float2 scaledPos = kPos[vertexId];
         worldPos += right * (scaledPos.x * sizeX) + up * (scaledPos.y * sizeY);
     }
-    else if (renderMode == 2) // Horizontal Flat (床面)
+    else if (renderMode == 2) // Horizontal Billboard (床面固定でカメラ方向へ回転)
     {
-        float3 right = float3(1, 0, 0);
-        float3 forward = float3(0, 0, 1);
+        float3 worldUp = float3(0, 1, 0);
+        float3 toCamFlat = camPos - p.position;
+        toCamFlat.y = 0.0;
+
+        float toCamFlatLen = length(toCamFlat);
+        float3 forward = (toCamFlatLen > kEps) ? (toCamFlat / toCamFlatLen) : cameraForward;
+        forward.y = 0.0;
+
+        float forwardLen = length(forward);
+        if (forwardLen > kEps)
+        {
+            forward /= forwardLen;
+        }
+        else
+        {
+            forward = float3(0, 0, 1);
+        }
+
+        float3 right = cross(worldUp, forward);
+        float rightLen = length(right);
+        right = (rightLen > kEps) ? (right / rightLen) : cameraRight;
+        right.y = 0.0;
+        float rightFlatLen = length(right);
+        right = (rightFlatLen > kEps) ? (right / rightFlatLen) : float3(1, 0, 0);
+
         worldPos += right * rotated.x + forward * rotated.y;
     }
-    else if (renderMode == 3) // Vertical Flat (壁面)
+    else if (renderMode == 3) // Vertical Billboard (Y軸固定でカメラ方向へ回転)
     {
-        float3 right = float3(1, 0, 0);
-        float3 up = float3(0, 1, 0);
-        worldPos += right * rotated.x + up * rotated.y;
+        float3 worldUp = float3(0, 1, 0);
+        float3 toCam = camPos - p.position;
+        toCam.y = 0.0;
+
+        float toCamLen = length(toCam);
+        float3 forward = (toCamLen > kEps) ? (toCam / toCamLen) : cameraForward;
+        forward.y = 0.0;
+
+        float forwardLen = length(forward);
+        if (forwardLen > kEps)
+        {
+            forward /= forwardLen;
+        }
+        else
+        {
+            forward = float3(0, 0, 1);
+        }
+
+        float3 right = cross(worldUp, forward);
+        float rightLen = length(right);
+        right = (rightLen > kEps) ? (right / rightLen) : cameraRight;
+
+        worldPos += right * rotated.x + worldUp * rotated.y;
     }
 
     // Flipbook アニメーションのUV計算

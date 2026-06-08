@@ -5,8 +5,8 @@
 //! シーンID
 enum class SceneId : int
 {
-    TEST,
     ModelEditor,
+    ParticleEditor,
     MAX
 };
 
@@ -73,7 +73,7 @@ private:
     std::array<SceneFactory, magic_enum::enum_count<SceneId>()> m_sceneFactory{};
     std::unique_ptr<Scene> m_currentScene;
     std::unique_ptr<Scene> m_nextScene;
-    SceneId m_currentSceneID = SceneId::TEST;
-    SceneId m_nextSceneID = SceneId::TEST;
+    SceneId m_currentSceneID = SceneId::ParticleEditor;
+    SceneId m_nextSceneID = SceneId::ParticleEditor;
     bool m_requestChange = false;
 };

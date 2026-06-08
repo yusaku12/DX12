@@ -7,7 +7,7 @@
 // cbuffer cbuff0
 // {
 //
-//   row_major float4x4 view;           // Offset:    0 Size:    64
+//   row_major float4x4 view;           // Offset:    0 Size:    64 [unused]
 //   row_major float4x4 projection;     // Offset:   64 Size:    64 [unused]
 //   row_major float4x4 viewProjection; // Offset:  128 Size:    64
 //   row_major float4x4 viewInverse;    // Offset:  192 Size:    64
@@ -19,42 +19,10 @@
 // cbuffer SimParams
 // {
 //
-//   float deltaTime;                   // Offset:    0 Size:     4 [unused]
-//   float totalTime;                   // Offset:    4 Size:     4 [unused]
-//   float emitRate;                    // Offset:    8 Size:     4 [unused]
-//   uint emitCount;                    // Offset:   12 Size:     4 [unused]
-//   uint maxParticles;                 // Offset:   16 Size:     4 [unused]
-//   float lifetime;                    // Offset:   20 Size:     4 [unused]
-//   float speed;                       // Offset:   24 Size:     4 [unused]
-//   float spread;                      // Offset:   28 Size:     4 [unused]
-//   float startSize;                   // Offset:   32 Size:     4 [unused]
-//   float endSize;                     // Offset:   36 Size:     4 [unused]
-//   float drag;                        // Offset:   40 Size:     4 [unused]
-//   uint emitterType;                  // Offset:   44 Size:     4 [unused]
-//   float3 emitOrigin;                 // Offset:   48 Size:    12 [unused]
-//   float emitRadius;                  // Offset:   60 Size:     4 [unused]
-//   float4 startColor;                 // Offset:   64 Size:    16 [unused]
-//   float4 endColor;                   // Offset:   80 Size:    16 [unused]
-//   float3 gravity;                    // Offset:   96 Size:    12 [unused]
-//   float noiseStrength;               // Offset:  108 Size:     4 [unused]
-//   float3 emitterSize;                // Offset:  112 Size:    12 [unused]
-//   float noiseFrequency;              // Offset:  124 Size:     4 [unused]
-//   float coneAngle;                   // Offset:  128 Size:     4 [unused]
-//   float coneHeight;                  // Offset:  132 Size:     4 [unused]
-//   float minLifetime;                 // Offset:  136 Size:     4 [unused]
-//   float maxLifetime;                 // Offset:  140 Size:     4 [unused]
-//   float minSpeed;                    // Offset:  144 Size:     4 [unused]
-//   float maxSpeed;                    // Offset:  148 Size:     4 [unused]
-//   float startRotationSpeed;          // Offset:  152 Size:     4 [unused]
-//   float stretchFactor;               // Offset:  156 Size:     4 [unused]
-//   uint renderMode;                   // Offset:  160 Size:     4
-//   uint flipbookRows;                 // Offset:  164 Size:     4
-//   uint flipbookCols;                 // Offset:  168 Size:     4
-//   float flipbookFps;                 // Offset:  172 Size:     4
-//   uint randomSeed;                   // Offset:  176 Size:     4 [unused]
-//   uint _pad0;                        // Offset:  180 Size:     4 [unused]
-//   uint _pad1;                        // Offset:  184 Size:     4 [unused]
-//   uint _pad2;                        // Offset:  188 Size:     4 [unused]
+//   uint renderMode;                   // Offset:    0 Size:     4
+//   uint flipbookRows;                 // Offset:    4 Size:     4
+//   uint flipbookCols;                 // Offset:    8 Size:     4
+//   float flipbookFps;                 // Offset:   12 Size:     4
 //
 // }
 //
@@ -108,14 +76,14 @@
 vs_5_0
 dcl_globalFlags refactoringAllowed | skipOptimization
 dcl_constantbuffer CB0[16], immediateIndexed
-dcl_constantbuffer CB1[11], immediateIndexed
+dcl_constantbuffer CB1[1], immediateIndexed
 dcl_resource_structured t0, 64
 dcl_input_sgv v0.x, vertex_id
 dcl_input_sgv v1.x, instance_id
 dcl_output_siv o0.xyzw, position
 dcl_output o1.xy
 dcl_output o2.xyzw
-dcl_temps 7
+dcl_temps 10
 dcl_indexableTemp x0[6], 4
 dcl_indexableTemp x1[6], 4
 //
@@ -127,7 +95,7 @@ dcl_indexableTemp x1[6], 4
 //   o0.x <- <VS return value>.svpos.x; o0.y <- <VS return value>.svpos.y; o0.z <- <VS return value>.svpos.z; o0.w <- <VS return value>.svpos.w; 
 //   x0 <- kPos; x1 <- kUv
 //
-#line 66 "C:\Users\2210359\Desktop\DirectX12\HLSL\GpuEffectVS.hlsl"
+#line 23 "C:\Users\2210359\Desktop\DirectX12\HLSL\GpuEffectVS.hlsl"
 mov x0[0].xy, l(-0.500000,-0.500000,0,0)
 mov x0[1].xy, l(0.500000,-0.500000,0,0)
 mov x0[2].xy, l(0.500000,0.500000,0,0)
@@ -135,7 +103,7 @@ mov x0[3].xy, l(-0.500000,-0.500000,0,0)
 mov x0[4].xy, l(0.500000,0.500000,0,0)
 mov x0[5].xy, l(-0.500000,0.500000,0,0)
 
-#line 76
+#line 33
 itof r0.xy, l(0, 1, 0, 0)
 itof r0.zw, l(0, 0, 1, 1)
 itof r1.xy, l(1, 0, 0, 0)
@@ -149,7 +117,7 @@ mov x1[3].xy, r1.zwzz
 mov x1[4].xy, r2.xyxx
 mov x1[5].xy, r2.zwzz
 
-#line 86
+#line 43
 ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r0.x, v1.x, l(0), t0.xxxx  // r0.x <- p.position.x
 ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r0.y, v1.x, l(4), t0.xxxx  // r0.y <- p.position.y
 ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r0.z, v1.x, l(8), t0.xxxx  // r0.z <- p.position.z
@@ -166,21 +134,21 @@ ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r
 ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r3.z, v1.x, l(56), t0.xxxx  // r3.z <- p.color.z
 ld_structured_indexable(structured_buffer, stride=64)(mixed,mixed,mixed,mixed) r3.w, v1.x, l(60), t0.xxxx  // r3.w <- p.color.w
 
-#line 89
+#line 46
 mov r0.xyz, r0.xyzx  // r0.x <- worldPos.x; r0.y <- worldPos.y; r0.z <- worldPos.z
 
-#line 90
+#line 47
 mov r2.w, v0.x
 mov r4.xy, x0[r2.w + 0].xyxx
 mul r4.xy, r2.xxxx, r4.xyxx  // r4.x <- local.x; r4.y <- local.y
 
-#line 93
+#line 50
 sincos r4.z, null, r2.y  // r4.z <- s
 
-#line 94
+#line 51
 sincos null, r2.y, r2.y  // r2.y <- c
 
-#line 95
+#line 52
 mul r4.w, r2.y, r4.x
 mul r5.x, r4.z, r4.y
 mov r5.x, -r5.x
@@ -189,180 +157,325 @@ mul r4.x, r4.z, r4.x
 mul r2.y, r2.y, r4.y
 add r2.y, r2.y, r4.x  // r2.y <- rotated.y
 
-#line 97
-if_z cb1[10].x
+#line 54
+mov r4.x, l(0.000100)  // r4.x <- kEps
 
-#line 99
-  mov r4.xyz, cb0[0].xyzx  // r4.x <- right.x; r4.y <- right.y; r4.z <- right.z
+#line 55
+mov r5.xyz, cb0[15].yzxy  // r5.x <- camPos.y; r5.y <- camPos.z; r5.z <- camPos.x
 
-#line 100
-  mov r5.xyz, cb0[1].xyzx  // r5.x <- up.x; r5.y <- up.y; r5.z <- up.z
+#line 56
+dp3 r4.y, cb0[12].xyzx, cb0[12].xyzx
+rsq r4.y, r4.y
+mul r6.xyz, r4.yyyy, cb0[12].xyzx  // r6.x <- cameraRight.x; r6.y <- cameraRight.y; r6.z <- cameraRight.z
 
-#line 101
-  mul r4.xyz, r4.wwww, r4.xyzx
-  mul r5.xyz, r2.yyyy, r5.xyzx
-  add r4.xyz, r4.xyzx, r5.xyzx
-  add r0.xyz, r0.xyzx, r4.xyzx
+#line 57
+dp3 r4.y, cb0[13].xyzx, cb0[13].xyzx
+rsq r4.y, r4.y
+mul r7.xyz, r4.yyyy, cb0[13].xyzx  // r7.x <- cameraUp.x; r7.y <- cameraUp.y; r7.z <- cameraUp.z
 
-#line 102
-else   // Prior locations: r0.x <- p.position.x; r0.y <- p.position.y; r0.z <- p.position.z; r4.y <- local.y; r4.z <- s
+#line 58
+dp3 r4.y, cb0[14].xyzx, cb0[14].xyzx
+rsq r4.y, r4.y
+mul r4.yz, r4.yyyy, cb0[14].xxzx
+mov r4.yz, -r4.yyzy  // r4.y <- cameraForward.x; r4.z <- cameraForward.z
 
-#line 97
-  mov r4.x, cb1[10].x  // r4.x <- renderMode
+#line 60
+if_z cb1[0].x
 
-#line 103
-  mov r4.y, l(1)
-  ieq r4.y, r4.y, r4.x
-  if_nz r4.y
+#line 62
+  mul r8.xyz, r4.wwww, r6.xyzx
+  mul r9.xyz, r2.yyyy, r7.xyzx
+  add r8.xyz, r8.xyzx, r9.xyzx
+  add r0.xyz, r0.xyzx, r8.xyzx
 
-#line 106
+#line 63
+else   // Prior locations: r0.x <- p.position.x; r0.y <- p.position.y; r0.z <- p.position.z
+
+#line 60
+  mov r5.w, cb1[0].x  // r5.w <- renderMode
+
+#line 64
+  mov r6.w, l(1)
+  ieq r6.w, r5.w, r6.w
+  if_nz r6.w
+
+#line 67
     mov r1.xyz, r1.xyzx  // r1.x <- velocity.x; r1.y <- velocity.y; r1.z <- velocity.z
 
-#line 107
-    dp3 r4.y, r1.xyzx, r1.xyzx
-    sqrt r4.y, r4.y  // r4.y <- velLen
+#line 68
+    dp3 r6.w, r1.xyzx, r1.xyzx
+    sqrt r6.w, r6.w  // r6.w <- velLen
 
-#line 112
-    lt r4.z, l(0.001000), r4.y
-    if_nz r4.z
+#line 73
+    lt r7.w, l(0.001000), r6.w
+    if_nz r7.w
 
-#line 114
-      div r1.xyz, r1.xyzx, r4.yyyy  // r1.x <- up.x; r1.y <- up.y; r1.z <- up.z
+#line 75
+      div r7.xyz, r1.xyzx, r6.wwww  // r7.x <- up.x; r7.y <- up.y; r7.z <- up.z
 
-#line 115
-      mov r5.xyz, cb0[15].yzxy  // r5.x <- camPos.y; r5.y <- camPos.z; r5.z <- camPos.x
+#line 76
+      mov r1.xyz, -r0.yzxy
+      add r1.xyz, r1.xyzx, r5.xyzx
+      dp3 r5.x, r1.xyzx, r1.xyzx
+      rsq r5.x, r5.x
+      mul r1.xyz, r1.xyzx, r5.xxxx  // r1.x <- toCam.y; r1.y <- toCam.z; r1.z <- toCam.x
 
-#line 116
-      mov r6.xyz, -r0.yzxy
-      add r5.xyz, r5.xyzx, r6.xyzx
-      dp3 r4.y, r5.xyzx, r5.xyzx
-      rsq r4.y, r4.y
-      mul r5.xyz, r4.yyyy, r5.xyzx  // r5.x <- toCam.y; r5.y <- toCam.z; r5.z <- toCam.x
+#line 78
+      mul r8.xyz, r1.yzxy, r7.yzxy
+      mul r1.xyz, r1.xyzx, r7.zxyz
+      mov r1.xyz, -r1.xyzx
+      add r1.xyz, r1.xyzx, r8.xyzx  // r1.x <- rightRaw.x; r1.y <- rightRaw.y; r1.z <- rightRaw.z
 
-#line 117
-      mul r6.xyz, r1.yzxy, r5.yzxy
-      mul r5.xyz, r1.zxyz, r5.xyzx
-      mov r5.xyz, -r5.xyzx
-      add r5.xyz, r5.xyzx, r6.xyzx
-      dp3 r4.y, r5.xyzx, r5.xyzx
-      rsq r4.y, r4.y
-      mul r5.xyz, r4.yyyy, r5.xyzx  // r5.x <- right.x; r5.y <- right.y; r5.z <- right.z
+#line 79
+      dp3 r5.x, r1.xyzx, r1.xyzx
+      sqrt r5.x, r5.x  // r5.x <- rightLen
 
-#line 118
-    else   // Prior locations: r1.x <- p.velocity.x; r1.y <- p.velocity.y; r1.z <- p.velocity.z; r1.x <- velocity.x; r1.y <- velocity.y; r1.z <- velocity.z; r4.y <- velLen
+#line 80
+      lt r6.w, r4.x, r5.x
+      if_nz r6.w
 
-#line 121
-      mov r5.xyz, cb0[0].xyzx  // r5.x <- right.x; r5.y <- right.y; r5.z <- right.z
+#line 82
+        div r6.xyz, r1.xyzx, r5.xxxx  // r6.x <- right.x; r6.y <- right.y; r6.z <- right.z
 
-#line 122
-      mov r1.xyz, cb0[1].xyzx  // r1.x <- up.x; r1.y <- up.y; r1.z <- up.z
+#line 83
+      else   // Prior locations: r6.x <- cameraRight.x; r6.y <- cameraRight.y; r6.z <- cameraRight.z
 
-#line 123
+#line 87
+        mov r6.xyz, r6.xyzx  // r6.x <- right.x; r6.y <- right.y; r6.z <- right.z
+
+#line 88
+      endif 
+
+#line 89
+    else   // Prior locations: r1.x <- p.velocity.x; r1.y <- p.velocity.y; r1.z <- p.velocity.z; r5.x <- camPos.y; r7.x <- cameraUp.x; r7.y <- cameraUp.y; r7.z <- cameraUp.z; r1.x <- velocity.x; r1.y <- velocity.y; r1.z <- velocity.z; r6.w <- velLen
+
+#line 92
+      mov r6.xyz, r6.xyzx  // r6.x <- right.x; r6.y <- right.y; r6.z <- right.z
+
+#line 93
+      mov r7.xyz, r7.xyzx  // r7.x <- up.x; r7.y <- up.y; r7.z <- up.z
+
+#line 94
     endif 
 
-#line 126
-    mul r2.z, r2.z, r2.x  // r2.z <- sizeY
+#line 97
+    mul r1.x, r2.z, r2.x  // r1.x <- sizeY
 
-#line 127
+#line 98
     mov r2.x, r2.x  // r2.x <- sizeX
 
-#line 129
-    mov r4.yz, x0[r2.w + 0].xxyx  // r4.y <- scaledPos.x; r4.z <- scaledPos.y
+#line 100
+    mov r1.yz, x0[r2.w + 0].xxyx  // r1.y <- scaledPos.x; r1.z <- scaledPos.y
 
-#line 130
-    mul r2.x, r2.x, r4.y
-    mul r5.xyz, r2.xxxx, r5.xyzx
-    mul r2.x, r2.z, r4.z
-    mul r1.xyz, r1.xyzx, r2.xxxx
-    add r1.xyz, r1.xyzx, r5.xyzx
+#line 101
+    mul r1.y, r2.x, r1.y
+    mul r8.xyz, r1.yyyy, r6.xyzx
+    mul r1.x, r1.x, r1.z
+    mul r1.xyz, r1.xxxx, r7.xyzx
+    add r1.xyz, r1.xyzx, r8.xyzx
     add r0.xyz, r0.xyzx, r1.xyzx
 
-#line 131
-  else   // Prior locations: r0.x <- p.position.x; r0.y <- p.position.y; r0.z <- p.position.z; r1.x <- p.velocity.x; r1.y <- p.velocity.y; r1.z <- p.velocity.z; r2.x <- p.size; r2.z <- p.stretch; r4.z <- s
+#line 102
+  else   // Prior locations: r0.x <- p.position.x; r0.y <- p.position.y; r0.z <- p.position.z; r1.x <- p.velocity.x; r1.y <- p.velocity.y; r1.z <- p.velocity.z; r5.x <- camPos.y
 
-#line 132
+#line 103
     mov r1.x, l(2)
-    ieq r1.x, r1.x, r4.x
+    ieq r1.x, r1.x, r5.w
     if_nz r1.x
 
-#line 134
-      itof r1.xyz, l(1, 0, 0, 0)  // r1.x <- right.x; r1.y <- right.y; r1.z <- right.z
+#line 105
+      itof r1.xyz, l(0, 0, 1, 0)  // r1.x <- worldUp.z; r1.y <- worldUp.x; r1.z <- worldUp.y
 
-#line 135
-      itof r5.xyz, l(0, 0, 1, 0)  // r5.x <- forward.x; r5.y <- forward.y; r5.z <- forward.z
+#line 106
+      mov r2.xz, -r0.xxzx
+      add r7.xz, r2.xxzx, r5.zzyz  // r7.x <- toCamFlat.x; r7.z <- toCamFlat.z
 
-#line 136
+#line 107
+      mov r7.y, l(0)  // r7.y <- toCamFlat.y
+
+#line 109
+      dp3 r2.x, r7.xyzx, r7.xyzx
+      sqrt r2.x, r2.x  // r2.x <- toCamFlatLen
+
+#line 110
+      lt r2.z, r4.x, r2.x
+      div r7.xy, r7.xzxx, r2.xxxx
+      movc r7.xz, r2.zzzz, r7.xxyx, r4.yyzy  // r7.x <- forward.x; r7.z <- forward.z
+
+#line 111
+      mov r7.y, l(0)  // r7.y <- forward.y
+
+#line 113
+      dp3 r2.x, r7.xyzx, r7.xyzx
+      sqrt r2.x, r2.x  // r2.x <- forwardLen
+
+#line 114
+      lt r2.z, r4.x, r2.x
+      if_nz r2.z
+
+#line 116
+        div r7.xyz, r7.xyzx, r2.xxxx
+
+#line 117
+      else 
+
+#line 120
+        itof r7.xyz, l(0, 0, 1, 0)
+
+#line 121
+      endif 
+
+#line 123
+      mul r8.xyz, r1.zxyz, r7.zxyz
+      mul r1.xyz, r1.xyzx, r7.yzxy
+      mov r1.xyz, -r1.xyzx
+      add r1.xyz, r1.xyzx, r8.xyzx  // r1.x <- right.x; r1.y <- right.y; r1.z <- right.z
+
+#line 124
+      dp3 r1.y, r1.xyzx, r1.xyzx
+      sqrt r1.y, r1.y  // r1.y <- rightLen
+
+#line 125
+      lt r2.x, r4.x, r1.y
+      div r1.xy, r1.xzxx, r1.yyyy
+      movc r1.xz, r2.xxxx, r1.xxyx, r6.xxzx  // r1.x <- right.x
+
+#line 126
+      mov r1.y, l(0)  // r1.y <- right.y
+
+#line 127
+      dp3 r2.x, r1.xyzx, r1.xyzx
+      sqrt r2.x, r2.x  // r2.x <- rightFlatLen
+
+#line 128
+      lt r2.z, r4.x, r2.x
+      div r1.xyz, r1.xyzx, r2.xxxx
+      itof r8.xyz, l(1, 0, 0, 0)
+      movc r1.xyz, r2.zzzz, r1.xyzx, r8.xyzx  // r1.x <- right.x; r1.y <- right.y; r1.z <- right.z
+
+#line 130
       mul r1.xyz, r4.wwww, r1.xyzx
-      mul r5.xyz, r2.yyyy, r5.xyzx
-      add r1.xyz, r1.xyzx, r5.xyzx
+      mul r7.xyz, r2.yyyy, r7.xyzx
+      add r1.xyz, r1.xyzx, r7.xyzx
       add r0.xyz, r0.xyzx, r1.xyzx
 
-#line 137
-    else   // Prior locations: r0.x <- p.position.x; r0.y <- p.position.y; r0.z <- p.position.z; r1.y <- p.velocity.y; r1.z <- p.velocity.z
+#line 131
+    else   // Prior locations: r0.x <- p.position.x; r0.y <- p.position.y; r0.z <- p.position.z; r1.y <- p.velocity.y; r1.z <- p.velocity.z; r2.x <- p.size; r2.z <- p.stretch; r7.x <- cameraUp.x; r7.y <- cameraUp.y; r7.z <- cameraUp.z
 
-#line 138
+#line 132
       mov r1.x, l(3)
-      ieq r1.x, r1.x, r4.x
+      ieq r1.x, r1.x, r5.w
       if_nz r1.x
 
-#line 140
-        itof r1.xyz, l(1, 0, 0, 0)  // r1.x <- right.x; r1.y <- right.y; r1.z <- right.z
+#line 134
+        itof r1.xyz, l(0, 1, 0, 0)  // r1.x <- worldUp.x; r1.y <- worldUp.y; r1.z <- worldUp.z
 
-#line 141
-        itof r4.xyz, l(0, 1, 0, 0)  // r4.x <- up.x; r4.y <- up.y; r4.z <- up.z
+#line 135
+        mov r2.xz, -r0.xxzx
+        add r5.xz, r2.xxzx, r5.zzyz  // r5.x <- toCam.x; r5.z <- toCam.z
+
+#line 136
+        mov r5.y, l(0)  // r5.y <- toCam.y
+
+#line 138
+        dp3 r2.x, r5.xyzx, r5.xyzx
+        sqrt r2.x, r2.x  // r2.x <- toCamLen
+
+#line 139
+        lt r2.z, r4.x, r2.x
+        div r5.xy, r5.xzxx, r2.xxxx
+        movc r5.xz, r2.zzzz, r5.xxyx, r4.yyzy  // r5.x <- forward.x; r5.z <- forward.z
+
+#line 140
+        mov r5.y, l(0)  // r5.y <- forward.y
 
 #line 142
-        mul r1.xyz, r4.wwww, r1.xyzx
-        mul r2.xyz, r2.yyyy, r4.xyzx
-        add r1.xyz, r1.xyzx, r2.xyzx
-        add r0.xyz, r0.xyzx, r1.xyzx
+        dp3 r2.x, r5.xyzx, r5.xyzx
+        sqrt r2.x, r2.x  // r2.x <- forwardLen
 
 #line 143
+        lt r2.z, r4.x, r2.x
+        if_nz r2.z
+
+#line 145
+          div r5.xyz, r5.xyzx, r2.xxxx
+
+#line 146
+        else 
+
+#line 149
+          itof r5.xyz, l(0, 0, 1, 0)
+
+#line 150
+        endif 
+
+#line 152
+        mul r7.xyz, r1.yzxy, r5.zxyz
+        mul r5.xyz, r1.zxyz, r5.yzxy
+        mov r5.xyz, -r5.xyzx
+        add r5.xyz, r5.xyzx, r7.xyzx  // r5.x <- right.x; r5.y <- right.y; r5.z <- right.z
+
+#line 153
+        dp3 r2.x, r5.xyzx, r5.xyzx
+        sqrt r2.x, r2.x  // r2.x <- rightLen
+
+#line 154
+        lt r2.z, r4.x, r2.x
+        div r4.xyz, r5.xyzx, r2.xxxx
+        movc r4.xyz, r2.zzzz, r4.xyzx, r6.xyzx  // r4.x <- right.x; r4.y <- right.y; r4.z <- right.z
+
+#line 156
+        mul r4.xyz, r4.wwww, r4.xyzx
+        mul r1.xyz, r2.yyyy, r1.xyzx
+        add r1.xyz, r1.xyzx, r4.xyzx
+        add r0.xyz, r0.xyzx, r1.xyzx
+
+#line 157
       endif 
     endif 
   endif 
 endif 
 
-#line 146
+#line 160
 mov r1.xy, x1[r2.w + 0].xyxx  // r1.x <- baseUv.x; r1.y <- baseUv.y
 
-#line 147
+#line 161
 mov r1.xy, r1.xyxx  // r1.x <- finalUv.x; r1.y <- finalUv.y
 
-#line 149
+#line 163
 mov r1.z, l(1)
-ult r1.z, r1.z, cb1[10].y
+ult r1.z, r1.z, cb1[0].y
 mov r2.x, l(1)
-ult r2.x, r2.x, cb1[10].z
+ult r2.x, r2.x, cb1[0].z
 or r1.z, r1.z, r2.x
 if_nz r1.z
 
-#line 151
+#line 165
   div r1.z, r0.w, r1.w
   max r1.z, r1.z, l(0.000000)
   min r1.z, r1.z, l(1.000000)  // r1.z <- t
 
-#line 152
-  imul null, r1.w, cb1[10].z, cb1[10].y  // r1.w <- totalFrames
+#line 166
+  imul null, r1.w, cb1[0].z, cb1[0].y  // r1.w <- totalFrames
 
-#line 155
-  lt r2.x, l(0.000000), cb1[10].w
+#line 169
+  lt r2.x, l(0.000000), cb1[0].w
   if_nz r2.x
 
-#line 157
-    mul r0.w, r0.w, cb1[10].w
+#line 171
+    mul r0.w, r0.w, cb1[0].w
     ftou r0.w, r0.w
     udiv null, r0.w, r0.w, r1.w  // r0.w <- currentFrame
 
-#line 158
+#line 172
   else   // Prior locations: r0.w <- p.age
 
-#line 161
+#line 175
     utof r2.x, r1.w
     mul r1.z, r1.z, r2.x
     ftou r0.w, r1.z  // r0.w <- currentFrame
 
-#line 162
+#line 176
     uge r1.z, r0.w, r1.w
     if_nz r1.z
       mov r1.z, l(1)
@@ -370,22 +483,22 @@ if_nz r1.z
       iadd r0.w, r1.z, r1.w
     endif 
 
-#line 163
+#line 177
   endif 
 
-#line 165
-  utof r1.z, cb1[10].z
+#line 179
+  utof r1.z, cb1[0].z
   div r2.x, l(1.000000), r1.z  // r2.x <- frameSize.x
-  utof r1.z, cb1[10].y
+  utof r1.z, cb1[0].y
   div r2.y, l(1.000000), r1.z  // r2.y <- frameSize.y
 
-#line 166
-  udiv null, r1.z, r0.w, cb1[10].z  // r1.z <- colIdx
+#line 180
+  udiv null, r1.z, r0.w, cb1[0].z  // r1.z <- colIdx
 
-#line 167
-  udiv r0.w, null, r0.w, cb1[10].z  // r0.w <- rowIdx
+#line 181
+  udiv r0.w, null, r0.w, cb1[0].z  // r0.w <- rowIdx
 
-#line 169
+#line 183
   mul r2.zw, r1.xxxy, r2.xxxy
   utof r1.z, r1.z
   mul r4.x, r2.x, r1.z
@@ -393,10 +506,10 @@ if_nz r1.z
   mul r4.y, r2.y, r0.w
   add r1.xy, r2.zwzz, r4.xyxx
 
-#line 170
+#line 184
 endif 
 
-#line 173
+#line 187
 mul r2.xyzw, r0.xxxx, cb0[8].xyzw
 mul r4.xyzw, r0.yyyy, cb0[9].xyzw
 add r2.xyzw, r2.xyzw, r4.xyzw
@@ -405,15 +518,15 @@ add r0.xyzw, r0.xyzw, r2.xyzw
 mul r2.xyzw, cb0[11].xyzw, l(1.000000, 1.000000, 1.000000, 1.000000)
 add r0.xyzw, r0.xyzw, r2.xyzw  // r0.x <- o.svpos.x; r0.y <- o.svpos.y; r0.z <- o.svpos.z; r0.w <- o.svpos.w
 
-#line 174
+#line 188
 mov r1.xy, r1.xyxx  // r1.x <- o.uv.x; r1.y <- o.uv.y
 
-#line 175
+#line 189
 mov r3.xyzw, r3.xyzw  // r3.x <- o.color.x; r3.y <- o.color.y; r3.z <- o.color.z; r3.w <- o.color.w
 
-#line 176
+#line 190
 mov o0.xyzw, r0.xyzw
 mov o2.xyzw, r3.xyzw
 mov o1.xy, r1.xyxx
 ret 
-// Approximately 168 instruction slots used
+// Approximately 239 instruction slots used

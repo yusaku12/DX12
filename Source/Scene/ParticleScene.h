@@ -1,12 +1,11 @@
 ﻿#pragma once
 
 #include "Scene.h"
-#include <chrono>
 
 //============================================================
-// テスト用シーン
+// パーティクルシーン
 //============================================================
-class TestScene : public Scene
+class ParticleScene : public Scene
 {
 public:
 

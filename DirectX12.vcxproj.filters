@@ -47,7 +47,6 @@
     <ClCompile Include="Source\Model\FbxLoad.cpp" />
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
-    <ClCompile Include="Source\Scene\TestScene.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
     <ClCompile Include="Source\System\DebugPrimitive.cpp" />
     <ClCompile Include="Source\System\Dialog.cpp" />
@@ -89,6 +88,7 @@
     <ClCompile Include="Source\PostEffect\DepthOfFieldEffect.cpp" />
     <ClCompile Include="Source\PostEffect\MotionBlurEffect.cpp" />
     <ClCompile Include="Source\Component\GpuEffectComponent.cpp" />
+    <ClCompile Include="Source\Scene\ParticleScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -280,9 +280,6 @@
     <ClInclude Include="External\magic_enum\magic_enum_utility.hpp">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Scene\TestScene.h">
-      <Filter>�w�b�_�[ �t�@�C��</Filter>
-    </ClInclude>
     <ClInclude Include="Source\System\Dialog.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
@@ -422,6 +419,9 @@
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\ShadowMapRenderer.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\ParticleScene.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
   </ItemGroup>
