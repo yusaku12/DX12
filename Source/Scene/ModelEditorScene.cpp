@@ -20,12 +20,8 @@ void ModelEditorScene::onEnter()
 
     GameObject* object = new GameObject("ModelObject");
     object->addComponent<TransformComponent>();
-    object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.fbx");
+    object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.mdl");
     object->addComponent<AnimationComponent>();
-
-    GameObject* stage = new GameObject("Stage");
-    stage->addComponent<TransformComponent>();
-    stage->addComponent<FbxRenderComponent>("Data/Model/Grass.fbx");
 
     GameObject* skyboxObj = new GameObject("Skybox");
     auto* skybox = skyboxObj->addComponent<SkyboxComponent>();
@@ -39,11 +35,6 @@ void ModelEditorScene::onEnter()
     pe->addEffect<ColorGradingEffect>();
     //pe->addEffect<DepthOfFieldEffect>();
     pe->addEffect<MotionBlurEffect>();
-
-    GameObject* gpuEffectObj = new GameObject("GpuEffect");
-    gpuEffectObj->addComponent<TransformComponent>();
-    auto* gpuEffect = gpuEffectObj->addComponent<GpuEffectComponent>();
-    gpuEffect->setTexture(L"Data/Texture/particle.png");
 }
 
 void ModelEditorScene::update()

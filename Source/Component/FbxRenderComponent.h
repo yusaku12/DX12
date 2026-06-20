@@ -66,8 +66,8 @@ private:
         float padding1 = 0.0f;
     };
 
-    //! FBX ファイルを読み込む
-    bool loadFbx(const std::string& fbxPath);
+    //! モデルアセットを読み込む
+    bool loadModelAsset(const std::string& modelPath);
 
     //! GPU リソースを構築
     void buildGPUResources();
@@ -126,4 +126,5 @@ private:
     DebugMode m_debugMode = DebugMode::None;
     TransformComponent* m_transform = nullptr;
     std::unique_ptr<Model> m_model;
+    std::string m_modelPath;
 };

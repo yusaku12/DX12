@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "ModelResource.h"
+#include "ModelFlatBuffer.h"
 
 ModelResource::~ModelResource()
 {
@@ -291,4 +292,9 @@ void ModelResource::bindGpuMesh(ID3D12GraphicsCommandList* cmd, size_t meshIndex
     const auto& gpuMesh = m_gpuMeshes[meshIndex];
     if (gpuMesh.vb) gpuMesh.vb->bind(cmd);
     if (gpuMesh.ib) gpuMesh.ib->bind(cmd);
+}
+
+bool ModelResource::saveFlatBuffer(const std::filesystem::path& filePath) const
+{
+    return ModelFlatBuffer::save(filePath, m_model);
 }

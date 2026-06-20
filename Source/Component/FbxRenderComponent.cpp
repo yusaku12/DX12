@@ -4,11 +4,12 @@
 #include "Editor/EditorContext.h"
 
 FbxRenderComponent::FbxRenderComponent(const std::string& fbxPath)
+    : m_modelPath(fbxPath)
 {
-    // fbxを読み込み
-    if (loadFbx(fbxPath))
+    // モデルを読み込み
+    if (loadModelAsset(fbxPath))
     {
-        LOG_INFO("[FbxRenderComponent] Loaded FBX: %s", fbxPath.c_str());
+        LOG_INFO("[FbxRenderComponent] Loaded model: %s", fbxPath.c_str());
     }
     else
     {
@@ -181,7 +182,7 @@ void FbxRenderComponent::renderAABB()
     DebugPrimitive::Instance().drawBox(boxWorld, extents, color);
 }
 
-bool FbxRenderComponent::loadFbx(const std::string& fbxPath)
+bool FbxRenderComponent::loadModelAsset(const std::string& fbxPath)
 {
     auto fbx = std::make_unique<FbxLoad>();
 
@@ -217,10 +218,10 @@ void FbxRenderComponent::buildGPUResources()
     createMaterialCBV();
 
     // PSO（ソリッド + ワイヤーフレーム + GBuffer + シャドウ深度）
-    m_solidPSOKey     = createPSO(RasterizerState::CULL_CLOCKWISE);
+    m_solidPSOKey = createPSO(RasterizerState::CULL_CLOCKWISE);
     m_wireframePSOKey = createPSO(RasterizerState::WIRE_FRAME);
-    m_gbufferPSOKey   = createGBufferPSO();
-    m_shadowPSOKey    = createShadowDepthPSO();
+    m_gbufferPSOKey = createGBufferPSO();
+    m_shadowPSOKey = createShadowDepthPSO();
 }
 
 void FbxRenderComponent::createMaterialCBV()
@@ -315,16 +316,16 @@ size_t FbxRenderComponent::createGBufferPSO()
 size_t FbxRenderComponent::createShadowDepthPSO()
 {
     PSOCreator::PSOData psoData{};
-    psoData.rootSignatureType  = RootSignatureType::ShadowDepth;
-    psoData.vsShaderId         = ShaderID::ShadowDepthVS;
-    psoData.psShaderId         = ShaderID::ShadowDepthPS;
-    psoData.rasterizerState    = RasterizerState::CULL_CLOCKWISE;
-    psoData.blendState         = BlendState::OPAQUE;
-    psoData.depthStencilState  = DepthStencilState::DEPTH_DEFALT;
-    psoData.topologyType       = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    psoData.inputLayout        = getInputLayout();
-    psoData.depthOnly          = true;
-    psoData.dsvFormat          = DXGI_FORMAT_D32_FLOAT;
+    psoData.rootSignatureType = RootSignatureType::ShadowDepth;
+    psoData.vsShaderId = ShaderID::ShadowDepthVS;
+    psoData.psShaderId = ShaderID::ShadowDepthPS;
+    psoData.rasterizerState = RasterizerState::CULL_CLOCKWISE;
+    psoData.blendState = BlendState::OPAQUE;
+    psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
+    psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    psoData.inputLayout = getInputLayout();
+    psoData.depthOnly = true;
+    psoData.dsvFormat = DXGI_FORMAT_D32_FLOAT;
     return PSOCreator::Instance().registerPSO(psoData);
 }
 
@@ -348,7 +349,7 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
         {
             for (size_t i = 0; i < mesh.nodeIndices.size(); ++i)
             {
-                const Matrix worldTransform  = m_model->getBone().at(mesh.nodeIndices.at(i)).worldTransform;
+                const Matrix worldTransform = m_model->getBone().at(mesh.nodeIndices.at(i)).worldTransform;
                 const Matrix offsetTransform = mesh.offsetTransforms.at(i);
                 modelCBData.boneTransforms[i] = offsetTransform * worldTransform;
             }
@@ -807,5 +808,25 @@ void FbxRenderComponent::imguiDebugPanel()
 
 void FbxRenderComponent::imguiExportPanel()
 {
-    ImGui::TextDisabled(reinterpret_cast<const char*>(u8"エクスポート機能は準備中です"));
+    if (m_modelPath.empty())
+    {
+        ImGui::TextDisabled(reinterpret_cast<const char*>(u8"エクスポート先を決定できません"));
+        return;
+    }
+
+    std::filesystem::path exportPath(m_modelPath);
+    exportPath.replace_extension(".mdl");
+
+    ImGui::Text("%s", exportPath.string().c_str());
+    if (ImGui::Button(reinterpret_cast<const char*>(u8"FlatBuffersへ書き出し")))
+    {
+        if (m_model && m_model->getResource()->saveFlatBuffer(exportPath))
+        {
+            LOG_INFO("[FbxRenderComponent] Exported model cache: %s", exportPath.string().c_str());
+        }
+        else
+        {
+            LOG_ERROR("[FbxRenderComponent] Failed to export model cache: %s", exportPath.string().c_str());
+        }
+    }
 }

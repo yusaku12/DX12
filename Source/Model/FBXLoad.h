@@ -36,6 +36,9 @@ private:
     //! アニメーションデータを読み込み
     void loadAnimations(FbxScene* fbxScene, const char* name, bool append);
 
+    //! FlatBuffers 形式のモデルを読み込み
+    bool loadFlatBuffer(const char* filename);
+
     //! 移動値を右手座標系から左手座標系へ変換する
     void convertTranslationFromRHtoLH(Vector3& translate);
 

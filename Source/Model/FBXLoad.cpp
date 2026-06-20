@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "FbxLoad.h"
+#include "ModelFlatBuffer.h"
 
 //! FbxDouble2 → XMFLOAT2
 inline Vector2 FbxDouble2ToFloat2(const FbxDouble2& fbxValue)
@@ -71,14 +72,44 @@ inline Matrix FbxAMatrixToFloat4x4(const FbxAMatrix& fbxValue)
 
 bool FbxLoad::load(const char* filename)
 {
+    if (filename == nullptr || filename[0] == '\0')
+    {
+        return false;
+    }
+
     // ディレクトリパス取得
     char drive[32], dir[256], dirname[256];
     ::_splitpath_s(filename, drive, sizeof(drive), dir, sizeof(dir), nullptr, 0, nullptr, 0);
     ::_makepath_s(dirname, sizeof(dirname), drive, dir, nullptr, nullptr);
 
     const char* ext = strrchr(filename, '.');
+    if (ext == nullptr)
+    {
+        return false;
+    }
+
+    if (::_stricmp(ext, ".mdl") == 0)
+    {
+        return loadFlatBuffer(filename);
+    }
+
     if (::_stricmp(ext, ".fbx") == 0)
     {
+        const std::filesystem::path sourcePath(filename);
+        std::filesystem::path cachePath = sourcePath;
+        cachePath.replace_extension(".mdl");
+
+        std::error_code ec;
+        const bool cacheExists = std::filesystem::exists(cachePath, ec);
+        const bool sourceExists = std::filesystem::exists(sourcePath, ec);
+        if (cacheExists && (!sourceExists || std::filesystem::last_write_time(cachePath, ec) >= std::filesystem::last_write_time(sourcePath, ec)))
+        {
+            if (!ec && loadFlatBuffer(cachePath.string().c_str()))
+            {
+                return true;
+            }
+        }
+
         // FBXのファイルパスはUTF-8にする必要がある
         char fbxFilename[256];
         stringToUTF8(filename, fbxFilename, sizeof(fbxFilename));
@@ -133,9 +164,30 @@ bool FbxLoad::load(const char* filename)
 
         // マネージャ解放
         fbxManager->Destroy();		// 関連するすべてのオブジェクトが解放される
+
+        if (!saveFlatBuffer(cachePath))
+        {
+            LOG_WARN("[FbxLoad] Failed to export cache: %s", cachePath.string().c_str());
+        }
+        else if (!loadFlatBuffer(cachePath.string().c_str()))
+        {
+            LOG_WARN("[FbxLoad] Exported cache but failed to reload: %s", cachePath.string().c_str());
+        }
+
+        return true;
     }
 
-    return true;
+    return false;
+}
+
+bool FbxLoad::loadFlatBuffer(const char* filename)
+{
+    if (filename == nullptr || filename[0] == '\0')
+    {
+        return false;
+    }
+
+    return ModelFlatBuffer::load(std::filesystem::path(filename), m_model);
 }
 
 void FbxLoad::addAnimation(const char* filename)

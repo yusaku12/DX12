@@ -147,6 +147,9 @@ public:
     //! GPUメッシュをバインド
     void bindGpuMesh(ID3D12GraphicsCommandList* cmd, size_t meshIndex) const;
 
+    //! FlatBuffers 形式でモデルを書き出す
+    bool saveFlatBuffer(const std::filesystem::path& filePath) const;
+
     //! テクスチャを置き換える
     bool replaceTexture(size_t materialIndex, TextureType texType, const std::wstring& newFilePath);
 

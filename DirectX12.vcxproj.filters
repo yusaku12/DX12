@@ -44,6 +44,7 @@
     <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
+    <ClCompile Include="Source\Model\ModelFlatBuffer.cpp" />
     <ClCompile Include="Source\Model\FbxLoad.cpp" />
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
@@ -134,6 +135,9 @@
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Math\SimpleMath.h">
+      <Filter>�w�b�_�[ �t�@�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Model\ModelFlatBuffer.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\pch.h">

@@ -99,6 +99,7 @@
     <ClCompile Include="Source\Input\InputManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Math\SimpleMath.cpp" />
+    <ClCompile Include="Source\Model\ModelFlatBuffer.cpp" />
     <ClCompile Include="Source\Model\FbxLoad.cpp" />
     <ClCompile Include="Source\Model\Model.cpp" />
     <ClCompile Include="Source\Model\ModelResource.cpp" />
@@ -211,6 +212,7 @@
     <ClInclude Include="Source\Graphics\TextureManager.h" />
     <ClInclude Include="Source\Input\InputManager.h" />
     <ClInclude Include="Source\Math\SimpleMath.h" />
+    <ClInclude Include="Source\Model\ModelFlatBuffer.h" />
     <ClInclude Include="Source\Model\FbxLoad.h" />
     <ClInclude Include="Source\Model\Model.h" />
     <ClInclude Include="Source\Model\ModelResource.h" />
