@@ -34,13 +34,13 @@ GameObject::~GameObject()
 
 void GameObject::start()
 {
+    m_started = true;
+
     for (auto& c : m_components)
     {
-        // GameObject とコンポーネントの双方が有効な場合のみ start を呼ぶ
-        if (c && c->isEnabled() && isEnabled())
-            c->start();
+        if (c)
+            c->ensureStarted();
     }
-    m_started = true;
 }
 
 void GameObject::destroy()

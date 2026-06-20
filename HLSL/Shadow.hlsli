@@ -18,56 +18,59 @@ cbuffer ShadowParams : register(b2)
 Texture2DArray         shadowMaps    : register(t5);   //!< 4 スライスのシャドウマップ配列
 SamplerComparisonState shadowSampler : register(s6);   //!< 比較サンプラー（PCF 用）
 
+// FXC の誤警告回避のため、PCF サンプリングはマクロでインライン展開する。
+#define SAMPLE_SHADOW_PCF3X3(_worldPos, _cascade, _result)                                        \
+{                                                                                                  \
+    float4 _shadowNDC = mul(float4((_worldPos), 1.0f), lightViewProj[(_cascade)]);               \
+    _shadowNDC.xyz /= _shadowNDC.w;                                                                \
+    float2 _uv = _shadowNDC.xy * float2(0.5f, -0.5f) + 0.5f;                                      \
+    if (any(_uv < 0.01f) || any(_uv > 0.99f))                                                      \
+    {                                                                                              \
+        (_result) = 1.0f;                                                                          \
+    }                                                                                              \
+    else                                                                                           \
+    {                                                                                              \
+        float _depth = _shadowNDC.z - shadowBias;                                                  \
+        float _texelSize = 1.0f / 2048.0f;                                                         \
+        float _shadow = 0.0f;                                                                      \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2(-1.0f, -1.0f) * _texelSize, (float)(_cascade)), _depth); \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2( 0.0f, -1.0f) * _texelSize, (float)(_cascade)), _depth); \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2( 1.0f, -1.0f) * _texelSize, (float)(_cascade)), _depth); \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2(-1.0f,  0.0f) * _texelSize, (float)(_cascade)), _depth); \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2( 0.0f,  0.0f) * _texelSize, (float)(_cascade)), _depth); \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2( 1.0f,  0.0f) * _texelSize, (float)(_cascade)), _depth); \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2(-1.0f,  1.0f) * _texelSize, (float)(_cascade)), _depth); \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2( 0.0f,  1.0f) * _texelSize, (float)(_cascade)), _depth); \
+        _shadow += shadowMaps.SampleCmpLevelZero(shadowSampler, float3(_uv + float2( 1.0f,  1.0f) * _texelSize, (float)(_cascade)), _depth); \
+        (_result) = _shadow / 9.0f;                                                                \
+    }                                                                                              \
+}
+
 //! ビュー空間深度からカスケードインデックスを選択
-int selectCascade(float viewDepth)
+int SelectCascadeIndex(float viewDepth)
 {
+    int cascade = CASCADE_COUNT - 1;
+
     [unroll]
     for (int i = 0; i < CASCADE_COUNT; i++)
     {
         if (viewDepth < cascadeSplits[i])
-            return i;
-    }
-    return CASCADE_COUNT - 1;
-}
-
-//! PCF 3×3 シャドウサンプリング
-float sampleShadowPCF(float3 worldPos, int cascade)
-{
-    float4 shadowNDC = mul(float4(worldPos, 1.0f), lightViewProj[cascade]);
-    shadowNDC.xyz   /= shadowNDC.w;
-
-    float2 uv = shadowNDC.xy * float2(0.5f, -0.5f) + 0.5f;
-
-    //! カスケード外は完全明るい
-    if (any(uv < 0.01f) || any(uv > 0.99f))
-        return 1.0f;
-
-    float  depth     = shadowNDC.z - shadowBias;
-    float  texelSize = 1.0f / 2048.0f;
-    float  shadow    = 0.0f;
-
-    [unroll]
-    for (int x = -1; x <= 1; x++)
-    {
-        [unroll]
-        for (int y = -1; y <= 1; y++)
         {
-            shadow += shadowMaps.SampleCmpLevelZero(
-                shadowSampler,
-                float3(uv + float2(x, y) * texelSize, (float)cascade),
-                depth);
+            cascade = i;
+            break;
         }
     }
 
-    return shadow / 9.0f;
+    return cascade;
 }
 
 //! 影係数を返す（1.0 = 明るい、0.0 = 完全な影）
 //! viewDepth: カメラからの正の距離（右手系 -viewPos.z）
 float computeShadow(float3 worldPos, float viewDepth)
 {
-    int   cascade = selectCascade(viewDepth);
-    float lit     = sampleShadowPCF(worldPos, cascade);
+    int   cascade = SelectCascadeIndex(viewDepth);
+    float lit     = 1.0f;
+    SAMPLE_SHADOW_PCF3X3(worldPos, cascade, lit);
 
     // カスケードのつなぎ目を滑らかにするブレンド（Unity/Unreal高品質仕様）
     if (cascade < CASCADE_COUNT - 1)
@@ -76,16 +79,19 @@ float computeShadow(float3 worldPos, float viewDepth)
         float prevSplit = (cascade == 0) ? 0.1f : cascadeSplits[cascade - 1]; // ニアプレーン or 前の境界
 
         // 分割距離の最後の15%の領域で次のカスケードとブレンドする
-        float blendRange = (splitDist - prevSplit) * 0.15f; 
+        float blendRange = max((splitDist - prevSplit) * 0.15f, 1.0e-4f);
         float blendStart = splitDist - blendRange;
 
         if (viewDepth > blendStart)
         {
             float blendFactor = (viewDepth - blendStart) / blendRange;
-            float nextLit     = sampleShadowPCF(worldPos, cascade + 1);
+            float nextLit = 1.0f;
+            SAMPLE_SHADOW_PCF3X3(worldPos, cascade + 1, nextLit);
             lit = lerp(lit, nextLit, blendFactor);
         }
     }
 
     return lerp(1.0f, lit, shadowStrength);
 }
+
+#undef SAMPLE_SHADOW_PCF3X3

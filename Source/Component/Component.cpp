@@ -2,9 +2,20 @@
 #include "Component.h"
 #include "GameObject\GameObject.h"
 
+void Component::ensureStarted()
+{
+    if (m_started) return;
+    if (!isActiveInHierarchy()) return;
+
+    start();
+    m_started = true;
+}
+
 void Component::onUpdate()
 {
     if (!isActiveInHierarchy()) return;
+
+    ensureStarted();
 
     // 派生クラスの update を呼ぶ
     update();
@@ -13,6 +24,8 @@ void Component::onUpdate()
 void Component::onLateUpdate()
 {
     if (!isActiveInHierarchy()) return;
+
+    ensureStarted();
 
     // 派生クラスの lateUpdate を呼ぶ
     lateUpdate();

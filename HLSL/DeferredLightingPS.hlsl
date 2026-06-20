@@ -73,7 +73,7 @@ float3 EnvBRDFApprox(float3 f0, float roughness, float NdotV)
 float4 PS(PostEffectVSOut input) : SV_TARGET
 {
     // テクスチャ
-    float3 albedo = sceneTexture.Sample(samplerStates[LINEAR_WRAP], input.uv);
+    float3 albedo = sceneTexture.Sample(samplerStates[LINEAR_WRAP], input.uv).rgb;
     float3 normal = normalRoughnessTex.Sample(samplerStates[LINEAR_WRAP], input.uv).xyz * 2.0f - 1.0f;
     normal = normalize(normal);
     float3 worldPos = worldPosAoTex.Sample(samplerStates[LINEAR_WRAP], input.uv).xyz;

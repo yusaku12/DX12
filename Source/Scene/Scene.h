@@ -24,6 +24,9 @@ public:
     //! シーン毎のデバック描画
     virtual void debugDraw() = 0;
 
+    //! シーン描画のマルチスレッド有効状態
+    bool isMultiThreadedRenderingEnabled() const { return m_useMultiThreadedRendering; }
+
 private:
 
     bool m_useMultiThreadedRendering = true;

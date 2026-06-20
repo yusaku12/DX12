@@ -96,29 +96,10 @@ void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
     auto comps = copyComponents();
     if (comps.empty()) return;
 
-    // メインカメラの視錐台（Frustum）を取得してカリング
-    DirectX::BoundingFrustum cameraFrustum;
-    bool hasFrustum = false;
-    //if (CameraComponent* cam = CameraManager::Instance().getMainCamera())
-    //{
-    //    DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, cam->getProjection());
-    //    cameraFrustum.Transform(cameraFrustum, cam->getView().Invert());
-    //    hasFrustum = true;
-    //}
-
     if (kind == RenderPassKind::Default)
     {
         for (auto* comp : comps)
         {
-            Vector3 center, extents;
-            if (hasFrustum && comp->getWorldAABB(center, extents))
-            {
-                DirectX::BoundingBox box(center, extents);
-                if (cameraFrustum.Contains(box) == DirectX::DISJOINT)
-                {
-                    continue; //!< カメラ範囲外のためカリング
-                }
-            }
             comp->render();
         }
         return;
@@ -129,15 +110,6 @@ void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
 
     for (auto* comp : comps)
     {
-        Vector3 center, extents;
-        if (hasFrustum && comp->getWorldAABB(center, extents))
-        {
-            DirectX::BoundingBox box(center, extents);
-            if (cameraFrustum.Contains(box) == DirectX::DISJOINT)
-            {
-                continue; //!< カメラ範囲外のためカリング
-            }
-        }
         executeRender(kind, comp, cmd);
     }
 }
@@ -149,29 +121,10 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
     auto comps = copyComponents();
     if (comps.empty()) return;
 
-    // メインカメラの視錐台（Frustum）を取得して事前カリング
-    DirectX::BoundingFrustum cameraFrustum;
-    bool hasFrustum = false;
-    //if (CameraComponent* cam = CameraManager::Instance().getMainCamera())
-    //{
-    //    DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, cam->getProjection());
-    //    cameraFrustum.Transform(cameraFrustum, cam->getView().Invert());
-    //    hasFrustum = true;
-    //}
-
     std::vector<IRenderComponent*> activeComps;
     activeComps.reserve(comps.size());
     for (auto* comp : comps)
     {
-        Vector3 center, extents;
-        if (hasFrustum && comp->getWorldAABB(center, extents))
-        {
-            DirectX::BoundingBox box(center, extents);
-            if (cameraFrustum.Contains(box) == DirectX::DISJOINT)
-            {
-                continue; //!< カメラ範囲外のためタスク起動前にカリング
-            }
-        }
         activeComps.push_back(comp);
     }
 

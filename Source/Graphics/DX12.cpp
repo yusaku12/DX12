@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Render/RenderPassContextFactory.h"
 #include "GameObject\GameObject.h"
 #include "Component\PostEffectComponent.h"
 #include "Camera/CameraComponent.h"
@@ -760,12 +761,9 @@ void DX12::prepareBackBufferForImGui()
     m_postCommandAllocator->Reset();
     m_graphicsCommandList->Reset(m_postCommandAllocator.Get(), nullptr);
 
-    RenderPassContext context{};
-    context.renderPath = CameraManager::Instance().getMainRenderPath();
-    context.passMask = CameraManager::Instance().getMainRenderPassMask();
-    context.useMultiThreaded = RenderManager::Instance().isMultiThreadedEnabled();
-    context.sceneSrvIndex = m_sceneSrvIndex;
-    context.finalSrvIndex = m_sceneSrvIndex;
+    RenderPassContext context = BuildRenderPassContext(
+        SceneManager::Instance().isCurrentSceneMultiThreadedRenderingEnabled(),
+        m_sceneSrvIndex);
 
     RenderPipeline::Instance().execute(context, RenderPassStage::BeforePostEffect);
 

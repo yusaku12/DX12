@@ -38,6 +38,9 @@ public:
     //! インスペクタ表示用（派生クラスでオーバーライド）
     virtual void inspectGUI() {};
 
+    //! start を必要時に 1 回だけ実行する（有効状態のときのみ）
+    void ensureStarted();
+
     //! 有効でない場合は何もしない
     void onUpdate();
 
@@ -65,4 +68,5 @@ protected:
     friend class GameObject;
     GameObject* m_gameObject = nullptr; //!< 所属先
     bool m_enabled = true;
+    bool m_started = false;
 };

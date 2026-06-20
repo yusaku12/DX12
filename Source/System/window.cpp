@@ -5,62 +5,7 @@ Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
     , m_dx12(hwnd)
 {
-    // DescriptorHeapManager初期化
-    DescriptorHeapManager::Instance().initialize();
-
-    // DX12初期化
-    m_dx12.initialize();
-
-    // GBufferRenderTargets初期化
-    GBufferRenderTargets::Instance().initialize();
-
-    // CommandListPool初期化
-    CommandListPool::Instance().initialize(m_dx12.getDevice(), m_dx12.getFence(), 4);
-
-    // imgui初期化
-    IMGUI_CTRL_INITIALIZE();
-
-    // シェーダーマネージャー初期化
-    ShaderManager::Instance().initialize();
-
-    // PiplineState初期化
-    PiplineState::Instance().initialize();
-
-    // RootSignatureManager初期化
-    RootSignatureManager::Instance().initialize();
-
-    // IBL 初期化
-    IBLManager::Instance().initialize();
-
-    // ポストエフェクト用ピンポンRT初期化
-    PostEffectRenderTargets::Instance().initialize();
-
-    // Deferred Renderer 初期化
-    DeferredRenderer::Instance().initialize();
-
-    // シャドウマップレンダラー初期化
-    ShadowMapRenderer::Instance().initialize();
-
-    // TimeManager初期化
-    TimeManager::Instance().initialize();
-
-    // CameraManager初期化
-    CameraManager::Instance().initialize();
-
-    // オーディオマネージャー初期化
-    AudioManager::Instance().initialize();
-
-    // デバックプリミティブ描画初期化
-    DebugPrimitive::Instance().initialize();
-
-    // RenderPipeline初期化
-    RenderPipeline::Instance().initialize();
-
-    // 物理マネージャー初期化
-    PhysicsWorld::Instance().initialize();
-
-    // シーンマネージャー初期化
-    SceneManager::Instance().initialize();
+    initializeEngineSubsystems();
 }
 
 Window::~Window()
@@ -68,29 +13,72 @@ Window::~Window()
     // GPU 完了待ち
     m_dx12.safeGPUWait();
 
-    // シーン終了処理
-    SceneManager::Instance().shutdown();
+    shutdownEngineSubsystems();
+}
 
-    // GameObject 破棄
+void Window::initializeEngineSubsystems()
+{
+    if (m_engineSubsystemsInitialized)
+    {
+        return;
+    }
+
+    // GPU/Descriptor 系の基盤を先に構築
+    DescriptorHeapManager::Instance().initialize();
+    m_dx12.initialize();
+    GBufferRenderTargets::Instance().initialize();
+    CommandListPool::Instance().initialize(m_dx12.getDevice(), m_dx12.getFence(), 4);
+
+    // デバッグ/UI 系
+    IMGUI_CTRL_INITIALIZE();
+
+    // グラフィックス依存マネージャー群
+    ShaderManager::Instance().initialize();
+    PiplineState::Instance().initialize();
+    RootSignatureManager::Instance().initialize();
+    IBLManager::Instance().initialize();
+    PostEffectRenderTargets::Instance().initialize();
+    DeferredRenderer::Instance().initialize();
+    ShadowMapRenderer::Instance().initialize();
+    RenderPipeline::Instance().initialize();
+
+    // コアランタイム系
+    TimeManager::Instance().initialize();
+    CameraManager::Instance().initialize();
+    AudioManager::Instance().initialize();
+    DebugPrimitive::Instance().initialize();
+    PhysicsWorld::Instance().initialize();
+    SceneManager::Instance().initialize();
+
+    m_engineSubsystemsInitialized = true;
+}
+
+void Window::shutdownEngineSubsystems()
+{
+    if (!m_engineSubsystemsInitialized)
+    {
+        return;
+    }
+
+    // 初期化の逆順で終了処理を行う（shutdown API を持つもののみ）
+
+    // 1) シーン/オブジェクト
+    SceneManager::Instance().shutdown();
     GameObjectRegistry::Instance().shutdown();
 
-    // 描画終了処理
-    RenderManager::Instance().shutdown();
-
-    // CameraManager終了処理
+    // 2) ランタイム系（Scene に依存しうるものから順に停止）
+    PhysicsWorld::Instance().shutdown();
+    DebugPrimitive::Instance().shutdown();
+    AudioManager::Instance().shutdown();
     CameraManager::Instance().shutdown();
+
+    // 3) 描画コンポーネント登録情報の解放
+    RenderManager::Instance().shutdown();
 
     // ImGui がある場合は先に終了処理
     IMGUI_CTRL_FINALIZE();
 
-    // オーディオマネージャー終了処理
-    AudioManager::Instance().shutdown();
-
-    // デバックプリミティブ描画終了処理
-    DebugPrimitive::Instance().shutdown();
-
-    // 物理マネージャー終了処理
-    PhysicsWorld::Instance().shutdown();
+    m_engineSubsystemsInitialized = false;
 }
 
 void Window::update()

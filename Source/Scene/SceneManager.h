@@ -63,6 +63,9 @@ public:
     //! 現在シーン取得
     SceneId getCurrentSceneID() const { return m_currentSceneID; }
 
+    //! 現在シーンのマルチスレッド描画設定取得
+    bool isCurrentSceneMultiThreadedRenderingEnabled() const;
+
 private:
 
     SceneManager() = default;

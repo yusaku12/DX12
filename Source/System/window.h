@@ -28,9 +28,16 @@ public:
 
 private:
 
+    //! エンジンサブシステム初期化
+    void initializeEngineSubsystems();
+
+    //! エンジンサブシステム終了
+    void shutdownEngineSubsystems();
+
     //! タイトルバー更新
     void updateTitleBar();
 
     const HWND m_hwnd;
     DX12 m_dx12;
+    bool m_engineSubsystemsInitialized = false;
 };

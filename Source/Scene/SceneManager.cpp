@@ -156,3 +156,13 @@ bool SceneManager::loadSceneFromFile(const std::filesystem::path& filePath)
 
     return true;
 }
+
+bool SceneManager::isCurrentSceneMultiThreadedRenderingEnabled() const
+{
+    if (!m_currentScene)
+    {
+        return true;
+    }
+
+    return m_currentScene->isMultiThreadedRenderingEnabled();
+}

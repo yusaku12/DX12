@@ -53,8 +53,8 @@ public:
 
         ptr->awake();
 
-        //! すでに start 済みかつ GameObject とコンポーネント双方が有効な場合のみ start を呼ぶ
-        if (m_started && isEnabled() && ptr->isEnabled()) ptr->start();
+        //! すでに start 済みの場合、条件が揃っていれば start を 1 回だけ実行する
+        if (m_started) ptr->ensureStarted();
         return ptr;
     }
 

@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "GameObject\GameObject.h"
 #include "Camera/CameraComponent.h"
+#include "Render/RenderPassContextFactory.h"
 
 void Scene::onExit()
 {
@@ -16,12 +17,9 @@ void Scene::draw()
 {
     RenderManager::Instance().setMultiThreadedEnabled(m_useMultiThreadedRendering);
 
-    RenderPassContext context{};
-    context.renderPath = CameraManager::Instance().getMainRenderPath();
-    context.passMask = CameraManager::Instance().getMainRenderPassMask();
-    context.useMultiThreaded = m_useMultiThreadedRendering;
-    context.sceneSrvIndex = DX12::Instance().getSceneSrvIndex();
-    context.finalSrvIndex = context.sceneSrvIndex;
+    RenderPassContext context = BuildRenderPassContext(
+        m_useMultiThreadedRendering,
+        DX12::Instance().getSceneSrvIndex());
 
     RenderPipeline::Instance().execute(context, RenderPassStage::Scene);
 }
