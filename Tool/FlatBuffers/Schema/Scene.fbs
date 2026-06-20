@@ -1,0 +1,133 @@
+namespace scene;
+
+struct vec3 {
+    x:float;
+    y:float;
+    z:float;
+}
+
+struct vec4 {
+    x:float;
+    y:float;
+    z:float;
+    w:float;
+}
+
+table TransformComponentData {
+    position:vec3;
+    rotation:vec4;
+    scale:vec3;
+}
+
+table CameraComponentData {
+    fov:float;
+    near_z:float;
+    far_z:float;
+    depth:int;
+    render_path:int;
+    render_pass_mask:uint;
+}
+
+table FreeCameraComponentData {
+    yaw:float;
+    pitch:float;
+    move_speed:float;
+    mouse_sensitivity:float;
+}
+
+table FbxRenderComponentData {
+    model_path:string;
+}
+
+table RigidbodyComponentData {
+    body_type:int;
+    is_kinematic:bool;
+    mass:float;
+    linear_drag:float;
+    angular_drag:float;
+    use_gravity:bool;
+    freeze_pos_x:bool;
+    freeze_pos_y:bool;
+    freeze_pos_z:bool;
+    freeze_rot_x:bool;
+    freeze_rot_y:bool;
+    freeze_rot_z:bool;
+}
+
+table ColliderComponentData {
+    shape_type:int;
+    center:vec3;
+    is_trigger:bool;
+    debug_draw:bool;
+    box_half_extents:vec3;
+    sphere_radius:float;
+    capsule_radius:float;
+    capsule_half_height:float;
+}
+
+table PostEffectEntry {
+    type_name:string;
+    enabled:bool;
+    priority:int;
+}
+
+table PostEffectComponentData {
+    volume_priority:int;
+    weight:float;
+    blend_distance:float;
+    is_global:bool;
+    effects:[PostEffectEntry];
+}
+
+table SkyboxComponentData {
+    cubemap_path:string;
+    exposure:float;
+    rotation_degrees:float;
+    tint:vec3;
+}
+
+table GpuEffectComponentData {
+    texture_path:string;
+    max_particles:uint;
+}
+
+table AnimationComponentData {
+    state_machine_enabled:bool;
+    speed:float;
+}
+
+union ComponentPayload {
+    TransformComponentData,
+    CameraComponentData,
+    FreeCameraComponentData,
+    FbxRenderComponentData,
+    RigidbodyComponentData,
+    ColliderComponentData,
+    PostEffectComponentData,
+    SkyboxComponentData,
+    GpuEffectComponentData,
+    AnimationComponentData
+}
+
+table SerializedComponent {
+    type_name:string;
+    enabled:bool;
+    payload:ComponentPayload;
+}
+
+table SerializedGameObject {
+    name:string;
+    enabled:bool;
+    parent_index:int;
+    tags:[int];
+    components:[SerializedComponent];
+}
+
+table SerializedScene {
+    version:uint;
+    scene_id:int;
+    objects:[SerializedGameObject];
+}
+
+root_type SerializedScene;
+file_identifier "SCN0";

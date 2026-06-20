@@ -46,6 +46,12 @@ public:
     //! 回転設定（度）
     void setRotationDegrees(float value) { m_rotationDegrees = value; }
 
+    //! 保存用取得API
+    const std::wstring& getCubemapPath() const { return m_cubemapPath; }
+    float getExposure() const { return m_exposure; }
+    float getRotationDegrees() const { return m_rotationDegrees; }
+    const Vector3& getTint() const { return m_tint; }
+
 private:
 
     //! 頂点

@@ -90,6 +90,7 @@
     <ClCompile Include="Source\PostEffect\MotionBlurEffect.cpp" />
     <ClCompile Include="Source\Component\GpuEffectComponent.cpp" />
     <ClCompile Include="Source\Scene\ParticleScene.cpp" />
+    <ClCompile Include="Source\Scene\SceneFlatBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -198,6 +199,9 @@
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\Scene.h">
+      <Filter>�w�b�_�[ �t�@�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\SceneFlatBuffer.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\SceneManager.h">

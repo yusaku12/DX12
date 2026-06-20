@@ -54,6 +54,12 @@ public:
     //! デバック機能
     void debugOption();
 
+    //! 現在シーンの実行状態を保存
+    bool saveCurrentScene(const std::filesystem::path& filePath) const;
+
+    //! シーンファイルから実行状態を読み込み
+    bool loadSceneFromFile(const std::filesystem::path& filePath);
+
     //! 現在シーン取得
     SceneId getCurrentSceneID() const { return m_currentSceneID; }
 

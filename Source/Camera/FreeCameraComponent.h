@@ -21,6 +21,16 @@ public:
     //! インスペクタ表示（カメラプロパティ＋フリーカメラ設定）
     void inspectGUI() override;
 
+    //! 保存・復元用パラメータ
+    float getYaw() const { return m_yaw; }
+    float getPitch() const { return m_pitch; }
+    float getMoveSpeed() const { return m_moveSpeed; }
+    float getMouseSensitivity() const { return m_mouseSensitivity; }
+    void setYaw(float yaw) { m_yaw = yaw; }
+    void setPitch(float pitch) { m_pitch = pitch; }
+    void setMoveSpeed(float speed) { m_moveSpeed = speed; }
+    void setMouseSensitivity(float sensitivity) { m_mouseSensitivity = sensitivity; }
+
 private:
 
     float m_yaw = DirectX::XMConvertToRadians(180.0f); //!< 水平角（左右）

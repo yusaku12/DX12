@@ -78,6 +78,12 @@ public:
     void setDebugDraw(bool enable) { m_debugDraw = enable; }
     bool isDebugDraw() const { return m_debugDraw; }
 
+    //! 形状パラメータ取得（シリアライズ用）
+    const Vector3& getBoxHalfExtents() const { return m_boxHalfExtents; }
+    float getSphereRadius() const { return m_sphereRadius; }
+    float getCapsuleRadius() const { return m_capsuleRadius; }
+    float getCapsuleHalfHeight() const { return m_capsuleHalfHeight; }
+
     //! このコライダーのワールド空間での AABB を取得
     physx::PxBounds3 getBounds() const;
 

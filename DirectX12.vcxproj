@@ -124,6 +124,7 @@
     <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
     <ClCompile Include="Source\Scene\ParticleScene.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
+    <ClCompile Include="Source\Scene\SceneFlatBuffer.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
     <ClCompile Include="Source\System\DebugPrimitive.cpp" />
@@ -236,6 +237,7 @@
     <ClInclude Include="Source\Scene\ModelEditorScene.h" />
     <ClInclude Include="Source\Scene\ParticleScene.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
+    <ClInclude Include="Source\Scene\SceneFlatBuffer.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
     <ClInclude Include="Source\System\DebugPrimitive.h" />

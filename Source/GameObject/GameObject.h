@@ -106,6 +106,9 @@ public:
     //! 子オブジェクト一覧の取得
     const std::vector<GameObject*>& getChildren() const { return m_children; }
 
+    //! 所有しているコンポーネント一覧の取得（シリアライズ用）
+    const std::vector<std::unique_ptr<Component>>& getComponents() const { return m_components; }
+
     //! タグを追加する
     void addTag(Tag tag) { m_tags.insert(tag); }
 

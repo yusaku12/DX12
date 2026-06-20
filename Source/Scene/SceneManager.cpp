@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "ModelEditorScene.h"
 #include "ParticleScene.h"
+#include "SceneFlatBuffer.h"
 
 void SceneManager::initialize()
 {
@@ -66,6 +67,28 @@ void SceneManager::debugOption()
 
     ImGui::Separator();
 
+    if (ImGui::Button("Save Scene (.scn)"))
+    {
+        std::wstring outPath;
+        if (Dialog::saveFile(outPath, L"Save Scene", L"", L"scn") == DialogResult::OK && !outPath.empty())
+        {
+            saveCurrentScene(std::filesystem::path(outPath));
+        }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Load Scene (.scn)"))
+    {
+        std::vector<std::wstring> paths;
+        if (Dialog::openFile(paths, L"Load Scene", L"", false) == DialogResult::OK && !paths.empty())
+        {
+            loadSceneFromFile(std::filesystem::path(paths.front()));
+        }
+    }
+
+    ImGui::Separator();
+
     // enum 全列挙
     for (auto id : magic_enum::enum_values<SceneId>())
     {
@@ -109,4 +132,27 @@ void SceneManager::changeSceneInternal()
 
     m_nextScene.reset();
     m_requestChange = false;
+}
+
+bool SceneManager::saveCurrentScene(const std::filesystem::path& filePath) const
+{
+    return SceneFlatBuffer::save(filePath, m_currentSceneID);
+}
+
+bool SceneManager::loadSceneFromFile(const std::filesystem::path& filePath)
+{
+    SceneId fileSceneId = m_currentSceneID;
+    const bool loaded = SceneFlatBuffer::load(filePath, m_currentSceneID, &fileSceneId);
+    if (!loaded)
+    {
+        return false;
+    }
+
+    // ファイルの SceneId が現在と異なる場合は次回保存時に保持できるよう現在IDだけ更新する
+    if (fileSceneId >= SceneId::ModelEditor && fileSceneId < SceneId::MAX)
+    {
+        m_currentSceneID = fileSceneId;
+    }
+
+    return true;
 }

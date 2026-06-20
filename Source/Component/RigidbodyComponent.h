@@ -108,6 +108,14 @@ public:
     //! Transform 取得
     TransformComponent* getTransform() const { return m_transform; }
 
+    //! 軸ロック状態取得（シリアライズ用）
+    bool getFreezePositionX() const { return m_freezePosX; }
+    bool getFreezePositionY() const { return m_freezePosY; }
+    bool getFreezePositionZ() const { return m_freezePosZ; }
+    bool getFreezeRotationX() const { return m_freezeRotX; }
+    bool getFreezeRotationY() const { return m_freezeRotY; }
+    bool getFreezeRotationZ() const { return m_freezeRotZ; }
+
 private:
 
     //! PhysX アクターの作成

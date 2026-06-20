@@ -49,6 +49,10 @@ public:
     //! 最大粒子数設定
     void setMaxParticles(UINT maxParticles);
 
+    //! 保存用取得API
+    const std::wstring& getTexturePath() const { return m_texturePath; }
+    UINT getMaxParticles() const { return m_maxParticles; }
+
 private:
     enum class EmitterType : UINT
     {

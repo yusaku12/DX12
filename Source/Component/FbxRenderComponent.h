@@ -43,6 +43,9 @@ public:
     //! モデル取得
     Model* getModel() const { return m_model.get(); }
 
+    //! モデルパス取得（シリアライズ用）
+    const std::string& getModelPath() const { return m_modelPath; }
+
 private:
 
     //! デバッグ描画モード

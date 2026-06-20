@@ -128,6 +128,9 @@ public:
     //! デバッグ統計取得
     const DebugStats& getDebugStats() const { return m_debug; }
 
+    //! エフェクト一覧取得（シリアライズ用）
+    const std::vector<std::unique_ptr<PostEffectBase>>& getEffects() const { return m_effects; }
+
 private:
 
     //! 優先度順にソート
