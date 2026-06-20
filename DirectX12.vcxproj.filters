@@ -91,6 +91,7 @@
     <ClCompile Include="Source\Component\GpuEffectComponent.cpp" />
     <ClCompile Include="Source\Scene\ParticleScene.cpp" />
     <ClCompile Include="Source\Scene\SceneFlatBuffer.cpp" />
+    <ClCompile Include="Source\Scene\PrefabFlatBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -202,6 +203,9 @@
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\SceneFlatBuffer.h">
+      <Filter>�w�b�_�[ �t�@�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\PrefabFlatBuffer.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Scene\SceneManager.h">

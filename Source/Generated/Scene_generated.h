@@ -1321,7 +1321,8 @@ struct SerializedGameObject FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
     VT_ENABLED = 6,
     VT_PARENT_INDEX = 8,
     VT_TAGS = 10,
-    VT_COMPONENTS = 12
+    VT_COMPONENTS = 12,
+    VT_PREFAB_ASSET_PATH = 14
   };
   const ::flatbuffers::String *name() const {
     return GetPointer<const ::flatbuffers::String *>(VT_NAME);
@@ -1338,6 +1339,9 @@ struct SerializedGameObject FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
   const ::flatbuffers::Vector<::flatbuffers::Offset<scene::SerializedComponent>> *components() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<scene::SerializedComponent>> *>(VT_COMPONENTS);
   }
+  const ::flatbuffers::String *prefab_asset_path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_PREFAB_ASSET_PATH);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1350,6 +1354,8 @@ struct SerializedGameObject FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
            VerifyOffset(verifier, VT_COMPONENTS) &&
            verifier.VerifyVector(components()) &&
            verifier.VerifyVectorOfTables(components()) &&
+           VerifyOffset(verifier, VT_PREFAB_ASSET_PATH) &&
+           verifier.VerifyString(prefab_asset_path()) &&
            verifier.EndTable();
   }
 };
@@ -1373,6 +1379,9 @@ struct SerializedGameObjectBuilder {
   void add_components(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::SerializedComponent>>> components) {
     fbb_.AddOffset(SerializedGameObject::VT_COMPONENTS, components);
   }
+  void add_prefab_asset_path(::flatbuffers::Offset<::flatbuffers::String> prefab_asset_path) {
+    fbb_.AddOffset(SerializedGameObject::VT_PREFAB_ASSET_PATH, prefab_asset_path);
+  }
   explicit SerializedGameObjectBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1390,8 +1399,10 @@ inline ::flatbuffers::Offset<SerializedGameObject> CreateSerializedGameObject(
     bool enabled = false,
     int32_t parent_index = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<int32_t>> tags = 0,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::SerializedComponent>>> components = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::SerializedComponent>>> components = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> prefab_asset_path = 0) {
   SerializedGameObjectBuilder builder_(_fbb);
+  builder_.add_prefab_asset_path(prefab_asset_path);
   builder_.add_components(components);
   builder_.add_tags(tags);
   builder_.add_parent_index(parent_index);
@@ -1406,17 +1417,20 @@ inline ::flatbuffers::Offset<SerializedGameObject> CreateSerializedGameObjectDir
     bool enabled = false,
     int32_t parent_index = 0,
     const std::vector<int32_t> *tags = nullptr,
-    const std::vector<::flatbuffers::Offset<scene::SerializedComponent>> *components = nullptr) {
+    const std::vector<::flatbuffers::Offset<scene::SerializedComponent>> *components = nullptr,
+    const char *prefab_asset_path = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   auto tags__ = tags ? _fbb.CreateVector<int32_t>(*tags) : 0;
   auto components__ = components ? _fbb.CreateVector<::flatbuffers::Offset<scene::SerializedComponent>>(*components) : 0;
+  auto prefab_asset_path__ = prefab_asset_path ? _fbb.CreateString(prefab_asset_path) : 0;
   return scene::CreateSerializedGameObject(
       _fbb,
       name__,
       enabled,
       parent_index,
       tags__,
-      components__);
+      components__,
+      prefab_asset_path__);
 }
 
 struct SerializedScene FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {

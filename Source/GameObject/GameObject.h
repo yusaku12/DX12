@@ -124,6 +124,12 @@ public:
     //! タグ一覧の取得
     const std::unordered_set<Tag>& getTags() const { return m_tags; }
 
+    //! Prefabアセットパスの設定/取得
+    void setPrefabAssetPath(const std::string& path) { m_prefabAssetPath = path; }
+    const std::string& getPrefabAssetPath() const { return m_prefabAssetPath; }
+    void clearPrefabAssetPath() { m_prefabAssetPath.clear(); }
+    bool isPrefabInstanceRoot() const { return !m_prefabAssetPath.empty(); }
+
 private:
 
     bool m_started = false;
@@ -134,4 +140,5 @@ private:
     GameObject* m_parent = nullptr;
     std::vector<GameObject*> m_children;
     std::unordered_set<Tag> m_tags; //!< タグ一覧
+    std::string m_prefabAssetPath; //!< Prefabアセット参照（インスタンスルートのみ保持）
 };

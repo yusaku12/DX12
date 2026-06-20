@@ -2,6 +2,26 @@
 #include "HierarchyWindow.h"
 #include "EditorContext.h"
 #include "GameObject\GameObject.h"
+#include "Scene\PrefabFlatBuffer.h"
+
+namespace
+{
+    bool isDescendantOf(GameObject* node, GameObject* ancestor)
+    {
+        GameObject* current = node;
+        while (current)
+        {
+            if (current == ancestor)
+            {
+                return true;
+            }
+
+            current = current->getParent();
+        }
+
+        return false;
+    }
+}
 
 static void drawGameObjectNode(GameObject* obj)
 {
@@ -33,6 +53,54 @@ static void drawGameObjectNode(GameObject* obj)
     // Item 右クリックメニュー
     if (ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonRight))
     {
+        if (ImGui::MenuItem("Save As Prefab..."))
+        {
+            std::wstring outPath;
+            if (Dialog::saveFile(outPath, L"Save Prefab", L"", L"prefab") == DialogResult::OK && !outPath.empty())
+            {
+                PrefabFlatBuffer::save(std::filesystem::path(outPath), obj);
+            }
+        }
+
+        if (ImGui::MenuItem("Instantiate Prefab As Child..."))
+        {
+            std::vector<std::wstring> paths;
+            if (Dialog::openFile(paths, L"Load Prefab", L"", false) == DialogResult::OK && !paths.empty())
+            {
+                if (GameObject* instance = PrefabFlatBuffer::instantiate(std::filesystem::path(paths.front()), obj))
+                {
+                    g_editor.selectedObject = instance;
+                }
+            }
+        }
+
+        GameObject* prefabRoot = PrefabFlatBuffer::findPrefabRoot(obj);
+        if (prefabRoot)
+        {
+            if (ImGui::MenuItem("Apply Prefab"))
+            {
+                PrefabFlatBuffer::apply(obj);
+            }
+
+            if (ImGui::MenuItem("Revert Prefab"))
+            {
+                const bool selectedInPrefab = isDescendantOf(g_editor.selectedObject, prefabRoot);
+                if (GameObject* replaced = PrefabFlatBuffer::revert(obj))
+                {
+                    if (selectedInPrefab)
+                    {
+                        g_editor.selectedObject = replaced;
+                    }
+                }
+                else if (selectedInPrefab)
+                {
+                    g_editor.selectedObject = nullptr;
+                }
+            }
+        }
+
+        ImGui::Separator();
+
         if (ImGui::MenuItem("Delete"))
         {
             if (g_editor.selectedObject == obj)
@@ -114,6 +182,18 @@ void drawHierarchyWindow()
         if (ImGui::MenuItem("Create Empty"))
         {
             new GameObject("GameObject");
+        }
+
+        if (ImGui::MenuItem("Instantiate Prefab..."))
+        {
+            std::vector<std::wstring> paths;
+            if (Dialog::openFile(paths, L"Load Prefab", L"", false) == DialogResult::OK && !paths.empty())
+            {
+                if (GameObject* instance = PrefabFlatBuffer::instantiate(std::filesystem::path(paths.front()), nullptr))
+                {
+                    g_editor.selectedObject = instance;
+                }
+            }
         }
 
         ImGui::EndPopup();

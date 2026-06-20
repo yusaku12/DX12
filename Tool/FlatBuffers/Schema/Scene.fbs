@@ -121,6 +121,7 @@ table SerializedGameObject {
     parent_index:int;
     tags:[int];
     components:[SerializedComponent];
+    prefab_asset_path:string;
 }
 
 table SerializedScene {

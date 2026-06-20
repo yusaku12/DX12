@@ -1,6 +1,7 @@
 #include "pch.h"
-#include "SceneFlatBuffer.h"
+#include "PrefabFlatBuffer.h"
 
+#include "Generated/Prefab_generated.h"
 #include "Generated/Scene_generated.h"
 
 #include "Camera/CameraComponent.h"
@@ -20,7 +21,7 @@
 
 namespace
 {
-    constexpr uint32_t kSceneVersion = 1;
+    constexpr uint32_t kPrefabVersion = 1;
 
     scene::vec3 toFlatVec3(const Vector3& value)
     {
@@ -30,6 +31,18 @@ namespace
     scene::vec4 toFlatVec4(const Vector4& value)
     {
         return scene::vec4(value.x, value.y, value.z, value.w);
+    }
+
+    std::string normalizeAssetPath(const std::filesystem::path& filePath)
+    {
+        std::error_code ec;
+        const std::filesystem::path relative = std::filesystem::relative(filePath, std::filesystem::current_path(), ec);
+        if (!ec && !relative.empty())
+        {
+            return relative.lexically_normal().generic_string();
+        }
+
+        return filePath.lexically_normal().generic_string();
     }
 
     std::vector<uint8_t> readFileBytes(const std::filesystem::path& filePath)
@@ -84,6 +97,20 @@ namespace
         if (typeName == "DepthOfFieldEffect") return component->addEffect<DepthOfFieldEffect>();
         if (typeName == "MotionBlurEffect") return component->addEffect<MotionBlurEffect>();
         return nullptr;
+    }
+
+    void collectHierarchy(GameObject* root, std::vector<GameObject*>& out)
+    {
+        if (!root || root->isDestroyed())
+        {
+            return;
+        }
+
+        out.push_back(root);
+        for (GameObject* child : root->getChildren())
+        {
+            collectHierarchy(child, out);
+        }
     }
 
     flatbuffers::Offset<scene::SerializedComponent> serializeComponent(flatbuffers::FlatBufferBuilder& builder, Component* component)
@@ -558,7 +585,7 @@ namespace
             }
             if (modelPath.empty())
             {
-                LOG_WARN("[SceneFlatBuffer] Empty model path in FbxRenderComponent");
+                LOG_WARN("[PrefabFlatBuffer] Empty model path in FbxRenderComponent");
                 return nullptr;
             }
             component = gameObject->addComponent<FbxRenderComponent>(modelPath);
@@ -590,7 +617,7 @@ namespace
 
         if (!component)
         {
-            LOG_WARN("[SceneFlatBuffer] Unsupported component type: %s", std::string(typeName).c_str());
+            LOG_WARN("[PrefabFlatBuffer] Unsupported component type: %s", std::string(typeName).c_str());
             return nullptr;
         }
 
@@ -600,17 +627,38 @@ namespace
     }
 }
 
-namespace SceneFlatBuffer
+namespace PrefabFlatBuffer
 {
-    bool save(const std::filesystem::path& filePath, SceneId sceneId)
+    GameObject* findPrefabRoot(GameObject* object)
     {
-        std::vector<GameObject*> objects;
-        for (GameObject* object : GameObjectRegistry::Instance().getAll())
+        GameObject* current = object;
+        while (current)
         {
-            if (object && !object->isDestroyed())
+            if (current->isPrefabInstanceRoot())
             {
-                objects.push_back(object);
+                return current;
             }
+
+            current = current->getParent();
+        }
+
+        return nullptr;
+    }
+
+    bool save(const std::filesystem::path& filePath, GameObject* root)
+    {
+        if (!root || root->isDestroyed())
+        {
+            LOG_ERROR("[PrefabFlatBuffer] Invalid prefab root");
+            return false;
+        }
+
+        std::vector<GameObject*> objects;
+        collectHierarchy(root, objects);
+        if (objects.empty())
+        {
+            LOG_ERROR("[PrefabFlatBuffer] Empty prefab hierarchy");
+            return false;
         }
 
         std::unordered_map<GameObject*, int32_t> objectIndices;
@@ -621,9 +669,10 @@ namespace SceneFlatBuffer
         }
 
         flatbuffers::FlatBufferBuilder builder(64 * 1024);
-
         std::vector<flatbuffers::Offset<scene::SerializedGameObject>> serializedObjects;
         serializedObjects.reserve(objects.size());
+
+        const std::string assetPath = normalizeAssetPath(filePath);
 
         for (GameObject* object : objects)
         {
@@ -664,6 +713,8 @@ namespace SceneFlatBuffer
                 }
             }
 
+            const std::string prefabPath = (object == root) ? assetPath : std::string();
+
             serializedObjects.push_back(scene::CreateSerializedGameObjectDirect(
                 builder,
                 object->getName().c_str(),
@@ -671,67 +722,55 @@ namespace SceneFlatBuffer
                 parentIndex,
                 &tags,
                 &components,
-                object->getPrefabAssetPath().empty() ? nullptr : object->getPrefabAssetPath().c_str()));
+                prefabPath.empty() ? nullptr : prefabPath.c_str()));
         }
 
-        const auto sceneRoot = scene::CreateSerializedSceneDirect(
+        const auto prefabRoot = scene::CreateSerializedPrefabDirect(
             builder,
-            kSceneVersion,
-            static_cast<int32_t>(sceneId),
+            kPrefabVersion,
+            0,
             &serializedObjects);
-
-        scene::FinishSerializedSceneBuffer(builder, sceneRoot);
+        scene::FinishSerializedPrefabBuffer(builder, prefabRoot);
 
         if (!writeFileBytes(filePath, builder.GetBufferPointer(), builder.GetSize()))
         {
-            LOG_ERROR("[SceneFlatBuffer] Failed to write file: %s", filePath.string().c_str());
+            LOG_ERROR("[PrefabFlatBuffer] Failed to write file: %s", filePath.string().c_str());
             return false;
         }
 
-        LOG_INFO("[SceneFlatBuffer] Saved scene: %s", filePath.string().c_str());
+        root->setPrefabAssetPath(assetPath);
+        LOG_INFO("[PrefabFlatBuffer] Saved prefab: %s", filePath.string().c_str());
         return true;
     }
 
-    bool load(const std::filesystem::path& filePath, SceneId currentSceneId, SceneId* outSceneId)
+    GameObject* instantiate(const std::filesystem::path& filePath, GameObject* parent)
     {
         const std::vector<uint8_t> bytes = readFileBytes(filePath);
         if (bytes.empty())
         {
-            LOG_ERROR("[SceneFlatBuffer] Failed to read file: %s", filePath.string().c_str());
-            return false;
+            LOG_ERROR("[PrefabFlatBuffer] Failed to read file: %s", filePath.string().c_str());
+            return nullptr;
         }
 
-        if (!scene::SerializedSceneBufferHasIdentifier(bytes.data()))
+        if (!scene::SerializedPrefabBufferHasIdentifier(bytes.data()))
         {
-            LOG_ERROR("[SceneFlatBuffer] Invalid file identifier: %s", filePath.string().c_str());
-            return false;
+            LOG_ERROR("[PrefabFlatBuffer] Invalid file identifier: %s", filePath.string().c_str());
+            return nullptr;
         }
 
         flatbuffers::Verifier verifier(bytes.data(), bytes.size());
-        const scene::SerializedScene* root = scene::GetSerializedScene(bytes.data());
+        const scene::SerializedPrefab* root = scene::GetSerializedPrefab(bytes.data());
         if (!root || !root->Verify(verifier))
         {
-            LOG_ERROR("[SceneFlatBuffer] Invalid flatbuffer scene: %s", filePath.string().c_str());
-            return false;
+            LOG_ERROR("[PrefabFlatBuffer] Invalid flatbuffer prefab: %s", filePath.string().c_str());
+            return nullptr;
         }
-
-        const SceneId loadedSceneId = static_cast<SceneId>(root->scene_id());
-        if (outSceneId)
-        {
-            *outSceneId = loadedSceneId;
-        }
-
-        if (loadedSceneId != currentSceneId)
-        {
-            LOG_WARN("[SceneFlatBuffer] SceneId mismatch. file=%d current=%d", static_cast<int>(loadedSceneId), static_cast<int>(currentSceneId));
-        }
-
-        GameObjectRegistry::Instance().shutdown();
 
         const auto* serializedObjects = root->objects();
-        if (!serializedObjects)
+        if (!serializedObjects || serializedObjects->empty())
         {
-            return true;
+            LOG_ERROR("[PrefabFlatBuffer] Prefab has no objects: %s", filePath.string().c_str());
+            return nullptr;
         }
 
         std::vector<GameObject*> newObjects;
@@ -799,7 +838,68 @@ namespace SceneFlatBuffer
             newObjects[index]->setEnabled(serializedObject->enabled());
         }
 
-        LOG_INFO("[SceneFlatBuffer] Loaded scene: %s", filePath.string().c_str());
-        return true;
+        int32_t rootIndex = root->root_object_index();
+        if (rootIndex < 0 || rootIndex >= static_cast<int32_t>(newObjects.size()))
+        {
+            rootIndex = 0;
+        }
+
+        GameObject* prefabRoot = newObjects[static_cast<size_t>(rootIndex)];
+        if (!prefabRoot)
+        {
+            LOG_ERROR("[PrefabFlatBuffer] Invalid root object: %s", filePath.string().c_str());
+            return nullptr;
+        }
+
+        prefabRoot->setPrefabAssetPath(normalizeAssetPath(filePath));
+
+        if (parent)
+        {
+            prefabRoot->setParent(parent);
+        }
+
+        LOG_INFO("[PrefabFlatBuffer] Instantiated prefab: %s", filePath.string().c_str());
+        return prefabRoot;
+    }
+
+    bool apply(GameObject* instanceObject)
+    {
+        GameObject* prefabRoot = findPrefabRoot(instanceObject);
+        if (!prefabRoot)
+        {
+            LOG_WARN("[PrefabFlatBuffer] Apply failed. Prefab root not found");
+            return false;
+        }
+
+        const std::string& path = prefabRoot->getPrefabAssetPath();
+        if (path.empty())
+        {
+            LOG_WARN("[PrefabFlatBuffer] Apply failed. Prefab asset path is empty");
+            return false;
+        }
+
+        return save(std::filesystem::path(path), prefabRoot);
+    }
+
+    GameObject* revert(GameObject* instanceObject)
+    {
+        GameObject* prefabRoot = findPrefabRoot(instanceObject);
+        if (!prefabRoot)
+        {
+            LOG_WARN("[PrefabFlatBuffer] Revert failed. Prefab root not found");
+            return nullptr;
+        }
+
+        const std::string path = prefabRoot->getPrefabAssetPath();
+        if (path.empty())
+        {
+            LOG_WARN("[PrefabFlatBuffer] Revert failed. Prefab asset path is empty");
+            return nullptr;
+        }
+
+        GameObject* parent = prefabRoot->getParent();
+        prefabRoot->destroy();
+
+        return instantiate(std::filesystem::path(path), parent);
     }
 }

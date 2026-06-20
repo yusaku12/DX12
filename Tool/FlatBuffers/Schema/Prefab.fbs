@@ -1,0 +1,12 @@
+include "Scene.fbs";
+
+namespace scene;
+
+table SerializedPrefab {
+    version:uint;
+    root_object_index:int = 0;
+    objects:[SerializedGameObject];
+}
+
+root_type SerializedPrefab;
+file_identifier "PFB0";
