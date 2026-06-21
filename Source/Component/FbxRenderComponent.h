@@ -1,4 +1,6 @@
-﻿#include "Model\FBXLoad.h"
+﻿#pragma once
+
+#include "Model\FBXLoad.h"
 #include "IRenderComponent.h"
 #include "Graphics\ConstantBuffer.h"
 
