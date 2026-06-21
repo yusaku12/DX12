@@ -37,9 +37,14 @@ namespace
         if (size <= 0)
             return {};
 
-        std::string result(static_cast<size_t>(size) - 1, '\0');
-        WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, result.data(), size, nullptr, nullptr);
-        return result;
+        std::vector<char> buffer(static_cast<size_t>(size));
+        int written = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, buffer.data(), size, nullptr, nullptr);
+        if (written <= 0)
+        {
+            return {};
+        }
+
+        return std::string(buffer.data());
     }
 
     //! UTF8 -> UTF16
@@ -52,9 +57,14 @@ namespace
         if (size <= 0)
             return {};
 
-        std::wstring result(static_cast<size_t>(size) - 1, L'\0');
-        MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, result.data(), size);
-        return result;
+        std::vector<wchar_t> buffer(static_cast<size_t>(size));
+        int written = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, buffer.data(), size);
+        if (written <= 0)
+        {
+            return {};
+        }
+
+        return std::wstring(buffer.data());
     }
 
     //! UTF8 バッファ更新
@@ -516,7 +526,7 @@ void drawCubemapToolWindow()
     {
         ImGui::Text("Input (Panorama)");
         ImGui::SameLine();
-        ImGui::InputText("##PanoramaPath", s_facePathUtf8[0].data(), s_facePathUtf8[0].size(), ImGuiInputTextFlags_ReadOnly);
+        ImGui::TextUnformatted(s_facePathUtf8[0].data());
         ImGui::SameLine();
         if (ImGui::Button("Select"))
         {
@@ -536,7 +546,7 @@ void drawCubemapToolWindow()
             ImGui::PushID(static_cast<int>(i));
             ImGui::Text("%s", s_faceLabels[i]);
             ImGui::SameLine();
-            ImGui::InputText("##Path", s_facePathUtf8[i].data(), s_facePathUtf8[i].size(), ImGuiInputTextFlags_ReadOnly);
+            ImGui::TextUnformatted(s_facePathUtf8[i].data());
             ImGui::SameLine();
             if (ImGui::Button("Select"))
             {
@@ -581,7 +591,7 @@ void drawCubemapToolWindow()
 
     ImGui::Text("Output");
     ImGui::SameLine();
-    ImGui::InputText("##Output", s_outputPathUtf8.data(), s_outputPathUtf8.size(), ImGuiInputTextFlags_ReadOnly);
+    ImGui::TextUnformatted(s_outputPathUtf8.data());
     ImGui::SameLine();
     if (ImGui::Button("Save As"))
     {
