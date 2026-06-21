@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "AssetBrowserWindow.h"
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
 #include "CubemapToolWindow.h"
@@ -12,6 +13,7 @@ void EditorManager::update()
 
 void EditorManager::imgui()
 {
+    drawAssetBrowserWindow();
     drawHierarchyWindow();
     drawInspectorWindow();
     //drawCubemapToolWindow();

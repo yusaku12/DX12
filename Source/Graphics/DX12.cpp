@@ -3,6 +3,7 @@
 #include "GameObject\GameObject.h"
 #include "Component\PostEffectComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Editor/AssetDragDrop.h"
 
 DX12* DX12::m_instance = nullptr;
 
@@ -403,6 +404,12 @@ void DX12::sceneImguiRender()
     ImVec2 itemMax = ImGui::GetItemRectMax();
     m_sceneWindowPos = itemMin;
     m_sceneWindowSize = ImVec2(itemMax.x - itemMin.x, itemMax.y - itemMin.y);
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        EditorAssetDragDrop::acceptAssetDropInCurrentTarget(nullptr);
+        ImGui::EndDragDropTarget();
+    }
 
     ImGui::End();
 }

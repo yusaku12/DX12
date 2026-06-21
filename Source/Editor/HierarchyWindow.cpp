@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "HierarchyWindow.h"
+#include "AssetDragDrop.h"
 #include "EditorContext.h"
 #include "GameObject\GameObject.h"
 #include "Scene\PrefabFlatBuffer.h"
@@ -144,6 +145,8 @@ static void drawGameObjectNode(GameObject* obj)
                 dropped->setParent(obj);
             }
         }
+
+        EditorAssetDragDrop::acceptAssetDropInCurrentTarget(obj);
         ImGui::EndDragDropTarget();
     }
 
@@ -170,6 +173,32 @@ void drawHierarchyWindow()
         if (obj && !obj->getParent() && !obj->isDestroyed())
         {
             drawGameObjectNode(obj);
+        }
+    }
+
+    // ルートへのドロップ領域（ドラッグ中のみ表示して通常 UI を邪魔しない）
+    if (ImGui::GetDragDropPayload() != nullptr)
+    {
+        const ImVec2 rootDropSize = ImVec2(-FLT_MIN, std::max(28.0f, ImGui::GetContentRegionAvail().y));
+        ImGui::InvisibleButton("##HierarchyRootDrop", rootDropSize);
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Drop Here To Add As Root");
+        }
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_GAMEOBJECT"))
+            {
+                GameObject* dropped = *(GameObject**)payload->Data;
+                if (dropped && !dropped->isDestroyed())
+                {
+                    dropped->setParent(nullptr);
+                }
+            }
+
+            EditorAssetDragDrop::acceptAssetDropInCurrentTarget(nullptr);
+            ImGui::EndDragDropTarget();
         }
     }
 

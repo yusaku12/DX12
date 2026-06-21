@@ -74,6 +74,10 @@
     <ClCompile Include="Source\Component\RigidbodyComponent.cpp" />
     <ClCompile Include="Source\Component\SkyboxComponent.cpp" />
     <ClCompile Include="Source\Component\TransformComponent.cpp" />
+    <ClCompile Include="Source\Editor\AssetBrowserWindow.cpp" />
+    <ClCompile Include="Source\Editor\AssetDragDrop.cpp" />
+    <ClCompile Include="Source\Editor\AssetMetaManager.cpp" />
+    <ClCompile Include="Source\Editor\AssetThumbnailManager.cpp" />
     <ClCompile Include="Source\Editor\CubemapToolWindow.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -188,6 +192,10 @@
     <ClInclude Include="Source\Component\RigidbodyComponent.h" />
     <ClInclude Include="Source\Component\SkyboxComponent.h" />
     <ClInclude Include="Source\Component\TransformComponent.h" />
+    <ClInclude Include="Source\Editor\AssetBrowserWindow.h" />
+    <ClInclude Include="Source\Editor\AssetDragDrop.h" />
+    <ClInclude Include="Source\Editor\AssetMetaManager.h" />
+    <ClInclude Include="Source\Editor\AssetThumbnailManager.h" />
     <ClInclude Include="Source\Editor\CubemapToolWindow.h" />
     <ClInclude Include="Source\Editor\EditorContext.h" />
     <ClInclude Include="Source\Editor\EditorManager.h" />

@@ -80,7 +80,12 @@ void GameObject::lateUpdate()
 
 void GameObject::drawInspector()
 {
-    ImGui::InputText("Name", m_name.data(), m_name.capacity() + 1);
+    std::array<char, 256> nameBuffer{};
+    strncpy_s(nameBuffer.data(), nameBuffer.size(), m_name.c_str(), _TRUNCATE);
+    if (ImGui::InputText("Name", nameBuffer.data(), nameBuffer.size()))
+    {
+        setName(nameBuffer.data());
+    }
 
     ImGui::SameLine();
 
