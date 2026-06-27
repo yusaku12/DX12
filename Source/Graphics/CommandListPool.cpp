@@ -87,6 +87,11 @@ void CommandListPool::release(ID3D12GraphicsCommandList* cmdList)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    if (!cmdList)
+    {
+        return;
+    }
+
     for (auto& entry : m_pool)
     {
         if (entry.commandList.Get() == cmdList)
@@ -95,6 +100,13 @@ void CommandListPool::release(ID3D12GraphicsCommandList* cmdList)
             {
                 cmdList->Close();
                 entry.closed = true;
+            }
+
+            // フェンスが無効な構成では submit 通知が来ないため、release 時点で再利用可能にする。
+            if (!m_fence)
+            {
+                entry.inUse = false;
+                entry.fenceValue = 0;
             }
             return;
         }

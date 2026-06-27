@@ -59,9 +59,8 @@ UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHAD
     D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
     device->CreateShaderResourceView(resource, &desc, stagingHandle);
 
-    // シェーダー可視ヒープに手前で即時同期コピー
-    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandleVisible(index);
-    device->CopyDescriptorsSimple(1, dstHandle, stagingHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    // シェーダー可視ヒープに即時同期コピー
+    syncToVisible(index);
 
     return index;
 }
@@ -78,9 +77,8 @@ UINT DescriptorHeapManager::createCBV(const D3D12_CONSTANT_BUFFER_VIEW_DESC& des
     D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
     device->CreateConstantBufferView(&desc, stagingHandle);
 
-    // 即時複製コピー
-    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandleVisible(index);
-    device->CopyDescriptorsSimple(1, dstHandle, stagingHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    // シェーダー可視ヒープに即時同期コピー
+    syncToVisible(index);
 
     return index;
 }
@@ -97,9 +95,8 @@ UINT DescriptorHeapManager::createUAV(ID3D12Resource* resource, ID3D12Resource* 
     D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
     device->CreateUnorderedAccessView(resource, counterResource, &desc, stagingHandle);
 
-    // 即時複製コピー
-    D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = getCPUHandleVisible(index);
-    device->CopyDescriptorsSimple(1, dstHandle, stagingHandle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    // シェーダー可視ヒープに即時同期コピー
+    syncToVisible(index);
 
     return index;
 }
@@ -110,28 +107,37 @@ D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getGPUHandle(UINT index) cons
     if (index == InvalidIndex || index >= m_maxCount || !m_heap)
         return h;
 
-    // 描画のためにバインドされる直前に、Staging からメインヒープへとオンデマンド同期を行います。
-    // ビュー1つの同期だけでなく、マテリアル等の descriptor テーブル（複数テクスチャスロット）を想定し、
-    // 安全に最大 16 スロット分の領域を丸ごと一瞬でバルクコピー（一括同期）します。
-    const auto device = DX12::Instance().getDevice();
-    if (device && m_stagingHeap)
-    {
-        UINT copyCount = std::min(16u, m_maxCount - index);
-
-        D3D12_CPU_DESCRIPTOR_HANDLE srcStagingHandle = getCPUHandle(index);
-        D3D12_CPU_DESCRIPTOR_HANDLE dstVisibleHandle = getCPUHandleVisible(index);
-
-        device->CopyDescriptorsSimple(
-            copyCount,
-            dstVisibleHandle,
-            srcStagingHandle,
-            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-        );
-    }
-
     h = m_heap->GetGPUDescriptorHandleForHeapStart();
     h.ptr += static_cast<SIZE_T>(index) * m_incrementSize;
     return h;
+}
+
+void DescriptorHeapManager::syncToVisible(UINT index, UINT count) const
+{
+    if (index == InvalidIndex || count == 0 || index >= m_maxCount)
+    {
+        return;
+    }
+
+    const auto device = DX12::Instance().getDevice();
+    if (!device || !m_stagingHeap || !m_heap)
+    {
+        return;
+    }
+
+    const UINT copyCount = std::min(count, m_maxCount - index);
+    if (copyCount == 0)
+    {
+        return;
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE srcStagingHandle = getCPUHandle(index);
+    D3D12_CPU_DESCRIPTOR_HANDLE dstVisibleHandle = getCPUHandleVisible(index);
+    device->CopyDescriptorsSimple(
+        copyCount,
+        dstVisibleHandle,
+        srcStagingHandle,
+        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeapManager::getCPUHandle(UINT index) const

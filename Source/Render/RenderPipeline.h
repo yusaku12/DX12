@@ -24,6 +24,9 @@ public:
     //! パス実行
     void execute(RenderPassContext& context, RenderPassStage stage);
 
+    //! パス実行時間のデバッグ表示
+    void debugImgui();
+
 private:
 
     RenderPipeline() = default;
@@ -33,6 +36,23 @@ private:
         std::unique_ptr<RenderPassBase> pass;
         std::vector<RenderPassId> dependencies;
     };
+
+    struct PassTiming
+    {
+        std::string name;
+        float frameMs = 0.0f;
+        float lastMs = 0.0f;
+        float emaMs = 0.0f;
+        bool executed = false;
+    };
+
+    static constexpr int PassCount = 7;
+    std::array<PassTiming, PassCount> m_passTimings{};
+    bool m_profileFrameOpen = false;
+
+    static int toIndex(RenderPassId id);
+    void beginFrameProfile();
+    void endFrameProfile();
 
     std::vector<PassNode> m_nodes;
 };

@@ -23,6 +23,8 @@ void SceneManager::shutdown()
     m_currentScene.reset();
     m_nextScene.reset();
     m_requestChange = false;
+    m_requestLoadSceneFile = false;
+    m_pendingSceneFilePath.clear();
 }
 
 void SceneManager::loadScene(SceneId id)
@@ -37,6 +39,18 @@ void SceneManager::loadScene(SceneId id)
 
 void SceneManager::update()
 {
+    if (m_requestLoadSceneFile)
+    {
+        const std::filesystem::path pendingPath = m_pendingSceneFilePath;
+        m_requestLoadSceneFile = false;
+        m_pendingSceneFilePath.clear();
+
+        if (!loadSceneFromFileInternal(pendingPath))
+        {
+            LOG_ERROR("[SceneManager] Failed to load scene file: %s", pendingPath.string().c_str());
+        }
+    }
+
     // シーン切り替え要求があればここで反映
     if (m_requestChange)
     {
@@ -140,6 +154,18 @@ bool SceneManager::saveCurrentScene(const std::filesystem::path& filePath) const
 }
 
 bool SceneManager::loadSceneFromFile(const std::filesystem::path& filePath)
+{
+    if (filePath.empty())
+    {
+        return false;
+    }
+
+    m_pendingSceneFilePath = filePath;
+    m_requestLoadSceneFile = true;
+    return true;
+}
+
+bool SceneManager::loadSceneFromFileInternal(const std::filesystem::path& filePath)
 {
     SceneId fileSceneId = m_currentSceneID;
     const bool loaded = SceneFlatBuffer::load(filePath, m_currentSceneID, &fileSceneId);

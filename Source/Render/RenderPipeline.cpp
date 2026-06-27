@@ -3,6 +3,11 @@
 
 namespace
 {
+    using Clock = std::chrono::high_resolution_clock;
+}
+
+namespace
+{
     void clearSceneRT()
     {
         auto& dx12 = DX12::Instance();
@@ -171,10 +176,6 @@ namespace
             }
             else
             {
-                auto* cmd = DX12::Instance().getGraphicsCommandList();
-                DX12::Instance().transitionSceneToRenderTarget(cmd);
-                DX12::Instance().applySceneRenderTargets(cmd);
-                DX12::Instance().applyViewportAndScissor(cmd);
                 RenderManager::Instance().renderForward();
             }
         }
@@ -195,10 +196,6 @@ namespace
 
         void execute(RenderPassContext&) override
         {
-            auto* cmd = DX12::Instance().getGraphicsCommandList();
-            DX12::Instance().transitionSceneToRenderTarget(cmd);
-            DX12::Instance().applySceneRenderTargets(cmd);
-            DX12::Instance().applyViewportAndScissor(cmd);
             DebugPrimitive::Instance().render();
         }
     };
@@ -243,6 +240,23 @@ RenderPassBase* RenderPipeline::registerPass(std::unique_ptr<RenderPassBase> pas
 
 void RenderPipeline::execute(RenderPassContext& context, RenderPassStage stage)
 {
+    if (stage == RenderPassStage::Scene)
+    {
+        beginFrameProfile();
+    }
+
+    if (stage == RenderPassStage::BeforePostEffect)
+    {
+        auto* cmd = DX12::Instance().getGraphicsCommandList();
+        if (cmd)
+        {
+            // BeforePostEffect では Scene RT を基準状態に揃える。
+            DX12::Instance().transitionSceneToRenderTarget(cmd);
+            DX12::Instance().applySceneRenderTargets(cmd);
+            DX12::Instance().applyViewportAndScissor(cmd);
+        }
+    }
+
     std::vector<size_t> indices;
     indices.reserve(m_nodes.size());
 
@@ -301,7 +315,19 @@ void RenderPipeline::execute(RenderPassContext& context, RenderPassStage stage)
         auto& pass = m_nodes[indices[bestIndex]].pass;
         if (pass->isEnabled(context))
         {
+            const auto start = Clock::now();
             pass->execute(context);
+            const auto end = Clock::now();
+            const float ms = std::chrono::duration<float, std::milli>(end - start).count();
+
+            const int idx = toIndex(pass->getId());
+            if (idx >= 0 && idx < PassCount)
+            {
+                auto& timing = m_passTimings[idx];
+                timing.name = pass->getName();
+                timing.frameMs += ms;
+                timing.executed = true;
+            }
         }
 
         for (auto next : adjacency[bestIndex])
@@ -309,4 +335,89 @@ void RenderPipeline::execute(RenderPassContext& context, RenderPassStage stage)
             --indegree[next];
         }
     }
+
+    if (stage == RenderPassStage::PostEffect)
+    {
+        endFrameProfile();
+    }
+}
+
+int RenderPipeline::toIndex(RenderPassId id)
+{
+    return static_cast<int>(id);
+}
+
+void RenderPipeline::beginFrameProfile()
+{
+    m_profileFrameOpen = true;
+    for (auto& timing : m_passTimings)
+    {
+        timing.frameMs = 0.0f;
+        timing.executed = false;
+    }
+}
+
+void RenderPipeline::endFrameProfile()
+{
+    if (!m_profileFrameOpen)
+    {
+        return;
+    }
+
+    for (auto& timing : m_passTimings)
+    {
+        if (!timing.executed)
+        {
+            timing.lastMs = 0.0f;
+            continue;
+        }
+
+        timing.lastMs = timing.frameMs;
+        if (timing.emaMs <= 0.0f)
+        {
+            timing.emaMs = timing.frameMs;
+        }
+        else
+        {
+            timing.emaMs = timing.emaMs * 0.9f + timing.frameMs * 0.1f;
+        }
+    }
+
+    m_profileFrameOpen = false;
+}
+
+void RenderPipeline::debugImgui()
+{
+    if (!ImGui::Begin("Render Pass Profiler"))
+    {
+        ImGui::End();
+        return;
+    }
+
+    ImGui::Text("Per-pass CPU timing (ms)");
+    ImGui::Separator();
+
+    float totalLast = 0.0f;
+    for (const auto& timing : m_passTimings)
+    {
+        totalLast += timing.lastMs;
+    }
+
+    ImGui::Text("Total: %.3f ms", totalLast);
+    ImGui::Separator();
+
+    for (const auto& timing : m_passTimings)
+    {
+        if (timing.name.empty())
+        {
+            continue;
+        }
+
+        ImGui::Text("%-14s  last: %7.3f  avg: %7.3f",
+            timing.name.c_str(),
+            timing.lastMs,
+            timing.emaMs);
+    }
+
+    ImGui::End();
 }

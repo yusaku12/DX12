@@ -32,6 +32,7 @@ void FbxRenderComponent::update()
 {
     // Transform が取得できていなければスキップ
     if (!m_transform) return;
+    if (!m_model) return;
 
     // モデル行列更新
     m_model->updateTransform(m_transform->getWorldMatrix());
@@ -53,7 +54,7 @@ void FbxRenderComponent::render()
 
 void FbxRenderComponent::render(ID3D12GraphicsCommandList* cmd)
 {
-    if (!cmd) return;
+    if (!cmd || !m_model) return;
 
     // デバッグモードに応じた PSO で描画
     size_t psoKey = m_solidPSOKey;
@@ -67,7 +68,7 @@ void FbxRenderComponent::render(ID3D12GraphicsCommandList* cmd)
 
 void FbxRenderComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
 {
-    if (!cmd) return;
+    if (!cmd || !m_model) return;
     renderInternal(cmd, m_gbufferPSOKey);
 }
 
@@ -380,6 +381,11 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
 
 void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
 {
+    if (!cmd || !m_model || !m_modelCB || !m_materialCB)
+    {
+        return;
+    }
+
     // PSO とルートシグネチャをセット
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
     PSOCreator::Instance().setPSO(psoKey, cmd);

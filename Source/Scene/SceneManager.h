@@ -57,7 +57,7 @@ public:
     //! 現在シーンの実行状態を保存
     bool saveCurrentScene(const std::filesystem::path& filePath) const;
 
-    //! シーンファイルから実行状態を読み込み
+    //! シーンファイルから実行状態を読み込み（次フレーム update で適用）
     bool loadSceneFromFile(const std::filesystem::path& filePath);
 
     //! 現在シーン取得
@@ -77,6 +77,9 @@ private:
     //! 実際のシーン切り替え処理
     void changeSceneInternal();
 
+    //! シーンファイル読み込みの実処理
+    bool loadSceneFromFileInternal(const std::filesystem::path& filePath);
+
     //! メンバ変数
     using SceneFactory = std::function<std::unique_ptr<Scene>()>;
     std::array<SceneFactory, magic_enum::enum_count<SceneId>()> m_sceneFactory{};
@@ -85,4 +88,6 @@ private:
     SceneId m_currentSceneID = SceneId::ParticleEditor;
     SceneId m_nextSceneID = SceneId::ParticleEditor;
     bool m_requestChange = false;
+    bool m_requestLoadSceneFile = false;
+    std::filesystem::path m_pendingSceneFilePath;
 };

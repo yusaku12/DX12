@@ -215,6 +215,7 @@ void DX12::initialize()
         m_sceneSrvIndex = DescriptorHeapManager::Instance().allocateRange();
         auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
         m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
+        DescriptorHeapManager::Instance().syncToVisible(m_sceneSrvIndex);
     }
 
     // DSVヒープ作成
@@ -286,6 +287,7 @@ void DX12::initialize()
 
         auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_depthSrvIndex);
         m_device->CreateShaderResourceView(m_depthStencil.Get(), &srvDesc, cpuHandle);
+        DescriptorHeapManager::Instance().syncToVisible(m_depthSrvIndex);
 
         m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     }
@@ -610,6 +612,7 @@ void DX12::screenResize(int width, int height)
 
         auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_depthSrvIndex);
         m_device->CreateShaderResourceView(m_depthStencil.Get(), &srvDesc, cpuHandle);
+        DescriptorHeapManager::Instance().syncToVisible(m_depthSrvIndex);
 
         m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     }
@@ -637,6 +640,7 @@ void DX12::screenResize(int width, int height)
 
         auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
         m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
+        DescriptorHeapManager::Instance().syncToVisible(m_sceneSrvIndex);
     }
 
     // GBuffer / PostEffect リサイズ

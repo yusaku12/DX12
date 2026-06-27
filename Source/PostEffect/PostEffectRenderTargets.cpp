@@ -82,6 +82,7 @@ void PostEffectRenderTargets::createResources(UINT width, UINT height, DXGI_FORM
         }
         auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_srvIndices[i]);
         device->CreateShaderResourceView(m_renderTargets[i].Get(), &srvDesc, cpuHandle);
+        DescriptorHeapManager::Instance().syncToVisible(m_srvIndices[i]);
 
         m_states[i] = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     }

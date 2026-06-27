@@ -102,6 +102,7 @@ void GBufferRenderTargets::createResources(UINT width, UINT height)
 
         auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_srvBaseIndex + i);
         device->CreateShaderResourceView(m_renderTargets[i].Get(), &srvDesc, cpuHandle);
+        DescriptorHeapManager::Instance().syncToVisible(m_srvBaseIndex + i);
 
         m_states[i] = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     }

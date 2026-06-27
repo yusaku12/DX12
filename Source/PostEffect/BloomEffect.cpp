@@ -24,6 +24,11 @@ void BloomEffect::initialize()
 
 void BloomEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)
 {
+    if (!cmd || inputSrvIndex == UINT_MAX)
+    {
+        return;
+    }
+
     // Prefilter: フル解像度 → mip[0]（1/2）
     passPrefilter(cmd, inputSrvIndex);
 
@@ -108,6 +113,7 @@ void BloomEffect::createMipRenderTargets(UINT width, UINT height)
         device->CreateShaderResourceView(
             m_mipRT[i].Get(), &srvDesc,
             DescriptorHeapManager::Instance().getCPUHandle(m_mipSRV[i]));
+        DescriptorHeapManager::Instance().syncToVisible(m_mipSRV[i]);
 
         m_mipState[i] = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     }
@@ -115,6 +121,7 @@ void BloomEffect::createMipRenderTargets(UINT width, UINT height)
 
 void BloomEffect::transitionToRT(ID3D12GraphicsCommandList* cmd, int idx)
 {
+    if (!cmd || idx < 0 || idx >= MIP_COUNT || !m_mipRT[idx]) return;
     if (m_mipState[idx] == D3D12_RESOURCE_STATE_RENDER_TARGET) return;
     auto b = CD3DX12_RESOURCE_BARRIER::Transition(
         m_mipRT[idx].Get(), m_mipState[idx], D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -124,6 +131,7 @@ void BloomEffect::transitionToRT(ID3D12GraphicsCommandList* cmd, int idx)
 
 void BloomEffect::transitionToSRV(ID3D12GraphicsCommandList* cmd, int idx)
 {
+    if (!cmd || idx < 0 || idx >= MIP_COUNT || !m_mipRT[idx]) return;
     if (m_mipState[idx] == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) return;
     auto b = CD3DX12_RESOURCE_BARRIER::Transition(
         m_mipRT[idx].Get(), m_mipState[idx], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -141,6 +149,8 @@ static void setViewport(ID3D12GraphicsCommandList* cmd, UINT w, UINT h)
 
 void BloomEffect::passPrefilter(ID3D12GraphicsCommandList* cmd, UINT sceneSrvIndex)
 {
+    if (!cmd || sceneSrvIndex == UINT_MAX) return;
+
     transitionToRT(cmd, 0);
     setViewport(cmd, m_mipWidth[0], m_mipHeight[0]);
     cmd->OMSetRenderTargets(1, &m_mipRTV[0], FALSE, nullptr);
@@ -161,6 +171,8 @@ void BloomEffect::passPrefilter(ID3D12GraphicsCommandList* cmd, UINT sceneSrvInd
 
 void BloomEffect::passDownsample(ID3D12GraphicsCommandList* cmd, int srcIdx, int dstIdx)
 {
+    if (!cmd || srcIdx < 0 || srcIdx >= MIP_COUNT || dstIdx < 0 || dstIdx >= MIP_COUNT) return;
+
     transitionToRT(cmd, dstIdx);
     setViewport(cmd, m_mipWidth[dstIdx], m_mipHeight[dstIdx]);
     cmd->OMSetRenderTargets(1, &m_mipRTV[dstIdx], FALSE, nullptr);
@@ -180,6 +192,8 @@ void BloomEffect::passDownsample(ID3D12GraphicsCommandList* cmd, int srcIdx, int
 
 void BloomEffect::passUpsample(ID3D12GraphicsCommandList* cmd, int srcIdx, int dstIdx)
 {
+    if (!cmd || srcIdx < 0 || srcIdx >= MIP_COUNT || dstIdx < 0 || dstIdx >= MIP_COUNT) return;
+
     transitionToRT(cmd, dstIdx);
     setViewport(cmd, m_mipWidth[dstIdx], m_mipHeight[dstIdx]);
     cmd->OMSetRenderTargets(1, &m_mipRTV[dstIdx], FALSE, nullptr);
@@ -200,6 +214,8 @@ void BloomEffect::passUpsample(ID3D12GraphicsCommandList* cmd, int srcIdx, int d
 void BloomEffect::passComposite(ID3D12GraphicsCommandList* cmd,
     UINT sceneSrvIndex, UINT bloomSrvIndex)
 {
+    if (!cmd || sceneSrvIndex == UINT_MAX || bloomSrvIndex == UINT_MAX) return;
+
     // execute() 側で RT 遷移済み → OMSetRenderTargets だけ再セットする
     auto rtv = PostEffectRenderTargets::Instance().getCurrentRTV();
     cmd->OMSetRenderTargets(1, &rtv, FALSE, nullptr);

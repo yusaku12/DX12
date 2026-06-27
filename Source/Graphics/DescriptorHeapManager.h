@@ -38,8 +38,11 @@ public:
     //! UAV作成
     UINT createUAV(ID3D12Resource* resource, ID3D12Resource* counterResource, const D3D12_UNORDERED_ACCESS_VIEW_DESC& desc);
 
-    //! GPUハンドル取得（描画割り当て時に自動でオンデマンド同期します）
+    //! GPUハンドル取得
     D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index) const;
+
+    //! staging -> shader-visible へ同期コピー
+    void syncToVisible(UINT index, UINT count = 1) const;
 
     //! CPU ハンドル取得（non-shader-visible ステージングヒープの CPU ハンドル：ビューの作成先として汎用利用）
     D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index) const;

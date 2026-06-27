@@ -4,7 +4,7 @@
 		{
 			"label": "Build Debug x64",
 			"type": "shell",
-			"command": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\"",
+			"command": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
 			"args": [
 				".\\DirectX12.sln",
 				"/t:Build",
@@ -19,17 +19,22 @@
 		{
 			"label": "Build Debug x64 (cmd)",
 			"type": "shell",
-			"command": "cmd",
+			"command": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
 			"args": [
-				"/c",
-				"\"\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\" .\\DirectX12.sln /t:Build /p:Configuration=Debug /p:Platform=x64 /nologo /m:1 /v:minimal\""
+				".\\DirectX12.sln",
+				"/t:Build",
+				"/p:Configuration=Debug",
+				"/p:Platform=x64",
+				"/nologo",
+				"/m:1",
+				"/v:minimal"
 			],
 			"group": "build"
 		},
 		{
 			"label": "Build Debug x64 (pwsh)",
 			"type": "shell",
-			"command": "& \"$env:ProgramFiles\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\"",
+			"command": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
 			"args": [
 				".\\DirectX12.sln",
 				"/t:Build",

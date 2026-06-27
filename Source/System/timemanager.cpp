@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Render/RenderPipeline.h"
 
 void TimeManager::initialize()
 {
@@ -99,6 +100,8 @@ void TimeManager::imgui()
         );
     }
     ImGui::End();
+
+    RenderPipeline::Instance().debugImgui();
 }
 
 void TimeManager::calculateFPS()
