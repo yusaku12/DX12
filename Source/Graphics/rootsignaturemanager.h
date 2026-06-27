@@ -15,6 +15,7 @@ enum class RootSignatureType : int
     DeferredLighting,
     GpuEffectRender,
     GpuEffectCompute,
+    HiZPyramidCompute,
     ShadowDepth,
     Max
 };
@@ -80,6 +81,9 @@ private:
 
     //! GpuEffectComputeをビルド
     void buildGpuEffectCompute();
+
+    //! HiZPyramidComputeをビルド
+    void buildHiZPyramidCompute();
 
     //! ShadowDepthをビルド（シャドウ深度パス用）
     void buildShadowDepth();

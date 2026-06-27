@@ -43,4 +43,13 @@ public:
 
     //! 境界ボックス（AABB）の取得（カリングに利用）。有効な境界が存在する場合は true を返す。
     virtual bool getWorldAABB(Vector3& outCenter, Vector3& outExtents) const { (void)outCenter; (void)outExtents; return false; }
+
+    //! ランタイム自動LOD用: カメラ位置から推奨LODレベルを返す（0=最高品質）
+    virtual int evaluateAutoLodLevel(const Vector3& cameraPosition) const { (void)cameraPosition; return 0; }
+
+    //! ランタイム描画で使用するLODレベルを設定
+    virtual void setRuntimeLodLevel(int lodLevel) { (void)lodLevel; }
+
+    //! このコンポーネントが持つLOD段数（最低1）
+    virtual int getLodLevelCount() const { return 1; }
 };

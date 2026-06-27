@@ -351,15 +351,17 @@ void DX12::screenClear(RenderPath renderPath)
 void DX12::transitionDepthToSRV()
 {
     if (!m_depthStencil) return;
-    if (m_depthState == D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) return;
+    const D3D12_RESOURCE_STATES kDepthSrvState =
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    if (m_depthState == kDepthSrvState) return;
 
     auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
         m_depthStencil.Get(),
         m_depthState,
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        kDepthSrvState);
 
     m_graphicsCommandList->ResourceBarrier(1, &barrier);
-    m_depthState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    m_depthState = kDepthSrvState;
 }
 
 void DX12::transitionDepthToWrite()

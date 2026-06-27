@@ -3,10 +3,19 @@
 #include "TransformComponent.h"
 #include "Editor/EditorContext.h"
 
+namespace
+{
+    template<class T>
+    T clampValue(T v, T minV, T maxV)
+    {
+        return std::max(minV, std::min(v, maxV));
+    }
+}
+
 FbxRenderComponent::FbxRenderComponent(const std::string& fbxPath)
     : m_modelPath(fbxPath)
 {
-    // モデルを読み込み
+    // ベースモデルを読み込み
     if (loadModelAsset(fbxPath))
     {
         LOG_INFO("[FbxRenderComponent] Loaded model: %s", fbxPath.c_str());
@@ -15,6 +24,9 @@ FbxRenderComponent::FbxRenderComponent(const std::string& fbxPath)
     {
         return;
     }
+
+    // _LOD1, _LOD2 ... を自動探索
+    loadAutoLodAssets();
 
     // GPUリソース構築
     buildGPUResources();
@@ -34,8 +46,17 @@ void FbxRenderComponent::update()
     if (!m_transform) return;
     if (!m_model) return;
 
-    // モデル行列更新
+    // ベースモデル行列更新
     m_model->updateTransform(m_transform->getWorldMatrix());
+
+    // 追加LODも同じワールド行列で同期
+    for (auto& lod : m_lods)
+    {
+        if (lod.model)
+        {
+            lod.model->updateTransform(m_transform->getWorldMatrix());
+        }
+    }
 
     // AABB 描画
     if (g_editor.selectedObject == gameObject())
@@ -199,30 +220,230 @@ bool FbxRenderComponent::loadModelAsset(const std::string& fbxPath)
     return true;
 }
 
-void FbxRenderComponent::buildGPUResources()
+bool FbxRenderComponent::isLodSuffix(const std::string& stem, size_t& suffixPos, int& lodIndex)
 {
-    // モデル行列 CBV
-    UINT meshCount = static_cast<UINT>(m_model->getResource()->getModelData().meshes.size());
-    m_modelCB = std::make_unique<ConstantBuffer<ModelCB>>(meshCount);
-    for (UINT i = 0; i < meshCount; ++i)
+    lodIndex = -1;
+    suffixPos = std::string::npos;
+
+    const size_t underscorePos = stem.find_last_of('_');
+    if (underscorePos == std::string::npos)
     {
-        m_modelCB->update(ModelCB{}, i);
+        return false;
     }
 
-    // テクスチャ読み込み
-    m_model->getResource()->createTextures();
+    std::string tail = stem.substr(underscorePos + 1);
+    for (char& c : tail)
+    {
+        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    }
 
-    // メッシュ構築
-    m_model->getResource()->createMesh();
+    if (tail.size() < 4 || tail.rfind("LOD", 0) != 0)
+    {
+        return false;
+    }
 
-    // マテリアル CBV
-    createMaterialCBV();
+    const std::string digits = tail.substr(3);
+    if (digits.empty() || !std::all_of(digits.begin(), digits.end(), [](unsigned char c) { return std::isdigit(c) != 0; }))
+    {
+        return false;
+    }
+
+    lodIndex = std::stoi(digits);
+    suffixPos = underscorePos;
+    return lodIndex >= 0;
+}
+
+std::string FbxRenderComponent::buildLodBaseStem(const std::filesystem::path& modelPath)
+{
+    std::string stem = modelPath.stem().string();
+
+    size_t suffixPos = std::string::npos;
+    int lodIndex = -1;
+    if (isLodSuffix(stem, suffixPos, lodIndex))
+    {
+        stem = stem.substr(0, suffixPos);
+    }
+    return stem;
+}
+
+void FbxRenderComponent::loadAutoLodAssets()
+{
+    std::error_code ec;
+    const std::filesystem::path basePath = std::filesystem::path(m_modelPath);
+    const std::filesystem::path parentDir = basePath.parent_path();
+    const std::string baseStem = buildLodBaseStem(basePath);
+    const std::string ext = basePath.extension().string();
+
+    if (baseStem.empty() || ext.empty())
+    {
+        return;
+    }
+
+    for (int lod = 1; lod <= 8; ++lod)
+    {
+        const std::string lodStem = std::format("{}_LOD{}", baseStem, lod);
+        const std::filesystem::path lodPath = parentDir / (lodStem + ext);
+        if (!std::filesystem::exists(lodPath, ec) || ec)
+        {
+            ec.clear();
+            continue;
+        }
+
+        auto fbx = std::make_unique<FbxLoad>();
+        const std::string lodPathStr = lodPath.generic_string();
+        if (!fbx->load(lodPathStr.c_str()))
+        {
+            LOG_WARN("[FbxRenderComponent] Failed to load LOD%d: %s", lod, lodPathStr.c_str());
+            continue;
+        }
+
+        LodEntry entry{};
+        entry.model = std::make_unique<Model>(std::move(fbx));
+        entry.sourcePath = lodPathStr;
+        m_lods.push_back(std::move(entry));
+
+        LOG_INFO("[FbxRenderComponent] Loaded LOD%d: %s", lod, lodPathStr.c_str());
+    }
+}
+
+void FbxRenderComponent::buildGPUResources()
+{
+    auto buildFor = [&](Model* model,
+                        std::unique_ptr<ConstantBuffer<ModelCB>>& outModelCB,
+                        std::unique_ptr<ConstantBuffer<MaterialCB>>& outMaterialCB)
+        {
+            if (!model) return;
+
+            // モデル行列 CBV
+            UINT meshCount = static_cast<UINT>(model->getResource()->getModelData().meshes.size());
+            outModelCB = std::make_unique<ConstantBuffer<ModelCB>>(meshCount);
+            for (UINT i = 0; i < meshCount; ++i)
+            {
+                outModelCB->update(ModelCB{}, i);
+            }
+
+            // テクスチャ読み込み
+            model->getResource()->createTextures();
+
+            // メッシュ構築
+            model->getResource()->createMesh();
+
+            // マテリアルCBV作成
+            const auto& modelData = model->getResource()->getModelData();
+            UINT matCount = static_cast<UINT>(modelData.materials.size());
+            if (matCount == 0)
+            {
+                matCount = 1;
+            }
+
+            outMaterialCB = std::make_unique<ConstantBuffer<MaterialCB>>(matCount);
+            for (UINT i = 0; i < matCount; ++i)
+            {
+                MaterialCB cb{};
+                if (i < static_cast<UINT>(modelData.materials.size()))
+                {
+                    const auto& m = modelData.materials[i];
+                    cb.diffuse = m.diffuseColor;
+                    cb.pbr = Vector3{ m.metallic, m.roughness, m.ao };
+                }
+                else
+                {
+                    cb.diffuse = Vector4{ 1.f, 1.f, 1.f, 1.f };
+                    cb.pbr = Vector3{ 1.0f, 1.0f, 1.0f };
+                }
+                outMaterialCB->update(cb, i);
+            }
+
+            model->getResource()->computeStatistics();
+        };
+
+    buildFor(m_model.get(), m_modelCB, m_materialCB);
+    for (auto& lod : m_lods)
+    {
+        buildFor(lod.model.get(), lod.modelCB, lod.materialCB);
+    }
 
     // PSO（ソリッド + ワイヤーフレーム + GBuffer + シャドウ深度）
     m_solidPSOKey = createPSO(RasterizerState::CULL_CLOCKWISE);
     m_wireframePSOKey = createPSO(RasterizerState::WIRE_FRAME);
     m_gbufferPSOKey = createGBufferPSO();
     m_shadowPSOKey = createShadowDepthPSO();
+}
+
+FbxRenderComponent::LodEntry* FbxRenderComponent::getActiveLodEntry()
+{
+    if (m_runtimeLod <= 0)
+    {
+        return nullptr;
+    }
+
+    const size_t idx = static_cast<size_t>(m_runtimeLod - 1);
+    if (idx >= m_lods.size())
+    {
+        return nullptr;
+    }
+
+    return &m_lods[idx];
+}
+
+const FbxRenderComponent::LodEntry* FbxRenderComponent::getActiveLodEntry() const
+{
+    if (m_runtimeLod <= 0)
+    {
+        return nullptr;
+    }
+
+    const size_t idx = static_cast<size_t>(m_runtimeLod - 1);
+    if (idx >= m_lods.size())
+    {
+        return nullptr;
+    }
+
+    return &m_lods[idx];
+}
+
+int FbxRenderComponent::evaluateAutoLodLevel(const Vector3& cameraPosition) const
+{
+    if (!m_enableAutoLod)
+    {
+        return 0;
+    }
+
+    const int lodCount = getLodLevelCount();
+    if (lodCount <= 1)
+    {
+        return 0;
+    }
+
+    Vector3 center{};
+    Vector3 extents{};
+    if (!getWorldAABB(center, extents))
+    {
+        center = m_transform ? m_transform->getPosition() : Vector3::Zero;
+    }
+
+    const float distance = Vector3::Distance(cameraPosition, center);
+
+    int lod = 0;
+    for (float threshold : m_lodSwitchDistances)
+    {
+        if (distance >= threshold)
+        {
+            ++lod;
+        }
+    }
+
+    return clampValue(lod, 0, lodCount - 1);
+}
+
+void FbxRenderComponent::setRuntimeLodLevel(int lodLevel)
+{
+    m_runtimeLod = clampValue(lodLevel, 0, getLodLevelCount() - 1);
+}
+
+int FbxRenderComponent::getLodLevelCount() const
+{
+    return 1 + static_cast<int>(m_lods.size());
 }
 
 void FbxRenderComponent::createMaterialCBV()
@@ -334,10 +555,23 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
 {
     if (!m_model) return;
 
+    Model* activeModel = m_model.get();
+    ConstantBuffer<ModelCB>* activeModelCB = m_modelCB.get();
+    if (const LodEntry* lod = getActiveLodEntry())
+    {
+        if (lod->model && lod->modelCB)
+        {
+            activeModel = lod->model.get();
+            activeModelCB = lod->modelCB.get();
+        }
+    }
+
+    if (!activeModel || !activeModelCB) return;
+
     PSOCreator::Instance().setPSO(m_shadowPSOKey, cmd);
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    const auto& modelData = m_model->getResource()->getModelData();
+    const auto& modelData = activeModel->getResource()->getModelData();
 
     for (size_t meshIdx = 0; meshIdx < modelData.meshes.size(); ++meshIdx)
     {
@@ -350,7 +584,7 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
         {
             for (size_t i = 0; i < mesh.nodeIndices.size(); ++i)
             {
-                const Matrix worldTransform = m_model->getBone().at(mesh.nodeIndices.at(i)).worldTransform;
+                const Matrix worldTransform = activeModel->getBone().at(mesh.nodeIndices.at(i)).worldTransform;
                 const Matrix offsetTransform = mesh.offsetTransforms.at(i);
                 modelCBData.boneTransforms[i] = offsetTransform * worldTransform;
             }
@@ -361,13 +595,13 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
             modelCBData.boneTransforms[0] = Matrix::Identity;
         }
 
-        m_modelCB->update(modelCBData, static_cast<UINT>(meshIdx));
+        activeModelCB->update(modelCBData, static_cast<UINT>(meshIdx));
 
         // ShadowDepth ルートシグネチャ: params[1] = ボーントランスフォーム CBV (b1)
-        cmd->SetGraphicsRootConstantBufferView(1, m_modelCB->getGPUAddress(static_cast<UINT>(meshIdx)));
+        cmd->SetGraphicsRootConstantBufferView(1, activeModelCB->getGPUAddress(static_cast<UINT>(meshIdx)));
 
         // メッシュバッファをセット（現在処理中のメッシュのみ）
-        m_model->getResource()->bindGpuMesh(cmd, meshIdx);
+        activeModel->getResource()->bindGpuMesh(cmd, meshIdx);
 
         for (const auto& subset : mesh.subMeshes)
         {
@@ -386,13 +620,31 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
         return;
     }
 
+    Model* activeModel = m_model.get();
+    ConstantBuffer<ModelCB>* activeModelCB = m_modelCB.get();
+    ConstantBuffer<MaterialCB>* activeMaterialCB = m_materialCB.get();
+    if (const LodEntry* lod = getActiveLodEntry())
+    {
+        if (lod->model && lod->modelCB && lod->materialCB)
+        {
+            activeModel = lod->model.get();
+            activeModelCB = lod->modelCB.get();
+            activeMaterialCB = lod->materialCB.get();
+        }
+    }
+
+    if (!activeModel || !activeModelCB || !activeMaterialCB)
+    {
+        return;
+    }
+
     // PSO とルートシグネチャをセット
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
     PSOCreator::Instance().setPSO(psoKey, cmd);
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
 
-    const auto& modelData = m_model->getResource()->getModelData();
+    const auto& modelData = activeModel->getResource()->getModelData();
 
     for (size_t meshIdx = 0; meshIdx < modelData.meshes.size(); ++meshIdx)
     {
@@ -409,7 +661,7 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
         {
             for (size_t i = 0; i < mesh.nodeIndices.size(); ++i)
             {
-                Matrix worldTransform = m_model->getBone().at(mesh.nodeIndices.at(i)).worldTransform;
+                Matrix worldTransform = activeModel->getBone().at(mesh.nodeIndices.at(i)).worldTransform;
                 Matrix offsetTransform = mesh.offsetTransforms.at(i);
                 Matrix boneTransform = offsetTransform * worldTransform;
                 modelCBData.boneTransforms[i] = boneTransform;
@@ -417,15 +669,15 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
         }
         else
         {
-            modelCBData.boneTransforms[0] = m_model->getBone().at(mesh.nodeIndex).worldTransform;
+            modelCBData.boneTransforms[0] = activeModel->getBone().at(mesh.nodeIndex).worldTransform;
         }
 
         // CBV 更新 & ルートにセット
-        m_modelCB->update(modelCBData, static_cast<UINT>(meshIdx));
-        cmd->SetGraphicsRootConstantBufferView(1, m_modelCB->getGPUAddress(static_cast<UINT>(meshIdx)));
+        activeModelCB->update(modelCBData, static_cast<UINT>(meshIdx));
+        cmd->SetGraphicsRootConstantBufferView(1, activeModelCB->getGPUAddress(static_cast<UINT>(meshIdx)));
 
         // メッシュバッファをセット（現在処理中のメッシュのみ）
-        m_model->getResource()->bindGpuMesh(cmd, meshIdx);
+        activeModel->getResource()->bindGpuMesh(cmd, meshIdx);
 
         for (const auto& subset : mesh.subMeshes)
         {
@@ -451,7 +703,7 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
             if (subset.materialIndex < modelData.materials.size())
                 matIndex = static_cast<UINT>(subset.materialIndex);
 
-            cmd->SetGraphicsRootConstantBufferView(2, m_materialCB->getGPUAddress(matIndex));
+            cmd->SetGraphicsRootConstantBufferView(2, activeMaterialCB->getGPUAddress(matIndex));
             cmd->SetGraphicsRootDescriptorTable(3, DescriptorHeapManager::Instance().getGPUHandle(subset.descriptorBase));
             cmd->DrawIndexedInstanced(subset.indexCount, 1, subset.startIndex, 0, 0);
         }
@@ -471,6 +723,8 @@ void FbxRenderComponent::imguiStatisticsPanel()
     ImGui::Text(reinterpret_cast<const char*>(u8"インデックス数"));    ImGui::NextColumn(); ImGui::Text("%u", status.totalIndices);     ImGui::NextColumn();
     ImGui::Text(reinterpret_cast<const char*>(u8"三角形数"));          ImGui::NextColumn(); ImGui::Text("%u", status.totalTriangles);   ImGui::NextColumn();
     ImGui::Text(reinterpret_cast<const char*>(u8"ドローコール数"));    ImGui::NextColumn(); ImGui::Text("%u", status.drawCallCount);    ImGui::NextColumn();
+    ImGui::Text("LOD Count");                                           ImGui::NextColumn(); ImGui::Text("%d", getLodLevelCount());      ImGui::NextColumn();
+    ImGui::Text("Runtime LOD");                                         ImGui::NextColumn(); ImGui::Text("%d", m_runtimeLod);            ImGui::NextColumn();
 
     ImGui::Columns(1);
 }
@@ -809,6 +1063,42 @@ void FbxRenderComponent::imguiDebugPanel()
         (int)names.size()))
     {
         m_debugMode = static_cast<DebugMode>(currentMode);
+    }
+
+    ImGui::Separator();
+    ImGui::Checkbox("Auto LOD", &m_enableAutoLod);
+
+    const int lodCount = getLodLevelCount();
+    if (lodCount > 1)
+    {
+        int lodLevel = m_runtimeLod;
+        if (ImGui::SliderInt("Runtime LOD", &lodLevel, 0, lodCount - 1))
+        {
+            setRuntimeLodLevel(lodLevel);
+        }
+
+        for (int i = 0; i < lodCount - 1; ++i)
+        {
+            if (i >= static_cast<int>(m_lodSwitchDistances.size()))
+            {
+                m_lodSwitchDistances.push_back(20.0f + 25.0f * static_cast<float>(i));
+            }
+
+            std::string label = std::format("Switch to LOD{}", i + 1);
+            float minDist = (i == 0) ? 0.0f : (m_lodSwitchDistances[i - 1] + 0.01f);
+            float maxDist = 10000.0f;
+            ImGui::DragFloat(label.c_str(), &m_lodSwitchDistances[i], 0.25f, minDist, maxDist);
+        }
+
+        ImGui::Text("LOD0: %s", m_modelPath.c_str());
+        for (size_t i = 0; i < m_lods.size(); ++i)
+        {
+            ImGui::Text("LOD%zu: %s", i + 1, m_lods[i].sourcePath.c_str());
+        }
+    }
+    else
+    {
+        ImGui::TextDisabled("No additional LOD assets found");
     }
 }
 

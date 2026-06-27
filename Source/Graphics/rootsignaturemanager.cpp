@@ -12,6 +12,7 @@ void RootSignatureManager::initialize()
     buildDeferredLighting();
     buildGpuEffectRender();
     buildGpuEffectCompute();
+    buildHiZPyramidCompute();
     buildShadowDepth();
 }
 
@@ -168,6 +169,26 @@ void RootSignatureManager::buildGpuEffectCompute()
     params[2].InitAsDescriptorTable(1, &uavRange);
 
     createRootSignature(params, _countof(params), RootSignatureType::GpuEffectCompute);
+}
+
+void RootSignatureManager::buildHiZPyramidCompute()
+{
+    CD3DX12_ROOT_PARAMETER params[3] = {};
+
+    // b0: ダウンサンプルパラメータ
+    params[0].InitAsConstantBufferView(0);
+
+    // t0: 入力深度（または前ミップ）
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange);
+
+    // u0: 出力ミップ
+    CD3DX12_DESCRIPTOR_RANGE uavRange;
+    uavRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+    params[2].InitAsDescriptorTable(1, &uavRange);
+
+    createRootSignature(params, _countof(params), RootSignatureType::HiZPyramidCompute);
 }
 
 void RootSignatureManager::buildModelMaterialSRV(UINT srvCount, RootSignatureType type)

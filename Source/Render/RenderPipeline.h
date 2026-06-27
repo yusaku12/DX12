@@ -46,7 +46,7 @@ private:
         bool executed = false;
     };
 
-    static constexpr int PassCount = 7;
+    static constexpr int PassCount = 8;
     std::array<PassTiming, PassCount> m_passTimings{};
     bool m_profileFrameOpen = false;
 

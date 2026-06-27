@@ -12,6 +12,7 @@ enum class RenderPassId : int
     Lighting,
     ForwardScene,
     Forward,
+    HiZPyramid,
     Debug,
     PostEffect
 };

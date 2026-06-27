@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Editor/AsyncAssetLoader.h"
 #include "ModelEditorScene.h"
 #include "ParticleScene.h"
 #include "SceneFlatBuffer.h"
@@ -97,7 +98,7 @@ void SceneManager::debugOption()
         std::vector<std::wstring> paths;
         if (Dialog::openFile(paths, L"Load Scene", L"", false) == DialogResult::OK && !paths.empty())
         {
-            loadSceneFromFile(std::filesystem::path(paths.front()));
+            EditorAsyncAsset::AsyncAssetLoader::Instance().enqueueScene(std::filesystem::path(paths.front()));
         }
     }
 

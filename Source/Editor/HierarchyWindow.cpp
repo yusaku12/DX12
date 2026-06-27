@@ -1,6 +1,8 @@
 ﻿#include "pch.h"
 #include "HierarchyWindow.h"
+#include "AsyncAssetLoader.h"
 #include "AssetDragDrop.h"
+#include "EditorTransaction.h"
 #include "EditorContext.h"
 #include "GameObject\GameObject.h"
 #include "Scene\PrefabFlatBuffer.h"
@@ -21,6 +23,47 @@ namespace
         }
 
         return false;
+    }
+
+    void recordReparentTransaction(GameObject* object, GameObject* beforeParent, GameObject* afterParent)
+    {
+        if (!object || object->isDestroyed() || beforeParent == afterParent)
+        {
+            return;
+        }
+
+        const uint64_t objectId = object->getInstanceId();
+        const uint64_t beforeParentId = beforeParent ? beforeParent->getInstanceId() : 0;
+        const uint64_t afterParentId = afterParent ? afterParent->getInstanceId() : 0;
+
+        EditorTransaction::Manager::Instance().record(
+            "Reparent GameObject",
+            [objectId, beforeParentId]()
+            {
+                GameObject* obj = GameObjectRegistry::Instance().findByInstanceId(objectId);
+                if (!obj || obj->isDestroyed())
+                {
+                    return;
+                }
+
+                GameObject* parent = beforeParentId == 0
+                    ? nullptr
+                    : GameObjectRegistry::Instance().findByInstanceId(beforeParentId);
+                obj->setParent(parent);
+            },
+            [objectId, afterParentId]()
+            {
+                GameObject* obj = GameObjectRegistry::Instance().findByInstanceId(objectId);
+                if (!obj || obj->isDestroyed())
+                {
+                    return;
+                }
+
+                GameObject* parent = afterParentId == 0
+                    ? nullptr
+                    : GameObjectRegistry::Instance().findByInstanceId(afterParentId);
+                obj->setParent(parent);
+            });
     }
 }
 
@@ -68,10 +111,7 @@ static void drawGameObjectNode(GameObject* obj)
             std::vector<std::wstring> paths;
             if (Dialog::openFile(paths, L"Load Prefab", L"", false) == DialogResult::OK && !paths.empty())
             {
-                if (GameObject* instance = PrefabFlatBuffer::instantiate(std::filesystem::path(paths.front()), obj))
-                {
-                    g_editor.selectedObject = instance;
-                }
+                EditorAsyncAsset::AsyncAssetLoader::Instance().enqueuePrefab(std::filesystem::path(paths.front()), obj);
             }
         }
 
@@ -142,7 +182,9 @@ static void drawGameObjectNode(GameObject* obj)
             // 自分自身・破棄予定は弾く
             if (dropped && dropped != obj && !dropped->isDestroyed())
             {
+                GameObject* oldParent = dropped->getParent();
                 dropped->setParent(obj);
+                recordReparentTransaction(dropped, oldParent, obj);
             }
         }
 
@@ -193,7 +235,9 @@ void drawHierarchyWindow()
                 GameObject* dropped = *(GameObject**)payload->Data;
                 if (dropped && !dropped->isDestroyed())
                 {
+                    GameObject* oldParent = dropped->getParent();
                     dropped->setParent(nullptr);
+                    recordReparentTransaction(dropped, oldParent, nullptr);
                 }
             }
 
@@ -218,10 +262,7 @@ void drawHierarchyWindow()
             std::vector<std::wstring> paths;
             if (Dialog::openFile(paths, L"Load Prefab", L"", false) == DialogResult::OK && !paths.empty())
             {
-                if (GameObject* instance = PrefabFlatBuffer::instantiate(std::filesystem::path(paths.front()), nullptr))
-                {
-                    g_editor.selectedObject = instance;
-                }
+                EditorAsyncAsset::AsyncAssetLoader::Instance().enqueuePrefab(std::filesystem::path(paths.front()), nullptr);
             }
         }
 

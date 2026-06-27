@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "AssetBrowserWindow.h"
 
+#include "AsyncAssetLoader.h"
 #include "AssetDragDrop.h"
 #include "AssetMetaManager.h"
 #include "AssetThumbnailManager.h"
@@ -31,6 +32,7 @@ namespace
     std::vector<AssetEntry> s_assets;
     bool s_initialized = false;
     char s_search[128] = "";
+    std::string s_pipelineStatus;
 
     enum class AssetTab
     {
@@ -178,18 +180,7 @@ namespace
 
     void handleAssetOpen(const AssetEntry& asset)
     {
-        switch (asset.kind)
-        {
-        case AssetKind::Prefab:
-            PrefabFlatBuffer::instantiate(asset.absolutePath, nullptr);
-            break;
-        case AssetKind::Scene:
-            SceneManager::Instance().loadSceneFromFile(asset.absolutePath);
-            break;
-        default:
-            EditorAssetDragDrop::applyAssetToScene(asset.absolutePath, nullptr);
-            break;
-        }
+        EditorAssetDragDrop::applyAssetToScene(asset.absolutePath, nullptr);
     }
 
     void drawPreviewCell(const AssetEntry& asset)
@@ -227,11 +218,55 @@ void drawAssetBrowserWindow()
     {
         EditorAssetThumbnail::AssetThumbnailManager::Instance().clear();
         rebuildAssetList();
+        s_pipelineStatus = "Refreshed asset list.";
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Reimport All"))
+    {
+        const bool ok = EditorAssetMeta::AssetMetaManager::Instance().refreshAllAssets(getAssetRoot());
+        EditorAssetThumbnail::AssetThumbnailManager::Instance().clear();
+        rebuildAssetList();
+        s_pipelineStatus = ok ? "Reimport all completed." : "Reimport all completed with warnings.";
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Cook"))
+    {
+        EditorAssetMeta::CookReport report{};
+        const bool ok = EditorAssetMeta::AssetMetaManager::Instance().cookAssets(
+            getAssetRoot(),
+            std::filesystem::current_path() / "CookedData",
+            &report);
+
+        if (ok)
+        {
+            s_pipelineStatus = "Cook complete: assets=" + std::to_string(report.cookedAssetCount)
+                + " copied=" + std::to_string(report.copiedFileCount)
+                + " manifest=" + pathToUtf8(report.manifestPath);
+        }
+        else
+        {
+            s_pipelineStatus = "Cook failed. Check logs.";
+        }
     }
 
     ImGui::SameLine();
     ImGui::SetNextItemWidth(240.0f);
     ImGui::InputTextWithHint("##AssetSearch", "Search assets...", s_search, IM_ARRAYSIZE(s_search));
+
+    if (!s_pipelineStatus.empty())
+    {
+        ImGui::TextWrapped("%s", s_pipelineStatus.c_str());
+    }
+
+    const auto& asyncLoader = EditorAsyncAsset::AsyncAssetLoader::Instance();
+    if (asyncLoader.isBusy() || !asyncLoader.getLastStatus().empty())
+    {
+        ImGui::TextWrapped("Async Load: %s (pending=%zu)",
+            asyncLoader.getLastStatus().c_str(),
+            asyncLoader.pendingTaskCount());
+    }
 
     ImGui::Separator();
 
@@ -293,9 +328,33 @@ void drawAssetBrowserWindow()
 
                 if (ImGui::MenuItem("Reimport / Refresh Meta"))
                 {
+                    EditorAssetMeta::ReimportReport report{};
+                    EditorAssetMeta::AssetMetaManager::Instance().refreshAsset(asset.absolutePath, &report);
                     EditorAssetThumbnail::AssetThumbnailManager::Instance().clear();
-                    EditorAssetMeta::AssetMetaManager::Instance().clearCache();
                     rebuildAssetList();
+
+                    s_pipelineStatus = "Reimport: " + pathToUtf8(asset.relativePath)
+                        + " srcChanged=" + (report.sourceChanged ? "1" : "0")
+                        + " depChanged=" + (report.dependencyChanged ? "1" : "0")
+                        + " importerChanged=" + (report.importerVersionChanged ? "1" : "0")
+                        + " reimported=" + (report.reimported ? "1" : "0");
+                }
+
+                if (ImGui::MenuItem("Show Dependencies"))
+                {
+                    const auto deps = EditorAssetMeta::AssetMetaManager::Instance().getDependencies(asset.absolutePath);
+                    const auto users = EditorAssetMeta::AssetMetaManager::Instance().getDependents(asset.absolutePath);
+
+                    std::string message = "deps=" + std::to_string(deps.size()) + " users=" + std::to_string(users.size());
+                    for (const auto& dep : deps)
+                    {
+                        message += " | dep:" + pathToUtf8(dep);
+                    }
+                    for (const auto& user : users)
+                    {
+                        message += " | usedBy:" + pathToUtf8(user);
+                    }
+                    s_pipelineStatus = message;
                 }
 
                 if (ImGui::MenuItem("Copy GUID"))

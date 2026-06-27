@@ -77,7 +77,9 @@
     <ClCompile Include="Source\Component\TransformComponent.cpp" />
     <ClCompile Include="Source\Editor\AssetBrowserWindow.cpp" />
     <ClCompile Include="Source\Editor\AssetDragDrop.cpp" />
+    <ClCompile Include="Source\Editor\AsyncAssetLoader.cpp" />
     <ClCompile Include="Source\Editor\AssetMetaManager.cpp" />
+    <ClCompile Include="Source\Editor\EditorTransaction.cpp" />
     <ClCompile Include="Source\Editor\AssetThumbnailManager.cpp" />
     <ClCompile Include="Source\Editor\CubemapToolWindow.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp">
@@ -125,6 +127,7 @@
     <ClCompile Include="Source\Render\GBufferRenderTargets.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
     <ClCompile Include="Source\Render\RenderPipeline.cpp" />
+    <ClCompile Include="Source\Render\HiZPyramid.cpp" />
     <ClCompile Include="Source\Render\ShadowMapRenderer.cpp" />
     <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
     <ClCompile Include="Source\Scene\ParticleScene.cpp" />
@@ -136,6 +139,7 @@
     <ClCompile Include="Source\System\DebugPrimitive.cpp" />
     <ClCompile Include="Source\System\Dialog.cpp" />
     <ClCompile Include="Source\System\Logger.cpp" />
+    <ClCompile Include="Source\Test\EngineTestRunner.cpp" />
     <ClCompile Include="Source\System\TimeManager.cpp" />
     <ClCompile Include="Source\System\Window.cpp" />
   </ItemGroup>
@@ -197,8 +201,10 @@
     <ClInclude Include="Source\Component\TransformComponent.h" />
     <ClInclude Include="Source\Editor\AssetBrowserWindow.h" />
     <ClInclude Include="Source\Editor\AssetDragDrop.h" />
+    <ClInclude Include="Source\Editor\AsyncAssetLoader.h" />
     <ClInclude Include="Source\Editor\AssetMetaManager.h" />
     <ClInclude Include="Source\Editor\AssetThumbnailManager.h" />
+    <ClInclude Include="Source\Editor\EditorTransaction.h" />
     <ClInclude Include="Source\Editor\CubemapToolWindow.h" />
     <ClInclude Include="Source\Editor\EditorContext.h" />
     <ClInclude Include="Source\Editor\EditorManager.h" />
@@ -243,6 +249,7 @@
     <ClInclude Include="Source\Render\DeferredRenderer.h" />
     <ClInclude Include="Source\Render\GBufferRenderTargets.h" />
     <ClInclude Include="Source\Render\RenderManager.h" />
+    <ClInclude Include="Source\Render\HiZPyramid.h" />
     <ClInclude Include="Source\Render\RenderPassBase.h" />
     <ClInclude Include="Source\Render\RenderPipeline.h" />
     <ClInclude Include="Source\Render\ShadowMapRenderer.h" />
@@ -257,6 +264,7 @@
     <ClInclude Include="Source\System\Dialog.h" />
     <ClInclude Include="Source\System\Logger.h" />
     <ClInclude Include="Source\System\LoggerMacros.h" />
+    <ClInclude Include="Source\Test\EngineTestRunner.h" />
     <ClInclude Include="Source\System\Stringformat.h" />
     <ClInclude Include="Source\System\TimeManager.h" />
     <ClInclude Include="Source\System\Window.h" />
@@ -268,6 +276,7 @@
     <None Include="HLSL\CommonConstants.hlsli" />
     <None Include="HLSL\DebugPrimitive.hlsli" />
     <None Include="HLSL\FBX.hlsli" />
+    <None Include="HLSL\HiZDownsampleCS.hlsl" />
     <None Include="HLSL\PostEffect.hlsli" />
     <None Include="HLSL\Shadow.hlsli" />
     <None Include="HLSL\SkyBox.hlsli" />

@@ -1,0 +1,29 @@
+name: CI Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build-and-smoke:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Debug x64
+        shell: pwsh
+        run: |
+          msbuild .\DirectX12.sln /t:Build /p:Configuration=Debug /p:Platform=x64 /nologo /m:1 /v:minimal
+
+      - name: Run automated tests (unit/integration/render regression)
+        shell: pwsh
+        run: |
+          .\x64\Debug\DirectX12.exe --test-all

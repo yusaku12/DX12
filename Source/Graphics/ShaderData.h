@@ -26,6 +26,7 @@ enum class ShaderID : int
     GpuEffectVS,
     GpuEffectPS,
     GpuEffectCS,
+    HiZDownsampleCS,
     ShadowDepthVS,
     ShadowDepthPS,
     MAX
@@ -65,6 +66,7 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/GpuEffectVS.hlsl",        "VS", "vs_5_0" },  //!< GpuEffectVS
     ShaderDesc{ L"Shader/GpuEffectPS.hlsl",        "PS", "ps_5_0" },  //!< GpuEffectPS
     ShaderDesc{ L"Shader/GpuEffectCS.hlsl",        "CS", "cs_5_0" },  //!< GpuEffectCS
+    ShaderDesc{ L"Shader/HiZDownsampleCS.hlsl",    "CS", "cs_5_0" },  //!< HiZDownsampleCS
     ShaderDesc{ L"Shader/ShadowDepthVS.hlsl",      "VS", "vs_5_0" },  //!< ShadowDepthVS
     ShaderDesc{ L"Shader/ShadowDepthPS.hlsl",      "PS", "ps_5_0" },  //!< ShadowDepthPS
 };

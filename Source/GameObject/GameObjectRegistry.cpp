@@ -79,3 +79,21 @@ GameObject* GameObjectRegistry::findByTag(Tag tag) const
     }
     return nullptr;
 }
+
+GameObject* GameObjectRegistry::findByInstanceId(uint64_t instanceId) const
+{
+    for (GameObject* obj : m_objects)
+    {
+        if (!obj || obj->isDestroyed())
+        {
+            continue;
+        }
+
+        if (obj->getInstanceId() == instanceId)
+        {
+            return obj;
+        }
+    }
+
+    return nullptr;
+}

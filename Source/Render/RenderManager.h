@@ -60,6 +60,22 @@ public:
     //! 登録数取得
     size_t getComponentCount() const { return m_components.size(); }
 
+    //! カリング設定
+    void setFrustumCullingEnabled(bool enabled) { m_enableFrustumCulling = enabled; }
+    bool isFrustumCullingEnabled() const { return m_enableFrustumCulling; }
+
+    //! 自動LOD設定
+    void setAutoLodEnabled(bool enabled) { m_enableAutoLod = enabled; }
+    bool isAutoLodEnabled() const { return m_enableAutoLod; }
+
+    //! 自動HLOD設定（親にRenderComponentがあり、子孫にもRenderComponentがある階層を対象）
+    void setAutoHlodEnabled(bool enabled) { m_enableAutoHlod = enabled; }
+    bool isAutoHlodEnabled() const { return m_enableAutoHlod; }
+
+    //! HLOD切替距離
+    void setHlodSwitchDistance(float distance) { m_hlodSwitchDistance = std::max(distance, 0.0f); }
+    float getHlodSwitchDistance() const { return m_hlodSwitchDistance; }
+
     //! マルチスレッド計測情報（デバッグ用）
     struct ThreadTimingInfo
     {
@@ -110,6 +126,15 @@ private:
     //! マルチスレッド描画の内部実装
     void renderMultiThreadedInternal(RenderPassKind kind);
 
+    //! 現在カメラ視錐台で可視コンポーネントを抽出
+    std::vector<IRenderComponent*> collectVisibleComponents(const std::vector<IRenderComponent*>& comps);
+
+    //! 自動HLODフィルタを適用して描画対象を絞る
+    std::vector<IRenderComponent*> applyAutoHlod(const std::vector<IRenderComponent*>& comps);
+
+    //! 自動LODを各コンポーネントへ反映
+    void applyAutoLod(const std::vector<IRenderComponent*>& comps);
+
     std::vector<IRenderComponent*> m_components;
     std::mutex m_mutex;
 
@@ -120,4 +145,14 @@ private:
     std::mutex m_timingMutex;
 
     bool m_useMultiThreaded = true;
+    bool m_enableFrustumCulling = true;
+    bool m_enableAutoLod = true;
+    bool m_enableAutoHlod = true;
+    float m_hlodSwitchDistance = 60.0f;
+
+    size_t m_lastSubmittedCount = 0;
+    size_t m_lastVisibleCount = 0;
+    size_t m_lastFrustumCulledCount = 0;
+    size_t m_lastHlodMergedCount = 0;
+    size_t m_lastLodAdjustedCount = 0;
 };

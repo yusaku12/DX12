@@ -1,12 +1,9 @@
 ﻿#include "pch.h"
 #include "AssetDragDrop.h"
 
-#include "Component/FbxRenderComponent.h"
-#include "Component/TransformComponent.h"
+#include "AsyncAssetLoader.h"
 #include "EditorContext.h"
 #include "GameObject/GameObject.h"
-#include "Scene/PrefabFlatBuffer.h"
-#include "Scene/SceneManager.h"
 
 namespace
 {
@@ -31,6 +28,17 @@ namespace
         std::transform(value.begin(), value.end(), value.begin(),
             [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         return value;
+    }
+
+    std::filesystem::path fromUtf8Path(std::string_view utf8)
+    {
+        std::u8string u8;
+        u8.reserve(utf8.size());
+        for (char ch : utf8)
+        {
+            u8.push_back(static_cast<char8_t>(static_cast<unsigned char>(ch)));
+        }
+        return std::filesystem::path(u8);
     }
 
     std::filesystem::path normalizePath(const std::filesystem::path& source)
@@ -116,44 +124,11 @@ namespace EditorAssetDragDrop
         switch (detectAssetType(normalized))
         {
         case AssetType::Prefab:
-        {
-            GameObject* instance = PrefabFlatBuffer::instantiate(normalized, parent);
-            if (!instance)
-            {
-                return false;
-            }
-
-            g_editor.selectedObject = instance;
-            return true;
-        }
+            return EditorAsyncAsset::AsyncAssetLoader::Instance().enqueuePrefab(normalized, parent);
         case AssetType::Scene:
-        {
-            const bool loaded = SceneManager::Instance().loadSceneFromFile(normalized);
-            if (loaded)
-            {
-                g_editor.selectedObject = nullptr;
-            }
-            return loaded;
-        }
+            return EditorAsyncAsset::AsyncAssetLoader::Instance().enqueueScene(normalized);
         case AssetType::Fbx:
-        {
-            const std::string objectName = normalized.stem().string().empty() ? "Model" : normalized.stem().string();
-            GameObject* object = new GameObject(objectName);
-            object->addComponent<TransformComponent>();
-
-            const std::string modelPath = toAssetPathString(normalized);
-            FbxRenderComponent* renderer = object->addComponent<FbxRenderComponent>(modelPath);
-            if (!renderer)
-            {
-                object->destroy();
-                LOG_WARN("[AssetDragDrop] Failed to create FbxRenderComponent: %s", modelPath.c_str());
-                return false;
-            }
-
-            object->setParent(parent);
-            g_editor.selectedObject = object;
-            return true;
-        }
+            return EditorAsyncAsset::AsyncAssetLoader::Instance().enqueueFbx(normalized, parent);
         default:
             break;
         }
@@ -171,6 +146,6 @@ namespace EditorAssetDragDrop
         }
 
         const char* payloadText = static_cast<const char*>(payload->Data);
-        return applyAssetToScene(std::filesystem::path(payloadText), parent);
+        return applyAssetToScene(fromUtf8Path(std::string_view(payloadText)), parent);
     }
 }

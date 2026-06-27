@@ -12,6 +12,13 @@ class TransformComponent : public Component
 {
 public:
 
+    struct LocalState
+    {
+        Vector3 position = Vector3::Zero;
+        Quaternion rotation = Quaternion::Identity;
+        Vector3 scale = Vector3::One;
+    };
+
     TransformComponent() = default;
     ~TransformComponent() override = default;
 
@@ -62,6 +69,12 @@ public:
     //! 外部から dirty を立てる（親変更などで使用）
     void markDirty() { m_dirty = true; }
 
+    //! 現在のローカルTRS状態を取得
+    LocalState getLocalState() const;
+
+    //! ローカルTRS状態を適用
+    void applyLocalState(const LocalState& state);
+
 private:
 
     Vector3 m_position = Vector3::Zero;
@@ -70,6 +83,8 @@ private:
 
     //! ギズモモード（0=Translate,1=Rotate,2=Scale）を保持しておく
     int m_gizmoOp = 0;
+    bool m_gizmoEditing = false;
+    LocalState m_gizmoBeginState;
 
     //! キャッシュ
     mutable Matrix m_localMatrix = Matrix::Identity;

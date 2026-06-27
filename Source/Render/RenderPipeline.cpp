@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "HiZPyramid.h"
 #include "System/DebugPrimitive.h"
 
 namespace
@@ -200,6 +201,34 @@ namespace
         }
     };
 
+    class HiZPass : public RenderPassBase
+    {
+    public:
+        RenderPassId getId() const override { return RenderPassId::HiZPyramid; }
+        const char* getName() const override { return "HiZPyramid"; }
+        int getPriority() const override { return 50; }
+        RenderPassStage getStage() const override { return RenderPassStage::BeforePostEffect; }
+
+        bool isEnabled(const RenderPassContext&) const override
+        {
+            return HiZPyramid::Instance().isEnabled();
+        }
+
+        void execute(RenderPassContext&) override
+        {
+            auto* cmd = DX12::Instance().getGraphicsCommandList();
+            if (!cmd)
+            {
+                return;
+            }
+
+            DX12::Instance().transitionDepthToSRV();
+            HiZPyramid::Instance().build(cmd);
+            // Restore default depth-write state for passes that continue drawing after Hi-Z.
+            DX12::Instance().transitionDepthToWrite();
+        }
+    };
+
     class PostEffectPass : public RenderPassBase
     {
     public:
@@ -227,7 +256,8 @@ void RenderPipeline::initialize()
     registerPass(std::make_unique<ForwardScenePass>());
     registerPass(std::make_unique<LightingPass>(), { RenderPassId::GBuffer });
     registerPass(std::make_unique<ForwardPass>(), { RenderPassId::Lighting });
-    registerPass(std::make_unique<DebugPass>(), { RenderPassId::Forward });
+    registerPass(std::make_unique<HiZPass>(), { RenderPassId::Forward });
+    registerPass(std::make_unique<DebugPass>(), { RenderPassId::HiZPyramid });
     registerPass(std::make_unique<PostEffectPass>());
 }
 

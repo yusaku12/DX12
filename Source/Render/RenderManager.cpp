@@ -1,10 +1,178 @@
 ﻿#include "pch.h"
 #include "Component\IRenderComponent.h"
+#include "Component\TransformComponent.h"
+#include "HiZPyramid.h"
+
+namespace
+{
+    DirectX::BoundingFrustum buildWorldFrustum(const CameraComponent* camera)
+    {
+        DirectX::BoundingFrustum localFrustum;
+        DirectX::BoundingFrustum::CreateFromMatrix(localFrustum, camera->getProjection());
+
+        DirectX::BoundingFrustum worldFrustum;
+        const Matrix invView = camera->getView().Invert();
+        localFrustum.Transform(worldFrustum, invView);
+        return worldFrustum;
+    }
+
+    bool tryGetComponentCenter(const IRenderComponent* comp, Vector3& outCenter)
+    {
+        if (!comp)
+        {
+            return false;
+        }
+
+        Vector3 center{};
+        Vector3 extents{};
+        if (comp->getWorldAABB(center, extents))
+        {
+            outCenter = center;
+            return true;
+        }
+
+        GameObject* go = comp->gameObject();
+        if (!go)
+        {
+            return false;
+        }
+
+        if (auto* tf = go->getComponent<TransformComponent>())
+        {
+            outCenter = tf->getPosition();
+            return true;
+        }
+
+        return false;
+    }
+
+    bool hasRenderableDescendant(GameObject* node, const std::unordered_set<GameObject*>& renderableSet)
+    {
+        if (!node)
+        {
+            return false;
+        }
+
+        for (GameObject* child : node->getChildren())
+        {
+            if (!child) continue;
+            if (renderableSet.contains(child))
+            {
+                return true;
+            }
+            if (hasRenderableDescendant(child, renderableSet))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void markDescendantRenderables(GameObject* node,
+        const std::unordered_map<GameObject*, IRenderComponent*>& byObject,
+        std::unordered_set<IRenderComponent*>& outMarked)
+    {
+        if (!node)
+        {
+            return;
+        }
+
+        for (GameObject* child : node->getChildren())
+        {
+            if (!child) continue;
+
+            auto it = byObject.find(child);
+            if (it != byObject.end() && it->second)
+            {
+                outMarked.insert(it->second);
+            }
+
+            markDescendantRenderables(child, byObject, outMarked);
+        }
+    }
+}
 
 std::vector<IRenderComponent*> RenderManager::copyComponents()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_components;
+}
+
+std::vector<IRenderComponent*> RenderManager::collectVisibleComponents(const std::vector<IRenderComponent*>& comps)
+{
+    m_lastSubmittedCount = comps.size();
+
+    if (!m_enableFrustumCulling)
+    {
+        m_lastVisibleCount = comps.size();
+        m_lastFrustumCulledCount = 0;
+        return comps;
+    }
+
+    CameraComponent* camera = CameraManager::Instance().getMainCamera();
+    if (!camera)
+    {
+        m_lastVisibleCount = comps.size();
+        m_lastFrustumCulledCount = 0;
+        return comps;
+    }
+
+    const DirectX::BoundingFrustum worldFrustum = buildWorldFrustum(camera);
+    const auto isFiniteVec3 = [](const Vector3& v)
+        {
+            return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z);
+        };
+
+    std::vector<IRenderComponent*> visible;
+    visible.reserve(comps.size());
+
+    size_t culled = 0;
+    for (IRenderComponent* comp : comps)
+    {
+        if (!comp)
+        {
+            continue;
+        }
+
+        Vector3 center{};
+        Vector3 extents{};
+        if (!comp->getWorldAABB(center, extents))
+        {
+            // 境界が取得できないものは安全側で描画
+            visible.push_back(comp);
+            continue;
+        }
+
+        // 不正境界は誤カリングを避けるため描画側へフォールバック
+        if (!isFiniteVec3(center) || !isFiniteVec3(extents) ||
+            extents.x < 0.0f || extents.y < 0.0f || extents.z < 0.0f)
+        {
+            visible.push_back(comp);
+            continue;
+        }
+
+        const DirectX::BoundingBox box(center, extents);
+        if (worldFrustum.Contains(box) == DirectX::DISJOINT)
+        {
+            ++culled;
+            continue;
+        }
+
+        visible.push_back(comp);
+    }
+
+    // カメラ/境界の一時的不整合で全落ちするのを防ぐフェイルセーフ
+    if (visible.empty() && !comps.empty())
+    {
+        m_lastVisibleCount = comps.size();
+        m_lastFrustumCulledCount = 0;
+        return comps;
+    }
+
+    m_lastVisibleCount = visible.size();
+    m_lastFrustumCulledCount = culled;
+    return visible;
 }
 
 void RenderManager::recordSingleThreadTiming(const std::string& name, float totalMs)
@@ -93,8 +261,13 @@ void RenderManager::executeRender(RenderPassKind kind, IRenderComponent* comp, I
 
 void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
 {
-    auto comps = copyComponents();
+    auto comps = collectVisibleComponents(copyComponents());
     if (comps.empty()) return;
+
+    comps = applyAutoHlod(comps);
+    if (comps.empty()) return;
+
+    applyAutoLod(comps);
 
     if (kind == RenderPassKind::Default)
     {
@@ -118,8 +291,13 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
 {
     using Clock = std::chrono::high_resolution_clock;
 
-    auto comps = copyComponents();
+    auto comps = collectVisibleComponents(copyComponents());
     if (comps.empty()) return;
+
+    comps = applyAutoHlod(comps);
+    if (comps.empty()) return;
+
+    applyAutoLod(comps);
 
     std::vector<IRenderComponent*> activeComps;
     activeComps.reserve(comps.size());
@@ -201,6 +379,134 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
     }
 }
 
+std::vector<IRenderComponent*> RenderManager::applyAutoHlod(const std::vector<IRenderComponent*>& comps)
+{
+    m_lastHlodMergedCount = 0;
+
+    if (!m_enableAutoHlod)
+    {
+        return comps;
+    }
+
+    CameraComponent* camera = CameraManager::Instance().getMainCamera();
+    if (!camera)
+    {
+        return comps;
+    }
+
+    std::unordered_map<GameObject*, IRenderComponent*> byObject;
+    byObject.reserve(comps.size());
+    std::unordered_set<GameObject*> renderableSet;
+    renderableSet.reserve(comps.size());
+
+    for (IRenderComponent* comp : comps)
+    {
+        if (!comp || !comp->gameObject())
+        {
+            continue;
+        }
+        byObject[comp->gameObject()] = comp;
+        renderableSet.insert(comp->gameObject());
+    }
+
+    if (byObject.empty())
+    {
+        return comps;
+    }
+
+    std::unordered_set<IRenderComponent*> skip;
+    const Vector3 cameraPos = camera->getPosition();
+
+    for (IRenderComponent* comp : comps)
+    {
+        if (!comp || !comp->gameObject())
+        {
+            continue;
+        }
+
+        GameObject* go = comp->gameObject();
+        if (!hasRenderableDescendant(go, renderableSet))
+        {
+            continue;
+        }
+
+        Vector3 center{};
+        if (!tryGetComponentCenter(comp, center))
+        {
+            continue;
+        }
+
+        const float distance = Vector3::Distance(cameraPos, center);
+        if (distance >= m_hlodSwitchDistance)
+        {
+            markDescendantRenderables(go, byObject, skip);
+        }
+        else
+        {
+            skip.insert(comp);
+        }
+    }
+
+    if (skip.empty())
+    {
+        return comps;
+    }
+
+    std::vector<IRenderComponent*> filtered;
+    filtered.reserve(comps.size());
+    for (IRenderComponent* comp : comps)
+    {
+        if (!comp) continue;
+        if (skip.contains(comp))
+        {
+            ++m_lastHlodMergedCount;
+            continue;
+        }
+        filtered.push_back(comp);
+    }
+
+    if (filtered.empty())
+    {
+        m_lastHlodMergedCount = 0;
+        return comps;
+    }
+
+    return filtered;
+}
+
+void RenderManager::applyAutoLod(const std::vector<IRenderComponent*>& comps)
+{
+    m_lastLodAdjustedCount = 0;
+
+    if (!m_enableAutoLod)
+    {
+        for (IRenderComponent* comp : comps)
+        {
+            if (!comp) continue;
+            comp->setRuntimeLodLevel(0);
+        }
+        return;
+    }
+
+    CameraComponent* camera = CameraManager::Instance().getMainCamera();
+    if (!camera)
+    {
+        return;
+    }
+
+    const Vector3 cameraPos = camera->getPosition();
+    for (IRenderComponent* comp : comps)
+    {
+        if (!comp) continue;
+        const int lodLevel = comp->evaluateAutoLodLevel(cameraPos);
+        comp->setRuntimeLodLevel(lodLevel);
+        if (lodLevel > 0)
+        {
+            ++m_lastLodAdjustedCount;
+        }
+    }
+}
+
 void RenderManager::registerComponent(IRenderComponent* comp)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -278,6 +584,8 @@ void RenderManager::renderShadowCasters(const DirectX::BoundingOrientedBox& casc
 
 void RenderManager::debugImgui()
 {
+    HiZPyramid::Instance().debugImgui();
+
     if (!ImGui::Begin("RenderManager"))
     {
         ImGui::End();
@@ -292,6 +600,16 @@ void RenderManager::debugImgui()
 
     ImGui::Text("Components: %zu", componentCount);
     ImGui::Checkbox("Use Multi-Threaded", &m_useMultiThreaded);
+    ImGui::Checkbox("Frustum Culling", &m_enableFrustumCulling);
+    ImGui::Checkbox("Auto LOD", &m_enableAutoLod);
+    ImGui::Checkbox("Auto HLOD", &m_enableAutoHlod);
+    ImGui::DragFloat("HLOD Switch Distance", &m_hlodSwitchDistance, 0.5f, 0.0f, 5000.0f);
+
+    ImGui::Text("Submitted: %zu", m_lastSubmittedCount);
+    ImGui::Text("Visible: %zu", m_lastVisibleCount);
+    ImGui::Text("Frustum Culled: %zu", m_lastFrustumCulledCount);
+    ImGui::Text("HLOD Skipped: %zu", m_lastHlodMergedCount);
+    ImGui::Text("LOD Adjusted: %zu", m_lastLodAdjustedCount);
 
     std::vector<ThreadTimingInfo> timings;
     float totalMs = 0.0f;

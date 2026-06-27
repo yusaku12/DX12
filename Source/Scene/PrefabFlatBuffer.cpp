@@ -9,6 +9,8 @@ namespace
 {
     constexpr uint32_t kPrefabVersion = 1;
 
+    void collectHierarchy(GameObject* root, std::vector<GameObject*>& out);
+
     std::string normalizeAssetPath(const std::filesystem::path& filePath)
     {
         std::error_code ec;
@@ -55,6 +57,289 @@ namespace
 
         out.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size));
         return out.good();
+    }
+
+    std::filesystem::path toVariantMetaPath(const std::filesystem::path& filePath)
+    {
+        std::filesystem::path path = filePath;
+        path += ".variant";
+        return path;
+    }
+
+    bool writeVariantMeta(const std::filesystem::path& variantPath, const std::filesystem::path& basePrefabPath)
+    {
+        const std::filesystem::path metaPath = toVariantMetaPath(variantPath);
+        std::ofstream out(metaPath, std::ios::trunc);
+        if (!out)
+        {
+            return false;
+        }
+
+        out << "basePrefab=" << normalizeAssetPath(basePrefabPath) << "\n";
+        return out.good();
+    }
+
+    bool readVariantMeta(const std::filesystem::path& prefabPath, std::filesystem::path& outBasePrefabPath)
+    {
+        const std::filesystem::path metaPath = toVariantMetaPath(prefabPath);
+        std::ifstream in(metaPath);
+        if (!in)
+        {
+            return false;
+        }
+
+        std::string line;
+        while (std::getline(in, line))
+        {
+            const size_t eq = line.find('=');
+            if (eq == std::string::npos)
+            {
+                continue;
+            }
+
+            const std::string key = line.substr(0, eq);
+            if (key != "basePrefab")
+            {
+                continue;
+            }
+
+            const std::string value = line.substr(eq + 1);
+            if (!value.empty())
+            {
+                outBasePrefabPath = std::filesystem::path(value);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    std::string signatureFromSerializedComponent(const scene::SerializedComponent* component)
+    {
+        if (!component || !component->type_name())
+        {
+            return {};
+        }
+
+        std::string signature;
+        signature.reserve(128);
+        signature += component->type_name()->str();
+        signature += "|en=";
+        signature += component->enabled() ? "1" : "0";
+
+        switch (component->payload_type())
+        {
+        case scene::ComponentPayload_TransformComponentData:
+        {
+            const auto* payload = component->payload_as_TransformComponentData();
+            if (payload && payload->position() && payload->rotation() && payload->scale())
+            {
+                signature += std::format("|p={:.4f},{:.4f},{:.4f}|r={:.4f},{:.4f},{:.4f},{:.4f}|s={:.4f},{:.4f},{:.4f}",
+                    payload->position()->x(), payload->position()->y(), payload->position()->z(),
+                    payload->rotation()->x(), payload->rotation()->y(), payload->rotation()->z(), payload->rotation()->w(),
+                    payload->scale()->x(), payload->scale()->y(), payload->scale()->z());
+            }
+            break;
+        }
+        case scene::ComponentPayload_FbxRenderComponentData:
+        {
+            const auto* payload = component->payload_as_FbxRenderComponentData();
+            signature += "|model=";
+            signature += (payload && payload->model_path()) ? payload->model_path()->str() : "";
+            break;
+        }
+        case scene::ComponentPayload_GpuEffectComponentData:
+        {
+            const auto* payload = component->payload_as_GpuEffectComponentData();
+            signature += "|tex=";
+            signature += (payload && payload->texture_path()) ? payload->texture_path()->str() : "";
+            signature += "|max=";
+            signature += payload ? std::to_string(payload->max_particles()) : "0";
+            break;
+        }
+        case scene::ComponentPayload_SkyboxComponentData:
+        {
+            const auto* payload = component->payload_as_SkyboxComponentData();
+            signature += "|cube=";
+            signature += (payload && payload->cubemap_path()) ? payload->cubemap_path()->str() : "";
+            signature += "|exp=";
+            signature += payload ? std::to_string(payload->exposure()) : "0";
+            break;
+        }
+        case scene::ComponentPayload_AnimationComponentData:
+        {
+            const auto* payload = component->payload_as_AnimationComponentData();
+            signature += "|sm=";
+            signature += (payload && payload->state_machine_enabled()) ? "1" : "0";
+            signature += "|spd=";
+            signature += payload ? std::to_string(payload->speed()) : "0";
+            break;
+        }
+        default:
+            signature += "|payload=" + std::to_string(static_cast<int>(component->payload_type()));
+            break;
+        }
+
+        return signature;
+    }
+
+    std::vector<std::string> buildComponentSignaturesFromLive(GameObject* object)
+    {
+        std::vector<std::string> signatures;
+        if (!object)
+        {
+            return signatures;
+        }
+
+        for (const auto& component : object->getComponents())
+        {
+            if (!component)
+            {
+                continue;
+            }
+
+            flatbuffers::FlatBufferBuilder builder(2048);
+            const auto serialized = SerializationCommon::serializeComponent(builder, component.get());
+            if (serialized.o == 0)
+            {
+                continue;
+            }
+
+            const scene::SerializedComponent* view = flatbuffers::GetTemporaryPointer<scene::SerializedComponent>(builder, serialized);
+            signatures.push_back(signatureFromSerializedComponent(view));
+        }
+
+        std::sort(signatures.begin(), signatures.end());
+        return signatures;
+    }
+
+    std::vector<std::string> buildComponentSignaturesFromSerialized(const scene::SerializedGameObject* object)
+    {
+        std::vector<std::string> signatures;
+        if (!object)
+        {
+            return signatures;
+        }
+
+        const auto* components = object->components();
+        if (!components)
+        {
+            return signatures;
+        }
+
+        signatures.reserve(components->size());
+        for (const auto* component : *components)
+        {
+            signatures.push_back(signatureFromSerializedComponent(component));
+        }
+        std::sort(signatures.begin(), signatures.end());
+        return signatures;
+    }
+
+    struct ObjectSnapshot
+    {
+        std::string name;
+        bool enabled = true;
+        int32_t parentIndex = -1;
+        std::vector<int32_t> tags;
+        std::vector<std::string> componentSignatures;
+    };
+
+    std::vector<ObjectSnapshot> buildLiveSnapshots(GameObject* root)
+    {
+        std::vector<GameObject*> objects;
+        collectHierarchy(root, objects);
+
+        std::unordered_map<GameObject*, int32_t> indices;
+        for (int32_t i = 0; i < static_cast<int32_t>(objects.size()); ++i)
+        {
+            indices.emplace(objects[static_cast<size_t>(i)], i);
+        }
+
+        std::vector<ObjectSnapshot> out;
+        out.reserve(objects.size());
+
+        for (GameObject* object : objects)
+        {
+            ObjectSnapshot snap;
+            snap.name = object->getName();
+            snap.enabled = object->isEnabled();
+
+            if (GameObject* parent = object->getParent())
+            {
+                const auto it = indices.find(parent);
+                snap.parentIndex = (it != indices.end()) ? it->second : -1;
+            }
+
+            for (Tag tag : object->getTags())
+            {
+                snap.tags.push_back(static_cast<int32_t>(tag));
+            }
+            std::sort(snap.tags.begin(), snap.tags.end());
+
+            snap.componentSignatures = buildComponentSignaturesFromLive(object);
+            out.push_back(std::move(snap));
+        }
+
+        return out;
+    }
+
+    bool buildSerializedSnapshots(const std::filesystem::path& prefabPath, std::vector<ObjectSnapshot>& out)
+    {
+        const std::vector<uint8_t> bytes = readFileBytes(prefabPath);
+        if (bytes.empty())
+        {
+            return false;
+        }
+
+        if (!scene::SerializedPrefabBufferHasIdentifier(bytes.data()))
+        {
+            return false;
+        }
+
+        flatbuffers::Verifier verifier(bytes.data(), bytes.size());
+        const scene::SerializedPrefab* root = scene::GetSerializedPrefab(bytes.data());
+        if (!root || !root->Verify(verifier))
+        {
+            return false;
+        }
+
+        const auto* objects = root->objects();
+        if (!objects)
+        {
+            return true;
+        }
+
+        out.clear();
+        out.reserve(objects->size());
+
+        for (const scene::SerializedGameObject* object : *objects)
+        {
+            if (!object)
+            {
+                continue;
+            }
+
+            ObjectSnapshot snap;
+            snap.name = object->name() ? object->name()->str() : std::string();
+            snap.enabled = object->enabled();
+            snap.parentIndex = object->parent_index();
+
+            if (const auto* tags = object->tags())
+            {
+                snap.tags.reserve(tags->size());
+                for (int32_t tag : *tags)
+                {
+                    snap.tags.push_back(tag);
+                }
+                std::sort(snap.tags.begin(), snap.tags.end());
+            }
+
+            snap.componentSignatures = buildComponentSignaturesFromSerialized(object);
+            out.push_back(std::move(snap));
+        }
+
+        return true;
     }
 
 
@@ -355,5 +640,115 @@ namespace PrefabFlatBuffer
         prefabRoot->destroy();
 
         return instantiate(std::filesystem::path(path), parent);
+    }
+
+    bool createVariant(const std::filesystem::path& variantPath, const std::filesystem::path& basePrefabPath, GameObject* sourceRoot)
+    {
+        if (!save(variantPath, sourceRoot))
+        {
+            return false;
+        }
+
+        if (!writeVariantMeta(variantPath, basePrefabPath))
+        {
+            LOG_WARN("[PrefabFlatBuffer] Failed to write variant metadata: %s", variantPath.string().c_str());
+        }
+
+        if (sourceRoot)
+        {
+            sourceRoot->setPrefabAssetPath(normalizeAssetPath(variantPath));
+        }
+
+        LOG_INFO("[PrefabFlatBuffer] Created prefab variant: %s (base=%s)",
+            variantPath.string().c_str(),
+            basePrefabPath.string().c_str());
+
+        return true;
+    }
+
+    bool buildOverrideInfo(GameObject* instanceObject, OverrideInfo& outInfo)
+    {
+        outInfo = {};
+
+        GameObject* prefabRoot = findPrefabRoot(instanceObject);
+        if (!prefabRoot)
+        {
+            return false;
+        }
+
+        const std::string& sourcePathText = prefabRoot->getPrefabAssetPath();
+        if (sourcePathText.empty())
+        {
+            return false;
+        }
+
+        const std::filesystem::path sourcePath(sourcePathText);
+        std::filesystem::path comparePath = sourcePath;
+
+        std::filesystem::path basePath;
+        if (readVariantMeta(sourcePath, basePath))
+        {
+            outInfo.isVariant = true;
+            outInfo.basePrefabPath = basePath;
+            comparePath = basePath;
+        }
+
+        std::vector<ObjectSnapshot> baseSnapshots;
+        if (!buildSerializedSnapshots(comparePath, baseSnapshots))
+        {
+            return false;
+        }
+
+        const std::vector<ObjectSnapshot> liveSnapshots = buildLiveSnapshots(prefabRoot);
+
+        const size_t maxCount = std::max(liveSnapshots.size(), baseSnapshots.size());
+        for (size_t i = 0; i < maxCount; ++i)
+        {
+            if (i >= baseSnapshots.size())
+            {
+                outInfo.entries.push_back({
+                    liveSnapshots[i].name,
+                    "Object added in instance"
+                    });
+                continue;
+            }
+
+            if (i >= liveSnapshots.size())
+            {
+                outInfo.entries.push_back({
+                    baseSnapshots[i].name,
+                    "Object missing from instance"
+                    });
+                continue;
+            }
+
+            const ObjectSnapshot& live = liveSnapshots[i];
+            const ObjectSnapshot& base = baseSnapshots[i];
+
+            if (live.name != base.name)
+            {
+                outInfo.entries.push_back({ live.name, "Name override" });
+            }
+            if (live.enabled != base.enabled)
+            {
+                outInfo.entries.push_back({ live.name, "Enabled override" });
+            }
+            if (live.parentIndex != base.parentIndex)
+            {
+                outInfo.entries.push_back({ live.name, "Hierarchy override" });
+            }
+            if (live.tags != base.tags)
+            {
+                outInfo.entries.push_back({ live.name, "Tag override" });
+            }
+            if (live.componentSignatures != base.componentSignatures)
+            {
+                outInfo.entries.push_back({ live.name, "Component/property override" });
+            }
+        }
+
+        outInfo.valid = true;
+        outInfo.compareTargetPath = comparePath;
+        return true;
     }
 }

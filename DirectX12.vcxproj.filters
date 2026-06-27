@@ -27,6 +27,8 @@
     <ClCompile Include="Source\Component\TransformComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp" />
     <ClCompile Include="Source\Editor\EditorManager.cpp" />
+    <ClCompile Include="Source\Editor\AsyncAssetLoader.cpp" />
+    <ClCompile Include="Source\Editor\EditorTransaction.cpp" />
     <ClCompile Include="Source\Editor\HierarchyWindow.cpp" />
     <ClCompile Include="Source\Editor\InspectorWindow.cpp" />
     <ClCompile Include="Source\GameObject\GameObject.cpp" />
@@ -60,6 +62,7 @@
     <ClCompile Include="External\imgui\ImCurveEdit.cpp" />
     <ClCompile Include="Source\Scene\ModelEditorScene.cpp" />
     <ClCompile Include="Source\Render\RenderManager.cpp" />
+    <ClCompile Include="Source\Render\HiZPyramid.cpp" />
     <ClCompile Include="Source\Model\ModelResource.cpp" />
     <ClCompile Include="Source\Model\Model.cpp" />
     <ClCompile Include="Source\Scene\Scene.cpp" />
@@ -93,6 +96,7 @@
     <ClCompile Include="Source\Scene\ParticleScene.cpp" />
     <ClCompile Include="Source\Scene\SceneFlatBuffer.cpp" />
     <ClCompile Include="Source\Scene\PrefabFlatBuffer.cpp" />
+    <ClCompile Include="Source\Test\EngineTestRunner.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Graphics\DX12.h">
@@ -233,6 +237,12 @@
     <ClInclude Include="Source\Editor\EditorManager.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Editor\AsyncAssetLoader.h">
+      <Filter>�w�b�_�[ �t�@�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\EditorTransaction.h">
+      <Filter>�w�b�_�[ �t�@�C��</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Editor\HierarchyWindow.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
@@ -327,6 +337,9 @@
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Render\RenderManager.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Render\HiZPyramid.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\IRenderComponent.h">
@@ -443,12 +456,14 @@
     <ClInclude Include="Source\Scene\ParticleScene.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Test\EngineTestRunner.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="HLSL\CommonConstants.hlsli" />
     <None Include="HLSL\Common.hlsli" />
     <None Include="HLSL\DebugPrimitive.hlsli" />
     <None Include="HLSL\FBX.hlsli" />
+    <None Include="HLSL\HiZDownsampleCS.hlsl" />
     <None Include="HLSL\PostEffect.hlsli" />
     <None Include="Docs\PostEffect.md" />
     <None Include="HLSL\SkyBox.hlsli" />

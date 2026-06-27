@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "System\Window.h"
+#include "Test/EngineTestRunner.h"
 
 static constexpr LONG SCREEN_WIDTH = static_cast<LONG>(1280);
 static constexpr LONG SCREEN_HEIGHT = static_cast<LONG>(720);
@@ -21,6 +22,11 @@ INT WINAPI wWinMain(
     [[maybe_unused]] LPWSTR cmdLine,
     INT cmdShow)
 {
+    if (EngineTests::hasAnyTestFlag(cmdLine))
+    {
+        return EngineTests::runFromCommandLine(cmdLine);
+    }
+
     // サイズ調整
     DWORD dw_style = WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
     DWORD dw_ex_style = WS_EX_APPWINDOW;

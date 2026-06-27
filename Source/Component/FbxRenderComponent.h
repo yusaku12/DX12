@@ -4,6 +4,8 @@
 #include "IRenderComponent.h"
 #include "Graphics\ConstantBuffer.h"
 
+#include <filesystem>
+
 class TransformComponent;
 
 #define MAX_BONES 256
@@ -42,6 +44,15 @@ public:
     //! モデルのワールド空間 AABB を取得する（ピッキング・カリング用）
     bool getWorldAABB(Vector3& outCenter, Vector3& outExtents) const override;
 
+    //! 自動LOD評価
+    int evaluateAutoLodLevel(const Vector3& cameraPosition) const override;
+
+    //! ランタイムLOD適用
+    void setRuntimeLodLevel(int lodLevel) override;
+
+    //! LOD段数
+    int getLodLevelCount() const override;
+
     //! モデル取得
     Model* getModel() const { return m_model.get(); }
 
@@ -73,6 +84,9 @@ private:
 
     //! モデルアセットを読み込む
     bool loadModelAsset(const std::string& modelPath);
+
+    //! 自動検出された LOD モデルを読み込む
+    void loadAutoLodAssets();
 
     //! GPU リソースを構築
     void buildGPUResources();
@@ -122,6 +136,24 @@ private:
     //! マテリアル CBV を再更新（色変更時）
     void updateMaterialCBV();
 
+    struct LodEntry
+    {
+        std::unique_ptr<Model> model;
+        std::unique_ptr<ConstantBuffer<ModelCB>> modelCB;
+        std::unique_ptr<ConstantBuffer<MaterialCB>> materialCB;
+        std::string sourcePath;
+    };
+
+    //! 現在有効な LOD エントリを取得
+    LodEntry* getActiveLodEntry();
+    const LodEntry* getActiveLodEntry() const;
+
+    //! テキスト末尾が _LODn / _lodn かを判定
+    static bool isLodSuffix(const std::string& stem, size_t& suffixPos, int& lodIndex);
+
+    //! 指定パスから探索用ベース名を作る
+    static std::string buildLodBaseStem(const std::filesystem::path& modelPath);
+
     std::unique_ptr<ConstantBuffer<ModelCB>> m_modelCB;
     std::unique_ptr<ConstantBuffer<MaterialCB>> m_materialCB;
     size_t m_solidPSOKey      = 0;
@@ -132,4 +164,9 @@ private:
     TransformComponent* m_transform = nullptr;
     std::unique_ptr<Model> m_model;
     std::string m_modelPath;
+
+    std::vector<LodEntry> m_lods;
+    int m_runtimeLod = 0;
+    bool m_enableAutoLod = true;
+    std::vector<float> m_lodSwitchDistances = { 20.0f, 45.0f, 85.0f };
 };

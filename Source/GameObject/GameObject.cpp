@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Editor/EditorTransaction.h"
 #include "GameObject\GameObject.h"
 #include "Component\TransformComponent.h"
 
@@ -80,11 +81,52 @@ void GameObject::lateUpdate()
 
 void GameObject::drawInspector()
 {
+    const uint64_t objectId = getInstanceId();
+    static std::unordered_map<uint64_t, std::string> s_nameEditStart;
+
     std::array<char, 256> nameBuffer{};
     strncpy_s(nameBuffer.data(), nameBuffer.size(), m_name.c_str(), _TRUNCATE);
     if (ImGui::InputText("Name", nameBuffer.data(), nameBuffer.size()))
     {
         setName(nameBuffer.data());
+    }
+
+    if (ImGui::IsItemActivated())
+    {
+        s_nameEditStart[objectId] = m_name;
+    }
+
+    if (ImGui::IsItemDeactivatedAfterEdit())
+    {
+        const auto it = s_nameEditStart.find(objectId);
+        if (it != s_nameEditStart.end())
+        {
+            const std::string before = it->second;
+            const std::string after = m_name;
+            s_nameEditStart.erase(it);
+
+            if (before != after)
+            {
+                EditorTransaction::Manager::Instance().record(
+                    "Rename GameObject",
+                    [objectId, before]()
+                    {
+                        GameObject* object = GameObjectRegistry::Instance().findByInstanceId(objectId);
+                        if (object && !object->isDestroyed())
+                        {
+                            object->setName(before);
+                        }
+                    },
+                    [objectId, after]()
+                    {
+                        GameObject* object = GameObjectRegistry::Instance().findByInstanceId(objectId);
+                        if (object && !object->isDestroyed())
+                        {
+                            object->setName(after);
+                        }
+                    });
+            }
+        }
     }
 
     ImGui::SameLine();
@@ -93,7 +135,31 @@ void GameObject::drawInspector()
     bool enabled = isEnabled();
     if (ImGui::Checkbox("Enabled", &enabled))
     {
+        const bool previousEnabled = m_enabled;
         setEnabled(enabled);
+
+        const bool nextEnabled = m_enabled;
+        if (previousEnabled != nextEnabled)
+        {
+            EditorTransaction::Manager::Instance().record(
+                "Toggle GameObject Enabled",
+                [objectId, previousEnabled]()
+                {
+                    GameObject* object = GameObjectRegistry::Instance().findByInstanceId(objectId);
+                    if (object && !object->isDestroyed())
+                    {
+                        object->setEnabled(previousEnabled);
+                    }
+                },
+                [objectId, nextEnabled]()
+                {
+                    GameObject* object = GameObjectRegistry::Instance().findByInstanceId(objectId);
+                    if (object && !object->isDestroyed())
+                    {
+                        object->setEnabled(nextEnabled);
+                    }
+                });
+        }
     }
 
     ImGui::Separator();

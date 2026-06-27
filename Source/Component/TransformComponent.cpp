@@ -1,8 +1,54 @@
 ﻿#include "pch.h"
 #include "TransformComponent.h"
+#include "Editor/EditorTransaction.h"
 #include "ImGuizmo.h"
 #include "RigidbodyComponent.h"
 #include "Camera\CameraComponent.h"
+
+namespace
+{
+    bool isNearlyEqual(float a, float b, float epsilon = 0.0001f)
+    {
+        return std::abs(a - b) <= epsilon;
+    }
+
+    bool isEqualState(const TransformComponent::LocalState& a, const TransformComponent::LocalState& b)
+    {
+        return isNearlyEqual(a.position.x, b.position.x)
+            && isNearlyEqual(a.position.y, b.position.y)
+            && isNearlyEqual(a.position.z, b.position.z)
+            && isNearlyEqual(a.rotation.x, b.rotation.x)
+            && isNearlyEqual(a.rotation.y, b.rotation.y)
+            && isNearlyEqual(a.rotation.z, b.rotation.z)
+            && isNearlyEqual(a.rotation.w, b.rotation.w)
+            && isNearlyEqual(a.scale.x, b.scale.x)
+            && isNearlyEqual(a.scale.y, b.scale.y)
+            && isNearlyEqual(a.scale.z, b.scale.z);
+    }
+
+    void applyStateToGameObject(uint64_t gameObjectId, const TransformComponent::LocalState& state)
+    {
+        GameObject* object = GameObjectRegistry::Instance().findByInstanceId(gameObjectId);
+        if (!object || object->isDestroyed())
+        {
+            return;
+        }
+
+        auto* transform = object->getComponent<TransformComponent>();
+        if (!transform)
+        {
+            return;
+        }
+
+        transform->applyLocalState(state);
+
+        auto* rb = object->getComponent<RigidbodyComponent>();
+        if (rb && rb->getPxActor())
+        {
+            rb->syncToPhysics();
+        }
+    }
+}
 
 const Matrix& TransformComponent::getLocalMatrix() const
 {
@@ -50,10 +96,19 @@ void TransformComponent::inspectGUI()
     // Reset ボタンのみ（Inspector 内の UI）
     if (ImGui::Button("Reset"))
     {
-        m_position = Vector3::Zero;
-        m_rotation = Quaternion::Identity;
-        m_scale = Vector3::One;
-        m_dirty = true;
+        const LocalState before = getLocalState();
+        const LocalState after{};
+
+        applyLocalState(after);
+
+        if (!isEqualState(before, after) && gameObject())
+        {
+            const uint64_t gameObjectId = gameObject()->getInstanceId();
+            EditorTransaction::Manager::Instance().record(
+                "Transform Reset",
+                [gameObjectId, before]() { applyStateToGameObject(gameObjectId, before); },
+                [gameObjectId, after]() { applyStateToGameObject(gameObjectId, after); });
+        }
     }
 
     ImGui::SameLine();
@@ -131,6 +186,13 @@ void TransformComponent::onGizmo()
         &localMat._11
     );
 
+    const bool gizmoUsing = ImGuizmo::IsUsing();
+    if (gizmoUsing && !m_gizmoEditing)
+    {
+        m_gizmoEditing = true;
+        m_gizmoBeginState = getLocalState();
+    }
+
     // 変更があった場合のみ Transform へ反映
     if (manipulated)
     {
@@ -172,4 +234,38 @@ void TransformComponent::onGizmo()
             rb->syncToPhysics();
         }
     }
+
+    if (!gizmoUsing && m_gizmoEditing)
+    {
+        m_gizmoEditing = false;
+
+        const LocalState after = getLocalState();
+        if (!isEqualState(m_gizmoBeginState, after) && gameObject())
+        {
+            const uint64_t gameObjectId = gameObject()->getInstanceId();
+            const LocalState before = m_gizmoBeginState;
+
+            EditorTransaction::Manager::Instance().record(
+                "Transform Gizmo",
+                [gameObjectId, before]() { applyStateToGameObject(gameObjectId, before); },
+                [gameObjectId, after]() { applyStateToGameObject(gameObjectId, after); });
+        }
+    }
+}
+
+TransformComponent::LocalState TransformComponent::getLocalState() const
+{
+    LocalState state;
+    state.position = m_position;
+    state.rotation = m_rotation;
+    state.scale = m_scale;
+    return state;
+}
+
+void TransformComponent::applyLocalState(const LocalState& state)
+{
+    m_position = state.position;
+    m_rotation = state.rotation;
+    m_scale = state.scale;
+    m_dirty = true;
 }

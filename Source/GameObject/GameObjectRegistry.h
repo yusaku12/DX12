@@ -37,6 +37,9 @@ public:
     //! 指定タグを持つ最初の GameObject を返す（見つからない場合は nullptr）
     GameObject* findByTag(Tag tag) const;
 
+    //! 指定インスタンスIDの GameObject を返す（見つからない場合は nullptr）
+    GameObject* findByInstanceId(uint64_t instanceId) const;
+
 private:
 
     std::vector<GameObject*> m_objects;
