@@ -613,4 +613,117 @@ namespace SerializationCommon
         component->setEnabled(serialized->enabled());
         return component;
     }
+
+    inline std::filesystem::path getAnimatorBindingFilePath(const std::filesystem::path& ownerFilePath)
+    {
+        return std::filesystem::path(ownerFilePath.string() + ".animbind");
+    }
+
+    inline bool saveAnimatorBindings(const std::filesystem::path& ownerFilePath,
+        const std::vector<GameObject*>& objects,
+        const char* logTag)
+    {
+        const std::filesystem::path bindingPath = getAnimatorBindingFilePath(ownerFilePath);
+
+        std::error_code ec;
+        if (std::filesystem::exists(bindingPath, ec))
+        {
+            std::filesystem::remove(bindingPath, ec);
+        }
+
+        std::vector<std::pair<size_t, std::string>> bindings;
+        bindings.reserve(objects.size());
+        for (size_t i = 0; i < objects.size(); ++i)
+        {
+            GameObject* object = objects[i];
+            if (!object || object->isDestroyed()) continue;
+
+            auto* animation = object->getComponent<AnimationComponent>();
+            if (!animation) continue;
+
+            const std::string& controllerPath = animation->getControllerAssetPath();
+            if (controllerPath.empty()) continue;
+
+            if (!animation->saveControllerAsset())
+            {
+                LOG_WARN("[%s] Failed to save controller asset: %s", logTag, controllerPath.c_str());
+            }
+
+            bindings.emplace_back(i, controllerPath);
+        }
+
+        if (bindings.empty())
+        {
+            return true;
+        }
+
+        std::ofstream out(bindingPath, std::ios::binary | std::ios::trunc);
+        if (!out)
+        {
+            LOG_ERROR("[%s] Failed to write animator binding file: %s", logTag, bindingPath.string().c_str());
+            return false;
+        }
+
+        out << "ANIMBIND 1\n";
+        for (const auto& [index, path] : bindings)
+        {
+            out << index << " " << std::quoted(path) << "\n";
+        }
+
+        return out.good();
+    }
+
+    inline void loadAnimatorBindings(const std::filesystem::path& ownerFilePath,
+        const std::vector<GameObject*>& objects,
+        const char* logTag)
+    {
+        const std::filesystem::path bindingPath = getAnimatorBindingFilePath(ownerFilePath);
+
+        std::ifstream in(bindingPath, std::ios::binary);
+        if (!in)
+        {
+            return;
+        }
+
+        std::string header;
+        int version = 0;
+        if (!(in >> header >> version) || header != "ANIMBIND" || version != 1)
+        {
+            LOG_WARN("[%s] Invalid animator binding file: %s", logTag, bindingPath.string().c_str());
+            return;
+        }
+
+        while (in)
+        {
+            size_t index = 0;
+            std::string path;
+            if (!(in >> index >> std::quoted(path)))
+            {
+                break;
+            }
+
+            if (index >= objects.size())
+            {
+                continue;
+            }
+
+            GameObject* object = objects[index];
+            if (!object || object->isDestroyed())
+            {
+                continue;
+            }
+
+            auto* animation = object->getComponent<AnimationComponent>();
+            if (!animation)
+            {
+                continue;
+            }
+
+            animation->setControllerAssetPath(path);
+            if (!animation->reloadControllerAsset())
+            {
+                LOG_WARN("[%s] Failed to load controller asset: %s", logTag, path.c_str());
+            }
+        }
+    }
 }

@@ -28,12 +28,8 @@ void AnimationStateMachine::update(float deltaTime)
 {
     if (!m_model || !m_currentState) return;
 
-    const auto& animations = m_model->getResource()->getModelData().animations;
-    int animIdx = m_currentState->getAnimationIndex();
-    if (animIdx < 0 || animIdx >= static_cast<int>(animations.size())) return;
-
     float speed = m_currentState->getSpeed();
-    float length = getAnimationLength(animIdx);
+    float length = getStateLength(*m_currentState);
     if (length <= 0.0f) return;
 
     float prevNorm = m_normalizedTime;
@@ -97,23 +93,19 @@ void AnimationStateMachine::update(float deltaTime)
         m_fadeElapsed += deltaTime;
         float t = std::clamp(m_fadeElapsed / m_fadeDuration, 0.0f, 1.0f);
 
-        int prevAnimIdx = m_prevState->getAnimationIndex();
-        if (prevAnimIdx >= 0 && prevAnimIdx < static_cast<int>(animations.size()))
+        // prev 側の時間も進める
+        m_prevTime += deltaTime * m_prevState->getSpeed();
+        float prevLen = getStateLength(*m_prevState);
+        if (prevLen > 0.0f && m_prevTime >= prevLen)
         {
-            // prev 側の時間も進める
-            m_prevTime += deltaTime * m_prevState->getSpeed();
-            float prevLen = getAnimationLength(prevAnimIdx);
-            if (m_prevTime >= prevLen)
-            {
-                m_prevTime = std::fmod(m_prevTime, std::max(prevLen, 0.001f));
-            }
+            m_prevTime = std::fmod(m_prevTime, std::max(prevLen, 0.001f));
         }
 
         std::vector<Model::Bone> prevBones = bones;
-        evaluateAnimation(prevAnimIdx, m_prevTime, prevBones);
+        evaluateStatePose(*m_prevState, m_prevTime, prevBones);
 
         std::vector<Model::Bone> currBones = bones;
-        evaluateAnimation(animIdx, m_currentTime, currBones);
+        evaluateStatePose(*m_currentState, m_currentTime, currBones);
 
         blendBones(prevBones, currBones, t, bones);
 
@@ -126,7 +118,7 @@ void AnimationStateMachine::update(float deltaTime)
     }
     else
     {
-        evaluateAnimation(animIdx, m_currentTime, bones);
+        evaluateStatePose(*m_currentState, m_currentTime, bones);
     }
 
     // レイヤーブレンド（ベースレイヤー以外）
@@ -139,29 +131,10 @@ void AnimationStateMachine::update(float deltaTime)
 
         // レイヤー用のポーズ評価（現ステートのアニメーションを使う簡易版）
         std::vector<Model::Bone> layerBones = bones;
-        evaluateAnimation(animIdx, m_currentTime, layerBones);
+        evaluateStatePose(*m_currentState, m_currentTime, layerBones);
 
         blendBonesWithMask(bones, layerBones, layer.weight,
             layer.boneMask, layer.blendMode, bones);
-    }
-
-    // 遷移チェック
-    // Any State 遷移（最優先）
-    for (auto& trans : m_anyStateTransitions)
-    {
-        // 自分自身への遷移は抑制
-        if (m_currentState && m_currentState->getName() == trans.destStateName) continue;
-
-        if (evaluateConditions(trans.conditions))
-        {
-            AnimationState* dest = findState(trans.destStateName);
-            if (dest)
-            {
-                consumeTriggers(trans.conditions);
-                executeTransition(dest, trans.fadeDuration);
-                return;
-            }
-        }
     }
 
     // 現在ステートの遷移
@@ -204,6 +177,63 @@ AnimationState* AnimationStateMachine::addState(const std::string& name, int ani
     return ptr;
 }
 
+bool AnimationStateMachine::removeState(const std::string& name)
+{
+    auto it = std::find_if(m_states.begin(), m_states.end(), [&](const std::unique_ptr<AnimationState>& s) {
+        return s && s->getName() == name;
+    });
+    if (it == m_states.end())
+    {
+        return false;
+    }
+
+    AnimationState* victim = it->get();
+
+    // 各ステートの遷移から victim 行きを除去
+    for (auto& s : m_states)
+    {
+        if (!s) continue;
+        auto& transitions = s->getTransitions();
+        transitions.erase(
+            std::remove_if(transitions.begin(), transitions.end(),
+                [&](const AnimationTransition& t) { return t.destStateName == name; }),
+            transitions.end());
+    }
+
+    if (m_currentState == victim)
+    {
+        m_currentState = nullptr;
+        m_currentTime = 0.0f;
+        m_normalizedTime = 0.0f;
+        m_pingPongReverse = false;
+    }
+    if (m_prevState == victim)
+    {
+        m_prevState = nullptr;
+        m_fading = false;
+        m_fadeElapsed = 0.0f;
+    }
+    if (m_defaultState == victim)
+    {
+        m_defaultState = nullptr;
+    }
+
+    m_states.erase(it);
+
+    if (!m_defaultState && !m_states.empty())
+    {
+        m_defaultState = m_states.front().get();
+    }
+    if (!m_currentState && m_defaultState)
+    {
+        m_currentState = m_defaultState;
+        m_currentTime = 0.0f;
+        m_normalizedTime = 0.0f;
+    }
+
+    return true;
+}
+
 AnimationState* AnimationStateMachine::findState(const std::string& name)
 {
     for (auto& s : m_states)
@@ -227,6 +257,36 @@ void AnimationStateMachine::setDefaultState(const std::string& name)
     m_defaultState = findState(name);
 }
 
+void AnimationStateMachine::clearController()
+{
+    m_states.clear();
+    m_parameters.clear();
+
+    m_currentState = nullptr;
+    m_defaultState = nullptr;
+    m_prevState = nullptr;
+
+    m_currentTime = 0.0f;
+    m_normalizedTime = 0.0f;
+    m_prevTime = 0.0f;
+    m_fadeDuration = 0.0f;
+    m_fadeElapsed = 0.0f;
+    m_fading = false;
+    m_pingPongReverse = false;
+
+    m_layers.clear();
+    AnimationLayer base;
+    base.name = "Base Layer";
+    base.weight = 1.0f;
+    base.blendMode = LayerBlendMode::Override;
+    m_layers.push_back(base);
+}
+
+const std::string& AnimationStateMachine::getDefaultStateName() const
+{
+    return m_defaultState ? m_defaultState->getName() : s_emptyString;
+}
+
 const std::string& AnimationStateMachine::getCurrentStateName() const
 {
     return m_currentState ? m_currentState->getName() : s_emptyString;
@@ -235,11 +295,6 @@ const std::string& AnimationStateMachine::getCurrentStateName() const
 const AnimationState* AnimationStateMachine::getCurrentState() const
 {
     return m_currentState;
-}
-
-void AnimationStateMachine::addAnyStateTransition(const AnimationTransition& transition)
-{
-    m_anyStateTransitions.push_back(transition);
 }
 
 void AnimationStateMachine::addParameter(const std::string& name, AnimParamType type)
@@ -296,32 +351,6 @@ bool AnimationStateMachine::getBool(const std::string& name) const
     return (p && p->type == AnimParamType::Bool) ? p->boolValue : false;
 }
 
-int AnimationStateMachine::addLayer(const std::string& name, float weight, LayerBlendMode mode)
-{
-    AnimationLayer layer;
-    layer.name = name;
-    layer.weight = weight;
-    layer.blendMode = mode;
-    m_layers.push_back(layer);
-    return static_cast<int>(m_layers.size()) - 1;
-}
-
-void AnimationStateMachine::setLayerWeight(int layerIndex, float weight)
-{
-    if (layerIndex >= 0 && layerIndex < static_cast<int>(m_layers.size()))
-    {
-        m_layers[layerIndex].weight = std::clamp(weight, 0.0f, 1.0f);
-    }
-}
-
-void AnimationStateMachine::setLayerBoneMask(int layerIndex, const std::vector<int>& boneIndices)
-{
-    if (layerIndex >= 0 && layerIndex < static_cast<int>(m_layers.size()))
-    {
-        m_layers[layerIndex].boneMask = boneIndices;
-    }
-}
-
 void AnimationStateMachine::forceTransition(const std::string& stateName, float fadeDuration)
 {
     AnimationState* dest = findState(stateName);
@@ -333,6 +362,35 @@ void AnimationStateMachine::forceTransition(const std::string& stateName, float 
     {
         LOG_WARN("[AnimStateMachine] State '%s' not found for forceTransition.", stateName.c_str());
     }
+}
+
+bool AnimationStateMachine::addTransitionUnique(const std::string& fromStateName,
+    const std::string& toStateName,
+    float fadeDuration)
+{
+    AnimationState* from = findState(fromStateName);
+    AnimationState* to = findState(toStateName);
+    if (!from || !to) return false;
+
+    for (const auto& t : from->getTransitions())
+    {
+        if (t.destStateName == toStateName)
+        {
+            return false;
+        }
+    }
+
+    AnimationTransition t;
+    t.destStateName = toStateName;
+    t.fadeDuration = fadeDuration;
+    from->addTransition(t);
+    return true;
+}
+
+float AnimationStateMachine::getCurrentStateLength() const
+{
+    if (!m_currentState) return 0.0f;
+    return getStateLength(*m_currentState);
 }
 
 bool AnimationStateMachine::evaluateConditions(const std::vector<TransitionCondition>& conditions) const
@@ -449,6 +507,140 @@ void AnimationStateMachine::evaluateAnimation(int animIndex, float time, std::ve
     }
 }
 
+void AnimationStateMachine::evaluateStatePose(const AnimationState& state,
+    float time,
+    std::vector<Model::Bone>& bones) const
+{
+    const BlendTreeData* blendTree = state.getBlendTree();
+    if (!blendTree || blendTree->children.empty())
+    {
+        evaluateAnimation(state.getAnimationIndex(), time, bones);
+        return;
+    }
+
+    struct BlendEntry
+    {
+        int animIndex = -1;
+        float weight = 0.0f;
+        float timeScale = 1.0f;
+    };
+
+    std::vector<BlendEntry> entries;
+    entries.reserve(blendTree->children.size());
+
+    if (blendTree->type == BlendTreeType::Blend1D)
+    {
+        std::vector<std::pair<float, size_t>> sorted;
+        sorted.reserve(blendTree->children.size());
+        for (size_t i = 0; i < blendTree->children.size(); ++i)
+        {
+            sorted.emplace_back(blendTree->children[i].threshold, i);
+        }
+        std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) {
+            return a.first < b.first;
+            });
+
+        float x = getFloat(blendTree->parameterX);
+        if (sorted.size() == 1)
+        {
+            const auto& child = blendTree->children[sorted[0].second];
+            entries.push_back({ child.animationIndex, 1.0f, child.timeScale });
+        }
+        else
+        {
+            for (size_t i = 0; i + 1 < sorted.size(); ++i)
+            {
+                const auto& a = blendTree->children[sorted[i].second];
+                const auto& b = blendTree->children[sorted[i + 1].second];
+
+                if (x <= a.threshold)
+                {
+                    entries.push_back({ a.animationIndex, 1.0f, a.timeScale });
+                    break;
+                }
+                if (x >= b.threshold && i + 2 < sorted.size())
+                {
+                    continue;
+                }
+
+                float span = std::max(0.001f, b.threshold - a.threshold);
+                float t = std::clamp((x - a.threshold) / span, 0.0f, 1.0f);
+                entries.push_back({ a.animationIndex, 1.0f - t, a.timeScale });
+                entries.push_back({ b.animationIndex, t, b.timeScale });
+                break;
+            }
+
+            if (entries.empty())
+            {
+                const auto& child = blendTree->children[sorted.back().second];
+                entries.push_back({ child.animationIndex, 1.0f, child.timeScale });
+            }
+        }
+    }
+    else
+    {
+        Vector2 p = { getFloat(blendTree->parameterX), getFloat(blendTree->parameterY) };
+        float weightSum = 0.0f;
+
+        for (const auto& child : blendTree->children)
+        {
+            float dist = (p - child.position).Length();
+            float w = 1.0f / std::max(0.001f, dist);
+            entries.push_back({ child.animationIndex, w, child.timeScale });
+            weightSum += w;
+        }
+
+        if (weightSum > 0.0f)
+        {
+            for (auto& e : entries)
+            {
+                e.weight /= weightSum;
+            }
+        }
+    }
+
+    std::vector<Model::Bone> accum = bones;
+    bool hasAccum = false;
+    float totalWeight = 0.0f;
+
+    for (const auto& e : entries)
+    {
+        if (e.animIndex < 0 || e.weight <= 0.0f) continue;
+
+        float clipLength = getAnimationLength(e.animIndex);
+        if (clipLength <= 0.0f) continue;
+
+        float normalized = 0.0f;
+        float stateLength = getStateLength(state);
+        if (stateLength > 0.0f)
+        {
+            normalized = std::clamp(time / stateLength, 0.0f, 1.0f);
+        }
+        float sampleTime = normalized * clipLength * std::max(0.001f, e.timeScale);
+        sampleTime = std::fmod(sampleTime, std::max(clipLength, 0.001f));
+
+        std::vector<Model::Bone> sample = bones;
+        evaluateAnimation(e.animIndex, sampleTime, sample);
+
+        if (!hasAccum)
+        {
+            accum = sample;
+            totalWeight = std::max(0.0001f, e.weight);
+            hasAccum = true;
+            continue;
+        }
+
+        float blendT = e.weight / std::max(0.0001f, totalWeight + e.weight);
+        blendBones(accum, sample, blendT, accum);
+        totalWeight += e.weight;
+    }
+
+    if (hasAccum)
+    {
+        bones = std::move(accum);
+    }
+}
+
 void AnimationStateMachine::blendBones(const std::vector<Model::Bone>& a,
     const std::vector<Model::Bone>& b,
     float t,
@@ -520,6 +712,22 @@ float AnimationStateMachine::getAnimationLength(int animIndex) const
     return animations[animIndex].secondsLength;
 }
 
+float AnimationStateMachine::getStateLength(const AnimationState& state) const
+{
+    const BlendTreeData* blendTree = state.getBlendTree();
+    if (!blendTree || blendTree->children.empty())
+    {
+        return getAnimationLength(state.getAnimationIndex());
+    }
+
+    float maxLen = 0.0f;
+    for (const auto& child : blendTree->children)
+    {
+        maxLen = std::max(maxLen, getAnimationLength(child.animationIndex));
+    }
+    return maxLen;
+}
+
 void AnimationStateMachine::fireEvents(AnimationState* state, float prevNorm, float currNorm)
 {
     if (!state) return;
@@ -577,120 +785,3 @@ const AnimationParameter* AnimationStateMachine::findParam(const std::string& na
     return (it != m_parameters.end()) ? &it->second : nullptr;
 }
 
-void AnimationStateMachine::drawDebugGUI()
-{
-    if (!m_model) return;
-
-    // 現在のステート情報
-    if (m_currentState)
-    {
-        ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "State: %s",
-            m_currentState->getName().c_str());
-
-        float length = getAnimationLength(m_currentState->getAnimationIndex());
-        ImGui::Text("Time: %.2f / %.2f s", m_currentTime, length);
-
-        // 再生プログレスバー
-        ImGui::ProgressBar(m_normalizedTime, ImVec2(-1, 0),
-            std::format("{:.1f}%%", m_normalizedTime * 100.0f).c_str());
-
-        // ループモード表示
-        const char* loopStr = "Unknown";
-        switch (m_currentState->getLoopMode())
-        {
-        case LoopMode::Loop:     loopStr = "Loop";     break;
-        case LoopMode::Once:     loopStr = "Once";     break;
-        case LoopMode::PingPong: loopStr = "PingPong"; break;
-        }
-        ImGui::Text("Loop: %s  Speed: %.2f", loopStr, m_currentState->getSpeed());
-    }
-    else
-    {
-        ImGui::TextDisabled("No active state");
-    }
-
-    // クロスフェード状態
-    if (m_fading && m_prevState)
-    {
-        ImGui::Separator();
-        float fadeProgress = std::clamp(m_fadeElapsed / m_fadeDuration, 0.0f, 1.0f);
-        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "CrossFade");
-        ImGui::Text("  %s -> %s", m_prevState->getName().c_str(),
-            m_currentState ? m_currentState->getName().c_str() : "???");
-        ImGui::ProgressBar(fadeProgress, ImVec2(-1, 0),
-            std::format("Fade: {:.0f}%%", fadeProgress * 100.0f).c_str());
-    }
-
-    // パラメータ一覧
-    if (!m_parameters.empty() && ImGui::TreeNode("Parameters"))
-    {
-        for (auto& [name, param] : m_parameters)
-        {
-            switch (param.type)
-            {
-            case AnimParamType::Float:
-                ImGui::DragFloat(name.c_str(), &param.floatValue, 0.01f);
-                break;
-            case AnimParamType::Int:
-                ImGui::DragInt(name.c_str(), &param.intValue);
-                break;
-            case AnimParamType::Bool:
-                ImGui::Checkbox(name.c_str(), &param.boolValue);
-                break;
-            case AnimParamType::Trigger:
-                if (ImGui::Button(name.c_str()))
-                {
-                    param.boolValue = true;
-                    param.triggerFired = false;
-                }
-                ImGui::SameLine();
-                ImGui::TextDisabled(param.boolValue ? "[Active]" : "[Idle]");
-                break;
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    // ステート一覧
-    if (ImGui::TreeNode("States"))
-    {
-        for (auto& state : m_states)
-        {
-            bool isCurrent = (state.get() == m_currentState);
-            if (isCurrent) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 1.0f, 0.4f, 1.0f));
-
-            if (ImGui::Selectable(state->getName().c_str(), isCurrent))
-            {
-                forceTransition(state->getName(), 0.2f);
-            }
-
-            if (isCurrent) ImGui::PopStyleColor();
-
-            // 遷移先のツールチップ
-            if (ImGui::IsItemHovered() && !state->getTransitions().empty())
-            {
-                ImGui::BeginTooltip();
-                ImGui::Text("Transitions:");
-                for (const auto& t : state->getTransitions())
-                {
-                    ImGui::BulletText("-> %s (fade: %.2fs)", t.destStateName.c_str(), t.fadeDuration);
-                }
-                ImGui::EndTooltip();
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    // レイヤー一覧
-    if (m_layers.size() > 1 && ImGui::TreeNode("Layers"))
-    {
-        for (size_t i = 0; i < m_layers.size(); ++i)
-        {
-            auto& layer = m_layers[i];
-            ImGui::PushID(static_cast<int>(i));
-            ImGui::SliderFloat(layer.name.c_str(), &layer.weight, 0.0f, 1.0f);
-            ImGui::PopID();
-        }
-        ImGui::TreePop();
-    }
-}

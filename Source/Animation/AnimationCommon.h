@@ -36,3 +36,10 @@ enum class LoopMode
     Loop,       //!< ループ再生
     PingPong,   //!< 往復再生
 };
+
+//! ブレンドツリー種別
+enum class BlendTreeType
+{
+    Blend1D,    //!< 1D ブレンド（閾値ベース）
+    Freeform2D, //!< 2D ブレンド（距離ベース）
+};

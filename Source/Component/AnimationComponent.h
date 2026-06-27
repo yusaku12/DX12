@@ -3,13 +3,16 @@
 #include "Component\Component.h"
 #include "Model\Model.h"
 #include "Animation\AnimationStateMachine.h"
+#include "Animation\HumanoidRig.h"
+#include <array>
+
+class GameObject;
 
 //=====================================================
 //! アニメーションコンポーネント
 //! Unity の Animator / UE の AnimInstance 相当
 //! 機能:
 //!  - ステートマシンによるパラメータ駆動の自動遷移
-//!  - Any State 遷移
 //!  - インデックス / 名前指定でダイレクト再生
 //!  - クロスフェード（前後アニメーションの補間遷移）
 //!  - ループ / ワンショット / PingPong
@@ -26,7 +29,7 @@ public:
     //! 再生完了時コールバック型
     using OnFinishedCallback = std::function<void()>;
 
-    AnimationComponent() = default;
+    AnimationComponent();
     ~AnimationComponent() override = default;
 
     //! 初期化
@@ -35,20 +38,23 @@ public:
     //! 毎フレーム更新
     void update() override;
 
+    //! 破棄時クリーンアップ
+    void onDestroy() override;
+
     //! インスペクタ表示
     void inspectGUI() override;
-
-    //! アニメーション追加読み込み（FBX ファイルから）
-    void addAnimation(const char* filename);
-
-    //! ステートマシンへのアクセス
-    AnimationStateMachine& getStateMachine() { return m_stateMachine; }
-    const AnimationStateMachine& getStateMachine() const { return m_stateMachine; }
 
     //! ステートマシンモードの有効/無効
     //! 無効時はダイレクト再生 API を使用する
     void setStateMachineEnabled(bool enabled) { m_useStateMachine = enabled; }
     bool isStateMachineEnabled() const { return m_useStateMachine; }
+
+    //! Animator Controller アセット
+    const std::string& getControllerAssetPath() const { return m_controllerAssetPath; }
+    void setControllerAssetPath(const std::string& path) { m_controllerAssetPath = path; }
+    bool saveControllerAsset() const;
+    bool loadControllerAsset(const std::string& path);
+    bool reloadControllerAsset();
 
     //! インデックス指定で再生
     void play(int animationIndex, bool loop = true, float speed = 1.0f);
@@ -62,9 +68,6 @@ public:
     //! クロスフェード付きで遷移（名前指定）
     void crossFade(const std::string& animationName, float fadeDuration, bool loop = true, float speed = 1.0f);
 
-    //! 停止
-    void stop();
-
     //! 一時停止 / 再開
     void pause() { m_paused = true; }
     void resume() { m_paused = false; }
@@ -75,12 +78,6 @@ public:
 
     //! 再生中か
     bool isPlaying() const;
-
-    //! 一時停止中か
-    bool isPaused() const { return m_paused; }
-
-    //! 再生完了（ワンショット再生で最後まで到達）したか
-    bool isFinished() const { return m_finished; }
 
     //! クロスフェード中か
     bool isFading() const;
@@ -100,10 +97,31 @@ public:
     //! アニメーション名からインデックスを検索（見つからない場合 -1）
     int findAnimationIndex(const std::string& name) const;
 
-    //! 再生完了時のコールバックを設定（ワンショット再生でのみ発火）
-    void setOnFinished(OnFinishedCallback callback) { m_onFinished = std::move(callback); }
+    //! Humanoid リターゲットの有効/無効
+    void setRetargetEnabled(bool enabled) { m_retargetEnabled = enabled; }
+    bool isRetargetEnabled() const { return m_retargetEnabled; }
+
+    //! リターゲット対象の GameObject 名を指定
+    void setRetargetTargetObjectName(const std::string& objectName);
+    const std::string& getRetargetTargetObjectName() const { return m_retargetTargetObjectName; }
+
+    //! 現在のリターゲット先モデル
+    Model* getRetargetTargetModel() const { return m_retargetModel; }
+
+    //! リターゲット先を再解決（成功時 true）
+    bool resolveRetargetTarget();
+
+    //! 他コンポーネントから外部ポーズを書き込まれる間は自前更新を停止
+    void setExternalRetargetOverride(bool enabled) { m_externalRetargetOverride = enabled; }
+    bool isExternalRetargetOverridden() const { return m_externalRetargetOverride; }
 
 private:
+
+    //! アニメーション追加読み込み（FBX ファイルから）
+    void addAnimation(const char* filename);
+
+    //! 再生停止
+    void stop();
 
     //! 指定アニメーションのキーフレーム補間結果をボーン配列に書き込む
     void evaluateAnimation(int animIndex, float time,
@@ -118,8 +136,21 @@ private:
     //! 指定アニメーションのサンプリング間隔を取得
     float getSamplingTime(int animIndex) const;
 
+    //! Humanoid リターゲット対象を解決する
+    void resolveRetargetTargetInternal();
+
+    //! Humanoid ボーン対応表を再構築する
+    void rebuildRetargetMap();
+
+    //! 現在の source ポーズを target モデルへ反映する
+    void applyRetargetFromCurrentPose();
+
     void drawSequencer();
     void drawDebugInfo();
+    void drawAnimatorWindow();
+    void rebuildAnimatorGraph();
+    void drawAnimatorStateInspector(AnimationState* state);
+    void drawSelectedTransitionInspector();
 
     Model* m_model = nullptr;
 
@@ -148,6 +179,38 @@ private:
 
     //! シーケンサー用
     int32_t m_seqCurrentFrame = 0;
+
+    //! Animator ウィンドウ
+    bool m_showAnimatorWindow = true;
+    bool m_animatorGraphDirty = true;
+    std::string m_selectedStateName;
+    std::string m_selectedTransitionFromStateName;
+    int m_selectedTransitionIndex = -1;
+    bool m_dragCreatingTransition = false;
+    std::string m_dragFromStateName;
+    std::string m_contextMenuStateName;
+    Vector2 m_animatorCanvasPan = { 0.0f, 0.0f };
+    std::string m_controllerAssetPath;
+    std::string m_newStateName = "NewState";
+    std::string m_newParamName = "Speed";
+    int m_newParamType = 0;
+
+    //! Humanoid リターゲット
+    bool m_retargetEnabled = false;
+    std::string m_retargetTargetObjectName;
+    GameObject* m_retargetTargetObject = nullptr;
+    Model* m_retargetModel = nullptr;
+    bool m_retargetMapDirty = true;
+    int m_retargetMappedBoneCount = 0;
+    float m_retargetRootTranslationScale = 1.0f;
+    std::array<int, HumanoidRig::BoneCount> m_retargetSourceHumanToBone{};
+    std::array<int, HumanoidRig::BoneCount> m_retargetTargetHumanToBone{};
+    std::array<ModelResource::NodeKeyData, HumanoidRig::BoneCount> m_retargetSourceBindPose{};
+    std::array<ModelResource::NodeKeyData, HumanoidRig::BoneCount> m_retargetTargetBindPose{};
+    std::array<float, HumanoidRig::BoneCount> m_retargetTranslationScale{};
+    std::array<Vector4, HumanoidRig::BoneCount> m_retargetAxisAlign{};
+    std::array<bool, HumanoidRig::BoneCount> m_retargetAxisAlignValid{};
+    bool m_externalRetargetOverride = false;
 
     //! 空文字列（参照戻り用）
     static inline const std::string s_emptyString;

@@ -34,6 +34,7 @@ public:
 
     //! ボーン構造体へのアクセス
     const std::vector<Bone>& getBone() const { return m_bones; }
+    std::vector<Bone>& getMutableBone() { return m_bones; }
 
 private:
 

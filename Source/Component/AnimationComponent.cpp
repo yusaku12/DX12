@@ -1,9 +1,242 @@
 ﻿#include "pch.h"
 #include "AnimationComponent.h"
+#include "Animation\AnimatorControllerAsset.h"
 #include "FbxRenderComponent.h"
 #include "Model\FBXLoad.h"
 #include "GameObject\GameObject.h"
+#include "GameObject\GameObjectRegistry.h"
+#include "TransformComponent.h"
 #include "imgui_neo_sequencer.h"
+#include "System\TimeManager.h"
+#include <DirectXMath.h>
+
+using namespace DirectX;
+
+namespace
+{
+    constexpr float kAxisEpsilon = 1e-6f;
+
+    Vector3 safeNormalize(const Vector3& v, const Vector3& fallback)
+    {
+        if (v.LengthSquared() <= kAxisEpsilon)
+        {
+            return fallback;
+        }
+        Vector3 n = v;
+        n.Normalize();
+        return n;
+    }
+
+    Vector3 orthogonalFallback(const Vector3& forward)
+    {
+        Vector3 up = Vector3::Up;
+        if (std::abs(forward.Dot(up)) > 0.95f)
+        {
+            up = Vector3::Right;
+        }
+
+        up -= forward * up.Dot(forward);
+        return safeNormalize(up, Vector3::Forward);
+    }
+
+    bool estimateBoneAxes(const Model& model, int boneIndex, Vector3& outForward, Vector3& outUp)
+    {
+        const auto& bones = model.getBone();
+        if (boneIndex < 0 || boneIndex >= static_cast<int>(bones.size()))
+        {
+            return false;
+        }
+
+        const auto& bone = bones[boneIndex];
+
+        Vector3 avgChildDir = Vector3::Zero;
+        std::vector<Vector3> childDirs;
+        childDirs.reserve(bone.children.size());
+        for (const Model::Bone* child : bone.children)
+        {
+            if (!child) continue;
+
+            Vector3 d = child->translate;
+            if (d.LengthSquared() <= kAxisEpsilon) continue;
+
+            d.Normalize();
+            childDirs.push_back(d);
+            avgChildDir += d;
+        }
+
+        Vector3 forward = Vector3::Zero;
+        if (avgChildDir.LengthSquared() > kAxisEpsilon)
+        {
+            forward = avgChildDir;
+        }
+        else if (bone.parent && bone.translate.LengthSquared() > kAxisEpsilon)
+        {
+            forward = -bone.translate;
+        }
+        else
+        {
+            forward = Vector3::Up;
+        }
+        forward = safeNormalize(forward, Vector3::Up);
+
+        Vector3 up = Vector3::Zero;
+        if (childDirs.size() >= 2)
+        {
+            const Vector3& secondary = childDirs[1];
+            Vector3 c = forward.Cross(secondary);
+            if (c.LengthSquared() > kAxisEpsilon)
+            {
+                up = c.Cross(forward);
+            }
+        }
+
+        if (up.LengthSquared() <= kAxisEpsilon)
+        {
+            up = orthogonalFallback(forward);
+        }
+        else
+        {
+            up -= forward * up.Dot(forward);
+            up = safeNormalize(up, orthogonalFallback(forward));
+        }
+
+        outForward = forward;
+        outUp = up;
+        return true;
+    }
+
+    bool estimateBoneAxesFromBindPose(const std::vector<ModelResource::Bone>& bones,
+        int boneIndex,
+        Vector3& outForward,
+        Vector3& outUp)
+    {
+        if (boneIndex < 0 || boneIndex >= static_cast<int>(bones.size()))
+        {
+            return false;
+        }
+
+        const auto& bone = bones[boneIndex];
+
+        Vector3 avgChildDir = Vector3::Zero;
+        std::vector<Vector3> childDirs;
+        for (size_t i = 0; i < bones.size(); ++i)
+        {
+            if (bones[i].parentIndex != boneIndex) continue;
+
+            Vector3 d = bones[i].translate;
+            if (d.LengthSquared() <= kAxisEpsilon) continue;
+            d.Normalize();
+            childDirs.push_back(d);
+            avgChildDir += d;
+        }
+
+        Vector3 forward = Vector3::Zero;
+        if (avgChildDir.LengthSquared() > kAxisEpsilon)
+        {
+            forward = avgChildDir;
+        }
+        else if (bone.parentIndex >= 0 && bone.translate.LengthSquared() > kAxisEpsilon)
+        {
+            forward = -bone.translate;
+        }
+        else
+        {
+            forward = Vector3::Up;
+        }
+        forward = safeNormalize(forward, Vector3::Up);
+
+        Vector3 up = Vector3::Zero;
+        if (childDirs.size() >= 2)
+        {
+            const Vector3& secondary = childDirs[1];
+            Vector3 c = forward.Cross(secondary);
+            if (c.LengthSquared() > kAxisEpsilon)
+            {
+                up = c.Cross(forward);
+            }
+        }
+
+        if (up.LengthSquared() <= kAxisEpsilon)
+        {
+            up = orthogonalFallback(forward);
+        }
+        else
+        {
+            up -= forward * up.Dot(forward);
+            up = safeNormalize(up, orthogonalFallback(forward));
+        }
+
+        outForward = forward;
+        outUp = up;
+        return true;
+    }
+
+    XMVECTOR quaternionFromTo(const Vector3& from, const Vector3& to)
+    {
+        Vector3 f = safeNormalize(from, Vector3::Forward);
+        Vector3 t = safeNormalize(to, Vector3::Forward);
+
+        float dot = std::clamp(f.Dot(t), -1.0f, 1.0f);
+        if (dot > 0.9999f)
+        {
+            return XMQuaternionIdentity();
+        }
+
+        if (dot < -0.9999f)
+        {
+            Vector3 axis = f.Cross(Vector3::Right);
+            if (axis.LengthSquared() <= kAxisEpsilon)
+            {
+                axis = f.Cross(Vector3::Up);
+            }
+            axis = safeNormalize(axis, Vector3::Up);
+            return XMQuaternionRotationAxis(XMLoadFloat3(&axis), XM_PI);
+        }
+
+        Vector3 axis = f.Cross(t);
+        const float s = std::sqrt((1.0f + dot) * 2.0f);
+        const float invS = 1.0f / s;
+
+        XMVECTOR q = XMVectorSet(axis.x * invS, axis.y * invS, axis.z * invS, s * 0.5f);
+        return XMQuaternionNormalize(q);
+    }
+
+    XMVECTOR computeAxisAlignment(const Vector3& srcForward,
+        const Vector3& srcUp,
+        const Vector3& dstForward,
+        const Vector3& dstUp)
+    {
+        const Vector3 fSrc = safeNormalize(srcForward, Vector3::Forward);
+        const Vector3 uSrc = safeNormalize(srcUp, orthogonalFallback(fSrc));
+        const Vector3 fDst = safeNormalize(dstForward, Vector3::Forward);
+        const Vector3 uDst = safeNormalize(dstUp, orthogonalFallback(fDst));
+
+        XMVECTOR qSwing = quaternionFromTo(fSrc, fDst);
+
+        XMVECTOR vSrcUp = XMLoadFloat3(&uSrc);
+        XMVECTOR vRotUp = XMVector3Rotate(vSrcUp, qSwing);
+        Vector3 rotUp;
+        XMStoreFloat3(&rotUp, vRotUp);
+
+        Vector3 u0 = rotUp - fDst * rotUp.Dot(fDst);
+        Vector3 u1 = uDst - fDst * uDst.Dot(fDst);
+        if (u0.LengthSquared() <= kAxisEpsilon || u1.LengthSquared() <= kAxisEpsilon)
+        {
+            return XMQuaternionNormalize(qSwing);
+        }
+
+        u0.Normalize();
+        u1.Normalize();
+
+        XMVECTOR qTwist = quaternionFromTo(u0, u1);
+        XMVECTOR q = XMQuaternionMultiply(qTwist, qSwing);
+        return XMQuaternionNormalize(q);
+    }
+}
+
+AnimationComponent::AnimationComponent()
+{
+}
 
 void AnimationComponent::awake()
 {
@@ -17,11 +250,21 @@ void AnimationComponent::awake()
     if (m_model)
     {
         m_stateMachine.initialize(m_model);
+        if (!m_controllerAssetPath.empty())
+        {
+            reloadControllerAsset();
+        }
+        m_animatorGraphDirty = true;
     }
 }
 
 void AnimationComponent::update()
 {
+    if (m_externalRetargetOverride) return;
+
+    // Always resolve so disabling retarget can release external override safely.
+    resolveRetargetTargetInternal();
+
     if (!m_model || m_paused) return;
 
     // ステートマシンモード
@@ -29,6 +272,11 @@ void AnimationComponent::update()
     {
         float dt = TimeManager::Instance().getDeltaTime();
         m_stateMachine.update(dt);
+
+        if (m_retargetEnabled)
+        {
+            applyRetargetFromCurrentPose();
+        }
         return;
     }
 
@@ -59,7 +307,7 @@ void AnimationComponent::update()
     }
 
     // ボーンにポーズを適用
-    auto& bones = const_cast<std::vector<Model::Bone>&>(m_model->getBone());
+    auto& bones = m_model->getMutableBone();
 
     if (m_fading)
     {
@@ -103,17 +351,37 @@ void AnimationComponent::update()
         m_onFinished = nullptr;
         callback();
     }
+
+    if (m_retargetEnabled)
+    {
+        applyRetargetFromCurrentPose();
+    }
 }
 
-void AnimationComponent::addAnimation(const char* filename)
+void AnimationComponent::onDestroy()
 {
-    if (!m_model) return;
+    const bool prevEnabled = m_retargetEnabled;
+    m_retargetEnabled = false;
+    resolveRetargetTargetInternal();
+    m_retargetEnabled = prevEnabled;
+}
 
-    auto& resource = m_model->getResource();
-    auto* fbx = dynamic_cast<FbxLoad*>(resource.get());
-    if (!fbx) return;
+void AnimationComponent::setRetargetTargetObjectName(const std::string& objectName)
+{
+    if (m_retargetTargetObjectName == objectName)
+    {
+        return;
+    }
 
-    fbx->addAnimation(filename);
+    m_retargetTargetObjectName = objectName;
+    m_retargetMapDirty = true;
+    resolveRetargetTargetInternal();
+}
+
+bool AnimationComponent::resolveRetargetTarget()
+{
+    resolveRetargetTargetInternal();
+    return m_retargetModel != nullptr;
 }
 
 void AnimationComponent::play(int animationIndex, bool loop, float speed)
@@ -143,6 +411,18 @@ void AnimationComponent::play(const std::string& animationName, bool loop, float
     if (index >= 0) play(index, loop, speed);
 }
 
+void AnimationComponent::addAnimation(const char* filename)
+{
+    if (!m_model) return;
+
+    auto& resource = m_model->getResource();
+    auto* fbx = dynamic_cast<FbxLoad*>(resource.get());
+    if (!fbx) return;
+
+    fbx->addAnimation(filename);
+    m_animatorGraphDirty = true;
+}
+
 void AnimationComponent::crossFade(int animationIndex, float fadeDuration, bool loop, float speed)
 {
     if (!m_model) return;
@@ -160,7 +440,7 @@ void AnimationComponent::crossFade(int animationIndex, float fadeDuration, bool 
         {
             // 現在のブレンド結果をボーンに確定させてから prev に引き継ぐ
             float t = std::clamp(m_fadeElapsed / m_fadeDuration, 0.0f, 1.0f);
-            auto& bones = const_cast<std::vector<Model::Bone>&>(m_model->getBone());
+            auto& bones = m_model->getMutableBone();
 
             std::vector<Model::Bone> prevBones = bones;
             evaluateAnimation(m_prevAnimIndex, m_prevTime, prevBones);
@@ -207,6 +487,52 @@ void AnimationComponent::stop()
     m_fading = false;
 }
 
+bool AnimationComponent::saveControllerAsset() const
+{
+    if (m_controllerAssetPath.empty())
+    {
+        LOG_WARN("[AnimationComponent] Save controller skipped. Asset path is empty.");
+        return false;
+    }
+
+    std::filesystem::path path = m_controllerAssetPath;
+    std::error_code ec;
+    std::filesystem::path parent = path.parent_path();
+    if (!parent.empty())
+    {
+        std::filesystem::create_directories(parent, ec);
+    }
+
+    return AnimatorControllerAsset::save(path, m_stateMachine);
+}
+
+bool AnimationComponent::loadControllerAsset(const std::string& path)
+{
+    if (path.empty())
+    {
+        LOG_WARN("[AnimationComponent] Load controller skipped. Path is empty.");
+        return false;
+    }
+
+    if (!AnimatorControllerAsset::load(path, m_stateMachine))
+    {
+        return false;
+    }
+
+    m_controllerAssetPath = path;
+    m_animatorGraphDirty = true;
+    return true;
+}
+
+bool AnimationComponent::reloadControllerAsset()
+{
+    if (m_controllerAssetPath.empty())
+    {
+        return false;
+    }
+    return loadControllerAsset(m_controllerAssetPath);
+}
+
 bool AnimationComponent::isPlaying() const
 {
     if (m_useStateMachine) return m_stateMachine.isPlaying();
@@ -223,18 +549,7 @@ float AnimationComponent::getCurrentTime() const
 {
     if (m_useStateMachine)
     {
-        // ステートマシンモードでは正規化時間 × アニメーション長
-        const auto* state = m_stateMachine.getCurrentState();
-        if (state && m_model)
-        {
-            const auto& anims = m_model->getResource()->getModelData().animations;
-            int idx = state->getAnimationIndex();
-            if (idx >= 0 && idx < static_cast<int>(anims.size()))
-            {
-                return m_stateMachine.getNormalizedTime() * anims[idx].secondsLength;
-            }
-        }
-        return 0.0f;
+        return m_stateMachine.getNormalizedTime() * m_stateMachine.getCurrentStateLength();
     }
     return m_currentTime;
 }
@@ -256,7 +571,7 @@ int AnimationComponent::getCurrentAnimationIndex() const
     if (m_useStateMachine)
     {
         const auto* state = m_stateMachine.getCurrentState();
-        return state ? state->getAnimationIndex() : -1;
+        return state ? state->getPreviewAnimationIndex() : -1;
     }
     return m_animationIndex;
 }
@@ -378,6 +693,402 @@ float AnimationComponent::getSamplingTime(int animIndex) const
     return 1.0f / 60.0f;
 }
 
+void AnimationComponent::resolveRetargetTargetInternal()
+{
+    GameObject* previousObject = m_retargetTargetObject;
+    Model* previous = m_retargetModel;
+    m_retargetTargetObject = nullptr;
+    m_retargetModel = nullptr;
+
+    if (!m_retargetEnabled || m_retargetTargetObjectName.empty())
+    {
+        if (previousObject)
+        {
+            if (auto* prevAnim = previousObject->getComponent<AnimationComponent>())
+            {
+                if (prevAnim != this)
+                {
+                    prevAnim->setExternalRetargetOverride(false);
+                }
+            }
+        }
+
+        if (previous != nullptr)
+        {
+            m_retargetMapDirty = true;
+        }
+        return;
+    }
+
+    const auto& objects = GameObjectRegistry::Instance().getAll();
+    for (GameObject* obj : objects)
+    {
+        if (!obj || obj == gameObject() || obj->isDestroyed()) continue;
+        if (obj->getName() != m_retargetTargetObjectName) continue;
+
+        auto* render = obj->getComponent<FbxRenderComponent>();
+        if (!render) continue;
+
+        m_retargetTargetObject = obj;
+        m_retargetModel = render->getModel();
+        break;
+    }
+
+    if (previousObject != m_retargetTargetObject)
+    {
+        if (previousObject)
+        {
+            if (auto* prevAnim = previousObject->getComponent<AnimationComponent>())
+            {
+                if (prevAnim != this)
+                {
+                    prevAnim->setExternalRetargetOverride(false);
+                }
+            }
+        }
+
+        if (m_retargetTargetObject)
+        {
+            if (auto* targetAnim = m_retargetTargetObject->getComponent<AnimationComponent>())
+            {
+                if (targetAnim != this)
+                {
+                    targetAnim->setExternalRetargetOverride(true);
+                }
+            }
+        }
+    }
+
+    if (m_retargetModel != previous)
+    {
+        m_retargetMapDirty = true;
+    }
+}
+
+void AnimationComponent::rebuildRetargetMap()
+{
+    m_retargetMappedBoneCount = 0;
+    m_retargetRootTranslationScale = 1.0f;
+    m_retargetSourceHumanToBone.fill(-1);
+    m_retargetTargetHumanToBone.fill(-1);
+    m_retargetTranslationScale.fill(1.0f);
+    m_retargetAxisAlignValid.fill(false);
+
+    if (!m_model || !m_retargetModel)
+    {
+        m_retargetMapDirty = false;
+        return;
+    }
+
+    const auto& sourceResBones = m_model->getResource()->getModelData().bones;
+    const auto& targetResBones = m_retargetModel->getResource()->getModelData().bones;
+    const auto& sourceBones = m_model->getBone();
+    const auto& targetBones = m_retargetModel->getBone();
+
+    std::array<int, HumanoidRig::BoneCount> sourceBestScore{};
+    std::array<int, HumanoidRig::BoneCount> targetBestScore{};
+    sourceBestScore.fill(-1000000);
+    targetBestScore.fill(-1000000);
+
+    auto scoreBoneName = [](std::string_view boneName) -> int
+        {
+            int score = 0;
+            const std::string normalized = HumanoidRig::normalizeBoneName(boneName);
+            if (!normalized.empty())
+            {
+                score += 100;
+                if (normalized.find("twist") != std::string::npos) score -= 120;
+                if (normalized.find("roll") != std::string::npos) score -= 120;
+                if (normalized.find("ik") != std::string::npos) score -= 120;
+                if (normalized.find("helper") != std::string::npos) score -= 120;
+                if (normalized.find("end") != std::string::npos) score -= 80;
+                if (normalized.find("nub") != std::string::npos) score -= 80;
+            }
+            return score;
+        };
+
+    for (size_t i = 0; i < sourceResBones.size() && i < sourceBones.size(); ++i)
+    {
+        if (HumanoidRig::isLikelyHelperBone(sourceResBones[i].name)) continue;
+
+        const HumanBodyBone human = HumanoidRig::classify(sourceResBones[i].name);
+        if (human == HumanBodyBone::Invalid) continue;
+
+        const size_t slot = static_cast<size_t>(human);
+        if (slot >= HumanoidRig::BoneCount) continue;
+
+        const int score = scoreBoneName(sourceResBones[i].name);
+        if (score > sourceBestScore[slot])
+        {
+            sourceBestScore[slot] = score;
+            m_retargetSourceHumanToBone[slot] = static_cast<int>(i);
+            m_retargetSourceBindPose[slot].scale = sourceResBones[i].scale;
+            m_retargetSourceBindPose[slot].rotate = sourceResBones[i].rotate;
+            m_retargetSourceBindPose[slot].translate = sourceResBones[i].translate;
+        }
+    }
+
+    for (size_t i = 0; i < targetResBones.size() && i < targetBones.size(); ++i)
+    {
+        if (HumanoidRig::isLikelyHelperBone(targetResBones[i].name)) continue;
+
+        const HumanBodyBone human = HumanoidRig::classify(targetResBones[i].name);
+        if (human == HumanBodyBone::Invalid) continue;
+
+        const size_t slot = static_cast<size_t>(human);
+        if (slot >= HumanoidRig::BoneCount) continue;
+
+        const int score = scoreBoneName(targetResBones[i].name);
+        if (score > targetBestScore[slot])
+        {
+            targetBestScore[slot] = score;
+            m_retargetTargetHumanToBone[slot] = static_cast<int>(i);
+            m_retargetTargetBindPose[slot].scale = targetResBones[i].scale;
+            m_retargetTargetBindPose[slot].rotate = targetResBones[i].rotate;
+            m_retargetTargetBindPose[slot].translate = targetResBones[i].translate;
+        }
+    }
+
+    auto fillMissingFromHierarchy = [](const std::vector<Model::Bone>& bones,
+        std::array<int, HumanoidRig::BoneCount>& map)
+        {
+            auto parentIndexOf = [&](int index) -> int
+                {
+                    if (index < 0 || index >= static_cast<int>(bones.size())) return -1;
+                    const Model::Bone* parent = bones[index].parent;
+                    if (!parent) return -1;
+                    return static_cast<int>(parent - bones.data());
+                };
+
+            auto setIfMissingFromParent = [&](HumanBodyBone missing, HumanBodyBone from)
+                {
+                    const size_t miss = static_cast<size_t>(missing);
+                    const size_t src = static_cast<size_t>(from);
+                    if (map[miss] >= 0 || map[src] < 0) return;
+                    map[miss] = parentIndexOf(map[src]);
+                };
+
+            auto setIfMissingFromChild = [&](HumanBodyBone missing, HumanBodyBone from)
+                {
+                    const size_t miss = static_cast<size_t>(missing);
+                    const size_t src = static_cast<size_t>(from);
+                    if (map[miss] >= 0 || map[src] < 0) return;
+                    int child = map[src];
+                    int parent = parentIndexOf(child);
+                    if (parent >= 0) map[miss] = parent;
+                };
+
+            setIfMissingFromParent(HumanBodyBone::Neck, HumanBodyBone::Head);
+            setIfMissingFromParent(HumanBodyBone::UpperChest, HumanBodyBone::Neck);
+            setIfMissingFromParent(HumanBodyBone::Chest, HumanBodyBone::UpperChest);
+            setIfMissingFromParent(HumanBodyBone::Spine, HumanBodyBone::Chest);
+            setIfMissingFromParent(HumanBodyBone::Hips, HumanBodyBone::Spine);
+
+            setIfMissingFromParent(HumanBodyBone::LeftUpperArm, HumanBodyBone::LeftLowerArm);
+            setIfMissingFromParent(HumanBodyBone::LeftLowerArm, HumanBodyBone::LeftHand);
+            setIfMissingFromParent(HumanBodyBone::LeftShoulder, HumanBodyBone::LeftUpperArm);
+
+            setIfMissingFromParent(HumanBodyBone::RightUpperArm, HumanBodyBone::RightLowerArm);
+            setIfMissingFromParent(HumanBodyBone::RightLowerArm, HumanBodyBone::RightHand);
+            setIfMissingFromParent(HumanBodyBone::RightShoulder, HumanBodyBone::RightUpperArm);
+
+            setIfMissingFromParent(HumanBodyBone::LeftUpperLeg, HumanBodyBone::LeftLowerLeg);
+            setIfMissingFromParent(HumanBodyBone::LeftLowerLeg, HumanBodyBone::LeftFoot);
+            setIfMissingFromParent(HumanBodyBone::LeftFoot, HumanBodyBone::LeftToes);
+
+            setIfMissingFromParent(HumanBodyBone::RightUpperLeg, HumanBodyBone::RightLowerLeg);
+            setIfMissingFromParent(HumanBodyBone::RightLowerLeg, HumanBodyBone::RightFoot);
+            setIfMissingFromParent(HumanBodyBone::RightFoot, HumanBodyBone::RightToes);
+
+            setIfMissingFromChild(HumanBodyBone::Chest, HumanBodyBone::Spine);
+            setIfMissingFromChild(HumanBodyBone::UpperChest, HumanBodyBone::Chest);
+        };
+
+    fillMissingFromHierarchy(sourceBones, m_retargetSourceHumanToBone);
+    fillMissingFromHierarchy(targetBones, m_retargetTargetHumanToBone);
+
+    for (size_t slot = 0; slot < HumanoidRig::BoneCount; ++slot)
+    {
+        if (m_retargetSourceHumanToBone[slot] >= 0 && m_retargetTargetHumanToBone[slot] >= 0)
+        {
+            const int srcIdx = m_retargetSourceHumanToBone[slot];
+            const int dstIdx = m_retargetTargetHumanToBone[slot];
+            if (srcIdx >= 0 && srcIdx < static_cast<int>(sourceBones.size()) &&
+                dstIdx >= 0 && dstIdx < static_cast<int>(targetBones.size()))
+            {
+                m_retargetSourceBindPose[slot].scale = sourceResBones[srcIdx].scale;
+                m_retargetSourceBindPose[slot].rotate = sourceResBones[srcIdx].rotate;
+                m_retargetSourceBindPose[slot].translate = sourceResBones[srcIdx].translate;
+
+                m_retargetTargetBindPose[slot].scale = targetResBones[dstIdx].scale;
+                m_retargetTargetBindPose[slot].rotate = targetResBones[dstIdx].rotate;
+                m_retargetTargetBindPose[slot].translate = targetResBones[dstIdx].translate;
+            }
+
+            ++m_retargetMappedBoneCount;
+        }
+    }
+
+    float srcAvg = 0.0f;
+    float dstAvg = 0.0f;
+    int ratioCount = 0;
+    for (size_t slot = 0; slot < HumanoidRig::BoneCount; ++slot)
+    {
+        if (slot == static_cast<size_t>(HumanBodyBone::Hips)) continue;
+
+        const int srcIdx = m_retargetSourceHumanToBone[slot];
+        const int dstIdx = m_retargetTargetHumanToBone[slot];
+        if (srcIdx < 0 || dstIdx < 0) continue;
+
+        const float srcLen = m_retargetSourceBindPose[slot].translate.Length();
+        const float dstLen = m_retargetTargetBindPose[slot].translate.Length();
+        if (srcLen <= 0.0001f || dstLen <= 0.0001f) continue;
+
+        srcAvg += srcLen;
+        dstAvg += dstLen;
+        ++ratioCount;
+    }
+
+    if (ratioCount > 0)
+    {
+        srcAvg /= static_cast<float>(ratioCount);
+        dstAvg /= static_cast<float>(ratioCount);
+        if (srcAvg > 0.0001f)
+        {
+            m_retargetRootTranslationScale = std::clamp(dstAvg / srcAvg, 0.1f, 10.0f);
+        }
+    }
+
+    for (size_t slot = 0; slot < HumanoidRig::BoneCount; ++slot)
+    {
+        const int srcIdx = m_retargetSourceHumanToBone[slot];
+        const int dstIdx = m_retargetTargetHumanToBone[slot];
+        if (srcIdx < 0 || dstIdx < 0) continue;
+
+        const float srcLen = m_retargetSourceBindPose[slot].translate.Length();
+        const float dstLen = m_retargetTargetBindPose[slot].translate.Length();
+        if (srcLen > 0.0001f && dstLen > 0.0001f)
+        {
+            m_retargetTranslationScale[slot] = std::clamp(dstLen / srcLen, 0.1f, 10.0f);
+        }
+        else
+        {
+            m_retargetTranslationScale[slot] = m_retargetRootTranslationScale;
+        }
+    }
+
+    for (size_t slot = 0; slot < HumanoidRig::BoneCount; ++slot)
+    {
+        const int srcIdx = m_retargetSourceHumanToBone[slot];
+        const int dstIdx = m_retargetTargetHumanToBone[slot];
+        if (srcIdx < 0 || dstIdx < 0) continue;
+
+        Vector3 srcForward = Vector3::Forward;
+        Vector3 srcUp = Vector3::Up;
+        Vector3 dstForward = Vector3::Forward;
+        Vector3 dstUp = Vector3::Up;
+        if (!estimateBoneAxesFromBindPose(sourceResBones, srcIdx, srcForward, srcUp)) continue;
+        if (!estimateBoneAxesFromBindPose(targetResBones, dstIdx, dstForward, dstUp)) continue;
+
+        XMVECTOR qAxis = computeAxisAlignment(srcForward, srcUp, dstForward, dstUp);
+        XMStoreFloat4(&m_retargetAxisAlign[slot], qAxis);
+        m_retargetAxisAlignValid[slot] = true;
+    }
+
+    m_retargetMapDirty = false;
+}
+
+void AnimationComponent::applyRetargetFromCurrentPose()
+{
+    if (!m_retargetEnabled || !m_model || !m_retargetModel) return;
+    if (m_retargetModel == m_model) return;
+
+    if (m_retargetMapDirty)
+    {
+        rebuildRetargetMap();
+    }
+
+    if (m_retargetMappedBoneCount <= 0) return;
+
+    const auto& sourceBones = m_model->getBone();
+    const auto& targetResBones = m_retargetModel->getResource()->getModelData().bones;
+    auto& targetBones = m_retargetModel->getMutableBone();
+
+    // Always start from target bind pose so unmapped/helper bones remain coherent.
+    const size_t resetCount = std::min(targetBones.size(), targetResBones.size());
+    for (size_t i = 0; i < resetCount; ++i)
+    {
+        targetBones[i].scale = targetResBones[i].scale;
+        targetBones[i].rotate = targetResBones[i].rotate;
+        targetBones[i].translate = targetResBones[i].translate;
+    }
+
+    for (size_t slot = 0; slot < HumanoidRig::BoneCount; ++slot)
+    {
+        const int srcIdx = m_retargetSourceHumanToBone[slot];
+        const int dstIdx = m_retargetTargetHumanToBone[slot];
+        if (srcIdx < 0 || dstIdx < 0) continue;
+
+        if (srcIdx >= static_cast<int>(sourceBones.size()) || dstIdx >= static_cast<int>(targetBones.size()))
+        {
+            continue;
+        }
+
+        const auto& src = sourceBones[srcIdx];
+        auto& dst = targetBones[dstIdx];
+        const auto& srcBind = m_retargetSourceBindPose[slot];
+        const auto& dstBind = m_retargetTargetBindPose[slot];
+
+        XMVECTOR qSrcBind = XMLoadFloat4(&srcBind.rotate);
+        XMVECTOR qSrcCurrent = XMLoadFloat4(&src.rotate);
+        XMVECTOR qDstBind = XMLoadFloat4(&dstBind.rotate);
+
+        qSrcBind = XMQuaternionNormalize(qSrcBind);
+        qSrcCurrent = XMQuaternionNormalize(qSrcCurrent);
+        qDstBind = XMQuaternionNormalize(qDstBind);
+
+        // Delta in source bind space and re-apply on target bind.
+        XMVECTOR qDelta = XMQuaternionMultiply(XMQuaternionInverse(qSrcBind), qSrcCurrent);
+        qDelta = XMQuaternionNormalize(qDelta);
+
+        if (slot < m_retargetAxisAlignValid.size() && m_retargetAxisAlignValid[slot])
+        {
+            XMVECTOR qAxis = XMLoadFloat4(&m_retargetAxisAlign[slot]);
+            qAxis = XMQuaternionNormalize(qAxis);
+            qDelta = XMQuaternionMultiply(qAxis, XMQuaternionMultiply(qDelta, XMQuaternionInverse(qAxis)));
+            qDelta = XMQuaternionNormalize(qDelta);
+        }
+
+        XMVECTOR qDstCurrent = XMQuaternionMultiply(qDstBind, qDelta);
+        qDstCurrent = XMQuaternionNormalize(qDstCurrent);
+
+        // Keep target proportions and transfer bind-space rotation delta.
+        dst.scale = dstBind.scale;
+        XMStoreFloat4(&dst.rotate, qDstCurrent);
+
+        // Propagate translation delta for all mapped humanoid bones to avoid separated neck/body.
+        Vector3 delta = src.translate - srcBind.translate;
+        float tScale = m_retargetTranslationScale[slot];
+        if (slot == static_cast<size_t>(HumanBodyBone::Hips))
+        {
+            tScale = m_retargetRootTranslationScale;
+        }
+        dst.translate = dstBind.translate + delta * tScale;
+    }
+
+    if (m_retargetTargetObject)
+    {
+        if (auto* tf = m_retargetTargetObject->getComponent<TransformComponent>())
+        {
+            m_retargetModel->updateTransform(tf->getWorldMatrix());
+        }
+        else
+        {
+            m_retargetModel->updateTransform(Matrix::Identity);
+        }
+    }
+}
+
 void AnimationComponent::drawSequencer()
 {
     const auto& animations = m_model->getResource()->getModelData().animations;
@@ -441,14 +1152,41 @@ void AnimationComponent::drawSequencer()
             float maxTime = animations[m_animationIndex].secondsLength;
             m_currentTime = std::clamp(m_seqCurrentFrame * samplingTime, 0.0f, maxTime);
 
-            auto& bones = const_cast<std::vector<Model::Bone>&>(m_model->getBone());
+            auto& bones = m_model->getMutableBone();
             evaluateAnimation(m_animationIndex, m_currentTime, bones);
+
+            if (m_retargetEnabled)
+            {
+                applyRetargetFromCurrentPose();
+            }
         }
     }
 }
 
 void AnimationComponent::drawDebugInfo()
 {
+    if (m_useStateMachine)
+    {
+        const auto* state = m_stateMachine.getCurrentState();
+        if (state)
+        {
+            const char* motion = state->hasBlendTree() ? "BlendTree" : "Clip";
+            ImGui::Text("State   : %s (%s)", state->getName().c_str(), motion);
+            ImGui::Text("Time    : %.2f / %.2f s", getCurrentTime(), m_stateMachine.getCurrentStateLength());
+        }
+        else
+        {
+            ImGui::TextDisabled("No active state");
+        }
+
+        if (isFading())
+        {
+            ImGui::Separator();
+            ImGui::TextColored(ImVec4(1, 0.8f, 0.3f, 1), "CrossFade in progress");
+        }
+        return;
+    }
+
     const auto& animations = m_model->getResource()->getModelData().animations;
     int currentAnimIdx = getCurrentAnimationIndex();
 
@@ -499,19 +1237,59 @@ void AnimationComponent::inspectGUI()
 
     // モード切替
     ImGui::Separator();
-    ImGui::Checkbox("StateMachine Mode", &m_useStateMachine);
-
-    if (m_useStateMachine)
+    ImGui::Checkbox("Humanoid Retarget", &m_retargetEnabled);
+    if (m_retargetEnabled)
     {
-        // ステートマシンモードのUI
-        ImGui::Separator();
-        if (ImGui::TreeNodeEx("StateMachine", ImGuiTreeNodeFlags_DefaultOpen))
+        if (ImGui::BeginCombo("Retarget Target", m_retargetTargetObjectName.empty() ? "<None>" : m_retargetTargetObjectName.c_str()))
         {
-            m_stateMachine.drawDebugGUI();
-            ImGui::TreePop();
+            bool noneSelected = m_retargetTargetObjectName.empty();
+            if (ImGui::Selectable("<None>", noneSelected))
+            {
+                setRetargetTargetObjectName("");
+            }
+
+            const auto& objects = GameObjectRegistry::Instance().getAll();
+            for (GameObject* obj : objects)
+            {
+                if (!obj || obj == gameObject() || obj->isDestroyed()) continue;
+
+                auto* render = obj->getComponent<FbxRenderComponent>();
+                if (!render || !render->getModel()) continue;
+
+                const std::string& objectName = obj->getName();
+                bool selected = (objectName == m_retargetTargetObjectName);
+                if (ImGui::Selectable(objectName.c_str(), selected))
+                {
+                    setRetargetTargetObjectName(objectName);
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        resolveRetargetTargetInternal();
+        if (m_retargetMapDirty)
+        {
+            rebuildRetargetMap();
+        }
+
+        if (m_retargetModel)
+        {
+            ImGui::Text("Mapped Humanoid Bones: %d", m_retargetMappedBoneCount);
+            ImGui::Text("Root Translation Scale: %.3f", m_retargetRootTranslationScale);
+        }
+        else
+        {
+            ImGui::TextDisabled("Retarget target model not found");
         }
     }
-    else
+
+    ImGui::Separator();
+    ImGui::Checkbox("StateMachine Mode", &m_useStateMachine);
+    ImGui::SameLine();
+    ImGui::Checkbox("Animator Window", &m_showAnimatorWindow);
+
+    if (!m_useStateMachine)
     {
         // ダイレクト再生モードのUI
         ImGui::SliderFloat("Speed", &m_speed, 0.0f, 3.0f, "%.2f");
@@ -552,4 +1330,954 @@ void AnimationComponent::inspectGUI()
         drawSequencer();
         ImGui::TreePop();
     }
+
+    if (m_useStateMachine && m_showAnimatorWindow)
+    {
+        drawAnimatorWindow();
+    }
+}
+
+void AnimationComponent::rebuildAnimatorGraph()
+{
+    auto& states = m_stateMachine.getStates();
+    int index = 0;
+    for (auto& statePtr : states)
+    {
+        AnimationState& state = *statePtr;
+        Vector2 pos = state.getNodePosition();
+        if (pos.LengthSquared() <= 0.0001f)
+        {
+            pos = { 80.0f + 260.0f * (index % 4), 80.0f + 170.0f * (index / 4) };
+            state.setNodePosition(pos);
+        }
+        ++index;
+    }
+
+    m_animatorGraphDirty = false;
+}
+
+void AnimationComponent::drawAnimatorStateInspector(AnimationState* state)
+{
+    if (!state || !m_model) return;
+
+    const auto& animations = m_model->getResource()->getModelData().animations;
+
+    ImGui::SeparatorText("State Inspector");
+    ImGui::Text("State: %s", state->getName().c_str());
+
+    int currentAnim = state->getAnimationIndex();
+    const char* preview = "<None>";
+    if (currentAnim >= 0 && currentAnim < static_cast<int>(animations.size()))
+    {
+        preview = animations[currentAnim].name.c_str();
+    }
+
+    if (ImGui::BeginCombo("Motion Clip", preview))
+    {
+        if (ImGui::Selectable("<None>", currentAnim < 0))
+        {
+            state->setAnimationIndex(-1);
+        }
+        for (int i = 0; i < static_cast<int>(animations.size()); ++i)
+        {
+            bool selected = (i == currentAnim);
+            if (ImGui::Selectable(animations[i].name.c_str(), selected))
+            {
+                state->setAnimationIndex(i);
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    int loopMode = static_cast<int>(state->getLoopMode());
+    const char* loopItems[] = { "Once", "Loop", "PingPong" };
+    if (ImGui::Combo("Loop Mode", &loopMode, loopItems, IM_ARRAYSIZE(loopItems)))
+    {
+        state->setLoopMode(static_cast<LoopMode>(loopMode));
+    }
+    float speed = state->getSpeed();
+    if (ImGui::SliderFloat("State Speed", &speed, 0.0f, 3.0f, "%.2f"))
+    {
+        state->setSpeed(speed);
+    }
+
+    bool useBlendTree = state->hasBlendTree();
+    if (ImGui::Checkbox("Use Blend Tree", &useBlendTree))
+    {
+        if (useBlendTree)
+        {
+            state->createBlendTree(BlendTreeType::Blend1D);
+        }
+        else
+        {
+            state->clearBlendTree();
+        }
+    }
+
+    if (useBlendTree)
+    {
+        BlendTreeData* tree = state->getBlendTree();
+        int treeType = static_cast<int>(tree->type);
+        const char* treeItems[] = { "1D", "2D Freeform" };
+        if (ImGui::Combo("Blend Type", &treeType, treeItems, IM_ARRAYSIZE(treeItems)))
+        {
+            tree->type = static_cast<BlendTreeType>(treeType);
+        }
+
+        if (ImGui::BeginCombo("Parameter X", tree->parameterX.empty() ? "<None>" : tree->parameterX.c_str()))
+        {
+            for (auto& [paramName, param] : m_stateMachine.getParameters())
+            {
+                if (param.type != AnimParamType::Float && param.type != AnimParamType::Int) continue;
+                bool selected = (tree->parameterX == paramName);
+                if (ImGui::Selectable(paramName.c_str(), selected))
+                {
+                    tree->parameterX = paramName;
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        if (tree->type == BlendTreeType::Freeform2D)
+        {
+            if (ImGui::BeginCombo("Parameter Y", tree->parameterY.empty() ? "<None>" : tree->parameterY.c_str()))
+            {
+                for (auto& [paramName, param] : m_stateMachine.getParameters())
+                {
+                    if (param.type != AnimParamType::Float && param.type != AnimParamType::Int) continue;
+                    bool selected = (tree->parameterY == paramName);
+                    if (ImGui::Selectable(paramName.c_str(), selected))
+                    {
+                        tree->parameterY = paramName;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        if (ImGui::Button("Add Blend Child"))
+        {
+            BlendTreeChild child;
+            child.animationIndex = state->getAnimationIndex();
+            child.threshold = static_cast<float>(tree->children.size());
+            tree->children.push_back(child);
+        }
+
+        for (int i = 0; i < static_cast<int>(tree->children.size()); ++i)
+        {
+            auto& child = tree->children[i];
+            ImGui::PushID(i);
+            if (ImGui::TreeNode(std::format("Child {}", i).c_str()))
+            {
+                const char* childAnim = "<None>";
+                if (child.animationIndex >= 0 && child.animationIndex < static_cast<int>(animations.size()))
+                {
+                    childAnim = animations[child.animationIndex].name.c_str();
+                }
+                if (ImGui::BeginCombo("Animation", childAnim))
+                {
+                    for (int a = 0; a < static_cast<int>(animations.size()); ++a)
+                    {
+                        bool selected = (a == child.animationIndex);
+                        if (ImGui::Selectable(animations[a].name.c_str(), selected))
+                        {
+                            child.animationIndex = a;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                if (tree->type == BlendTreeType::Blend1D)
+                {
+                    ImGui::DragFloat("Threshold", &child.threshold, 0.05f);
+                }
+                else
+                {
+                    ImGui::DragFloat2("Position", &child.position.x, 0.05f);
+                }
+                ImGui::SliderFloat("Time Scale", &child.timeScale, 0.1f, 3.0f, "%.2f");
+
+                if (ImGui::Button("Remove Child"))
+                {
+                    tree->children.erase(tree->children.begin() + i);
+                    ImGui::TreePop();
+                    ImGui::PopID();
+                    break;
+                }
+
+                ImGui::TreePop();
+            }
+            ImGui::PopID();
+        }
+    }
+
+    auto& transitions = state->getTransitions();
+    ImGui::SeparatorText("Transitions");
+    if (ImGui::Button("Add Transition"))
+    {
+        m_stateMachine.addTransitionUnique(state->getName(), state->getName(), 0.2f);
+    }
+
+    for (int i = 0; i < static_cast<int>(transitions.size()); ++i)
+    {
+        auto& trans = transitions[i];
+        ImGui::PushID(i);
+        if (ImGui::TreeNode(std::format("Transition {}", i).c_str()))
+        {
+            if (ImGui::BeginCombo("Destination", trans.destStateName.c_str()))
+            {
+                for (auto& s : m_stateMachine.getStates())
+                {
+                    bool selected = (trans.destStateName == s->getName());
+                    if (ImGui::Selectable(s->getName().c_str(), selected))
+                    {
+                        trans.destStateName = s->getName();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::DragFloat("Fade Duration", &trans.fadeDuration, 0.01f, 0.0f, 5.0f, "%.2f s");
+            ImGui::Checkbox("Has Exit Time", &trans.hasExitTime);
+            if (trans.hasExitTime)
+            {
+                ImGui::SliderFloat("Exit Time", &trans.exitTime, 0.0f, 1.0f, "%.2f");
+            }
+            ImGui::Checkbox("Interruptible", &trans.interruptible);
+
+            if (ImGui::Button("Add Condition"))
+            {
+                TransitionCondition c;
+                if (!m_stateMachine.getParameters().empty())
+                {
+                    c.paramName = m_stateMachine.getParameters().begin()->first;
+                }
+                trans.conditions.push_back(c);
+            }
+
+            for (int c = 0; c < static_cast<int>(trans.conditions.size()); ++c)
+            {
+                auto& cond = trans.conditions[c];
+                ImGui::PushID(c);
+                ImGui::Separator();
+                if (ImGui::BeginCombo("Param", cond.paramName.c_str()))
+                {
+                    for (auto& [name, _] : m_stateMachine.getParameters())
+                    {
+                        bool selected = (name == cond.paramName);
+                        if (ImGui::Selectable(name.c_str(), selected))
+                        {
+                            cond.paramName = name;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                int op = static_cast<int>(cond.op);
+                const char* opItems[] = { ">", "<", "==", "!=" };
+                if (ImGui::Combo("Op", &op, opItems, IM_ARRAYSIZE(opItems)))
+                {
+                    cond.op = static_cast<CompareOp>(op);
+                }
+                ImGui::DragFloat("Threshold", &cond.threshold, 0.05f);
+                if (ImGui::Button("Remove Condition"))
+                {
+                    trans.conditions.erase(trans.conditions.begin() + c);
+                    ImGui::PopID();
+                    continue;
+                }
+                ImGui::PopID();
+            }
+
+            if (ImGui::Button("Remove Transition"))
+            {
+                transitions.erase(transitions.begin() + i);
+                ImGui::TreePop();
+                ImGui::PopID();
+                break;
+            }
+
+            ImGui::TreePop();
+        }
+        ImGui::PopID();
+    }
+}
+
+void AnimationComponent::drawSelectedTransitionInspector()
+{
+    ImGui::SeparatorText("Selected Transition");
+
+    std::vector<AnimationTransition>* list = nullptr;
+    std::string fromName;
+    if (m_selectedTransitionIndex >= 0)
+    {
+        AnimationState* from = m_stateMachine.findState(m_selectedTransitionFromStateName);
+        if (from)
+        {
+            list = &from->getTransitions();
+            fromName = from->getName();
+        }
+    }
+
+    if (!list || m_selectedTransitionIndex < 0 || m_selectedTransitionIndex >= static_cast<int>(list->size()))
+    {
+        ImGui::TextDisabled("Click a transition line to edit");
+        m_selectedTransitionIndex = -1;
+        return;
+    }
+
+    AnimationTransition& trans = (*list)[m_selectedTransitionIndex];
+    ImGui::Text("From: %s", fromName.c_str());
+
+    if (ImGui::BeginCombo("Destination", trans.destStateName.c_str()))
+    {
+        for (auto& s : m_stateMachine.getStates())
+        {
+            bool selected = (trans.destStateName == s->getName());
+            if (ImGui::Selectable(s->getName().c_str(), selected))
+            {
+                trans.destStateName = s->getName();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::DragFloat("Fade Duration", &trans.fadeDuration, 0.01f, 0.0f, 5.0f, "%.2f s");
+    ImGui::Checkbox("Has Exit Time", &trans.hasExitTime);
+    if (trans.hasExitTime)
+    {
+        ImGui::SliderFloat("Exit Time", &trans.exitTime, 0.0f, 1.0f, "%.2f");
+    }
+    ImGui::Checkbox("Interruptible", &trans.interruptible);
+
+    if (ImGui::Button("Add Condition"))
+    {
+        TransitionCondition c;
+        if (!m_stateMachine.getParameters().empty())
+        {
+            c.paramName = m_stateMachine.getParameters().begin()->first;
+        }
+        trans.conditions.push_back(c);
+    }
+
+    for (int c = 0; c < static_cast<int>(trans.conditions.size()); ++c)
+    {
+        auto& cond = trans.conditions[c];
+        ImGui::PushID(c + 9000);
+        ImGui::Separator();
+
+        if (ImGui::BeginCombo("Param", cond.paramName.c_str()))
+        {
+            for (auto& [name, _] : m_stateMachine.getParameters())
+            {
+                bool selected = (name == cond.paramName);
+                if (ImGui::Selectable(name.c_str(), selected))
+                {
+                    cond.paramName = name;
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        int op = static_cast<int>(cond.op);
+        const char* opItems[] = { ">", "<", "==", "!=" };
+        if (ImGui::Combo("Op", &op, opItems, IM_ARRAYSIZE(opItems)))
+        {
+            cond.op = static_cast<CompareOp>(op);
+        }
+
+        ImGui::DragFloat("Threshold", &cond.threshold, 0.05f);
+        if (ImGui::Button("Remove Condition"))
+        {
+            trans.conditions.erase(trans.conditions.begin() + c);
+            ImGui::PopID();
+            continue;
+        }
+        ImGui::PopID();
+    }
+
+    if (ImGui::Button("Remove Transition"))
+    {
+        list->erase(list->begin() + m_selectedTransitionIndex);
+        m_selectedTransitionIndex = -1;
+    }
+}
+
+void AnimationComponent::drawAnimatorWindow()
+{
+    if (!m_model) return;
+
+    if (m_animatorGraphDirty)
+    {
+        rebuildAnimatorGraph();
+    }
+
+    std::string title = std::format("Animator##{}", reinterpret_cast<uintptr_t>(this));
+    if (!ImGui::Begin(title.c_str(), &m_showAnimatorWindow))
+    {
+        ImGui::End();
+        return;
+    }
+
+    ImGui::TextDisabled("Animator Controller / Blend Tree Editor");
+    ImGui::Separator();
+
+    ImGui::BeginChild("AnimatorLeft", ImVec2(420, 0), true);
+
+    ImGui::SeparatorText("Controller");
+    char controllerAssetBuf[512] = {};
+    std::snprintf(controllerAssetBuf, sizeof(controllerAssetBuf), "%s", m_controllerAssetPath.c_str());
+    if (ImGui::InputText("Controller Asset", controllerAssetBuf, IM_ARRAYSIZE(controllerAssetBuf)))
+    {
+        m_controllerAssetPath = controllerAssetBuf;
+    }
+    if (ImGui::Button("Load Controller"))
+    {
+        if (!m_controllerAssetPath.empty())
+        {
+            loadControllerAsset(m_controllerAssetPath);
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Save Controller"))
+    {
+        saveControllerAsset();
+    }
+
+    char newStateBuf[128] = {};
+    std::snprintf(newStateBuf, sizeof(newStateBuf), "%s", m_newStateName.c_str());
+    if (ImGui::InputText("New State", newStateBuf, IM_ARRAYSIZE(newStateBuf)))
+    {
+        m_newStateName = newStateBuf;
+    }
+    if (ImGui::Button("Create State") && !m_newStateName.empty())
+    {
+        if (!m_stateMachine.findState(m_newStateName))
+        {
+            int defaultAnim = m_model->getResource()->getModelData().animations.empty() ? -1 : 0;
+            m_stateMachine.addState(m_newStateName, defaultAnim);
+            if (m_stateMachine.getCurrentState() == nullptr)
+            {
+                m_stateMachine.setDefaultState(m_newStateName);
+                m_stateMachine.forceTransition(m_newStateName, 0.0f);
+            }
+            m_selectedStateName = m_newStateName;
+            m_animatorGraphDirty = true;
+        }
+    }
+
+    ImGui::SeparatorText("Parameters");
+    char newParamBuf[128] = {};
+    std::snprintf(newParamBuf, sizeof(newParamBuf), "%s", m_newParamName.c_str());
+    if (ImGui::InputText("Param Name", newParamBuf, IM_ARRAYSIZE(newParamBuf)))
+    {
+        m_newParamName = newParamBuf;
+    }
+    const char* paramTypes[] = { "Float", "Int", "Bool", "Trigger" };
+    ImGui::Combo("Param Type", &m_newParamType, paramTypes, IM_ARRAYSIZE(paramTypes));
+    if (ImGui::Button("Add Parameter") && !m_newParamName.empty())
+    {
+        m_stateMachine.addParameter(m_newParamName, static_cast<AnimParamType>(m_newParamType));
+    }
+
+    for (auto& [name, param] : m_stateMachine.getParameters())
+    {
+        ImGui::PushID(name.c_str());
+        switch (param.type)
+        {
+        case AnimParamType::Float:
+            ImGui::DragFloat(name.c_str(), &param.floatValue, 0.01f);
+            break;
+        case AnimParamType::Int:
+            ImGui::DragInt(name.c_str(), &param.intValue);
+            break;
+        case AnimParamType::Bool:
+            ImGui::Checkbox(name.c_str(), &param.boolValue);
+            break;
+        case AnimParamType::Trigger:
+            if (ImGui::Button(name.c_str()))
+            {
+                m_stateMachine.setTrigger(name);
+            }
+            break;
+        }
+        ImGui::PopID();
+    }
+
+    AnimationState* selectedState = nullptr;
+    if (!m_selectedStateName.empty())
+    {
+        selectedState = m_stateMachine.findState(m_selectedStateName);
+    }
+
+    if (!selectedState)
+    {
+        const auto* currentState = m_stateMachine.getCurrentState();
+        if (currentState)
+        {
+            m_selectedStateName = currentState->getName();
+            selectedState = m_stateMachine.findState(m_selectedStateName);
+        }
+    }
+
+    auto makeUniqueStateName = [&](const std::string& base) -> std::string {
+        if (!m_stateMachine.findState(base)) return base;
+        for (int i = 1; i < 10000; ++i)
+        {
+            std::string candidate = std::format("{}_{}", base, i);
+            if (!m_stateMachine.findState(candidate)) return candidate;
+        }
+        return std::format("{}_{}", base, reinterpret_cast<uintptr_t>(this));
+    };
+
+    auto duplicateStateByName = [&](const std::string& sourceName) -> bool {
+        AnimationState* src = m_stateMachine.findState(sourceName);
+        if (!src) return false;
+
+        std::string dstName = makeUniqueStateName(sourceName + "_Copy");
+        AnimationState* dst = m_stateMachine.addState(dstName, src->getAnimationIndex());
+        if (!dst) return false;
+
+        dst->setLoopMode(src->getLoopMode());
+        dst->setSpeed(src->getSpeed());
+        Vector2 srcPos = src->getNodePosition();
+        dst->setNodePosition(Vector2(srcPos.x + 40.0f, srcPos.y + 40.0f));
+
+        if (const BlendTreeData* bt = src->getBlendTree())
+        {
+            BlendTreeData& dstBt = dst->createBlendTree(bt->type);
+            dstBt.parameterX = bt->parameterX;
+            dstBt.parameterY = bt->parameterY;
+            dstBt.children = bt->children;
+        }
+
+        dst->getTransitions() = src->getTransitions();
+        dst->getEvents() = src->getEvents();
+
+        m_selectedStateName = dstName;
+        return true;
+    };
+
+    auto removeStateByName = [&](const std::string& name) -> bool {
+        if (name.empty()) return false;
+        bool removed = m_stateMachine.removeState(name);
+        if (!removed) return false;
+
+        if (m_selectedStateName == name)
+        {
+            m_selectedStateName.clear();
+            if (const auto* current = m_stateMachine.getCurrentState())
+            {
+                m_selectedStateName = current->getName();
+            }
+            else if (!m_stateMachine.getStates().empty())
+            {
+                m_selectedStateName = m_stateMachine.getStates().front()->getName();
+            }
+        }
+
+        if (m_selectedTransitionFromStateName == name)
+        {
+            m_selectedTransitionIndex = -1;
+            m_selectedTransitionFromStateName.clear();
+        }
+
+        return true;
+    };
+
+    ImGui::SeparatorText("Selected Graph");
+    if (selectedState)
+    {
+        Vector2 pos = selectedState->getNodePosition();
+        float posArr[2] = { pos.x, pos.y };
+        if (ImGui::DragFloat2("Position", posArr, 1.0f))
+        {
+            selectedState->setNodePosition(Vector2(posArr[0], posArr[1]));
+        }
+
+        if (ImGui::Button("Duplicate State"))
+        {
+            duplicateStateByName(selectedState->getName());
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Delete State"))
+        {
+            removeStateByName(selectedState->getName());
+            selectedState = nullptr;
+        }
+    }
+    else
+    {
+        ImGui::TextDisabled("No state selected");
+    }
+
+    drawAnimatorStateInspector(selectedState);
+    drawSelectedTransitionInspector();
+
+    ImGui::EndChild();
+    ImGui::SameLine();
+
+    ImGui::BeginChild("AnimatorGraph", ImVec2(0, 0), true);
+    ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+    ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+    if (canvasSize.x < 10.0f) canvasSize.x = 10.0f;
+    if (canvasSize.y < 10.0f) canvasSize.y = 10.0f;
+
+    auto addV2 = [](const ImVec2& a, const ImVec2& b) { return ImVec2(a.x + b.x, a.y + b.y); };
+    auto subV2 = [](const ImVec2& a, const ImVec2& b) { return ImVec2(a.x - b.x, a.y - b.y); };
+    auto distSq = [](const ImVec2& a, const ImVec2& b) {
+        float dx = a.x - b.x;
+        float dy = a.y - b.y;
+        return dx * dx + dy * dy;
+    };
+    auto distToSegmentSq = [&](const ImVec2& p, const ImVec2& a, const ImVec2& b) {
+        float vx = b.x - a.x;
+        float vy = b.y - a.y;
+        float wx = p.x - a.x;
+        float wy = p.y - a.y;
+        float vv = vx * vx + vy * vy;
+        float t = (vv > 0.0f) ? std::clamp((wx * vx + wy * vy) / vv, 0.0f, 1.0f) : 0.0f;
+        ImVec2 proj = ImVec2(a.x + vx * t, a.y + vy * t);
+        return distSq(p, proj);
+    };
+    auto bezierAt = [](const ImVec2& p0, const ImVec2& c0, const ImVec2& c1, const ImVec2& p1, float t) {
+        float u = 1.0f - t;
+        float w0 = u * u * u;
+        float w1 = 3.0f * u * u * t;
+        float w2 = 3.0f * u * t * t;
+        float w3 = t * t * t;
+        return ImVec2(
+            p0.x * w0 + c0.x * w1 + c1.x * w2 + p1.x * w3,
+            p0.y * w0 + c0.y * w1 + c1.y * w2 + p1.y * w3
+        );
+    };
+    auto bezierDistanceSq = [&](const ImVec2& p0, const ImVec2& c0, const ImVec2& c1, const ImVec2& p1, const ImVec2& p) {
+        const int segments = 24;
+        float best = FLT_MAX;
+        ImVec2 prev = p0;
+        for (int i = 1; i <= segments; ++i)
+        {
+            float t = static_cast<float>(i) / static_cast<float>(segments);
+            ImVec2 cur = bezierAt(p0, c0, c1, p1, t);
+            best = std::min(best, distToSegmentSq(p, prev, cur));
+            prev = cur;
+        }
+        return best;
+    };
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    drawList->AddRectFilled(canvasPos, addV2(canvasPos, canvasSize), IM_COL32(26, 30, 35, 255), 4.0f);
+    drawList->AddRect(canvasPos, addV2(canvasPos, canvasSize), IM_COL32(70, 78, 88, 255), 4.0f);
+
+    ImGui::InvisibleButton("AnimatorCanvas", canvasSize,
+        ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
+
+    const bool panByMiddleDrag = ImGui::IsMouseDragging(ImGuiMouseButton_Middle);
+    const bool panByAltLeftDrag = ImGui::GetIO().KeyAlt && ImGui::IsMouseDragging(ImGuiMouseButton_Left);
+    if (!m_dragCreatingTransition && ImGui::IsItemActive() && (panByMiddleDrag || panByAltLeftDrag))
+    {
+        ImVec2 delta = ImGui::GetIO().MouseDelta;
+        m_animatorCanvasPan.x += delta.x;
+        m_animatorCanvasPan.y += delta.y;
+    }
+
+    struct NodeVisual
+    {
+        AnimationState* state = nullptr;
+        ImVec2 nodePos{};
+        ImVec2 nodeSize{};
+        ImVec2 inputSocket{};
+        ImVec2 outputSocket{};
+    };
+
+    struct TransitionVisual
+    {
+        std::string fromStateName;
+        int index = -1;
+        ImVec2 p0{};
+        ImVec2 c0{};
+        ImVec2 c1{};
+        ImVec2 p1{};
+    };
+
+    std::vector<NodeVisual> nodes;
+    std::unordered_map<std::string, size_t> indexOf;
+    std::vector<TransitionVisual> transitionLines;
+
+    auto& states = m_stateMachine.getStates();
+    nodes.reserve(states.size());
+    for (auto& statePtr : states)
+    {
+        NodeVisual n;
+        n.state = statePtr.get();
+        n.nodeSize = ImVec2(170.0f, 60.0f);
+        n.nodePos = addV2(canvasPos, ImVec2(m_animatorCanvasPan.x + n.state->getNodePosition().x,
+            m_animatorCanvasPan.y + n.state->getNodePosition().y));
+        n.inputSocket = addV2(n.nodePos, ImVec2(0.0f, n.nodeSize.y * 0.5f));
+        n.outputSocket = addV2(n.nodePos, ImVec2(n.nodeSize.x, n.nodeSize.y * 0.5f));
+        indexOf[n.state->getName()] = nodes.size();
+        nodes.push_back(n);
+    }
+
+    const float socketRadius = 6.0f;
+    const float socketHoverRadius = 8.0f;
+    bool transitionConnectedByDrop = false;
+    ImVec2 mousePos = ImGui::GetMousePos();
+
+    for (NodeVisual& n : nodes)
+    {
+        for (int i = 0; i < static_cast<int>(n.state->getTransitions().size()); ++i)
+        {
+            const auto& trans = n.state->getTransitions()[i];
+            auto it = indexOf.find(trans.destStateName);
+            if (it == indexOf.end()) continue;
+
+            const NodeVisual& dst = nodes[it->second];
+            TransitionVisual tv;
+            tv.fromStateName = n.state->getName();
+            tv.index = i;
+            tv.p0 = n.outputSocket;
+            tv.c0 = addV2(tv.p0, ImVec2(60.0f, 0.0f));
+            tv.c1 = subV2(dst.inputSocket, ImVec2(60.0f, 0.0f));
+            tv.p1 = dst.inputSocket;
+            transitionLines.push_back(tv);
+        }
+    }
+
+    for (const auto& tv : transitionLines)
+    {
+        bool selected = (m_selectedTransitionIndex == tv.index)
+            && (m_selectedTransitionFromStateName == tv.fromStateName);
+
+        ImU32 color = selected ? IM_COL32(255, 228, 140, 255) : IM_COL32(160, 180, 255, 220);
+        float thickness = selected ? 3.0f : 2.0f;
+        drawList->AddBezierCubic(tv.p0, tv.c0, tv.c1, tv.p1, color, thickness);
+    }
+
+    for (NodeVisual& n : nodes)
+    {
+        AnimationState& state = *n.state;
+
+        ImGui::SetCursorScreenPos(n.nodePos);
+        ImGui::PushID(state.getName().c_str());
+        ImGui::InvisibleButton("StateNode", n.nodeSize);
+
+        bool selected = (m_selectedStateName == state.getName());
+        bool hoverInSocket = distSq(mousePos, n.inputSocket) <= socketHoverRadius * socketHoverRadius;
+        bool hoverOutSocket = distSq(mousePos, n.outputSocket) <= socketHoverRadius * socketHoverRadius;
+
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !hoverInSocket && !hoverOutSocket)
+        {
+            m_selectedStateName = state.getName();
+            selected = true;
+        }
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && !hoverInSocket && !hoverOutSocket)
+        {
+            m_stateMachine.forceTransition(state.getName(), 0.15f);
+        }
+
+        if (!m_dragCreatingTransition && !ImGui::GetIO().KeyAlt && ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)
+            && !hoverInSocket && !hoverOutSocket)
+        {
+            ImVec2 delta = ImGui::GetIO().MouseDelta;
+            Vector2 p = state.getNodePosition();
+            p.x += delta.x;
+            p.y += delta.y;
+            state.setNodePosition(p);
+
+            n.nodePos = addV2(n.nodePos, delta);
+            n.inputSocket = addV2(n.inputSocket, delta);
+            n.outputSocket = addV2(n.outputSocket, delta);
+        }
+
+        if (hoverOutSocket && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            m_dragCreatingTransition = true;
+            m_dragFromStateName = state.getName();
+            m_selectedStateName = state.getName();
+        }
+
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)
+            && !hoverInSocket && !hoverOutSocket)
+        {
+            m_contextMenuStateName = state.getName();
+            m_selectedStateName = state.getName();
+            ImGui::OpenPopup("StateNodeContextMenu");
+        }
+
+        if (m_dragCreatingTransition && hoverInSocket && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            if (!m_dragFromStateName.empty() && m_dragFromStateName != state.getName())
+            {
+                m_stateMachine.addTransitionUnique(m_dragFromStateName, state.getName(), 0.2f);
+            }
+            transitionConnectedByDrop = true;
+            m_dragCreatingTransition = false;
+            m_dragFromStateName.clear();
+        }
+
+        ImU32 bodyCol = selected ? IM_COL32(74, 136, 218, 220) : IM_COL32(60, 68, 78, 230);
+        ImU32 borderCol = selected ? IM_COL32(150, 210, 255, 255) : IM_COL32(120, 128, 140, 255);
+        drawList->AddRectFilled(n.nodePos, addV2(n.nodePos, n.nodeSize), bodyCol, 6.0f);
+        drawList->AddRect(n.nodePos, addV2(n.nodePos, n.nodeSize), borderCol, 6.0f, 0, 2.0f);
+
+        drawList->AddText(addV2(n.nodePos, ImVec2(10.0f, 8.0f)), IM_COL32(235, 240, 245, 255), state.getName().c_str());
+        const char* motionText = state.hasBlendTree() ? "BlendTree" : "Clip";
+        drawList->AddText(addV2(n.nodePos, ImVec2(10.0f, 34.0f)), IM_COL32(208, 214, 224, 255), motionText);
+
+        drawList->AddCircleFilled(n.inputSocket,
+            hoverInSocket ? socketHoverRadius : socketRadius,
+            IM_COL32(140, 205, 255, 255), 16);
+        drawList->AddCircleFilled(n.outputSocket,
+            hoverOutSocket ? socketHoverRadius : socketRadius,
+            IM_COL32(255, 200, 120, 255), 16);
+
+        ImGui::PopID();
+    }
+
+    if (m_dragCreatingTransition)
+    {
+        auto it = indexOf.find(m_dragFromStateName);
+        if (it != indexOf.end())
+        {
+            const NodeVisual& src = nodes[it->second];
+            ImVec2 c0 = addV2(src.outputSocket, ImVec2(60.0f, 0.0f));
+            ImVec2 c1 = subV2(mousePos, ImVec2(60.0f, 0.0f));
+            drawList->AddBezierCubic(src.outputSocket, c0, c1, mousePos, IM_COL32(255, 220, 130, 230), 2.0f);
+        }
+
+        if (!transitionConnectedByDrop && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            m_dragCreatingTransition = false;
+            m_dragFromStateName.clear();
+        }
+    }
+
+    const float pickDistanceSq = 100.0f;
+    auto pickTransitionAtMouse = [&](const ImVec2& p) -> const TransitionVisual* {
+        float best = pickDistanceSq;
+        const TransitionVisual* picked = nullptr;
+        for (const auto& tv : transitionLines)
+        {
+            float d = bezierDistanceSq(tv.p0, tv.c0, tv.c1, tv.p1, p);
+            if (d < best)
+            {
+                best = d;
+                picked = &tv;
+            }
+        }
+        return picked;
+    };
+
+    if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_dragCreatingTransition)
+    {
+        const TransitionVisual* picked = pickTransitionAtMouse(mousePos);
+
+        if (picked)
+        {
+            m_selectedTransitionFromStateName = picked->fromStateName;
+            m_selectedTransitionIndex = picked->index;
+        }
+    }
+
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    {
+        const TransitionVisual* picked = pickTransitionAtMouse(mousePos);
+        if (picked)
+        {
+            m_selectedTransitionFromStateName = picked->fromStateName;
+            m_selectedTransitionIndex = picked->index;
+            ImGui::OpenPopup("TransitionContextMenu");
+        }
+        else
+        {
+            ImGui::OpenPopup("AnimatorCanvasMenu");
+        }
+    }
+
+    if (ImGui::BeginPopup("TransitionContextMenu"))
+    {
+        std::vector<AnimationTransition>* transitions = nullptr;
+        if (m_selectedTransitionIndex >= 0)
+        {
+            AnimationState* fromState = m_stateMachine.findState(m_selectedTransitionFromStateName);
+            if (fromState)
+            {
+                transitions = &fromState->getTransitions();
+            }
+        }
+
+        bool validSelection = transitions
+            && m_selectedTransitionIndex >= 0
+            && m_selectedTransitionIndex < static_cast<int>(transitions->size());
+
+        if (!validSelection)
+        {
+            ImGui::TextDisabled("Transition not available");
+        }
+        else
+        {
+            if (ImGui::MenuItem("Duplicate"))
+            {
+                transitions->push_back((*transitions)[m_selectedTransitionIndex]);
+                m_selectedTransitionIndex = static_cast<int>(transitions->size()) - 1;
+            }
+            if (ImGui::MenuItem("Delete"))
+            {
+                transitions->erase(transitions->begin() + m_selectedTransitionIndex);
+                m_selectedTransitionIndex = -1;
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (ImGui::BeginPopup("StateNodeContextMenu"))
+    {
+        AnimationState* menuState = m_stateMachine.findState(m_contextMenuStateName);
+        if (!menuState)
+        {
+            ImGui::TextDisabled("State not available");
+        }
+        else
+        {
+            if (ImGui::MenuItem("Duplicate State"))
+            {
+                duplicateStateByName(m_contextMenuStateName);
+            }
+            if (ImGui::MenuItem("Delete State"))
+            {
+                removeStateByName(m_contextMenuStateName);
+            }
+        }
+        ImGui::EndPopup();
+    }
+
+    if (ImGui::BeginPopup("AnimatorCanvasMenu"))
+    {
+        if (ImGui::MenuItem("Reset Pan"))
+        {
+            m_animatorCanvasPan = Vector2(0.0f, 0.0f);
+        }
+        if (ImGui::MenuItem("Create State"))
+        {
+            std::string name = std::format("State{}", m_stateMachine.getStates().size());
+            if (!m_stateMachine.findState(name))
+            {
+                int defaultAnim = m_model->getResource()->getModelData().animations.empty() ? -1 : 0;
+                auto* s = m_stateMachine.addState(name, defaultAnim);
+                if (s)
+                {
+                    ImVec2 mouse = ImGui::GetMousePos();
+                    s->setNodePosition(Vector2(
+                        mouse.x - canvasPos.x - m_animatorCanvasPan.x,
+                        mouse.y - canvasPos.y - m_animatorCanvasPan.y));
+                    m_selectedStateName = name;
+                }
+            }
+        }
+        ImGui::EndPopup();
+    }
+
+    ImGui::EndChild();
+
+    ImGui::End();
 }

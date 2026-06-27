@@ -57,6 +57,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Animation\AnimationStateMachine.cpp" />
+    <ClCompile Include="Source\Animation\AnimatorControllerAsset.cpp" />
     <ClCompile Include="Source\Audio\AudioEngine.cpp" />
     <ClCompile Include="Source\Audio\AudioManager.cpp" />
     <ClCompile Include="Source\Audio\SoundBuffer.cpp" />
@@ -167,9 +168,11 @@
     <ClInclude Include="External\magic_enum\magic_enum_switch.hpp" />
     <ClInclude Include="External\magic_enum\magic_enum_utility.hpp" />
     <ClInclude Include="Source\Animation\AnimationCommon.h" />
+    <ClInclude Include="Source\Animation\AnimatorControllerAsset.h" />
     <ClInclude Include="Source\Animation\AnimationEvent.h" />
     <ClInclude Include="Source\Animation\AnimationLayer.h" />
     <ClInclude Include="Source\Animation\AnimationParameter.h" />
+    <ClInclude Include="Source\Animation\BlendTree.h" />
     <ClInclude Include="Source\Animation\AnimationState.h" />
     <ClInclude Include="Source\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Source\Animation\AnimationTransition.h" />

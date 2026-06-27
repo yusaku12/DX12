@@ -73,6 +73,7 @@
     <ClCompile Include="Source\Component\AnimationComponent.cpp" />
     <ClCompile Include="Source\Editor\ScreenCapture.cpp" />
     <ClCompile Include="Source\Animation\AnimationStateMachine.cpp" />
+    <ClCompile Include="Source\Animation\AnimatorControllerAsset.cpp" />
     <ClCompile Include="Source\Component\PostEffectComponent.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectBase.cpp" />
     <ClCompile Include="Source\PostEffect\PostEffectRenderTargets.cpp" />
@@ -379,7 +380,13 @@
     <ClInclude Include="Source\Animation\AnimationLayer.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Animation\BlendTree.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Animation\AnimationStateMachine.h">
+      <Filter>�w�b�_�[ �t�%40�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\AnimatorControllerAsset.h">
       <Filter>�w�b�_�[ �t�%40�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Component\PostEffectComponent.h">

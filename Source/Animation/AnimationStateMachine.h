@@ -13,7 +13,6 @@
 //!  - クロスフェード付きステート遷移
 //!  - レイヤーブレンド（上半身/下半身分離など）
 //!  - アニメーションイベント（特定時刻のコールバック発火）
-//!  - Any State からの遷移
 //!  - PingPong / Loop / Once ループモード
 //=====================================================
 class AnimationStateMachine
@@ -31,6 +30,9 @@ public:
     //! ステートを追加（戻り値: 追加されたステートへのポインタ）
     AnimationState* addState(const std::string& name, int animIndex = -1);
 
+    //! ステートを削除（関連遷移も自動クリーンアップ）
+    bool removeState(const std::string& name);
+
     //! ステートを名前で検索
     AnimationState* findState(const std::string& name);
     const AnimationState* findState(const std::string& name) const;
@@ -38,14 +40,17 @@ public:
     //! デフォルト（エントリー）ステートを設定
     void setDefaultState(const std::string& name);
 
+    //! 現在のコントローラーデータをクリア（モデル参照は維持）
+    void clearController();
+
+    //! デフォルトステート名
+    const std::string& getDefaultStateName() const;
+
     //! 現在のステート名
     const std::string& getCurrentStateName() const;
 
     //! 現在のステート
     const AnimationState* getCurrentState() const;
-
-    //! Any State からの遷移を追加（どのステートにいても条件を満たせば遷移）
-    void addAnyStateTransition(const AnimationTransition& transition);
 
     //! パラメータを追加
     void addParameter(const std::string& name, AnimParamType type);
@@ -61,14 +66,13 @@ public:
     int   getInt(const std::string& name) const;
     bool  getBool(const std::string& name) const;
 
-    //! レイヤーを追加（戻り値: レイヤーインデックス）
-    int addLayer(const std::string& name, float weight = 1.0f, LayerBlendMode mode = LayerBlendMode::Override);
+    //! パラメータ一覧
+    std::unordered_map<std::string, AnimationParameter>& getParameters() { return m_parameters; }
+    const std::unordered_map<std::string, AnimationParameter>& getParameters() const { return m_parameters; }
 
-    //! レイヤーのウェイト設定
-    void setLayerWeight(int layerIndex, float weight);
-
-    //! レイヤーのボーンマスク設定
-    void setLayerBoneMask(int layerIndex, const std::vector<int>& boneIndices);
+    //! ステート一覧
+    std::vector<std::unique_ptr<AnimationState>>& getStates() { return m_states; }
+    const std::vector<std::unique_ptr<AnimationState>>& getStates() const { return m_states; }
 
     //! 現在の正規化再生時間（0.0～1.0）
     float getNormalizedTime() const { return m_normalizedTime; }
@@ -82,8 +86,13 @@ public:
     //! 指定ステートに即時遷移（条件なし）
     void forceTransition(const std::string& stateName, float fadeDuration = 0.2f);
 
-    //! ImGui デバッグ描画
-    void drawDebugGUI();
+    //! 遷移を重複無しで追加（成功時 true）
+    bool addTransitionUnique(const std::string& fromStateName,
+        const std::string& toStateName,
+        float fadeDuration = 0.2f);
+
+    //! 現在ステートの再生長（秒）
+    float getCurrentStateLength() const;
 
 private:
 
@@ -95,6 +104,10 @@ private:
 
     //! アニメーションのキーフレーム補間結果をボーンに書き込む
     void evaluateAnimation(int animIndex, float time,
+        std::vector<Model::Bone>& bones) const;
+
+    //! ステート（クリップ or ブレンドツリー）の結果をボーンに書き込む
+    void evaluateStatePose(const AnimationState& state, float time,
         std::vector<Model::Bone>& bones) const;
 
     //! ボーン配列同士をブレンド: out = lerp(a, b, t)
@@ -114,6 +127,9 @@ private:
     //! 指定アニメーションの総再生時間を取得
     float getAnimationLength(int animIndex) const;
 
+    //! ステートの総再生時間（ブレンドツリー時は子の最大長）
+    float getStateLength(const AnimationState& state) const;
+
     //! イベント発火チェック
     void fireEvents(AnimationState* state, float prevNorm, float currNorm);
 
@@ -130,9 +146,6 @@ private:
     std::vector<std::unique_ptr<AnimationState>> m_states;
     AnimationState* m_currentState = nullptr;
     AnimationState* m_defaultState = nullptr;
-
-    //! Any State 遷移
-    std::vector<AnimationTransition> m_anyStateTransitions;
 
     //! パラメータ一覧
     std::unordered_map<std::string, AnimationParameter> m_parameters;

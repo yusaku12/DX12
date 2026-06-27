@@ -3,6 +3,7 @@
 #include "AnimationCommon.h"
 #include "AnimationEvent.h"
 #include "AnimationTransition.h"
+#include "BlendTree.h"
 
 //=====================================================
 //! アニメーションステート
@@ -32,6 +33,35 @@ public:
     //! 再生速度倍率
     float getSpeed() const { return m_speed; }
     void  setSpeed(float s) { m_speed = s; }
+
+    //! ノードエディタ上の位置
+    const Vector2& getNodePosition() const { return m_nodePosition; }
+    void setNodePosition(const Vector2& pos) { m_nodePosition = pos; }
+
+    //! ブレンドツリー
+    bool hasBlendTree() const { return m_blendTree != nullptr; }
+    BlendTreeData& createBlendTree(BlendTreeType type = BlendTreeType::Blend1D)
+    {
+        if (!m_blendTree)
+        {
+            m_blendTree = std::make_unique<BlendTreeData>();
+        }
+        m_blendTree->type = type;
+        return *m_blendTree;
+    }
+    void clearBlendTree() { m_blendTree.reset(); }
+    BlendTreeData* getBlendTree() { return m_blendTree.get(); }
+    const BlendTreeData* getBlendTree() const { return m_blendTree.get(); }
+
+    //! デバッグ・プレビュー用の代表アニメーション
+    int getPreviewAnimationIndex() const
+    {
+        if (m_blendTree && !m_blendTree->children.empty())
+        {
+            return m_blendTree->children.front().animationIndex;
+        }
+        return m_animationIndex;
+    }
 
     //! 遷移を追加
     void addTransition(const AnimationTransition& transition)
@@ -65,7 +95,9 @@ private:
     int         m_animationIndex = -1;
     LoopMode    m_loopMode = LoopMode::Loop;
     float       m_speed = 1.0f;
+    Vector2     m_nodePosition = { 0, 0 };
 
     std::vector<AnimationTransition> m_transitions;
     std::vector<AnimationEvent>      m_events;
+    std::unique_ptr<BlendTreeData>   m_blendTree;
 };

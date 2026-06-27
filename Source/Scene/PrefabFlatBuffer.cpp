@@ -185,6 +185,11 @@ namespace PrefabFlatBuffer
             return false;
         }
 
+        if (!SerializationCommon::saveAnimatorBindings(filePath, objects, "PrefabFlatBuffer"))
+        {
+            LOG_WARN("[PrefabFlatBuffer] Failed to save animator bindings: %s", filePath.string().c_str());
+        }
+
         root->setPrefabAssetPath(assetPath);
         LOG_INFO("[PrefabFlatBuffer] Saved prefab: %s", filePath.string().c_str());
         return true;
@@ -304,6 +309,8 @@ namespace PrefabFlatBuffer
         {
             prefabRoot->setParent(parent);
         }
+
+        SerializationCommon::loadAnimatorBindings(filePath, newObjects, "PrefabFlatBuffer");
 
         LOG_INFO("[PrefabFlatBuffer] Instantiated prefab: %s", filePath.string().c_str());
         return prefabRoot;

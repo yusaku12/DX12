@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "FbxLoad.h"
 #include "ModelFlatBuffer.h"
+#include "Animation\HumanoidRig.h"
 
 //! FbxDouble2 → XMFLOAT2
 inline Vector2 FbxDouble2ToFloat2(const FbxDouble2& fbxValue)
@@ -675,12 +676,50 @@ void FbxLoad::loadAnimations(FbxScene* fbxScene, const char* name, bool append)
         std::vector<FbxNode*> fbxNodes;
         if (append)
         {
+            std::array<FbxNode*, HumanoidRig::BoneCount> humanoidSourceNodes{};
+            for (FbxNode*& nodeRef : humanoidSourceNodes)
+            {
+                nodeRef = nullptr;
+            }
+
+            for (int fbxNodeIndex = 0; fbxNodeIndex < fbxScene->GetNodeCount(); ++fbxNodeIndex)
+            {
+                FbxNode* fbxNode = fbxScene->GetNode(fbxNodeIndex);
+                if (!fbxNode) continue;
+
+                const HumanBodyBone bone = HumanoidRig::classify(fbxNode->GetName());
+                if (bone == HumanBodyBone::Invalid) continue;
+
+                const size_t slot = static_cast<size_t>(bone);
+                if (slot >= humanoidSourceNodes.size()) continue;
+
+                if (humanoidSourceNodes[slot] == nullptr)
+                {
+                    humanoidSourceNodes[slot] = fbxNode;
+                }
+            }
+
             // ノード名を比較して対象ノードを列挙する
             // ※名前が重複していると失敗する場合がある
             FbxNode* fbxRootNode = fbxScene->GetRootNode();
             for (Bone& node : m_model.bones)
             {
                 FbxNode* fbxNode = fbxRootNode->FindChild(node.name.c_str(), true, true);
+
+                // 同名ノードが見つからない場合は Humanoid ボーン対応でフォールバック
+                if (fbxNode == nullptr)
+                {
+                    const HumanBodyBone targetBone = HumanoidRig::classify(node.name);
+                    if (targetBone != HumanBodyBone::Invalid)
+                    {
+                        const size_t slot = static_cast<size_t>(targetBone);
+                        if (slot < humanoidSourceNodes.size())
+                        {
+                            fbxNode = humanoidSourceNodes[slot];
+                        }
+                    }
+                }
+
                 fbxNodes.emplace_back(fbxNode);
             }
         }

@@ -134,6 +134,11 @@ namespace SceneFlatBuffer
             return false;
         }
 
+        if (!SerializationCommon::saveAnimatorBindings(filePath, objects, "SceneFlatBuffer"))
+        {
+            LOG_WARN("[SceneFlatBuffer] Failed to save animator bindings: %s", filePath.string().c_str());
+        }
+
         LOG_INFO("[SceneFlatBuffer] Saved scene: %s", filePath.string().c_str());
         return true;
     }
@@ -244,6 +249,8 @@ namespace SceneFlatBuffer
 
             newObjects[index]->setEnabled(serializedObject->enabled());
         }
+
+        SerializationCommon::loadAnimatorBindings(filePath, newObjects, "SceneFlatBuffer");
 
         LOG_INFO("[SceneFlatBuffer] Loaded scene: %s", filePath.string().c_str());
         return true;
