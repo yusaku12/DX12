@@ -101,6 +101,16 @@ namespace SerializationCommon
             return nullptr;
         }
 
+        // RectTransformComponent がなければ追加
+        if (!gameObject->getComponent<RectTransformComponent>())
+        {
+            RectTransformComponent* rt = gameObject->addComponent<RectTransformComponent>();
+            if (rt)
+            {
+                rt->setSize(Vector2(100.f, 100.f));  // デフォルトサイズ
+            }
+        }
+
         UIImageComponent* component = gameObject->addComponent<UIImageComponent>();
         if (!component || !serialized)
         {

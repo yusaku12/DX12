@@ -3,6 +3,7 @@
 #include "EditorTransaction.h"
 #include "Component/FbxRenderComponent.h"
 #include "Component/UIImageComponent.h"
+#include "Component/RectTransformComponent.h"
 #include "GameObject\GameObject.h"
 #include "Scene/PrefabFlatBuffer.h"
 #include "Scene/SerializationCommon.h"
@@ -163,6 +164,16 @@ void drawInspectorWindow()
                     std::vector<std::wstring> paths;
                     if (Dialog::openFile(paths, L"Select Texture", L"", false) == DialogResult::OK && !paths.empty())
                     {
+                        // RectTransformComponent がなければ追加
+                        if (!g_editor.selectedObject->getComponent<RectTransformComponent>())
+                        {
+                            RectTransformComponent* rt = g_editor.selectedObject->addComponent<RectTransformComponent>();
+                            if (rt)
+                            {
+                                rt->setSize(Vector2(100.f, 100.f));  // デフォルトサイズ
+                            }
+                        }
+
                         UIImageComponent* added = g_editor.selectedObject->addComponent<UIImageComponent>();
                         if (added)
                         {
