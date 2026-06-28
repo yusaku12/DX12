@@ -77,6 +77,9 @@
 #include "PostEffect\PostEffectManager.h"
 #include "Render/RenderPipeline.h"
 #include "Render/ShadowMapRenderer.h"
+#include "UI/UIRenderer.h"
+#include "UI/UIFontManager.h"
+#include "UI/UIAnimator.h"
 
 //! 省略系
 using namespace DirectX;

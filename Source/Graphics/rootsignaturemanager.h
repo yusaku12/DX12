@@ -17,6 +17,7 @@ enum class RootSignatureType : int
     GpuEffectCompute,
     HiZPyramidCompute,
     ShadowDepth,
+    UI,     //!< ネイティブ UI レンダラー用
     Max
 };
 
@@ -87,6 +88,9 @@ private:
 
     //! ShadowDepthをビルド（シャドウ深度パス用）
     void buildShadowDepth();
+
+    //! ネイティブ UI レンダラー用
+    void buildUI();
 
     //! 共通: FBX/GBuffer 系（CBV3 + SRVテーブル）
     void buildModelMaterialSRV(UINT srvCount, RootSignatureType type);

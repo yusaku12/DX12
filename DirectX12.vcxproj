@@ -79,7 +79,12 @@
     <ClCompile Include="Source\Component\SkyboxComponent.cpp" />
     <ClCompile Include="Source\Component\TransformComponent.cpp" />
     <ClCompile Include="Source\Component\UIButtonComponent.cpp" />
+    <ClCompile Include="Source\Component\UIImageComponent.cpp" />
+    <ClCompile Include="Source\Component\UIPanelComponent.cpp" />
     <ClCompile Include="Source\Component\UITextComponent.cpp" />
+    <ClCompile Include="Source\UI\UIAnimator.cpp" />
+    <ClCompile Include="Source\UI\UIFontManager.cpp" />
+    <ClCompile Include="Source\UI\UIRenderer.cpp" />
     <ClCompile Include="Source\Editor\AssetBrowserWindow.cpp" />
     <ClCompile Include="Source\Editor\AssetDragDrop.cpp" />
     <ClCompile Include="Source\Editor\AsyncAssetLoader.cpp" />
@@ -210,7 +215,12 @@
     <ClInclude Include="Source\Component\SkyboxComponent.h" />
     <ClInclude Include="Source\Component\TransformComponent.h" />
     <ClInclude Include="Source\Component\UIButtonComponent.h" />
+    <ClInclude Include="Source\Component\UIImageComponent.h" />
+    <ClInclude Include="Source\Component\UIPanelComponent.h" />
     <ClInclude Include="Source\Component\UITextComponent.h" />
+    <ClInclude Include="Source\UI\UIAnimator.h" />
+    <ClInclude Include="Source\UI\UIFontManager.h" />
+    <ClInclude Include="Source\UI\UIRenderer.h" />
     <ClInclude Include="Source\Editor\AssetBrowserWindow.h" />
     <ClInclude Include="Source\Editor\AssetDragDrop.h" />
     <ClInclude Include="Source\Editor\AsyncAssetLoader.h" />
@@ -562,7 +572,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
-      <AdditionalOptions>/Zc:__cplusplus </AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /utf-8 </AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -595,7 +605,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>

@@ -5,6 +5,13 @@
 #include "Component\RectTransformComponent.h"
 #include "Component\UIButtonComponent.h"
 #include "Component\UITextComponent.h"
+#include "Component\UIPanelComponent.h"
+#include "Component\UIImageComponent.h"
+#include "UI\UIRenderer.h"
+#include "UI\UIFontManager.h"
+#include "UI\UIAnimator.h"
+#include "Component\TransformComponent.h"
+#include "Camera\CameraManager.h"
 
 namespace
 {
@@ -97,7 +104,10 @@ void RuntimeUIManager::unregisterCanvas(CanvasComponent* canvas)
 
 void RuntimeUIManager::update()
 {
-	m_wantsMouseCapture = false;
+    // UIAnimator 更新
+    UIAnimator::Instance().update(TimeManager::Instance().getDeltaTime());
+
+    m_wantsMouseCapture = false;
 	m_hoveredButtonId = 0;
 
 	if (!m_initialized || m_canvases.empty())
@@ -341,4 +351,205 @@ void RuntimeUIManager::drawCanvasRecursive(GameObject* object, const ImRect& par
 	{
 		drawCanvasRecursive(child, currentRect, drawList);
 	}
+}
+
+// =============================================================
+//  ネイティブ DX12 描画（UIRenderer ベース）
+// =============================================================
+void RuntimeUIManager::renderNative()
+{
+    if (!m_initialized || m_canvases.empty()) return;
+    if (!UIRenderer::Instance().isInitialized())   return;
+
+    const float screenW = static_cast<float>(DX12::Instance().getScreenWidth());
+    const float screenH = static_cast<float>(DX12::Instance().getScreenHeight());
+
+    UIRenderer::Instance().begin(screenW, screenH);
+
+    // ソート（sortOrder 昇順 = 小さいほど先に描画）
+    std::vector<CanvasComponent*> canvases = m_canvases;
+    std::sort(canvases.begin(), canvases.end(),
+        [](const CanvasComponent* a, const CanvasComponent* b)
+        { return a->getSortOrder() < b->getSortOrder(); });
+
+    for (CanvasComponent* canvas : canvases)
+    {
+        if (!canvas || !canvas->isActiveInHierarchy() || !canvas->gameObject())
+            continue;
+
+        if (canvas->getRenderMode() == CanvasRenderMode::WorldSpace)
+            renderWorldSpaceCanvas(canvas);
+        else
+            renderNativeCanvas(canvas, screenW, screenH);
+    }
+
+    UIRenderer::Instance().end();
+}
+
+void RuntimeUIManager::renderNativeCanvas(CanvasComponent* canvas,
+                                          float screenW, float screenH)
+{
+    drawNativeRecursive(canvas->gameObject(),
+                        0.f, 0.f, screenW, screenH);
+}
+
+void RuntimeUIManager::renderWorldSpaceCanvas(CanvasComponent* canvas)
+{
+    if (!canvas->gameObject()) return;
+
+    // TransformComponent からワールド行列を取得
+    auto* transform = canvas->gameObject()->getComponent<TransformComponent>();
+    if (!transform) return;
+
+    const Matrix world = transform->getWorldMatrix();
+
+    // カメラ VP 行列を取得
+    auto* cam = CameraManager::Instance().getMainCamera();
+    if (!cam) return;
+    const Matrix vp = cam->getView() * cam->getProjection();
+
+    const Vector2& worldSize = canvas->getWorldSize();
+    UIRenderer::Instance().drawWorldRect(
+        world, vp, worldSize.x, worldSize.y,
+        Vector4(1, 1, 1, 1), 1.0f);
+}
+
+void RuntimeUIManager::drawNativeRecursive(GameObject* object,
+                                           float parentX, float parentY,
+                                           float parentW, float parentH)
+{
+    if (!object || object->isDestroyed() || !object->isEnabled()) return;
+
+    float cx, cy, cw, ch;
+    resolveNativeRect(object, parentX, parentY, parentW, parentH, cx, cy, cw, ch);
+
+    // ── UIPanelComponent ─────────────────────────────
+    if (auto* panel = object->getComponent<UIPanelComponent>())
+    {
+        const float a = panel->getAlpha();
+        // 背景
+        UIRenderer::Instance().drawRect(cx, cy, cw, ch,
+            panel->getBackgroundColor(), nullptr, a);
+        // ボーダー
+        if (panel->getBorderWidth() > 0.f)
+        {
+            const float bw = panel->getBorderWidth();
+            const Vector4 bc = panel->getBorderColor();
+            // 4 辺をボーダー矩形として描画
+            UIRenderer::Instance().drawRect(cx,              cy,              cw, bw,        bc, nullptr, a);
+            UIRenderer::Instance().drawRect(cx,              cy + ch - bw,    cw, bw,        bc, nullptr, a);
+            UIRenderer::Instance().drawRect(cx,              cy,              bw, ch,         bc, nullptr, a);
+            UIRenderer::Instance().drawRect(cx + cw - bw,   cy,              bw, ch,         bc, nullptr, a);
+        }
+    }
+
+    // ── UIImageComponent ─────────────────────────────
+    if (auto* img = object->getComponent<UIImageComponent>())
+    {
+        const UINT srv = img->getSrvIndex();
+        if (srv != UINT_MAX)
+        {
+            UIRenderer::Instance().drawTexturedRect(cx, cy, cw, ch,
+                srv, img->getTintColor(), nullptr, img->getAlpha());
+        }
+        else
+        {
+            // テクスチャ未設定 → ホワイト矩形
+            UIRenderer::Instance().drawRect(cx, cy, cw, ch,
+                img->getTintColor(), nullptr, img->getAlpha());
+        }
+    }
+
+    // ── UIButtonComponent ────────────────────────────
+    if (auto* button = object->getComponent<UIButtonComponent>())
+    {
+        const uint64_t id = object->getInstanceId();
+        const bool hovered = (id == m_hoveredButtonId);
+        const bool pressed = (id == m_pressedButtonId) && hovered;
+
+        const Vector4& fill = pressed  ? button->getPressedColor()
+                            : hovered ? button->getHoverColor()
+                                       : button->getNormalColor();
+        UIRenderer::Instance().drawRect(cx, cy, cw, ch, fill);
+
+        const std::string& label = button->getLabel();
+        if (!label.empty())
+        {
+            const float scale = button->getFontScale();
+            const Vector2 ts  = UIRenderer::Instance().measureText(label, scale);
+            UIRenderer::Instance().drawText(
+                cx + (cw - ts.x) * 0.5f,
+                cy + (ch + ts.y) * 0.5f,
+                label, button->getTextColor(), scale);
+        }
+    }
+
+    // ── UITextComponent ──────────────────────────────
+    if (auto* text = object->getComponent<UITextComponent>())
+    {
+        const std::string& content = text->getText();
+        if (!content.empty())
+        {
+            const float scale  = text->getFontScale();
+            const Vector2 ts   = UIRenderer::Instance().measureText(content, scale);
+            const Vector4& col = text->getColor();
+
+            float tx = cx, ty = cy;
+            switch (text->getAlignment())
+            {
+            case UITextAlignment::TopLeft:     tx = cx + 4.f;             ty = cy + 4.f;              break;
+            case UITextAlignment::TopCenter:   tx = cx + (cw - ts.x) * 0.5f; ty = cy + 4.f;          break;
+            case UITextAlignment::TopRight:    tx = cx + cw - ts.x - 4.f; ty = cy + 4.f;             break;
+            case UITextAlignment::MiddleLeft:  tx = cx + 4.f;             ty = cy + (ch + ts.y) * 0.5f; break;
+            case UITextAlignment::MiddleCenter: tx = cx + (cw - ts.x) * 0.5f; ty = cy + (ch + ts.y) * 0.5f; break;
+            case UITextAlignment::MiddleRight: tx = cx + cw - ts.x - 4.f; ty = cy + (ch + ts.y) * 0.5f; break;
+            case UITextAlignment::BottomLeft:  tx = cx + 4.f;             ty = cy + ch - 4.f;         break;
+            case UITextAlignment::BottomCenter: tx = cx + (cw - ts.x) * 0.5f; ty = cy + ch - 4.f;    break;
+            case UITextAlignment::BottomRight: tx = cx + cw - ts.x - 4.f; ty = cy + ch - 4.f;        break;
+            }
+
+            UIRenderer::Instance().drawText(tx, ty, content, col, scale);
+        }
+    }
+
+    // 子オブジェクトを再帰処理
+    for (GameObject* child : object->getChildren())
+        drawNativeRecursive(child, cx, cy, cw, ch);
+}
+
+void RuntimeUIManager::resolveNativeRect(GameObject* object,
+                                         float parentX, float parentY,
+                                         float parentW, float parentH,
+                                         float& outX, float& outY,
+                                         float& outW, float& outH) const
+{
+    // CanvasComponent 自体は親サイズをそのまま継承
+    if (object->getComponent<CanvasComponent>())
+    {
+        outX = parentX; outY = parentY;
+        outW = parentW; outH = parentH;
+        return;
+    }
+
+    if (auto* rt = object->getComponent<RectTransformComponent>())
+    {
+        const ImRect parent(ImVec2(parentX, parentY),
+                            ImVec2(parentX + parentW, parentY + parentH));
+        const ImRect rect = rt->calculateRect(parent);
+        outX = rect.Min.x; outY = rect.Min.y;
+        outW = rect.GetWidth(); outH = rect.GetHeight();
+        return;
+    }
+
+    outX = parentX; outY = parentY;
+    outW = parentW; outH = parentH;
+}
+
+bool RuntimeUIManager::tryGetNativeMousePos(float& outX, float& outY) const
+{
+    POINT cursor = InputManager::Instance().getMousePosition();
+    ScreenToClient(DX12::Instance().getHwnd(), &cursor);
+    outX = static_cast<float>(cursor.x);
+    outY = static_cast<float>(cursor.y);
+    return true;
 }

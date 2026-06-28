@@ -29,6 +29,8 @@ enum class ShaderID : int
     HiZDownsampleCS,
     ShadowDepthVS,
     ShadowDepthPS,
+    UIVS,   //!< UI 頂点シェーダー
+    UIPS,   //!< UI ピクセルシェーダー
     MAX
 };
 
@@ -69,4 +71,6 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/HiZDownsampleCS.hlsl",    "CS", "cs_5_0" },  //!< HiZDownsampleCS
     ShaderDesc{ L"Shader/ShadowDepthVS.hlsl",      "VS", "vs_5_0" },  //!< ShadowDepthVS
     ShaderDesc{ L"Shader/ShadowDepthPS.hlsl",      "PS", "ps_5_0" },  //!< ShadowDepthPS
+    ShaderDesc{ L"Shader/UIVS.hlsl",               "VS", "vs_5_0" },  //!< UIVS
+    ShaderDesc{ L"Shader/UIPS.hlsl",               "PS", "ps_5_0" },  //!< UIPS
 };

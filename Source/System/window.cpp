@@ -53,6 +53,10 @@ void Window::initializeEngineSubsystems()
     SceneManager::Instance().initialize();
     RuntimeUIManager::Instance().initialize();
 
+    // ネイティブ UI サブシステム（シェーダー・フォントアトラスを準備）
+    UIRenderer::Instance().initialize();
+    UIFontManager::Instance().initialize();
+
     m_engineSubsystemsInitialized = true;
 }
 
@@ -69,6 +73,10 @@ void Window::shutdownEngineSubsystems()
     SceneManager::Instance().shutdown();
     GameObjectRegistry::Instance().shutdown();
     RuntimeUIManager::Instance().shutdown();
+
+    // ネイティブ UI サブシステム
+    UIRenderer::Instance().shutdown();
+    UIFontManager::Instance().shutdown();
 
     // 2) ランタイム系（Scene に依存しうるものから順に停止）
     PhysicsWorld::Instance().shutdown();
@@ -133,6 +141,9 @@ void Window::render()
 
     // シーンマネージャ描画（GBuffer パスをワーカーコマンドに記録）
     SceneManager::Instance().draw();
+
+    // ネイティブ UI をシーン RT に描画（PostEffect 後、ImGui 前）
+    RuntimeUIManager::Instance().renderNative();
 
     // バックバッファをimgui用に準備
     m_dx12.prepareBackBufferForImGui();

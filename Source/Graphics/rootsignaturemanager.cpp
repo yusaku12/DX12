@@ -14,6 +14,7 @@ void RootSignatureManager::initialize()
     buildGpuEffectCompute();
     buildHiZPyramidCompute();
     buildShadowDepth();
+    buildUI();
 }
 
 ID3D12RootSignature* RootSignatureManager::getRootSignature(RootSignatureType type) const
@@ -140,6 +141,21 @@ void RootSignatureManager::buildShadowDepth()
     params[1].InitAsConstantBufferView(1);
 
     createRootSignature(params, _countof(params), RootSignatureType::ShadowDepth);
+}
+
+void RootSignatureManager::buildUI()
+{
+    CD3DX12_ROOT_PARAMETER params[2] = {};
+
+    //! b0: 定数バッファ（変換行列 / テクスチャモード / アルファ）
+    params[0].InitAsConstantBufferView(0);
+
+    //! t0: テクスチャ SRV
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange);
+
+    createRootSignature(params, _countof(params), RootSignatureType::UI);
 }
 
 void RootSignatureManager::buildGpuEffectRender()
