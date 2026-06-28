@@ -4,32 +4,19 @@ namespace GpuDebugMarker
 {
     inline void begin(ID3D12GraphicsCommandList* cmd, const char* label)
     {
-        if (!cmd || !label || label[0] == '\0')
-        {
-            return;
-        }
-
-        cmd->BeginEvent(0, label, static_cast<UINT>(std::strlen(label)));
+        (void)cmd;
+        (void)label;
     }
 
     inline void end(ID3D12GraphicsCommandList* cmd)
     {
-        if (!cmd)
-        {
-            return;
-        }
-
-        cmd->EndEvent();
+        (void)cmd;
     }
 
     inline void mark(ID3D12GraphicsCommandList* cmd, const char* label)
     {
-        if (!cmd || !label || label[0] == '\0')
-        {
-            return;
-        }
-
-        cmd->SetMarker(0, label, static_cast<UINT>(std::strlen(label)));
+        (void)cmd;
+        (void)label;
     }
 
     class ScopedEvent

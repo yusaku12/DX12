@@ -22,9 +22,15 @@ INT WINAPI wWinMain(
     [[maybe_unused]] LPWSTR cmdLine,
     INT cmdShow)
 {
+    Logger::Instance().initialize();
+    CrashReporter::Instance().initialize();
+
     if (EngineTests::hasAnyTestFlag(cmdLine))
     {
-        return EngineTests::runFromCommandLine(cmdLine);
+        int result = EngineTests::runFromCommandLine(cmdLine);
+        CrashReporter::Instance().shutdown();
+        Logger::Instance().shutdown();
+        return result;
     }
 
     // サイズ調整
@@ -67,12 +73,19 @@ INT WINAPI wWinMain(
         nullptr);
 
     if (!hwnd)
+    {
+        CrashReporter::Instance().shutdown();
+        Logger::Instance().shutdown();
         return -1;
+    }
 
     ShowWindow(hwnd, cmdShow);
 
     Window window(hwnd);
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&window));
+    int result = window.run();
 
-    return window.run();
+    CrashReporter::Instance().shutdown();
+    Logger::Instance().shutdown();
+    return result;
 }

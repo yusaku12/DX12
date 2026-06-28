@@ -1,6 +1,11 @@
 ﻿#include "pch.h"
 #include "AnimationStateMachine.h"
 
+namespace
+{
+    constexpr float kBlendEpsilon = 0.0001f;
+}
+
 void AnimationStateMachine::initialize(Model* model)
 {
     m_model = model;
@@ -122,19 +127,42 @@ void AnimationStateMachine::update(float deltaTime)
     }
 
     // レイヤーブレンド（ベースレイヤー以外）
-    // TODO: 複数ステートマシンをレイヤーごとに持つ本格実装
-    // 現時点ではレイヤー 0 = ベースとして、追加レイヤーのマスクブレンドを適用
     for (size_t i = 1; i < m_layers.size(); ++i)
     {
-        const auto& layer = m_layers[i];
+        auto& layer = m_layers[i];
+        if (!layer.enabled) continue;
         if (layer.weight <= 0.0f || layer.boneMask.empty()) continue;
 
-        // レイヤー用のポーズ評価（現ステートのアニメーションを使う簡易版）
         std::vector<Model::Bone> layerBones = bones;
-        evaluateStatePose(*m_currentState, m_currentTime, layerBones);
+
+        if (layer.useCurrentStatePose || layer.layerAnimationIndex < 0)
+        {
+            evaluateStatePose(*m_currentState, m_currentTime, layerBones);
+        }
+        else
+        {
+            float layerLength = getAnimationLength(layer.layerAnimationIndex);
+            if (layerLength > 0.0f)
+            {
+                layer.layerTime += deltaTime * layer.layerSpeed;
+                if (layer.layerLoop)
+                {
+                    layer.layerTime = std::fmod(layer.layerTime, std::max(layerLength, kBlendEpsilon));
+                }
+                else
+                {
+                    layer.layerTime = std::clamp(layer.layerTime, 0.0f, layerLength);
+                }
+            }
+
+            evaluateAnimation(layer.layerAnimationIndex, layer.layerTime, layerBones);
+        }
 
         blendBonesWithMask(bones, layerBones, layer.weight,
-            layer.boneMask, layer.blendMode, bones);
+            layer.boneMask, layer.blendMode,
+            layer.additiveAffectScale,
+            layer.additiveAffectTranslation,
+            bones);
     }
 
     // 現在ステートの遷移
@@ -175,6 +203,73 @@ AnimationState* AnimationStateMachine::addState(const std::string& name, int ani
     AnimationState* ptr = state.get();
     m_states.push_back(std::move(state));
     return ptr;
+}
+
+size_t AnimationStateMachine::addLayer(const AnimationLayer& layer)
+{
+    AnimationLayer entry = layer;
+    if (entry.name.empty())
+    {
+        entry.name = std::format("Layer{}", m_layers.size());
+    }
+    m_layers.push_back(std::move(entry));
+    return m_layers.size() - 1;
+}
+
+bool AnimationStateMachine::removeLayer(size_t index)
+{
+    if (index == 0 || index >= m_layers.size())
+    {
+        return false;
+    }
+
+    m_layers.erase(m_layers.begin() + static_cast<std::ptrdiff_t>(index));
+    return true;
+}
+
+AnimationLayer* AnimationStateMachine::getLayer(size_t index)
+{
+    if (index >= m_layers.size()) return nullptr;
+    return &m_layers[index];
+}
+
+const AnimationLayer* AnimationStateMachine::getLayer(size_t index) const
+{
+    if (index >= m_layers.size()) return nullptr;
+    return &m_layers[index];
+}
+
+bool AnimationStateMachine::setLayerAnimation(size_t index, int animationIndex, float speed, bool loop)
+{
+    AnimationLayer* layer = getLayer(index);
+    if (!layer || index == 0)
+    {
+        return false;
+    }
+
+    layer->useCurrentStatePose = false;
+    layer->layerAnimationIndex = animationIndex;
+    layer->layerSpeed = speed;
+    layer->layerLoop = loop;
+    layer->layerTime = 0.0f;
+    return true;
+}
+
+bool AnimationStateMachine::setLayerUseCurrentStatePose(size_t index, bool useCurrentStatePose)
+{
+    AnimationLayer* layer = getLayer(index);
+    if (!layer || index == 0)
+    {
+        return false;
+    }
+
+    layer->useCurrentStatePose = useCurrentStatePose;
+    if (useCurrentStatePose)
+    {
+        layer->layerAnimationIndex = -1;
+        layer->layerTime = 0.0f;
+    }
+    return true;
 }
 
 bool AnimationStateMachine::removeState(const std::string& name)
@@ -580,21 +675,186 @@ void AnimationStateMachine::evaluateStatePose(const AnimationState& state,
     else
     {
         Vector2 p = { getFloat(blendTree->parameterX), getFloat(blendTree->parameterY) };
-        float weightSum = 0.0f;
 
-        for (const auto& child : blendTree->children)
+        if (blendTree->type == BlendTreeType::FreeformDirectional2D)
         {
-            float dist = (p - child.position).Length();
-            float w = 1.0f / std::max(0.001f, dist);
-            entries.push_back({ child.animationIndex, w, child.timeScale });
-            weightSum += w;
-        }
-
-        if (weightSum > 0.0f)
-        {
-            for (auto& e : entries)
+            struct DirSample
             {
-                e.weight /= weightSum;
+                const BlendTreeChild* child = nullptr;
+                Vector2 dir = Vector2::Zero;
+                float radius = 0.0f;
+                float angle = 0.0f;
+            };
+
+            std::vector<const BlendTreeChild*> centerSamples;
+            std::vector<DirSample> directionalSamples;
+            centerSamples.reserve(blendTree->children.size());
+            directionalSamples.reserve(blendTree->children.size());
+
+            for (const auto& child : blendTree->children)
+            {
+                const float radius = child.position.Length();
+                if (radius <= kBlendEpsilon)
+                {
+                    centerSamples.push_back(&child);
+                    continue;
+                }
+
+                DirSample s;
+                s.child = &child;
+                s.radius = radius;
+                s.dir = child.position / radius;
+                s.angle = std::atan2(s.dir.y, s.dir.x);
+                directionalSamples.push_back(s);
+            }
+
+            const float paramMag = p.Length();
+            Vector2 paramDir = Vector2(1.0f, 0.0f);
+            if (paramMag > kBlendEpsilon)
+            {
+                paramDir = p / paramMag;
+            }
+            const float paramAngle = std::atan2(paramDir.y, paramDir.x);
+
+            float centerWeight = 0.0f;
+            if (!centerSamples.empty())
+            {
+                float maxDirRadius = 1.0f;
+                for (const auto& s : directionalSamples)
+                {
+                    maxDirRadius = std::max(maxDirRadius, s.radius);
+                }
+
+                float move01 = std::clamp(paramMag / std::max(maxDirRadius, kBlendEpsilon), 0.0f, 1.0f);
+                centerWeight = 1.0f - move01;
+            }
+
+            if (paramMag <= kBlendEpsilon || directionalSamples.empty())
+            {
+                if (!centerSamples.empty())
+                {
+                    float w = 1.0f / static_cast<float>(centerSamples.size());
+                    for (const BlendTreeChild* child : centerSamples)
+                    {
+                        entries.push_back({ child->animationIndex, w, child->timeScale });
+                    }
+                }
+                else if (!directionalSamples.empty())
+                {
+                    auto nearest = std::min_element(directionalSamples.begin(), directionalSamples.end(),
+                        [&](const DirSample& a, const DirSample& b)
+                        {
+                            float da = std::abs(std::atan2(std::sin(paramAngle - a.angle), std::cos(paramAngle - a.angle)));
+                            float db = std::abs(std::atan2(std::sin(paramAngle - b.angle), std::cos(paramAngle - b.angle)));
+                            return da < db;
+                        });
+
+                    entries.push_back({ nearest->child->animationIndex, 1.0f, nearest->child->timeScale });
+                }
+            }
+            else
+            {
+                std::sort(directionalSamples.begin(), directionalSamples.end(), [](const DirSample& a, const DirSample& b)
+                    {
+                        return a.angle < b.angle;
+                    });
+
+                int aIndex = 0;
+                int bIndex = 0;
+                bool foundSector = false;
+                const size_t n = directionalSamples.size();
+                for (size_t i = 0; i < n; ++i)
+                {
+                    const size_t j = (i + 1) % n;
+                    float aAngle = directionalSamples[i].angle;
+                    float bAngle = directionalSamples[j].angle;
+                    if (j == 0) bAngle += XM_2PI;
+
+                    float pAngle = paramAngle;
+                    if (pAngle < aAngle) pAngle += XM_2PI;
+
+                    if (pAngle >= aAngle && pAngle <= bAngle)
+                    {
+                        aIndex = static_cast<int>(i);
+                        bIndex = static_cast<int>(j);
+                        foundSector = true;
+                        break;
+                    }
+                }
+
+                if (!foundSector)
+                {
+                    auto nearest = std::min_element(directionalSamples.begin(), directionalSamples.end(),
+                        [&](const DirSample& a, const DirSample& b)
+                        {
+                            float da = std::abs(std::atan2(std::sin(paramAngle - a.angle), std::cos(paramAngle - a.angle)));
+                            float db = std::abs(std::atan2(std::sin(paramAngle - b.angle), std::cos(paramAngle - b.angle)));
+                            return da < db;
+                        });
+
+                    entries.push_back({ nearest->child->animationIndex, 1.0f, nearest->child->timeScale });
+                }
+                else
+                {
+                    const DirSample& a = directionalSamples[aIndex];
+                    const DirSample& b = directionalSamples[bIndex];
+
+                    float aAngle = a.angle;
+                    float bAngle = b.angle;
+                    if (bIndex == 0 && bAngle < aAngle)
+                    {
+                        bAngle += XM_2PI;
+                    }
+
+                    float pAngle = paramAngle;
+                    if (pAngle < aAngle) pAngle += XM_2PI;
+
+                    float span = std::max(kBlendEpsilon, bAngle - aAngle);
+                    float angleT = std::clamp((pAngle - aAngle) / span, 0.0f, 1.0f);
+
+                    float radialA = 1.0f - std::abs(paramMag - a.radius) / std::max(a.radius, kBlendEpsilon);
+                    float radialB = 1.0f - std::abs(paramMag - b.radius) / std::max(b.radius, kBlendEpsilon);
+                    radialA = std::clamp(radialA, 0.0f, 1.0f);
+                    radialB = std::clamp(radialB, 0.0f, 1.0f);
+
+                    float dirAWeight = (1.0f - angleT) * radialA;
+                    float dirBWeight = angleT * radialB;
+                    float dirSum = std::max(kBlendEpsilon, dirAWeight + dirBWeight);
+                    dirAWeight /= dirSum;
+                    dirBWeight /= dirSum;
+
+                    float directionalBudget = std::clamp(1.0f - centerWeight, 0.0f, 1.0f);
+                    entries.push_back({ a.child->animationIndex, dirAWeight * directionalBudget, a.child->timeScale });
+                    entries.push_back({ b.child->animationIndex, dirBWeight * directionalBudget, b.child->timeScale });
+                }
+
+                if (centerWeight > kBlendEpsilon && !centerSamples.empty())
+                {
+                    float each = centerWeight / static_cast<float>(centerSamples.size());
+                    for (const BlendTreeChild* child : centerSamples)
+                    {
+                        entries.push_back({ child->animationIndex, each, child->timeScale });
+                    }
+                }
+            }
+        }
+        else
+        {
+            float weightSum = 0.0f;
+            for (const auto& child : blendTree->children)
+            {
+                float dist = (p - child.position).Length();
+                float w = 1.0f / std::max(kBlendEpsilon, dist);
+                entries.push_back({ child.animationIndex, w, child.timeScale });
+                weightSum += w;
+            }
+
+            if (weightSum > 0.0f)
+            {
+                for (auto& e : entries)
+                {
+                    e.weight /= weightSum;
+                }
             }
         }
     }
@@ -667,8 +927,14 @@ void AnimationStateMachine::blendBonesWithMask(const std::vector<Model::Bone>& s
     float weight,
     const std::vector<int>& mask,
     LayerBlendMode mode,
+    bool additiveAffectScale,
+    bool additiveAffectTranslation,
     std::vector<Model::Bone>& out)
 {
+    const auto* bindBones = (m_model && m_model->getResource())
+        ? &m_model->getResource()->getModelData().bones
+        : nullptr;
+
     for (int idx : mask)
     {
         if (idx < 0 || idx >= static_cast<int>(out.size())) continue;
@@ -684,22 +950,47 @@ void AnimationStateMachine::blendBonesWithMask(const std::vector<Model::Bone>& s
         if (mode == LayerBlendMode::Override)
         {
             XMStoreFloat3(&out[idx].scale, XMVectorLerp(sS, sL, weight));
-            XMStoreFloat4(&out[idx].rotate, XMQuaternionSlerp(rS, rL, weight));
+            XMVECTOR q = XMQuaternionNormalize(XMQuaternionSlerp(rS, rL, weight));
+            XMStoreFloat4(&out[idx].rotate, q);
             XMStoreFloat3(&out[idx].translate, XMVectorLerp(tS, tL, weight));
         }
         else // Additive
         {
-            // Additive: base + (layer - identity) * weight
+            // Additive は bind pose 基準の差分を適用する
             XMVECTOR identityR = XMQuaternionIdentity();
             XMVECTOR identityT = XMVectorZero();
             XMVECTOR identityS = XMVectorSet(1, 1, 1, 0);
 
-            XMVECTOR addS = XMVectorLerp(identityS, sL, weight);
-            XMVECTOR addR = XMQuaternionSlerp(identityR, rL, weight);
-            XMVECTOR addT = XMVectorLerp(identityT, tL, weight);
+            XMVECTOR sRef = identityS;
+            XMVECTOR rRef = identityR;
+            XMVECTOR tRef = identityT;
+
+            if (bindBones && idx < static_cast<int>(bindBones->size()))
+            {
+                sRef = XMLoadFloat3(&(*bindBones)[idx].scale);
+                rRef = XMQuaternionNormalize(XMLoadFloat4(&(*bindBones)[idx].rotate));
+                tRef = XMLoadFloat3(&(*bindBones)[idx].translate);
+            }
+
+            const XMVECTOR minScale = XMVectorReplicate(0.0001f);
+            const XMVECTOR safeRefS = XMVectorMax(sRef, minScale);
+
+            XMVECTOR deltaS = XMVectorDivide(sL, safeRefS);
+            XMVECTOR deltaR = XMQuaternionMultiply(XMQuaternionInverse(rRef), rL);
+            deltaR = XMQuaternionNormalize(deltaR);
+            XMVECTOR deltaT = XMVectorSubtract(tL, tRef);
+
+            XMVECTOR addS = additiveAffectScale
+                ? XMVectorLerp(identityS, deltaS, weight)
+                : identityS;
+            XMVECTOR addR = XMQuaternionNormalize(XMQuaternionSlerp(identityR, deltaR, weight));
+            XMVECTOR addT = additiveAffectTranslation
+                ? XMVectorLerp(identityT, deltaT, weight)
+                : identityT;
 
             XMStoreFloat3(&out[idx].scale, XMVectorMultiply(sS, addS));
-            XMStoreFloat4(&out[idx].rotate, XMQuaternionMultiply(rS, addR));
+            XMVECTOR qOut = XMQuaternionNormalize(XMQuaternionMultiply(rS, addR));
+            XMStoreFloat4(&out[idx].rotate, qOut);
             XMStoreFloat3(&out[idx].translate, XMVectorAdd(tS, addT));
         }
     }

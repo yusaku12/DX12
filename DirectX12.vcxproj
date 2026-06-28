@@ -148,6 +148,7 @@
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
     <ClCompile Include="Source\System\DebugPrimitive.cpp" />
     <ClCompile Include="Source\System\Dialog.cpp" />
+    <ClCompile Include="Source\System\CrashReporter.cpp" />
     <ClCompile Include="Source\System\EventBus.cpp" />
     <ClCompile Include="Source\System\Logger.cpp" />
     <ClCompile Include="Source\System\RuntimeUIManager.cpp" />
@@ -284,6 +285,7 @@
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
     <ClInclude Include="Source\System\DebugPrimitive.h" />
     <ClInclude Include="Source\System\Dialog.h" />
+    <ClInclude Include="Source\System\CrashReporter.h" />
     <ClInclude Include="Source\System\EventBus.h" />
     <ClInclude Include="Source\System\Logger.h" />
     <ClInclude Include="Source\System\LoggerMacros.h" />

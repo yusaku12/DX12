@@ -74,6 +74,24 @@ public:
     std::vector<std::unique_ptr<AnimationState>>& getStates() { return m_states; }
     const std::vector<std::unique_ptr<AnimationState>>& getStates() const { return m_states; }
 
+    //! レイヤー一覧
+    std::vector<AnimationLayer>& getLayers() { return m_layers; }
+    const std::vector<AnimationLayer>& getLayers() const { return m_layers; }
+
+    //! レイヤーを追加（戻り値: 追加後インデックス）
+    size_t addLayer(const AnimationLayer& layer);
+
+    //! レイヤー削除（0=Base Layer は削除不可）
+    bool removeLayer(size_t index);
+
+    //! レイヤーの参照取得
+    AnimationLayer* getLayer(size_t index);
+    const AnimationLayer* getLayer(size_t index) const;
+
+    //! レイヤーのモーションソース設定
+    bool setLayerAnimation(size_t index, int animationIndex, float speed = 1.0f, bool loop = true);
+    bool setLayerUseCurrentStatePose(size_t index, bool useCurrentStatePose);
+
     //! 現在の正規化再生時間（0.0～1.0）
     float getNormalizedTime() const { return m_normalizedTime; }
 
@@ -117,11 +135,13 @@ private:
         std::vector<Model::Bone>& out);
 
     //! ボーン配列同士をマスク付きブレンド
-    static void blendBonesWithMask(const std::vector<Model::Bone>& src,
+    void blendBonesWithMask(const std::vector<Model::Bone>& src,
         const std::vector<Model::Bone>& layer,
         float weight,
         const std::vector<int>& mask,
         LayerBlendMode mode,
+        bool additiveAffectScale,
+        bool additiveAffectTranslation,
         std::vector<Model::Bone>& out);
 
     //! 指定アニメーションの総再生時間を取得

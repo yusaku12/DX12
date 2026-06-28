@@ -111,6 +111,20 @@ public:
     //! リターゲット先を再解決（成功時 true）
     bool resolveRetargetTarget();
 
+    //! 上半身 Additive レイヤーを構成（戻り値: レイヤー index、失敗時 -1）
+    int setupUpperBodyAdditiveLayer(int animationIndex, float weight = 1.0f, float speed = 1.0f, bool loop = true);
+
+    //! 下半身 Additive レイヤーを構成（戻り値: レイヤー index、失敗時 -1）
+    int setupLowerBodyAdditiveLayer(int animationIndex, float weight = 1.0f, float speed = 1.0f, bool loop = true);
+
+    //! 足 IK
+    void setFootIKEnabled(bool left, bool enabled);
+    void setFootIKTarget(bool left, const Vector3& worldTarget, float weight = 1.0f);
+
+    //! 腕 IK
+    void setArmIKEnabled(bool left, bool enabled);
+    void setArmIKTarget(bool left, const Vector3& worldTarget, float weight = 1.0f);
+
     //! 他コンポーネントから外部ポーズを書き込まれる間は自前更新を停止
     void setExternalRetargetOverride(bool enabled) { m_externalRetargetOverride = enabled; }
     bool isExternalRetargetOverridden() const { return m_externalRetargetOverride; }
@@ -144,6 +158,28 @@ private:
 
     //! 現在の source ポーズを target モデルへ反映する
     void applyRetargetFromCurrentPose();
+
+    //! 自分自身の humanoid マップを再構築する
+    void rebuildSelfHumanoidMap();
+
+    //! 上半身/下半身のボーンマスクを収集する
+    std::vector<int> collectHumanoidBoneMask(bool upperBody) const;
+
+    //! IK 解決を適用する
+    void applyIK();
+
+    //! 2 ボーン IK（CCD）を適用
+    void solveTwoBoneIKCCD(int upperIndex, int lowerIndex, int endIndex,
+        const Vector3& targetWorld,
+        float weight,
+        int iterationCount,
+        float maxStepDegrees);
+
+    //! ボーンのワールド回転を指定してローカル回転へ反映
+    void applyWorldRotationToBone(int boneIndex, const Quaternion& worldRotation);
+
+    //! モデルの基準ワールド行列を取得
+    Matrix getModelWorldMatrix() const;
 
     void drawSequencer();
     void drawDebugInfo();
@@ -211,6 +247,27 @@ private:
     std::array<Vector4, HumanoidRig::BoneCount> m_retargetAxisAlign{};
     std::array<bool, HumanoidRig::BoneCount> m_retargetAxisAlignValid{};
     bool m_externalRetargetOverride = false;
+
+    //! 自身の humanoid マップ
+    std::array<int, HumanoidRig::BoneCount> m_selfHumanToBone{};
+    bool m_selfHumanoidMapDirty = true;
+
+    struct IKGoal
+    {
+        bool enabled = false;
+        bool hasTarget = false;
+        bool hasSmoothedTarget = false;
+        float weight = 1.0f;
+        float followSharpness = 14.0f;
+        float maxStepDegrees = 20.0f;
+        Vector3 targetWorld = Vector3::Zero;
+        Vector3 smoothedTargetWorld = Vector3::Zero;
+    };
+
+    IKGoal m_leftFootIK;
+    IKGoal m_rightFootIK;
+    IKGoal m_leftArmIK;
+    IKGoal m_rightArmIK;
 
     //! 空文字列（参照戻り用）
     static inline const std::string s_emptyString;

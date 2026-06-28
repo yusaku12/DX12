@@ -49,6 +49,7 @@
 #include "Math\SimpleMath.h"
 #include "System\Dialog.h"
 #include "System\stringformat.h"
+#include "System\CrashReporter.h"
 #include "Graphics\DX12.h"
 #include "System\Logger.h"
 #include "System\LoggerMacros.h"

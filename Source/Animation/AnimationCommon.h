@@ -41,5 +41,6 @@ enum class LoopMode
 enum class BlendTreeType
 {
     Blend1D,    //!< 1D ブレンド（閾値ベース）
-    Freeform2D, //!< 2D ブレンド（距離ベース）
+    Freeform2D, //!< 2D Freeform ブレンド（距離ベース）
+    FreeformDirectional2D, //!< 2D Freeform Directional ブレンド（方向+速度ベース）
 };

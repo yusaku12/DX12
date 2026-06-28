@@ -9,12 +9,14 @@
 #include "imgui_neo_sequencer.h"
 #include "System\TimeManager.h"
 #include <DirectXMath.h>
+#include <unordered_set>
 
 using namespace DirectX;
 
 namespace
 {
     constexpr float kAxisEpsilon = 1e-6f;
+    constexpr int kIkDefaultIterations = 8;
 
     Vector3 safeNormalize(const Vector3& v, const Vector3& fallback)
     {
@@ -232,10 +234,30 @@ namespace
         XMVECTOR q = XMQuaternionMultiply(qTwist, qSwing);
         return XMQuaternionNormalize(q);
     }
+
+    Vector3 matrixTranslation(const Matrix& m)
+    {
+        return Vector3(m._41, m._42, m._43);
+    }
+
+    Quaternion matrixRotation(const Matrix& m)
+    {
+        Vector3 scale = Vector3::One;
+        Quaternion rotation = Quaternion::Identity;
+        Vector3 translation = Vector3::Zero;
+        Matrix copy = m;
+        if (copy.Decompose(scale, rotation, translation))
+        {
+            rotation.Normalize();
+            return rotation;
+        }
+        return Quaternion::CreateFromRotationMatrix(m);
+    }
 }
 
 AnimationComponent::AnimationComponent()
 {
+    m_selfHumanToBone.fill(-1);
 }
 
 void AnimationComponent::awake()
@@ -250,6 +272,7 @@ void AnimationComponent::awake()
     if (m_model)
     {
         m_stateMachine.initialize(m_model);
+        m_selfHumanoidMapDirty = true;
         if (!m_controllerAssetPath.empty())
         {
             reloadControllerAsset();
@@ -272,6 +295,8 @@ void AnimationComponent::update()
     {
         float dt = TimeManager::Instance().getDeltaTime();
         m_stateMachine.update(dt);
+
+        applyIK();
 
         if (m_retargetEnabled)
         {
@@ -344,6 +369,8 @@ void AnimationComponent::update()
         evaluateAnimation(m_animationIndex, m_currentTime, bones);
     }
 
+    applyIK();
+
     // 完了コールバック
     if (m_finished && m_onFinished)
     {
@@ -382,6 +409,462 @@ bool AnimationComponent::resolveRetargetTarget()
 {
     resolveRetargetTargetInternal();
     return m_retargetModel != nullptr;
+}
+
+int AnimationComponent::setupUpperBodyAdditiveLayer(int animationIndex, float weight, float speed, bool loop)
+{
+    if (!m_model)
+    {
+        return -1;
+    }
+
+    if (m_selfHumanoidMapDirty)
+    {
+        rebuildSelfHumanoidMap();
+    }
+
+    AnimationLayer layer;
+    layer.name = "UpperBody Additive";
+    layer.enabled = true;
+    layer.weight = std::clamp(weight, 0.0f, 1.0f);
+    layer.blendMode = LayerBlendMode::Additive;
+    layer.useCurrentStatePose = false;
+    layer.layerAnimationIndex = animationIndex;
+    layer.layerSpeed = speed;
+    layer.layerLoop = loop;
+    layer.additiveAffectScale = false;
+    layer.additiveAffectTranslation = false;
+    layer.boneMask = collectHumanoidBoneMask(true);
+
+    if (layer.boneMask.empty())
+    {
+        return -1;
+    }
+
+    return static_cast<int>(m_stateMachine.addLayer(layer));
+}
+
+int AnimationComponent::setupLowerBodyAdditiveLayer(int animationIndex, float weight, float speed, bool loop)
+{
+    if (!m_model)
+    {
+        return -1;
+    }
+
+    if (m_selfHumanoidMapDirty)
+    {
+        rebuildSelfHumanoidMap();
+    }
+
+    AnimationLayer layer;
+    layer.name = "LowerBody Additive";
+    layer.enabled = true;
+    layer.weight = std::clamp(weight, 0.0f, 1.0f);
+    layer.blendMode = LayerBlendMode::Additive;
+    layer.useCurrentStatePose = false;
+    layer.layerAnimationIndex = animationIndex;
+    layer.layerSpeed = speed;
+    layer.layerLoop = loop;
+    layer.additiveAffectScale = false;
+    layer.additiveAffectTranslation = false;
+    layer.boneMask = collectHumanoidBoneMask(false);
+
+    if (layer.boneMask.empty())
+    {
+        return -1;
+    }
+
+    return static_cast<int>(m_stateMachine.addLayer(layer));
+}
+
+void AnimationComponent::setFootIKEnabled(bool left, bool enabled)
+{
+    IKGoal& goal = left ? m_leftFootIK : m_rightFootIK;
+    goal.enabled = enabled;
+    goal.hasTarget = false;
+    goal.hasSmoothedTarget = false;
+}
+
+void AnimationComponent::setFootIKTarget(bool left, const Vector3& worldTarget, float weight)
+{
+    IKGoal& goal = left ? m_leftFootIK : m_rightFootIK;
+    goal.targetWorld = worldTarget;
+    goal.weight = std::clamp(weight, 0.0f, 1.0f);
+    goal.hasTarget = true;
+    if (!goal.hasSmoothedTarget)
+    {
+        goal.smoothedTargetWorld = worldTarget;
+        goal.hasSmoothedTarget = true;
+    }
+    goal.enabled = true;
+}
+
+void AnimationComponent::setArmIKEnabled(bool left, bool enabled)
+{
+    IKGoal& goal = left ? m_leftArmIK : m_rightArmIK;
+    goal.enabled = enabled;
+    goal.hasTarget = false;
+    goal.hasSmoothedTarget = false;
+}
+
+void AnimationComponent::setArmIKTarget(bool left, const Vector3& worldTarget, float weight)
+{
+    IKGoal& goal = left ? m_leftArmIK : m_rightArmIK;
+    goal.targetWorld = worldTarget;
+    goal.weight = std::clamp(weight, 0.0f, 1.0f);
+    goal.hasTarget = true;
+    if (!goal.hasSmoothedTarget)
+    {
+        goal.smoothedTargetWorld = worldTarget;
+        goal.hasSmoothedTarget = true;
+    }
+    goal.enabled = true;
+}
+
+Matrix AnimationComponent::getModelWorldMatrix() const
+{
+    if (const auto* tf = gameObject() ? gameObject()->getComponent<TransformComponent>() : nullptr)
+    {
+        return tf->getWorldMatrix();
+    }
+    return Matrix::Identity;
+}
+
+void AnimationComponent::rebuildSelfHumanoidMap()
+{
+    m_selfHumanToBone.fill(-1);
+
+    if (!m_model)
+    {
+        m_selfHumanoidMapDirty = false;
+        return;
+    }
+
+    const auto& bones = m_model->getResource()->getModelData().bones;
+    std::array<int, HumanoidRig::BoneCount> bestScore{};
+    bestScore.fill(-1000000);
+
+    auto scoreBoneName = [](std::string_view boneName) -> int
+        {
+            int score = 0;
+            const std::string normalized = HumanoidRig::normalizeBoneName(boneName);
+            if (!normalized.empty())
+            {
+                score += 100;
+                if (normalized.find("twist") != std::string::npos) score -= 120;
+                if (normalized.find("roll") != std::string::npos) score -= 120;
+                if (normalized.find("ik") != std::string::npos) score -= 120;
+                if (normalized.find("helper") != std::string::npos) score -= 120;
+                if (normalized.find("end") != std::string::npos) score -= 80;
+                if (normalized.find("nub") != std::string::npos) score -= 80;
+            }
+            return score;
+        };
+
+    for (size_t i = 0; i < bones.size(); ++i)
+    {
+        if (HumanoidRig::isLikelyHelperBone(bones[i].name)) continue;
+
+        const HumanBodyBone human = HumanoidRig::classify(bones[i].name);
+        if (human == HumanBodyBone::Invalid) continue;
+
+        const size_t slot = static_cast<size_t>(human);
+        if (slot >= HumanoidRig::BoneCount) continue;
+
+        const int score = scoreBoneName(bones[i].name);
+        if (score > bestScore[slot])
+        {
+            bestScore[slot] = score;
+            m_selfHumanToBone[slot] = static_cast<int>(i);
+        }
+    }
+
+    const auto& runtimeBones = m_model->getBone();
+    auto parentIndexOf = [&](int index) -> int
+        {
+            if (index < 0 || index >= static_cast<int>(runtimeBones.size())) return -1;
+            const Model::Bone* parent = runtimeBones[index].parent;
+            if (!parent) return -1;
+            return static_cast<int>(parent - runtimeBones.data());
+        };
+
+    auto setIfMissingFromParent = [&](HumanBodyBone missing, HumanBodyBone from)
+        {
+            const size_t miss = static_cast<size_t>(missing);
+            const size_t src = static_cast<size_t>(from);
+            if (m_selfHumanToBone[miss] >= 0 || m_selfHumanToBone[src] < 0) return;
+            m_selfHumanToBone[miss] = parentIndexOf(m_selfHumanToBone[src]);
+        };
+
+    setIfMissingFromParent(HumanBodyBone::Neck, HumanBodyBone::Head);
+    setIfMissingFromParent(HumanBodyBone::UpperChest, HumanBodyBone::Neck);
+    setIfMissingFromParent(HumanBodyBone::Chest, HumanBodyBone::UpperChest);
+    setIfMissingFromParent(HumanBodyBone::Spine, HumanBodyBone::Chest);
+    setIfMissingFromParent(HumanBodyBone::Hips, HumanBodyBone::Spine);
+
+    setIfMissingFromParent(HumanBodyBone::LeftUpperArm, HumanBodyBone::LeftLowerArm);
+    setIfMissingFromParent(HumanBodyBone::LeftLowerArm, HumanBodyBone::LeftHand);
+    setIfMissingFromParent(HumanBodyBone::LeftShoulder, HumanBodyBone::LeftUpperArm);
+
+    setIfMissingFromParent(HumanBodyBone::RightUpperArm, HumanBodyBone::RightLowerArm);
+    setIfMissingFromParent(HumanBodyBone::RightLowerArm, HumanBodyBone::RightHand);
+    setIfMissingFromParent(HumanBodyBone::RightShoulder, HumanBodyBone::RightUpperArm);
+
+    setIfMissingFromParent(HumanBodyBone::LeftUpperLeg, HumanBodyBone::LeftLowerLeg);
+    setIfMissingFromParent(HumanBodyBone::LeftLowerLeg, HumanBodyBone::LeftFoot);
+    setIfMissingFromParent(HumanBodyBone::LeftFoot, HumanBodyBone::LeftToes);
+
+    setIfMissingFromParent(HumanBodyBone::RightUpperLeg, HumanBodyBone::RightLowerLeg);
+    setIfMissingFromParent(HumanBodyBone::RightLowerLeg, HumanBodyBone::RightFoot);
+    setIfMissingFromParent(HumanBodyBone::RightFoot, HumanBodyBone::RightToes);
+
+    m_selfHumanoidMapDirty = false;
+}
+
+std::vector<int> AnimationComponent::collectHumanoidBoneMask(bool upperBody) const
+{
+    std::vector<int> mask;
+    if (!m_model) return mask;
+
+    std::vector<HumanBodyBone> slots;
+    if (upperBody)
+    {
+        slots = {
+            HumanBodyBone::Spine,
+            HumanBodyBone::Chest,
+            HumanBodyBone::UpperChest,
+            HumanBodyBone::Neck,
+            HumanBodyBone::Head,
+            HumanBodyBone::LeftShoulder,
+            HumanBodyBone::LeftUpperArm,
+            HumanBodyBone::LeftLowerArm,
+            HumanBodyBone::LeftHand,
+            HumanBodyBone::RightShoulder,
+            HumanBodyBone::RightUpperArm,
+            HumanBodyBone::RightLowerArm,
+            HumanBodyBone::RightHand
+        };
+    }
+    else
+    {
+        slots = {
+            HumanBodyBone::Hips,
+            HumanBodyBone::LeftUpperLeg,
+            HumanBodyBone::LeftLowerLeg,
+            HumanBodyBone::LeftFoot,
+            HumanBodyBone::LeftToes,
+            HumanBodyBone::RightUpperLeg,
+            HumanBodyBone::RightLowerLeg,
+            HumanBodyBone::RightFoot,
+            HumanBodyBone::RightToes
+        };
+    }
+
+    std::unordered_set<int> unique;
+    for (HumanBodyBone slot : slots)
+    {
+        const size_t idx = static_cast<size_t>(slot);
+        if (idx >= m_selfHumanToBone.size()) continue;
+        int bone = m_selfHumanToBone[idx];
+        if (bone >= 0) unique.insert(bone);
+    }
+
+    mask.reserve(unique.size());
+    for (int index : unique)
+    {
+        mask.push_back(index);
+    }
+    std::sort(mask.begin(), mask.end());
+    return mask;
+}
+
+void AnimationComponent::applyWorldRotationToBone(int boneIndex, const Quaternion& worldRotation)
+{
+    auto& bones = m_model->getMutableBone();
+    if (boneIndex < 0 || boneIndex >= static_cast<int>(bones.size()))
+    {
+        return;
+    }
+
+    const Model::Bone& bone = bones[boneIndex];
+    XMVECTOR qParentWorld = XMQuaternionIdentity();
+    if (bone.parent)
+    {
+        Quaternion parentWorld = matrixRotation(bone.parent->worldTransform);
+        qParentWorld = XMVectorSet(parentWorld.x, parentWorld.y, parentWorld.z, parentWorld.w);
+    }
+
+    XMVECTOR qWorld = XMVectorSet(worldRotation.x, worldRotation.y, worldRotation.z, worldRotation.w);
+    XMVECTOR qLocal = XMQuaternionMultiply(XMQuaternionInverse(qParentWorld), qWorld);
+    qLocal = XMQuaternionNormalize(qLocal);
+    XMStoreFloat4(&bones[boneIndex].rotate, qLocal);
+}
+
+void AnimationComponent::solveTwoBoneIKCCD(int upperIndex, int lowerIndex, int endIndex,
+    const Vector3& targetWorld,
+    float weight,
+    int iterationCount,
+    float maxStepDegrees)
+{
+    if (!m_model || weight <= 0.0f) return;
+
+    auto& bones = m_model->getMutableBone();
+    if (upperIndex < 0 || lowerIndex < 0 || endIndex < 0) return;
+    if (upperIndex >= static_cast<int>(bones.size()) ||
+        lowerIndex >= static_cast<int>(bones.size()) ||
+        endIndex >= static_cast<int>(bones.size()))
+    {
+        return;
+    }
+
+    const Matrix worldBase = getModelWorldMatrix();
+    m_model->updateTransform(worldBase);
+
+    const int safeIterations = std::max(1, iterationCount);
+    const float clampedWeight = std::clamp(weight, 0.0f, 1.0f);
+    const float stepWeight = 1.0f - std::pow(1.0f - clampedWeight, 1.0f / static_cast<float>(safeIterations));
+    const float maxStepRadians = std::max(0.1f, DirectX::XMConvertToRadians(maxStepDegrees));
+
+    auto solveJoint = [&](int jointIndex)
+        {
+            m_model->updateTransform(worldBase);
+
+            const Vector3 jointPos = matrixTranslation(bones[jointIndex].worldTransform);
+            const Vector3 endPos = matrixTranslation(bones[endIndex].worldTransform);
+
+            Vector3 toEnd = endPos - jointPos;
+            Vector3 toTarget = targetWorld - jointPos;
+            if (toEnd.LengthSquared() <= kAxisEpsilon || toTarget.LengthSquared() <= kAxisEpsilon)
+            {
+                return;
+            }
+
+            toEnd.Normalize();
+            toTarget.Normalize();
+
+            XMVECTOR qDelta = quaternionFromTo(toEnd, toTarget);
+            XMVECTOR axis = XMVectorSet(0, 1, 0, 0);
+            float angle = 0.0f;
+            XMQuaternionToAxisAngle(&axis, &angle, qDelta);
+            if (std::isfinite(angle) && angle > maxStepRadians)
+            {
+                qDelta = XMQuaternionRotationAxis(axis, maxStepRadians);
+            }
+            Quaternion delta;
+            XMStoreFloat4(&delta, qDelta);
+            delta.Normalize();
+
+            Quaternion jointWorld = matrixRotation(bones[jointIndex].worldTransform);
+            XMVECTOR qJoint = XMVectorSet(jointWorld.x, jointWorld.y, jointWorld.z, jointWorld.w);
+            XMVECTOR qTarget = XMQuaternionMultiply(qDelta, qJoint);
+            XMVECTOR qNew = XMQuaternionSlerp(qJoint, qTarget, stepWeight);
+            qNew = XMQuaternionNormalize(qNew);
+
+            Quaternion newWorld;
+            XMStoreFloat4(&newWorld, qNew);
+            newWorld.Normalize();
+            applyWorldRotationToBone(jointIndex, newWorld);
+        };
+
+    for (int i = 0; i < safeIterations; ++i)
+    {
+        solveJoint(lowerIndex);
+        solveJoint(upperIndex);
+
+        m_model->updateTransform(worldBase);
+        const Vector3 endPos = matrixTranslation(bones[endIndex].worldTransform);
+        if ((endPos - targetWorld).LengthSquared() <= 0.0004f)
+        {
+            break;
+        }
+    }
+}
+
+void AnimationComponent::applyIK()
+{
+    if (!m_model)
+    {
+        return;
+    }
+
+    const bool hasAnyIK =
+        m_leftFootIK.enabled || m_rightFootIK.enabled ||
+        m_leftArmIK.enabled || m_rightArmIK.enabled;
+    if (!hasAnyIK)
+    {
+        return;
+    }
+
+    if (m_selfHumanoidMapDirty)
+    {
+        rebuildSelfHumanoidMap();
+    }
+
+    auto getMapped = [&](HumanBodyBone bone) -> int
+        {
+            const size_t idx = static_cast<size_t>(bone);
+            if (idx >= m_selfHumanToBone.size()) return -1;
+            return m_selfHumanToBone[idx];
+        };
+
+    auto solveIfEnabled = [&](IKGoal& goal,
+        HumanBodyBone upper,
+        HumanBodyBone lower,
+        HumanBodyBone end)
+        {
+            if (!goal.enabled || goal.weight <= 0.0f) return;
+
+            const int upperIndex = getMapped(upper);
+            const int lowerIndex = getMapped(lower);
+            const int endIndex = getMapped(end);
+            if (upperIndex < 0 || lowerIndex < 0 || endIndex < 0) return;
+
+            if (!goal.hasTarget)
+            {
+                const Matrix worldBase = getModelWorldMatrix();
+                m_model->updateTransform(worldBase);
+                const auto& bones = m_model->getBone();
+                goal.targetWorld = matrixTranslation(bones[endIndex].worldTransform);
+                goal.hasTarget = true;
+                goal.smoothedTargetWorld = goal.targetWorld;
+                goal.hasSmoothedTarget = true;
+            }
+
+            if (!goal.hasSmoothedTarget)
+            {
+                goal.smoothedTargetWorld = goal.targetWorld;
+                goal.hasSmoothedTarget = true;
+            }
+
+            const float dt = std::max(TimeManager::Instance().getDeltaTime(), 0.0f);
+            const float sharpness = std::max(0.0f, goal.followSharpness);
+            const float alpha = 1.0f - std::exp(-sharpness * dt);
+            goal.smoothedTargetWorld = goal.smoothedTargetWorld
+                + (goal.targetWorld - goal.smoothedTargetWorld) * alpha;
+
+            solveTwoBoneIKCCD(upperIndex, lowerIndex, endIndex,
+                goal.smoothedTargetWorld,
+                std::clamp(goal.weight, 0.0f, 1.0f),
+                kIkDefaultIterations,
+                goal.maxStepDegrees);
+        };
+
+    solveIfEnabled(m_leftFootIK,
+        HumanBodyBone::LeftUpperLeg,
+        HumanBodyBone::LeftLowerLeg,
+        HumanBodyBone::LeftFoot);
+    solveIfEnabled(m_rightFootIK,
+        HumanBodyBone::RightUpperLeg,
+        HumanBodyBone::RightLowerLeg,
+        HumanBodyBone::RightFoot);
+    solveIfEnabled(m_leftArmIK,
+        HumanBodyBone::LeftUpperArm,
+        HumanBodyBone::LeftLowerArm,
+        HumanBodyBone::LeftHand);
+    solveIfEnabled(m_rightArmIK,
+        HumanBodyBone::RightUpperArm,
+        HumanBodyBone::RightLowerArm,
+        HumanBodyBone::RightHand);
 }
 
 void AnimationComponent::play(int animationIndex, bool loop, float speed)
@@ -1285,6 +1768,159 @@ void AnimationComponent::inspectGUI()
     }
 
     ImGui::Separator();
+    if (ImGui::TreeNodeEx("IK (Foot / Arm)", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        bool leftFootPrev = m_leftFootIK.enabled;
+        ImGui::Checkbox("Left Foot IK", &m_leftFootIK.enabled);
+        if (leftFootPrev != m_leftFootIK.enabled)
+        {
+            m_leftFootIK.hasTarget = false;
+            m_leftFootIK.hasSmoothedTarget = false;
+        }
+        ImGui::SliderFloat("Left Foot IK Weight", &m_leftFootIK.weight, 0.0f, 1.0f, "%.2f");
+        if (ImGui::DragFloat3("Left Foot Target", &m_leftFootIK.targetWorld.x, 0.01f))
+        {
+            m_leftFootIK.hasTarget = true;
+        }
+        ImGui::SliderFloat("Left Foot Follow", &m_leftFootIK.followSharpness, 1.0f, 30.0f, "%.1f");
+        ImGui::SliderFloat("Left Foot MaxStep", &m_leftFootIK.maxStepDegrees, 2.0f, 45.0f, "%.1f deg");
+
+        bool rightFootPrev = m_rightFootIK.enabled;
+        ImGui::Checkbox("Right Foot IK", &m_rightFootIK.enabled);
+        if (rightFootPrev != m_rightFootIK.enabled)
+        {
+            m_rightFootIK.hasTarget = false;
+            m_rightFootIK.hasSmoothedTarget = false;
+        }
+        ImGui::SliderFloat("Right Foot IK Weight", &m_rightFootIK.weight, 0.0f, 1.0f, "%.2f");
+        if (ImGui::DragFloat3("Right Foot Target", &m_rightFootIK.targetWorld.x, 0.01f))
+        {
+            m_rightFootIK.hasTarget = true;
+        }
+        ImGui::SliderFloat("Right Foot Follow", &m_rightFootIK.followSharpness, 1.0f, 30.0f, "%.1f");
+        ImGui::SliderFloat("Right Foot MaxStep", &m_rightFootIK.maxStepDegrees, 2.0f, 45.0f, "%.1f deg");
+
+        ImGui::Separator();
+        bool leftArmPrev = m_leftArmIK.enabled;
+        ImGui::Checkbox("Left Arm IK", &m_leftArmIK.enabled);
+        if (leftArmPrev != m_leftArmIK.enabled)
+        {
+            m_leftArmIK.hasTarget = false;
+            m_leftArmIK.hasSmoothedTarget = false;
+        }
+        ImGui::SliderFloat("Left Arm IK Weight", &m_leftArmIK.weight, 0.0f, 1.0f, "%.2f");
+        if (ImGui::DragFloat3("Left Hand Target", &m_leftArmIK.targetWorld.x, 0.01f))
+        {
+            m_leftArmIK.hasTarget = true;
+        }
+        ImGui::SliderFloat("Left Arm Follow", &m_leftArmIK.followSharpness, 1.0f, 30.0f, "%.1f");
+        ImGui::SliderFloat("Left Arm MaxStep", &m_leftArmIK.maxStepDegrees, 2.0f, 45.0f, "%.1f deg");
+
+        bool rightArmPrev = m_rightArmIK.enabled;
+        ImGui::Checkbox("Right Arm IK", &m_rightArmIK.enabled);
+        if (rightArmPrev != m_rightArmIK.enabled)
+        {
+            m_rightArmIK.hasTarget = false;
+            m_rightArmIK.hasSmoothedTarget = false;
+        }
+        ImGui::SliderFloat("Right Arm IK Weight", &m_rightArmIK.weight, 0.0f, 1.0f, "%.2f");
+        if (ImGui::DragFloat3("Right Hand Target", &m_rightArmIK.targetWorld.x, 0.01f))
+        {
+            m_rightArmIK.hasTarget = true;
+        }
+        ImGui::SliderFloat("Right Arm Follow", &m_rightArmIK.followSharpness, 1.0f, 30.0f, "%.1f");
+        ImGui::SliderFloat("Right Arm MaxStep", &m_rightArmIK.maxStepDegrees, 2.0f, 45.0f, "%.1f deg");
+
+        ImGui::TreePop();
+    }
+
+    if (m_useStateMachine)
+    {
+        ImGui::Separator();
+        if (ImGui::TreeNodeEx("Additive Layer Tools", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            int selectedAnim = getCurrentAnimationIndex();
+            if (selectedAnim < 0 && !animations.empty())
+            {
+                selectedAnim = 0;
+            }
+
+            if (ImGui::Button("Add UpperBody Additive Layer") && selectedAnim >= 0)
+            {
+                setupUpperBodyAdditiveLayer(selectedAnim, 1.0f, 1.0f, true);
+            }
+            if (ImGui::Button("Add LowerBody Additive Layer") && selectedAnim >= 0)
+            {
+                setupLowerBodyAdditiveLayer(selectedAnim, 1.0f, 1.0f, true);
+            }
+
+            auto& layers = m_stateMachine.getLayers();
+            for (size_t i = 1; i < layers.size(); ++i)
+            {
+                AnimationLayer& layer = layers[i];
+                ImGui::PushID(static_cast<int>(i));
+                if (ImGui::TreeNode(std::format("Layer {}: {}", i, layer.name).c_str()))
+                {
+                    ImGui::Checkbox("Enabled", &layer.enabled);
+                    ImGui::SliderFloat("Weight", &layer.weight, 0.0f, 1.0f, "%.2f");
+                    ImGui::SliderFloat("Layer Speed", &layer.layerSpeed, 0.0f, 3.0f, "%.2f");
+                    ImGui::Checkbox("Loop", &layer.layerLoop);
+                    ImGui::Checkbox("Use Current State Pose", &layer.useCurrentStatePose);
+
+                    int mode = static_cast<int>(layer.blendMode);
+                    const char* modeItems[] = { "Override", "Additive" };
+                    if (ImGui::Combo("Blend Mode", &mode, modeItems, IM_ARRAYSIZE(modeItems)))
+                    {
+                        layer.blendMode = static_cast<LayerBlendMode>(mode);
+                    }
+
+                    if (layer.blendMode == LayerBlendMode::Additive)
+                    {
+                        ImGui::Checkbox("Additive Scale", &layer.additiveAffectScale);
+                        ImGui::Checkbox("Additive Translation", &layer.additiveAffectTranslation);
+                    }
+
+                    if (!layer.useCurrentStatePose)
+                    {
+                        const char* animPreview = "<None>";
+                        if (layer.layerAnimationIndex >= 0 && layer.layerAnimationIndex < static_cast<int>(animations.size()))
+                        {
+                            animPreview = animations[layer.layerAnimationIndex].name.c_str();
+                        }
+
+                        if (ImGui::BeginCombo("Layer Motion", animPreview))
+                        {
+                            for (int a = 0; a < static_cast<int>(animations.size()); ++a)
+                            {
+                                bool selected = (a == layer.layerAnimationIndex);
+                                if (ImGui::Selectable(animations[a].name.c_str(), selected))
+                                {
+                                    layer.layerAnimationIndex = a;
+                                    layer.layerTime = 0.0f;
+                                }
+                            }
+                            ImGui::EndCombo();
+                        }
+                    }
+
+                    if (ImGui::Button("Remove Layer"))
+                    {
+                        m_stateMachine.removeLayer(i);
+                        ImGui::TreePop();
+                        ImGui::PopID();
+                        break;
+                    }
+
+                    ImGui::TreePop();
+                }
+                ImGui::PopID();
+            }
+
+            ImGui::TreePop();
+        }
+    }
+
+    ImGui::Separator();
     ImGui::Checkbox("StateMachine Mode", &m_useStateMachine);
     ImGui::SameLine();
     ImGui::Checkbox("Animator Window", &m_showAnimatorWindow);
@@ -1418,7 +2054,7 @@ void AnimationComponent::drawAnimatorStateInspector(AnimationState* state)
     {
         BlendTreeData* tree = state->getBlendTree();
         int treeType = static_cast<int>(tree->type);
-        const char* treeItems[] = { "1D", "2D Freeform" };
+        const char* treeItems[] = { "1D", "2D Freeform", "2D Freeform Directional" };
         if (ImGui::Combo("Blend Type", &treeType, treeItems, IM_ARRAYSIZE(treeItems)))
         {
             tree->type = static_cast<BlendTreeType>(treeType);
@@ -1438,7 +2074,7 @@ void AnimationComponent::drawAnimatorStateInspector(AnimationState* state)
             ImGui::EndCombo();
         }
 
-        if (tree->type == BlendTreeType::Freeform2D)
+        if (tree->type == BlendTreeType::Freeform2D || tree->type == BlendTreeType::FreeformDirectional2D)
         {
             if (ImGui::BeginCombo("Parameter Y", tree->parameterY.empty() ? "<None>" : tree->parameterY.c_str()))
             {

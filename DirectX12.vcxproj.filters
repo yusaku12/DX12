@@ -53,6 +53,7 @@
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
     <ClCompile Include="Source\System\DebugPrimitive.cpp" />
     <ClCompile Include="Source\System\Dialog.cpp" />
+    <ClCompile Include="Source\System\CrashReporter.cpp" />
     <ClCompile Include="Source\System\Logger.cpp" />
     <ClCompile Include="Source\System\TimeManager.cpp" />
     <ClCompile Include="Source\System\Window.cpp" />
@@ -304,6 +305,9 @@
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\Dialog.h">
+      <Filter>�w�b�_�[ �t�@�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\System\CrashReporter.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\DebugPrimitive.h">
