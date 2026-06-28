@@ -33,6 +33,18 @@ public:
     //! profiler中身表示
     void renderProfilerContents();
 
+    //! GPU スコープ計測開始
+    CpuGpuProfiler::GpuScopeToken beginGpuScope(ID3D12GraphicsCommandList* cmd, const char* name)
+    {
+        return m_profiler.beginGpuScope(cmd, name);
+    }
+
+    //! GPU スコープ計測終了
+    void endGpuScope(ID3D12GraphicsCommandList* cmd, CpuGpuProfiler::GpuScopeToken token)
+    {
+        m_profiler.endGpuScope(cmd, token);
+    }
+
     //! 再生状態制御
     void play();
     void pause();

@@ -263,9 +263,15 @@ void drawAssetBrowserWindow()
     const auto& asyncLoader = EditorAsyncAsset::AsyncAssetLoader::Instance();
     if (asyncLoader.isBusy() || !asyncLoader.getLastStatus().empty())
     {
-        ImGui::TextWrapped("Async Load: %s (pending=%zu)",
+        ImGui::TextWrapped("Async Load: %s (pending=%zu, progress=%.0f%%)",
             asyncLoader.getLastStatus().c_str(),
-            asyncLoader.pendingTaskCount());
+            asyncLoader.pendingTaskCount(),
+            asyncLoader.getOverallProgress() * 100.0f);
+    }
+
+    if (TextureManager::Instance().isStreamingBusy())
+    {
+        ImGui::TextWrapped("Texture Streaming: pending=%zu", TextureManager::Instance().streamingPendingCount());
     }
 
     ImGui::Separator();

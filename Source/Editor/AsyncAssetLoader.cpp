@@ -127,21 +127,98 @@ namespace EditorAsyncAsset
 {
     bool AsyncAssetLoader::enqueueScene(const std::filesystem::path& scenePath)
     {
-        return enqueue(RequestType::Scene, scenePath, nullptr);
+        return enqueueSceneEx(scenePath).accepted;
     }
 
     bool AsyncAssetLoader::enqueuePrefab(const std::filesystem::path& prefabPath, GameObject* parent)
     {
-        return enqueue(RequestType::Prefab, prefabPath, parent);
+        return enqueuePrefabEx(prefabPath, parent).accepted;
     }
 
     bool AsyncAssetLoader::enqueueFbx(const std::filesystem::path& fbxPath, GameObject* parent)
     {
-        return enqueue(RequestType::Fbx, fbxPath, parent);
+        return enqueueFbxEx(fbxPath, parent).accepted;
+    }
+
+    EnqueueResult AsyncAssetLoader::enqueueSceneEx(const std::filesystem::path& scenePath,
+        LoadPriority priority,
+        ProgressCallback progressCallback)
+    {
+        return enqueue(RequestType::Scene, scenePath, nullptr, priority, std::move(progressCallback));
+    }
+
+    EnqueueResult AsyncAssetLoader::enqueuePrefabEx(const std::filesystem::path& prefabPath,
+        GameObject* parent,
+        LoadPriority priority,
+        ProgressCallback progressCallback)
+    {
+        return enqueue(RequestType::Prefab, prefabPath, parent, priority, std::move(progressCallback));
+    }
+
+    EnqueueResult AsyncAssetLoader::enqueueFbxEx(const std::filesystem::path& fbxPath,
+        GameObject* parent,
+        LoadPriority priority,
+        ProgressCallback progressCallback)
+    {
+        return enqueue(RequestType::Fbx, fbxPath, parent, priority, std::move(progressCallback));
+    }
+
+    bool AsyncAssetLoader::cancel(uint64_t requestId)
+    {
+        if (requestId == 0)
+        {
+            return false;
+        }
+
+        auto pendingIt = std::find_if(m_pending.begin(), m_pending.end(),
+            [requestId](const Request& request) { return request.id == requestId; });
+
+        if (pendingIt != m_pending.end())
+        {
+            reportProgress(*pendingIt, 1.0f, "Cancelled", true, false, true);
+            m_pending.erase(pendingIt);
+            m_cancelledIds.insert(requestId);
+            return true;
+        }
+
+        for (const Worker& worker : m_workers)
+        {
+            if (worker.request.id == requestId)
+            {
+                m_cancelledIds.insert(requestId);
+                m_lastStatus = std::format("Cancel requested: {}", pathToUtf8(worker.request.path));
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void AsyncAssetLoader::cancelAll()
+    {
+        for (const Request& request : m_pending)
+        {
+            reportProgress(request, 1.0f, "Cancelled", true, false, true);
+            m_cancelledIds.insert(request.id);
+        }
+        m_pending.clear();
+
+        for (const Worker& worker : m_workers)
+        {
+            m_cancelledIds.insert(worker.request.id);
+        }
+
+        for (const Result& result : m_completed)
+        {
+            m_cancelledIds.insert(result.request.id);
+        }
+
+        m_lastStatus = "All async requests marked as cancelled";
     }
 
     void AsyncAssetLoader::update()
     {
+        dispatchPending();
         pumpWorkers();
 
         constexpr size_t kMaxApplyPerFrame = 2;
@@ -157,44 +234,77 @@ namespace EditorAsyncAsset
 
     void AsyncAssetLoader::clear()
     {
+        cancelAll();
         m_workers.clear();
         m_completed.clear();
+        m_cancelledIds.clear();
         m_lastStatus.clear();
     }
 
     bool AsyncAssetLoader::isBusy() const
     {
-        return !m_workers.empty() || !m_completed.empty();
+        return !m_pending.empty() || !m_workers.empty() || !m_completed.empty();
     }
 
     size_t AsyncAssetLoader::pendingTaskCount() const
     {
-        return m_workers.size() + m_completed.size();
+        return m_pending.size() + m_workers.size() + m_completed.size();
     }
 
-    bool AsyncAssetLoader::enqueue(RequestType type, const std::filesystem::path& path, GameObject* parent)
+    float AsyncAssetLoader::getOverallProgress() const
+    {
+        const size_t activeCount = pendingTaskCount();
+        if (activeCount == 0)
+        {
+            return 1.0f;
+        }
+
+        float progress = 0.0f;
+        progress += static_cast<float>(m_completed.size()) * 0.9f;
+        progress += static_cast<float>(m_workers.size()) * 0.5f;
+
+        return std::clamp(progress / static_cast<float>(activeCount), 0.0f, 0.99f);
+    }
+
+    EnqueueResult AsyncAssetLoader::enqueue(RequestType type,
+        const std::filesystem::path& path,
+        GameObject* parent,
+        LoadPriority priority,
+        ProgressCallback progressCallback)
     {
         if (path.empty())
         {
-            return false;
+            return {};
         }
 
         Request request;
+        request.id = m_nextRequestId++;
         request.type = type;
+        request.priority = priority;
         request.path = normalizePath(path);
         request.parentId = parent ? parent->getInstanceId() : 0;
+        request.progressCallback = std::move(progressCallback);
+        request.sequence = m_nextSequence++;
 
-        Worker worker;
-        worker.request = request;
-        worker.future = std::async(std::launch::async, [request]()
+        m_pending.push_back(request);
+        std::stable_sort(m_pending.begin(), m_pending.end(),
+            [](const Request& lhs, const Request& rhs)
             {
-                return preprocess(request);
+                if (lhs.priority != rhs.priority)
+                {
+                    return static_cast<int>(lhs.priority) < static_cast<int>(rhs.priority);
+                }
+
+                return lhs.sequence < rhs.sequence;
             });
 
-        m_workers.push_back(std::move(worker));
+        reportProgress(request, 0.0f, "Queued");
+        m_lastStatus = std::format("Queued async load[#{}]: {}", request.id, pathToUtf8(request.path));
 
-        m_lastStatus = std::format("Queued async load: {}", pathToUtf8(request.path));
-        return true;
+        EnqueueResult result;
+        result.accepted = true;
+        result.requestId = request.id;
+        return result;
     }
 
     AsyncAssetLoader::Result AsyncAssetLoader::preprocess(Request request)
@@ -235,6 +345,31 @@ namespace EditorAsyncAsset
         return result;
     }
 
+    void AsyncAssetLoader::dispatchPending()
+    {
+        while (!m_pending.empty() && m_workers.size() < kMaxWorkers)
+        {
+            Request request = std::move(m_pending.front());
+            m_pending.pop_front();
+
+            if (isCancelled(request.id))
+            {
+                reportProgress(request, 1.0f, "Cancelled", true, false, true);
+                continue;
+            }
+
+            reportProgress(request, 0.15f, "Preprocessing");
+
+            Worker worker;
+            worker.request = request;
+            worker.future = std::async(std::launch::async, [request]()
+                {
+                    return preprocess(request);
+                });
+            m_workers.push_back(std::move(worker));
+        }
+    }
+
     void AsyncAssetLoader::pumpWorkers()
     {
         auto it = m_workers.begin();
@@ -242,7 +377,16 @@ namespace EditorAsyncAsset
         {
             if (it->future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
             {
-                m_completed.push_back(it->future.get());
+                Result result = it->future.get();
+                if (isCancelled(result.request.id))
+                {
+                    reportProgress(result.request, 1.0f, "Cancelled", true, false, true);
+                }
+                else
+                {
+                    reportProgress(result.request, 0.7f, result.ok ? "Preprocess complete" : "Preprocess failed");
+                    m_completed.push_back(std::move(result));
+                }
                 it = m_workers.erase(it);
                 continue;
             }
@@ -253,12 +397,19 @@ namespace EditorAsyncAsset
 
     void AsyncAssetLoader::applyResult(const Result& result)
     {
+        if (isCancelled(result.request.id))
+        {
+            reportProgress(result.request, 1.0f, "Cancelled", true, false, true);
+            return;
+        }
+
         const std::string pathText = pathToUtf8(result.request.path);
 
         if (!result.ok)
         {
             m_lastStatus = std::format("Async load failed: {} ({})", pathText, result.message);
             LOG_ERROR("[AsyncAssetLoader] %s", m_lastStatus.c_str());
+            reportProgress(result.request, 1.0f, "Failed", true, false, false);
             return;
         }
 
@@ -266,15 +417,35 @@ namespace EditorAsyncAsset
         {
         case RequestType::Scene:
         {
-            if (SceneManager::Instance().loadSceneFromFile(result.request.path))
+            int scenePriority = 0;
+            switch (result.request.priority)
+            {
+            case LoadPriority::Critical: scenePriority = 100; break;
+            case LoadPriority::High: scenePriority = 75; break;
+            case LoadPriority::Normal: scenePriority = 50; break;
+            case LoadPriority::Low: scenePriority = 25; break;
+            default: break;
+            }
+
+            const uint64_t backgroundRequestId = SceneManager::Instance().loadSceneFromFileBackground(
+                result.request.path,
+                scenePriority,
+                [this, request = result.request](float normalized, bool done, bool success, bool cancelled, const std::string& message)
+                {
+                    reportProgress(request, normalized, message, done, success, cancelled);
+                });
+
+            if (backgroundRequestId != 0)
             {
                 g_editor.selectedObject = nullptr;
                 m_lastStatus = std::format("Scene load scheduled: {}", pathText);
+                reportProgress(result.request, 0.8f, "Scheduled", false, false, false);
             }
             else
             {
                 m_lastStatus = std::format("Scene load request rejected: {}", pathText);
                 LOG_ERROR("[AsyncAssetLoader] %s", m_lastStatus.c_str());
+                reportProgress(result.request, 1.0f, "Rejected", true, false, false);
             }
             break;
         }
@@ -289,11 +460,13 @@ namespace EditorAsyncAsset
             {
                 m_lastStatus = std::format("Prefab instantiate failed: {}", pathText);
                 LOG_ERROR("[AsyncAssetLoader] %s", m_lastStatus.c_str());
+                reportProgress(result.request, 1.0f, "Instantiate failed", true, false, false);
                 break;
             }
 
             g_editor.selectedObject = instance;
             m_lastStatus = std::format("Prefab loaded: {}", pathText);
+            reportProgress(result.request, 1.0f, "Loaded", true, true, false);
             break;
         }
         case RequestType::Fbx:
@@ -316,16 +489,51 @@ namespace EditorAsyncAsset
                 object->destroy();
                 m_lastStatus = std::format("FBX component create failed: {}", pathText);
                 LOG_ERROR("[AsyncAssetLoader] %s", m_lastStatus.c_str());
+                reportProgress(result.request, 1.0f, "Component create failed", true, false, false);
                 break;
             }
 
             object->setParent(parent);
             g_editor.selectedObject = object;
             m_lastStatus = std::format("FBX loaded: {}", pathText);
+            reportProgress(result.request, 1.0f, "Loaded", true, true, false);
             break;
         }
         default:
             break;
         }
+
+        m_cancelledIds.erase(result.request.id);
+    }
+
+    bool AsyncAssetLoader::isCancelled(uint64_t requestId) const
+    {
+        return m_cancelledIds.find(requestId) != m_cancelledIds.end();
+    }
+
+    void AsyncAssetLoader::reportProgress(const Request& request,
+        float normalized,
+        std::string_view stage,
+        bool done,
+        bool success,
+        bool cancelled)
+    {
+        const float clamped = std::clamp(normalized, 0.0f, 1.0f);
+
+        if (request.progressCallback)
+        {
+            LoadProgress progress;
+            progress.requestId = request.id;
+            progress.type = request.type;
+            progress.path = request.path;
+            progress.normalized = clamped;
+            progress.done = done;
+            progress.success = success;
+            progress.cancelled = cancelled;
+            progress.stage = std::string(stage);
+            request.progressCallback(progress);
+        }
+
+        m_lastStatus = std::format("#{} {} {:.0f}%", request.id, std::string(stage), clamped * 100.0f);
     }
 }

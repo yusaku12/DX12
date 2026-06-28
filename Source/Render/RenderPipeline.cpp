@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "HiZPyramid.h"
+#include "Graphics/GpuDebugMarker.h"
 #include "System/DebugPrimitive.h"
 
 namespace
@@ -345,10 +346,16 @@ void RenderPipeline::execute(RenderPassContext& context, RenderPassStage stage)
         auto& pass = m_nodes[indices[bestIndex]].pass;
         if (pass->isEnabled(context))
         {
+            auto* cmd = DX12::Instance().getGraphicsCommandList();
+            GpuDebugMarker::ScopedEvent marker(cmd, pass->getName());
+            auto gpuToken = TimeManager::Instance().beginGpuScope(cmd, pass->getName());
+
             const auto start = Clock::now();
             pass->execute(context);
             const auto end = Clock::now();
             const float ms = std::chrono::duration<float, std::milli>(end - start).count();
+
+            TimeManager::Instance().endGpuScope(cmd, gpuToken);
 
             const int idx = toIndex(pass->getId());
             if (idx >= 0 && idx < PassCount)

@@ -1,6 +1,71 @@
 ﻿#include "pch.h"
 #include "LoadTexture.h"
 
+namespace
+{
+    std::wstring toLowerExt(const std::wstring& filePath)
+    {
+        const size_t pos = filePath.find_last_of(L'.');
+        if (pos == std::wstring::npos)
+        {
+            return L"";
+        }
+
+        std::wstring ext = filePath.substr(pos + 1);
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
+        return ext;
+    }
+
+    bool decodeByExtension(const std::wstring& filePath,
+        DirectX::TexMetadata& metadata,
+        DirectX::ScratchImage& scratch,
+        std::string* outErrorMessage = nullptr)
+    {
+        const std::wstring ext = toLowerExt(filePath);
+        if (ext.empty())
+        {
+            if (outErrorMessage)
+            {
+                *outErrorMessage = "Texture has no extension";
+            }
+            return false;
+        }
+
+        HRESULT hr = E_FAIL;
+        if (ext == L"sph" || ext == L"spa" || ext == L"bmp" || ext == L"png" || ext == L"jpg")
+        {
+            hr = LoadFromWICFile(filePath.c_str(), DirectX::WIC_FLAGS_NONE, &metadata, scratch);
+        }
+        else if (ext == L"tga")
+        {
+            hr = LoadFromTGAFile(filePath.c_str(), &metadata, scratch);
+        }
+        else if (ext == L"dds")
+        {
+            hr = LoadFromDDSFile(filePath.c_str(), DirectX::DDS_FLAGS_NONE, &metadata, scratch);
+        }
+        else
+        {
+            if (outErrorMessage)
+            {
+                *outErrorMessage = "Unsupported texture format";
+            }
+            return false;
+        }
+
+        if (FAILED(hr))
+        {
+            if (outErrorMessage)
+            {
+                *outErrorMessage = "Texture decode failed";
+            }
+            return false;
+        }
+
+        return true;
+    }
+}
+
 LoadTexture::LoadTexture(const std::wstring& filePath)
 {
     initLoaderTable();
@@ -9,11 +74,7 @@ LoadTexture::LoadTexture(const std::wstring& filePath)
 
 LoadTexture::~LoadTexture()
 {
-    if (m_srvIndex != UINT_MAX)
-    {
-        DescriptorHeapManager::Instance().free(m_srvIndex, 1);
-        m_srvIndex = UINT_MAX;
-    }
+    releaseGpuResources();
 }
 
 LoadTexture::LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void* pixelData, size_t pixelSize)
@@ -108,36 +169,15 @@ void LoadTexture::initLoaderTable()
 
 bool LoadTexture::loadFromFile(const std::wstring& filePath)
 {
-    DirectX::TexMetadata metadata = {};
-    DirectX::ScratchImage scratchImg = {};
-
-    // 拡張子取得
-    auto pos = filePath.find_last_of(L'.');
-    if (pos == std::wstring::npos)
+    DecodedData decoded;
+    std::string errorMessage;
+    if (!decodeFromFile(filePath, decoded, &errorMessage))
     {
-        LOG_ERROR("Texture has no extension");
+        LOG_ERROR("%s", errorMessage.c_str());
         return false;
     }
 
-    std::wstring ext = filePath.substr(pos + 1);
-    std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
-
-    auto it = m_loaderTable.find(ext);
-    if (it == m_loaderTable.end())
-    {
-        LOG_ASSERT_NO_JUDGE("Unsupported texture format");
-        return false;
-    }
-
-    HRESULT hr = it->second(filePath, &metadata, scratchImg);
-    if (FAILED(hr))
-    {
-        LOG_ERROR("Texture load failed");
-        return false;
-    }
-
-    createTextureResource(metadata, scratchImg);
-    return true;
+    return replaceFromDecoded(std::move(decoded));
 }
 
 void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const DirectX::ScratchImage& img)
@@ -225,4 +265,40 @@ void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const 
     }
 
     m_srvIndex = DescriptorHeapManager::Instance().createSRV(m_texture.Get(), srvDesc);
+}
+
+bool LoadTexture::decodeFromFile(const std::wstring& filePath,
+    DecodedData& outDecoded,
+    std::string* outErrorMessage)
+{
+    outDecoded = {};
+    const std::wstring resolvedPath = toRelativeWPath(filePath);
+
+    if (!decodeByExtension(resolvedPath, outDecoded.metadata, outDecoded.image, outErrorMessage))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool LoadTexture::replaceFromDecoded(DecodedData&& decoded)
+{
+    releaseGpuResources();
+    createTextureResource(decoded.metadata, decoded.image);
+    m_isValid = (m_texture != nullptr && m_srvIndex != UINT_MAX);
+    return m_isValid;
+}
+
+void LoadTexture::releaseGpuResources()
+{
+    if (m_srvIndex != UINT_MAX)
+    {
+        DescriptorHeapManager::Instance().free(m_srvIndex, 1);
+        m_srvIndex = UINT_MAX;
+    }
+
+    m_texture.Reset();
+    m_upload.reset();
+    m_isValid = false;
 }

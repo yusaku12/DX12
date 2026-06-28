@@ -101,6 +101,9 @@ void Window::update()
     // shaderManager更新
     ShaderManager::Instance().update();
 
+    // テクスチャストリーミング更新
+    TextureManager::Instance().updateStreaming();
+
     // InputManager更新
     InputManager::Instance().update();
 
@@ -151,6 +154,9 @@ void Window::render()
     // imgui描画
     imguiRender();
 
+    // TimeManagerフレーム終了処理（コマンド実行前に同一コマンドリストへ記録）
+    TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
+
     // 画面クリア後の後処理
     m_dx12.screenClearCleanup();
 
@@ -159,9 +165,6 @@ void Window::render()
     {
         m_dx12.captureScreenshot();
     }
-
-    // TimeManagerフレーム終了処理
-    TimeManager::Instance().frameEnd(m_dx12.getGraphicsCommandList());
 }
 
 void Window::imguiRender()

@@ -32,7 +32,8 @@ void EditorManager::update()
     EditorAsyncAsset::AsyncAssetLoader::Instance().update();
 
     ImGuiIO& io = ImGui::GetIO();
-    if (io.WantCaptureKeyboard)
+    // テキスト入力中はショートカットを無効にして、入力競合を回避する。
+    if (!io.WantTextInput)
     {
         const bool ctrl = io.KeyCtrl;
         const bool shift = io.KeyShift;
@@ -105,6 +106,45 @@ void EditorManager::drawMainMenuBar()
     if (!ImGui::BeginMenuBar())
     {
         return;
+    }
+
+    {
+        auto& transactions = EditorTransaction::Manager::Instance();
+        const bool canUndo = transactions.canUndo();
+        const bool canRedo = transactions.canRedo();
+        std::string undoLabel = "Undo";
+        std::string redoLabel = "Redo";
+
+        if (canUndo)
+        {
+            undoLabel += " ";
+            undoLabel += transactions.nextUndoLabel();
+        }
+
+        if (canRedo)
+        {
+            redoLabel += " ";
+            redoLabel += transactions.nextRedoLabel();
+        }
+
+        if (ImGui::BeginMenu("Edit"))
+        {
+            if (!canUndo) ImGui::BeginDisabled();
+            if (ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z"))
+            {
+                transactions.undo();
+            }
+            if (!canUndo) ImGui::EndDisabled();
+
+            if (!canRedo) ImGui::BeginDisabled();
+            if (ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y / Ctrl+Shift+Z"))
+            {
+                transactions.redo();
+            }
+            if (!canRedo) ImGui::EndDisabled();
+
+            ImGui::EndMenu();
+        }
     }
 
     if (ImGui::BeginMenu("Layout"))

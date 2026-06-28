@@ -905,6 +905,45 @@ namespace
         });
 
         tests.push_back({
+            "Unit.EditorTransaction.CompositeAndRedoInvalidation",
+            TestCategory::Unit,
+            [](TestContext& ctx)
+            {
+                auto& transactions = EditorTransaction::Manager::Instance();
+                transactions.clear();
+
+                int a = 0;
+                int b = 0;
+
+                transactions.begin("Move Pair");
+                transactions.addStep(
+                    [&a]() { a = 0; },
+                    [&a]() { a = 10; });
+                transactions.addStep(
+                    [&b]() { b = 0; },
+                    [&b]() { b = 20; });
+
+                a = 10;
+                b = 20;
+                transactions.commit();
+
+                ctx.expect(std::string(transactions.nextUndoLabel()) == "Move Pair", "Undo label should match committed transaction");
+                ctx.expect(transactions.undo(), "Composite undo should succeed");
+                ctx.expect(a == 0 && b == 0, "Composite undo should restore both values");
+                ctx.expect(transactions.canRedo(), "Redo should be available after undo");
+
+                transactions.record(
+                    "Set A",
+                    [&a]() { a = 0; },
+                    [&a]() { a = 1; });
+
+                a = 1;
+
+                ctx.expect(!transactions.canRedo(), "Redo stack must be cleared when a new command is recorded");
+            }
+        });
+
+        tests.push_back({
             "Integration.Prefab.VariantOverrideInfo",
             TestCategory::Integration,
             [](TestContext& ctx)

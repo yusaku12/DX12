@@ -3,7 +3,6 @@
 
 void TimeManager::initialize()
 {
-    m_profiler = CpuGpuProfiler();
     m_initialized = false;
     m_pause = false;
     m_deltaTime = 0.0f;
@@ -125,6 +124,9 @@ void TimeManager::renderProfilerContents()
     ImGui::Text("CPU: %.3f ms  |  GPU: %.3f ms",
         profiler.getCpuTimems(),
         profiler.getGpuTimems());
+    ImGui::Text("CPU Memory: %.1f MB  |  GPU Memory: %.1f MB",
+        profiler.getCpuMemoryMB(),
+        profiler.getGpuMemoryMB());
 
     ImGui::PlotLines("CPU (ms)",
         profiler.cpuHistory().data(), static_cast<int>(profiler.cpuHistory().size()),
@@ -137,6 +139,43 @@ void TimeManager::renderProfilerContents()
     ImGui::PlotLines("FPS",
         profiler.fpsHistory().data(), static_cast<int>(profiler.fpsHistory().size()),
         0, nullptr, 0.0f, 120.0f, ImVec2(0, 60));
+
+    ImGui::PlotLines("CPU Memory (MB)",
+        profiler.cpuMemoryHistory().data(), static_cast<int>(profiler.cpuMemoryHistory().size()),
+        0, nullptr, 0.0f, 4096.0f, ImVec2(0, 60));
+
+    ImGui::PlotLines("GPU Memory (MB)",
+        profiler.gpuMemoryHistory().data(), static_cast<int>(profiler.gpuMemoryHistory().size()),
+        0, nullptr, 0.0f, 8192.0f, ImVec2(0, 60));
+
+    ImGui::Separator();
+    ImGui::Text("GPU Scope Timing (Timestamp Query)");
+
+    const auto& scopes = profiler.gpuScopeSamples();
+    if (scopes.empty())
+    {
+        ImGui::TextDisabled("No GPU scopes captured yet.");
+    }
+    else
+    {
+        float maxMs = 0.0f;
+        for (const auto& scope : scopes)
+        {
+            maxMs = std::max(maxMs, scope.gpuMs);
+        }
+        maxMs = std::max(maxMs, 0.001f);
+
+        for (const auto& scope : scopes)
+        {
+            const float ratio = std::clamp(scope.gpuMs / maxMs, 0.0f, 1.0f);
+
+            char valueLabel[64] = {};
+            std::snprintf(valueLabel, sizeof(valueLabel), "%.3f ms", scope.gpuMs);
+
+            ImGui::TextUnformatted(scope.name.c_str());
+            ImGui::ProgressBar(ratio, ImVec2(-1.0f, 0.0f), valueLabel);
+        }
+    }
 }
 
 void TimeManager::play()

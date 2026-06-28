@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Scene.h"
+#include "SceneFlatBuffer.h"
 
 //! シーンID
 enum class SceneId : int
@@ -16,6 +17,7 @@ enum class SceneId : int
 class SceneManager
 {
 public:
+    using SceneLoadProgressCallback = std::function<void(float normalized, bool done, bool success, bool cancelled, const std::string& message)>;
 
     //! シングルトン
     static SceneManager& Instance()
@@ -60,6 +62,20 @@ public:
     //! シーンファイルから実行状態を読み込み（次フレーム update で適用）
     bool loadSceneFromFile(const std::filesystem::path& filePath);
 
+    //! バックグラウンドでシーンを読み込み、適用をメインスレッドへ予約
+    uint64_t loadSceneFromFileBackground(const std::filesystem::path& filePath,
+        int priority,
+        SceneLoadProgressCallback progressCallback = {});
+
+    //! バックグラウンドシーン読み込みをキャンセル
+    bool cancelBackgroundSceneLoad(uint64_t requestId);
+
+    //! 進行中のバックグラウンドシーン読み込みをすべてキャンセル
+    void cancelAllBackgroundSceneLoads();
+
+    //! バックグラウンドシーン読み込み状態
+    bool isBackgroundSceneLoadBusy() const;
+
     //! 現在シーン取得
     SceneId getCurrentSceneID() const { return m_currentSceneID; }
 
@@ -80,6 +96,41 @@ private:
     //! シーンファイル読み込みの実処理
     bool loadSceneFromFileInternal(const std::filesystem::path& filePath);
 
+    struct BackgroundSceneTask
+    {
+        uint64_t id = 0;
+        std::filesystem::path path;
+        int priority = 0;
+        uint64_t sequence = 0;
+        SceneLoadProgressCallback progressCallback;
+    };
+
+    struct BackgroundSceneResult
+    {
+        BackgroundSceneTask task;
+        bool ok = false;
+        bool cancelled = false;
+        std::string message;
+        std::unique_ptr<SceneFlatBuffer::PreparedSceneData> prepared;
+    };
+
+    struct BackgroundSceneWorker
+    {
+        BackgroundSceneTask task;
+        std::future<BackgroundSceneResult> future;
+    };
+
+    void dispatchBackgroundSceneLoads();
+    void pumpBackgroundSceneLoads();
+    void applyBackgroundSceneLoads();
+    void reportBackgroundProgress(const BackgroundSceneTask& task,
+        float normalized,
+        bool done,
+        bool success,
+        bool cancelled,
+        std::string_view message) const;
+    bool isBackgroundSceneLoadCancelled(uint64_t requestId) const;
+
     //! メンバ変数
     using SceneFactory = std::function<std::unique_ptr<Scene>()>;
     std::array<SceneFactory, magic_enum::enum_count<SceneId>()> m_sceneFactory{};
@@ -90,4 +141,13 @@ private:
     bool m_requestChange = false;
     bool m_requestLoadSceneFile = false;
     std::filesystem::path m_pendingSceneFilePath;
+
+    uint64_t m_nextBackgroundRequestId = 1;
+    uint64_t m_nextBackgroundSequence = 1;
+    std::deque<BackgroundSceneTask> m_backgroundScenePending;
+    std::vector<BackgroundSceneWorker> m_backgroundSceneWorkers;
+    std::deque<BackgroundSceneResult> m_backgroundSceneCompleted;
+    std::unordered_set<uint64_t> m_backgroundSceneCancelledIds;
+
+    static constexpr size_t kMaxBackgroundSceneWorkers = 1;
 };

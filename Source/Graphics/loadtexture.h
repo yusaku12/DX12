@@ -13,6 +13,12 @@ class LoadTexture
 public:
 
     explicit LoadTexture(const std::wstring& filePath);
+    struct DecodedData
+    {
+        DirectX::TexMetadata metadata{};
+        DirectX::ScratchImage image;
+    };
+
     ~LoadTexture();
 
     //! メモリから直接テクスチャを作成するコンストラクタ（幅・高さ・フォーマット・ピクセルデータ）
@@ -34,6 +40,12 @@ public:
     //! 読み込み成功しているか
     bool isValid() const { return m_isValid; }
 
+    //! ストリーミング向け: ファイルデコードのみ（GPU作成なし）
+    static bool decodeFromFile(const std::wstring& filePath, DecodedData& outDecoded, std::string* outErrorMessage = nullptr);
+
+    //! ストリーミング向け: デコード済みデータでGPUリソースを差し替え
+    bool replaceFromDecoded(DecodedData&& decoded);
+
 private:
 
     //! ローダー関数型定義
@@ -47,6 +59,9 @@ private:
 
     //! テクスチャリソース作成
     void createTextureResource(const DirectX::TexMetadata& meta, const DirectX::ScratchImage& img);
+
+    //! 現在保持しているGPU資源を解放
+    void releaseGpuResources();
 
     bool m_isValid = false;  //!< 読み込み成功フラグ
     std::unordered_map<std::wstring, LoaderFunc> m_loaderTable; //!< ローダーテーブル

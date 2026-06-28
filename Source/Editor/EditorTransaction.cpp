@@ -5,27 +5,62 @@ namespace EditorTransaction
 {
     namespace
     {
-        void runUndo(const Record& record)
+        class CompositeCommand final : public ICommand
         {
-            for (auto it = record.steps.rbegin(); it != record.steps.rend(); ++it)
+        public:
+            explicit CompositeCommand(Record&& record)
+                : m_record(std::move(record))
             {
-                if (it->undo)
-                {
-                    it->undo();
-                }
             }
-        }
 
-        void runRedo(const Record& record)
-        {
-            for (const Step& step : record.steps)
+            void undo() override
             {
-                if (step.redo)
+                for (auto it = m_record.steps.rbegin(); it != m_record.steps.rend(); ++it)
                 {
-                    step.redo();
+                    if (it->undo)
+                    {
+                        it->undo();
+                    }
                 }
             }
-        }
+
+            void redo() override
+            {
+                for (const Step& step : m_record.steps)
+                {
+                    if (step.redo)
+                    {
+                        step.redo();
+                    }
+                }
+            }
+
+            const char* label() const override
+            {
+                return m_record.label.c_str();
+            }
+
+        private:
+            Record m_record;
+        };
+
+        class ReplayGuard final
+        {
+        public:
+            explicit ReplayGuard(bool& flag)
+                : m_flag(flag)
+            {
+                m_flag = true;
+            }
+
+            ~ReplayGuard()
+            {
+                m_flag = false;
+            }
+
+        private:
+            bool& m_flag;
+        };
     }
 
     void Manager::begin(const std::string& label)
@@ -67,6 +102,11 @@ namespace EditorTransaction
 
     void Manager::commit()
     {
+        if (m_isReplaying)
+        {
+            return;
+        }
+
         if (!m_hasCurrent)
         {
             return;
@@ -83,6 +123,11 @@ namespace EditorTransaction
 
     void Manager::cancel()
     {
+        if (m_isReplaying)
+        {
+            return;
+        }
+
         if (!m_hasCurrent)
         {
             return;
@@ -107,20 +152,29 @@ namespace EditorTransaction
 
     bool Manager::undo()
     {
-        if (m_isReplaying || m_undoStack.empty())
+        if (m_isReplaying)
         {
             return false;
         }
 
-        m_isReplaying = true;
+        if (m_hasCurrent)
+        {
+            commit();
+        }
 
-        Record record = std::move(m_undoStack.back());
+        if (m_undoStack.empty())
+        {
+            return false;
+        }
+
+        ReplayGuard guard(m_isReplaying);
+
+        std::unique_ptr<ICommand> command = std::move(m_undoStack.back());
         m_undoStack.pop_back();
 
-        runUndo(record);
-        m_redoStack.push_back(std::move(record));
+        command->undo();
+        m_redoStack.push_back(std::move(command));
 
-        m_isReplaying = false;
         return true;
     }
 
@@ -131,15 +185,14 @@ namespace EditorTransaction
             return false;
         }
 
-        m_isReplaying = true;
+        ReplayGuard guard(m_isReplaying);
 
-        Record record = std::move(m_redoStack.back());
+        std::unique_ptr<ICommand> command = std::move(m_redoStack.back());
         m_redoStack.pop_back();
 
-        runRedo(record);
-        m_undoStack.push_back(std::move(record));
+        command->redo();
+        m_undoStack.push_back(std::move(command));
 
-        m_isReplaying = false;
         return true;
     }
 
@@ -150,7 +203,7 @@ namespace EditorTransaction
             return "";
         }
 
-        return m_undoStack.back().label.c_str();
+        return m_undoStack.back()->label();
     }
 
     const char* Manager::nextRedoLabel() const
@@ -160,7 +213,7 @@ namespace EditorTransaction
             return "";
         }
 
-        return m_redoStack.back().label.c_str();
+        return m_redoStack.back()->label();
     }
 
     void Manager::clear()
@@ -169,11 +222,32 @@ namespace EditorTransaction
         m_redoStack.clear();
         m_current = {};
         m_hasCurrent = false;
+        m_isReplaying = false;
     }
 
     void Manager::pushRecord(Record&& record)
     {
-        m_undoStack.push_back(std::move(record));
+        if (record.steps.empty())
+        {
+            return;
+        }
+
+        pushCommand(std::make_unique<CompositeCommand>(std::move(record)));
+    }
+
+    void Manager::pushCommand(std::unique_ptr<ICommand> command)
+    {
+        if (!command)
+        {
+            return;
+        }
+
+        if (m_undoStack.size() >= k_maxHistory)
+        {
+            m_undoStack.erase(m_undoStack.begin());
+        }
+
+        m_undoStack.push_back(std::move(command));
         m_redoStack.clear();
     }
 }

@@ -44,6 +44,46 @@ namespace
         return out.good();
     }
 
+    const scene::SerializedScene* validateSceneBuffer(const uint8_t* data,
+        size_t size,
+        const std::filesystem::path& filePath,
+        std::string* outErrorMessage = nullptr)
+    {
+        if (!data || size == 0)
+        {
+            if (outErrorMessage)
+            {
+                *outErrorMessage = "Empty scene data";
+            }
+            LOG_ERROR("[SceneFlatBuffer] Empty scene data: %s", filePath.string().c_str());
+            return nullptr;
+        }
+
+        if (!scene::SerializedSceneBufferHasIdentifier(data))
+        {
+            if (outErrorMessage)
+            {
+                *outErrorMessage = "Invalid file identifier";
+            }
+            LOG_ERROR("[SceneFlatBuffer] Invalid file identifier: %s", filePath.string().c_str());
+            return nullptr;
+        }
+
+        flatbuffers::Verifier verifier(data, size);
+        const scene::SerializedScene* root = scene::GetSerializedScene(data);
+        if (!root || !root->Verify(verifier))
+        {
+            if (outErrorMessage)
+            {
+                *outErrorMessage = "Invalid flatbuffer scene";
+            }
+            LOG_ERROR("[SceneFlatBuffer] Invalid flatbuffer scene: %s", filePath.string().c_str());
+            return nullptr;
+        }
+
+        return root;
+    }
+
 }
 
 namespace SceneFlatBuffer
@@ -143,26 +183,40 @@ namespace SceneFlatBuffer
         return true;
     }
 
-    bool load(const std::filesystem::path& filePath, SceneId currentSceneId, SceneId* outSceneId)
+    bool prepareLoad(const std::filesystem::path& filePath,
+        PreparedSceneData& outData,
+        std::string* outErrorMessage)
     {
+        outData = {};
+
         const std::vector<uint8_t> bytes = readFileBytes(filePath);
         if (bytes.empty())
         {
+            if (outErrorMessage)
+            {
+                *outErrorMessage = "Failed to read file";
+            }
             LOG_ERROR("[SceneFlatBuffer] Failed to read file: %s", filePath.string().c_str());
             return false;
         }
 
-        if (!scene::SerializedSceneBufferHasIdentifier(bytes.data()))
+        const scene::SerializedScene* root = validateSceneBuffer(bytes.data(), bytes.size(), filePath, outErrorMessage);
+        if (!root)
         {
-            LOG_ERROR("[SceneFlatBuffer] Invalid file identifier: %s", filePath.string().c_str());
             return false;
         }
 
-        flatbuffers::Verifier verifier(bytes.data(), bytes.size());
-        const scene::SerializedScene* root = scene::GetSerializedScene(bytes.data());
-        if (!root || !root->Verify(verifier))
+        outData.sourcePath = filePath;
+        outData.bytes = bytes;
+        outData.sceneId = static_cast<SceneId>(root->scene_id());
+        return true;
+    }
+
+    bool loadPrepared(const PreparedSceneData& prepared, SceneId currentSceneId, SceneId* outSceneId)
+    {
+        const scene::SerializedScene* root = validateSceneBuffer(prepared.bytes.data(), prepared.bytes.size(), prepared.sourcePath);
+        if (!root)
         {
-            LOG_ERROR("[SceneFlatBuffer] Invalid flatbuffer scene: %s", filePath.string().c_str());
             return false;
         }
 
@@ -250,9 +304,20 @@ namespace SceneFlatBuffer
             newObjects[index]->setEnabled(serializedObject->enabled());
         }
 
-        SerializationCommon::loadAnimatorBindings(filePath, newObjects, "SceneFlatBuffer");
+        SerializationCommon::loadAnimatorBindings(prepared.sourcePath, newObjects, "SceneFlatBuffer");
 
-        LOG_INFO("[SceneFlatBuffer] Loaded scene: %s", filePath.string().c_str());
+        LOG_INFO("[SceneFlatBuffer] Loaded scene: %s", prepared.sourcePath.string().c_str());
         return true;
+    }
+
+    bool load(const std::filesystem::path& filePath, SceneId currentSceneId, SceneId* outSceneId)
+    {
+        PreparedSceneData prepared;
+        if (!prepareLoad(filePath, prepared))
+        {
+            return false;
+        }
+
+        return loadPrepared(prepared, currentSceneId, outSceneId);
     }
 }

@@ -1,11 +1,21 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace EditorTransaction
 {
+    class ICommand
+    {
+    public:
+        virtual ~ICommand() = default;
+        virtual void undo() = 0;
+        virtual void redo() = 0;
+        virtual const char* label() const = 0;
+    };
+
     struct Step
     {
         std::function<void()> undo;
@@ -54,9 +64,12 @@ namespace EditorTransaction
         Manager& operator=(const Manager&) = delete;
 
         void pushRecord(Record&& record);
+        void pushCommand(std::unique_ptr<ICommand> command);
 
-        std::vector<Record> m_undoStack;
-        std::vector<Record> m_redoStack;
+        static constexpr size_t k_maxHistory = 256;
+
+        std::vector<std::unique_ptr<ICommand>> m_undoStack;
+        std::vector<std::unique_ptr<ICommand>> m_redoStack;
 
         Record m_current;
         bool m_hasCurrent = false;

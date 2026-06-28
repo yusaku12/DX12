@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Component\IRenderComponent.h"
 #include "Component\TransformComponent.h"
+#include "Graphics/GpuDebugMarker.h"
 #include "HiZPyramid.h"
 
 namespace
@@ -242,6 +243,25 @@ void RenderManager::setupCommandList(RenderPassKind kind, ID3D12GraphicsCommandL
 
 void RenderManager::executeRender(RenderPassKind kind, IRenderComponent* comp, ID3D12GraphicsCommandList* cmd)
 {
+    std::string scopeName;
+    if (cmd && comp)
+    {
+        const char* passLabel = "Default";
+        if (kind == RenderPassKind::GBuffer)
+        {
+            passLabel = "GBuffer";
+        }
+        else if (kind == RenderPassKind::Forward)
+        {
+            passLabel = "Forward";
+        }
+
+        scopeName = std::format("{}::{}", passLabel, comp->getName());
+    }
+
+    GpuDebugMarker::ScopedEvent marker(cmd, scopeName.c_str());
+    auto gpuToken = TimeManager::Instance().beginGpuScope(cmd, scopeName.c_str());
+
     switch (kind)
     {
     case RenderPassKind::Default:
@@ -257,6 +277,8 @@ void RenderManager::executeRender(RenderPassKind kind, IRenderComponent* comp, I
         comp->renderForward(cmd);
         break;
     }
+
+    TimeManager::Instance().endGpuScope(cmd, gpuToken);
 }
 
 void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)

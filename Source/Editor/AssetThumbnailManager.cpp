@@ -119,7 +119,8 @@ namespace EditorAssetThumbnail
 
         if (allowTexturePreview)
         {
-            LoadTexture* texture = TextureManager::Instance().load(assetPath.wstring());
+            TextureManager::Instance().requestStreaming(assetPath.wstring(), TextureManager::StreamPriority::Low);
+            LoadTexture* texture = TextureManager::Instance().findCached(assetPath.wstring());
             if (texture)
             {
                 const UINT srv = texture->getSRVIndex();
@@ -175,7 +176,8 @@ namespace EditorAssetThumbnail
                 continue;
             }
 
-            LoadTexture* texture = TextureManager::Instance().load(pathToWstring(texturePath));
+            TextureManager::Instance().requestStreaming(pathToWstring(texturePath), TextureManager::StreamPriority::Normal);
+            LoadTexture* texture = TextureManager::Instance().findCached(pathToWstring(texturePath));
             if (!texture)
             {
                 continue;

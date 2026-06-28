@@ -39,6 +39,7 @@
 #include <map>
 #include <thread>
 #include <future>
+#include <deque>
 #include <unordered_set>
 
 #undef ERROR

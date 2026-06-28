@@ -4,6 +4,15 @@
 #include "ParticleScene.h"
 #include "SceneFlatBuffer.h"
 
+namespace
+{
+    std::string pathToUtf8(const std::filesystem::path& path)
+    {
+        const std::u8string u8 = path.generic_u8string();
+        return std::string(u8.begin(), u8.end());
+    }
+}
+
 void SceneManager::initialize()
 {
     // シーン登録
@@ -26,6 +35,11 @@ void SceneManager::shutdown()
     m_requestChange = false;
     m_requestLoadSceneFile = false;
     m_pendingSceneFilePath.clear();
+    cancelAllBackgroundSceneLoads();
+    m_backgroundScenePending.clear();
+    m_backgroundSceneWorkers.clear();
+    m_backgroundSceneCompleted.clear();
+    m_backgroundSceneCancelledIds.clear();
 }
 
 void SceneManager::loadScene(SceneId id)
@@ -40,6 +54,10 @@ void SceneManager::loadScene(SceneId id)
 
 void SceneManager::update()
 {
+    dispatchBackgroundSceneLoads();
+    pumpBackgroundSceneLoads();
+    applyBackgroundSceneLoads();
+
     if (m_requestLoadSceneFile)
     {
         const std::filesystem::path pendingPath = m_pendingSceneFilePath;
@@ -161,9 +179,99 @@ bool SceneManager::loadSceneFromFile(const std::filesystem::path& filePath)
         return false;
     }
 
-    m_pendingSceneFilePath = filePath;
-    m_requestLoadSceneFile = true;
-    return true;
+    return loadSceneFromFileBackground(filePath, 0) != 0;
+}
+
+uint64_t SceneManager::loadSceneFromFileBackground(const std::filesystem::path& filePath,
+    int priority,
+    SceneLoadProgressCallback progressCallback)
+{
+    if (filePath.empty())
+    {
+        return 0;
+    }
+
+    BackgroundSceneTask task;
+    task.id = m_nextBackgroundRequestId++;
+    task.path = filePath;
+    task.priority = priority;
+    task.sequence = m_nextBackgroundSequence++;
+    task.progressCallback = std::move(progressCallback);
+
+    m_backgroundScenePending.push_back(task);
+    std::stable_sort(m_backgroundScenePending.begin(), m_backgroundScenePending.end(),
+        [](const BackgroundSceneTask& lhs, const BackgroundSceneTask& rhs)
+        {
+            if (lhs.priority != rhs.priority)
+            {
+                return lhs.priority > rhs.priority;
+            }
+            return lhs.sequence < rhs.sequence;
+        });
+
+    reportBackgroundProgress(task, 0.0f, false, false, false, "Queued");
+    return task.id;
+}
+
+bool SceneManager::cancelBackgroundSceneLoad(uint64_t requestId)
+{
+    if (requestId == 0)
+    {
+        return false;
+    }
+
+    auto pendingIt = std::find_if(m_backgroundScenePending.begin(), m_backgroundScenePending.end(),
+        [requestId](const BackgroundSceneTask& task)
+        {
+            return task.id == requestId;
+        });
+
+    if (pendingIt != m_backgroundScenePending.end())
+    {
+        reportBackgroundProgress(*pendingIt, 1.0f, true, false, true, "Cancelled");
+        m_backgroundScenePending.erase(pendingIt);
+        m_backgroundSceneCancelledIds.insert(requestId);
+        return true;
+    }
+
+    for (const BackgroundSceneWorker& worker : m_backgroundSceneWorkers)
+    {
+        if (worker.task.id == requestId)
+        {
+            m_backgroundSceneCancelledIds.insert(requestId);
+            reportBackgroundProgress(worker.task, 1.0f, false, false, true, "Cancel requested");
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void SceneManager::cancelAllBackgroundSceneLoads()
+{
+    for (const BackgroundSceneTask& task : m_backgroundScenePending)
+    {
+        m_backgroundSceneCancelledIds.insert(task.id);
+        reportBackgroundProgress(task, 1.0f, true, false, true, "Cancelled");
+    }
+    m_backgroundScenePending.clear();
+
+    for (const BackgroundSceneWorker& worker : m_backgroundSceneWorkers)
+    {
+        m_backgroundSceneCancelledIds.insert(worker.task.id);
+    }
+
+    for (const BackgroundSceneResult& result : m_backgroundSceneCompleted)
+    {
+        m_backgroundSceneCancelledIds.insert(result.task.id);
+    }
+}
+
+bool SceneManager::isBackgroundSceneLoadBusy() const
+{
+    return !m_backgroundScenePending.empty()
+        || !m_backgroundSceneWorkers.empty()
+        || !m_backgroundSceneCompleted.empty();
 }
 
 bool SceneManager::loadSceneFromFileInternal(const std::filesystem::path& filePath)
@@ -182,6 +290,138 @@ bool SceneManager::loadSceneFromFileInternal(const std::filesystem::path& filePa
     }
 
     return true;
+}
+
+void SceneManager::dispatchBackgroundSceneLoads()
+{
+    while (!m_backgroundScenePending.empty() && m_backgroundSceneWorkers.size() < kMaxBackgroundSceneWorkers)
+    {
+        BackgroundSceneTask task = std::move(m_backgroundScenePending.front());
+        m_backgroundScenePending.pop_front();
+
+        if (isBackgroundSceneLoadCancelled(task.id))
+        {
+            reportBackgroundProgress(task, 1.0f, true, false, true, "Cancelled");
+            continue;
+        }
+
+        reportBackgroundProgress(task, 0.2f, false, false, false, "Preparing");
+
+        BackgroundSceneWorker worker;
+        worker.task = task;
+        worker.future = std::async(std::launch::async, [task]()
+            {
+                BackgroundSceneResult result;
+                result.task = task;
+
+                auto prepared = std::make_unique<SceneFlatBuffer::PreparedSceneData>();
+                std::string errorMessage;
+                result.ok = SceneFlatBuffer::prepareLoad(task.path, *prepared, &errorMessage);
+                if (result.ok)
+                {
+                    result.prepared = std::move(prepared);
+                    result.message = "Prepared";
+                }
+                else
+                {
+                    result.message = errorMessage.empty() ? "Prepare failed" : errorMessage;
+                }
+
+                return result;
+            });
+
+        m_backgroundSceneWorkers.push_back(std::move(worker));
+    }
+}
+
+void SceneManager::pumpBackgroundSceneLoads()
+{
+    auto it = m_backgroundSceneWorkers.begin();
+    while (it != m_backgroundSceneWorkers.end())
+    {
+        if (it->future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+        {
+            BackgroundSceneResult result = it->future.get();
+            if (isBackgroundSceneLoadCancelled(result.task.id))
+            {
+                reportBackgroundProgress(result.task, 1.0f, true, false, true, "Cancelled");
+            }
+            else
+            {
+                reportBackgroundProgress(result.task, 0.8f, false, result.ok, false, result.message);
+                m_backgroundSceneCompleted.push_back(std::move(result));
+            }
+
+            it = m_backgroundSceneWorkers.erase(it);
+            continue;
+        }
+
+        ++it;
+    }
+}
+
+void SceneManager::applyBackgroundSceneLoads()
+{
+    if (m_backgroundSceneCompleted.empty())
+    {
+        return;
+    }
+
+    BackgroundSceneResult result = std::move(m_backgroundSceneCompleted.front());
+    m_backgroundSceneCompleted.pop_front();
+
+    if (isBackgroundSceneLoadCancelled(result.task.id))
+    {
+        reportBackgroundProgress(result.task, 1.0f, true, false, true, "Cancelled");
+        return;
+    }
+
+    if (!result.ok || !result.prepared)
+    {
+        reportBackgroundProgress(result.task, 1.0f, true, false, false, result.message);
+        LOG_ERROR("[SceneManager] Background scene prepare failed: %s", result.message.c_str());
+        return;
+    }
+
+    SceneId fileSceneId = m_currentSceneID;
+    const bool applied = SceneFlatBuffer::loadPrepared(*result.prepared, m_currentSceneID, &fileSceneId);
+    if (!applied)
+    {
+        reportBackgroundProgress(result.task, 1.0f, true, false, false, "Apply failed");
+        LOG_ERROR("[SceneManager] Failed to apply prepared scene: %s", pathToUtf8(result.task.path).c_str());
+        return;
+    }
+
+    if (fileSceneId >= SceneId::ModelEditor && fileSceneId < SceneId::MAX)
+    {
+        m_currentSceneID = fileSceneId;
+    }
+
+    reportBackgroundProgress(result.task, 1.0f, true, true, false, "Applied");
+    m_backgroundSceneCancelledIds.erase(result.task.id);
+}
+
+void SceneManager::reportBackgroundProgress(const BackgroundSceneTask& task,
+    float normalized,
+    bool done,
+    bool success,
+    bool cancelled,
+    std::string_view message) const
+{
+    if (task.progressCallback)
+    {
+        task.progressCallback(
+            std::clamp(normalized, 0.0f, 1.0f),
+            done,
+            success,
+            cancelled,
+            std::string(message));
+    }
+}
+
+bool SceneManager::isBackgroundSceneLoadCancelled(uint64_t requestId) const
+{
+    return m_backgroundSceneCancelledIds.find(requestId) != m_backgroundSceneCancelledIds.end();
 }
 
 bool SceneManager::isCurrentSceneMultiThreadedRenderingEnabled() const
