@@ -13,7 +13,13 @@ static constexpr const char* ConsoleColorWhite = "\x1b[37m";
 
 void Logger::renderLog()
 {
-    ImGui::Begin("Log");
+    ImGui::Begin("Console");
+    renderLogContents();
+    ImGui::End();
+}
+
+void Logger::renderLogContents()
+{
     const auto& logs = m_imguiLogs;
     ImGui::BeginChild("LogArea", ImVec2(0, 0), true);
     for (const auto& entry : logs)
@@ -27,7 +33,6 @@ void Logger::renderLog()
         ImGui::SetScrollHereY(1.0f); // 自動スクロール
     }
     ImGui::EndChild();
-    ImGui::End();
 }
 
 void Logger::log(LogLevel level, const std::string& message)

@@ -245,12 +245,18 @@ void HiZPyramid::build(ID3D12GraphicsCommandList* cmd)
 
 void HiZPyramid::debugImgui()
 {
-    ImGui::Begin("Hi-Z Pyramid");
+    ImGui::Begin("Hi-Z Debug");
+
+    renderDebugContents();
+
+    ImGui::End();
+}
+
+void HiZPyramid::renderDebugContents()
+{
 
     ImGui::Checkbox("Enable Hi-Z Build", &m_enabled);
     ImGui::Text("Resolution: %u x %u", m_width, m_height);
     ImGui::Text("Mip Count: %u", m_mipCount);
     ImGui::Text("Dispatches: %u", m_lastDispatchCount);
-
-    ImGui::End();
 }

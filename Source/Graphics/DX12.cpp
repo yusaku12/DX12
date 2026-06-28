@@ -378,19 +378,111 @@ void DX12::transitionDepthToWrite()
     m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 }
 
+void DX12::renderViewportWindow(const char* title, EditorViewportState& state, bool allowAssetDrop, bool showToolbar)
+{
+    ImGui::Begin(title);
+
+    state.active =
+        ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+        ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
+    state.drawList = ImGui::GetWindowDrawList();
+
+    if (showToolbar)
+    {
+        if (ImGui::Button("Screenshot"))
+        {
+            ScreenCapture::Instance().requestCapture();
+        }
+        ImGui::SameLine();
+        ImGui::Separator();
+    }
+
+    ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(m_finalPostEffectSrv).ptr;
+    ImGui::Image(texID, ImGui::GetContentRegionAvail());
+
+    const ImVec2 itemMin = ImGui::GetItemRectMin();
+    const ImVec2 itemMax = ImGui::GetItemRectMax();
+    state.pos = itemMin;
+    state.size = ImVec2(itemMax.x - itemMin.x, itemMax.y - itemMin.y);
+
+    if (allowAssetDrop && ImGui::BeginDragDropTarget())
+    {
+        EditorAssetDragDrop::acceptAssetDropInCurrentTarget(nullptr);
+        ImGui::EndDragDropTarget();
+    }
+
+    ImGui::End();
+}
+
+void DX12::renderRuntimeToolbar()
+{
+    TimeManager& time = TimeManager::Instance();
+
+    if (time.isPaused())
+    {
+        if (ImGui::Button("Play"))
+        {
+            time.play();
+        }
+    }
+    else
+    {
+        ImGui::BeginDisabled();
+        ImGui::Button("Play");
+        ImGui::EndDisabled();
+    }
+
+    ImGui::SameLine();
+
+    if (!time.isPaused())
+    {
+        if (ImGui::Button("Pause"))
+        {
+            time.pause();
+        }
+    }
+    else
+    {
+        ImGui::BeginDisabled();
+        ImGui::Button("Pause");
+        ImGui::EndDisabled();
+    }
+
+    ImGui::SameLine();
+    if (!time.isPaused())
+    {
+        ImGui::BeginDisabled();
+    }
+    if (ImGui::Button("Step"))
+    {
+        time.requestSingleStep();
+    }
+    if (!time.isPaused())
+    {
+        ImGui::EndDisabled();
+    }
+
+    ImGui::SameLine();
+    ImGui::Separator();
+    ImGui::SameLine();
+    ImGui::Text("State: %s | TimeScale: %.2f | FPS: %d",
+        time.isPaused() ? "Paused" : "Playing",
+        time.getTimeScale(),
+        time.getFPS());
+}
+
 void DX12::sceneImguiRender()
 {
     ImGui::Begin("Scene");
 
-    // シーンウィンドウがアクティブかどうか
-    m_isSceneActive =
+    renderRuntimeToolbar();
+
+    EditorViewportState state{};
+    state.active =
         ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
         ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows);
+    state.drawList = ImGui::GetWindowDrawList();
 
-    // 現在のウィンドウの DrawList を保存（ImGuizmo の入力判定に使う）
-    m_sceneDrawList = ImGui::GetWindowDrawList();
-
-    //! スクリーンショットボタン（Scene ウィンドウ上部に配置）
     if (ImGui::Button("Screenshot"))
     {
         ScreenCapture::Instance().requestCapture();
@@ -399,15 +491,12 @@ void DX12::sceneImguiRender()
     ImGui::Separator();
 
     ImTextureID texID = (ImTextureID)DescriptorHeapManager::Instance().getGPUHandle(m_finalPostEffectSrv).ptr;
-
-    // ウィンドウサイズにフィットさせて表示
     ImGui::Image(texID, ImGui::GetContentRegionAvail());
 
-    // Image のスクリーン座標を保存（ImGuizmo の SetRect に使う）
-    ImVec2 itemMin = ImGui::GetItemRectMin();
-    ImVec2 itemMax = ImGui::GetItemRectMax();
-    m_sceneWindowPos = itemMin;
-    m_sceneWindowSize = ImVec2(itemMax.x - itemMin.x, itemMax.y - itemMin.y);
+    const ImVec2 itemMin = ImGui::GetItemRectMin();
+    const ImVec2 itemMax = ImGui::GetItemRectMax();
+    state.pos = itemMin;
+    state.size = ImVec2(itemMax.x - itemMin.x, itemMax.y - itemMin.y);
 
     if (ImGui::BeginDragDropTarget())
     {
@@ -416,6 +505,11 @@ void DX12::sceneImguiRender()
     }
 
     ImGui::End();
+
+    m_isSceneActive = state.active;
+    m_sceneWindowPos = state.pos;
+    m_sceneWindowSize = state.size;
+    m_sceneDrawList = state.drawList;
 }
 
 void DX12::transitionSceneToSRV()

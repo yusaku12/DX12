@@ -4,6 +4,18 @@
 void TimeManager::initialize()
 {
     m_profiler = CpuGpuProfiler();
+    m_initialized = false;
+    m_pause = false;
+    m_deltaTime = 0.0f;
+    m_unscaledDeltaTime = 0.0f;
+    m_time = 0.0f;
+    m_unscaledTime = 0.0f;
+    m_smoothDeltaTime = 0.0f;
+    m_timeScale = 1.0f;
+    m_stepRequested = false;
+    m_fps = 0;
+    m_fpsTimer = 0.0f;
+    m_fpsFrameCounter = 0;
 }
 
 void TimeManager::update()
@@ -32,7 +44,27 @@ void TimeManager::update()
     // 経過時間
     duration<float> fromStart = now - m_startTime;
     m_unscaledTime = fromStart.count();
-    m_time = m_unscaledTime * m_timeScale;
+
+    const float scale = std::max(m_timeScale, 0.0f);
+    if (m_pause)
+    {
+        if (m_stepRequested)
+        {
+            const float stepScale = scale > 0.0f ? scale : 1.0f;
+            m_deltaTime = m_stepDuration * stepScale;
+            m_stepRequested = false;
+        }
+        else
+        {
+            m_deltaTime = 0.0f;
+        }
+    }
+    else
+    {
+        m_deltaTime = m_unscaledDeltaTime * scale;
+    }
+
+    m_time += m_deltaTime;
 
     // smoothDeltaTime の更新（簡易移動平均）
     const float smoothing = 0.1f;
@@ -59,49 +91,83 @@ void TimeManager::frameEnd(ID3D12GraphicsCommandList* cmd)
 
 void TimeManager::imgui()
 {
-    if (ImGui::Begin("Performance Monitor"))
+    if (ImGui::Begin("Profiler"))
     {
-        // TimeManager 情報
-        ImGui::Text("Delta: %.5f  (Unscaled: %.5f)", m_deltaTime, m_unscaledDeltaTime);
-        ImGui::Text("Time : %.2f  (Unscaled: %.2f)", m_time, m_unscaledTime);
-        ImGui::Text("SmoothDelta: %.5f", m_smoothDeltaTime);
-
-        ImGui::SliderFloat("TimeScale", &m_timeScale, 0.0f, 3.0f);
-        ImGui::Checkbox("Pause", &m_pause);
-        if (m_pause)
-            m_timeScale = 0.0f;
-
-        ImGui::Separator();
-        ImGui::Text("FPS: %d", m_fps);
-
-        // Profiler 情報
-        CpuGpuProfiler& profiler = m_profiler;
-
-        ImGui::Separator();
-        ImGui::Text("CPU: %.3f ms  |  GPU: %.3f ms",
-            profiler.getCpuTimems(),
-            profiler.getGpuTimems()
-        );
-
-        // 小型グラフ
-        ImGui::PlotLines("CPU (ms)",
-            profiler.cpuHistory().data(), static_cast<int>(profiler.cpuHistory().size()),
-            0, nullptr, 0.0f, 30.0f, ImVec2(0, 60)
-        );
-
-        ImGui::PlotLines("GPU (ms)",
-            profiler.gpuHistory().data(), static_cast<int>(profiler.gpuHistory().size()),
-            0, nullptr, 0.0f, 30.0f, ImVec2(0, 60)
-        );
-
-        ImGui::PlotLines("FPS",
-            profiler.fpsHistory().data(), static_cast<int>(profiler.fpsHistory().size()),
-            0, nullptr, 0.0f, 120.0f, ImVec2(0, 60)
-        );
+        renderProfilerContents();
     }
     ImGui::End();
+}
 
-    RenderPipeline::Instance().debugImgui();
+void TimeManager::renderProfilerContents()
+{
+    ImGui::Text("Delta: %.5f  (Unscaled: %.5f)", m_deltaTime, m_unscaledDeltaTime);
+    ImGui::Text("Time : %.2f  (Unscaled: %.2f)", m_time, m_unscaledTime);
+    ImGui::Text("SmoothDelta: %.5f", m_smoothDeltaTime);
+
+    float timeScale = m_timeScale;
+    if (ImGui::SliderFloat("TimeScale", &timeScale, 0.0f, 3.0f))
+    {
+        setTimeScale(timeScale);
+    }
+
+    bool paused = m_pause;
+    if (ImGui::Checkbox("Pause", &paused))
+    {
+        setPaused(paused);
+    }
+
+    ImGui::Separator();
+    ImGui::Text("FPS: %d", m_fps);
+
+    CpuGpuProfiler& profiler = m_profiler;
+
+    ImGui::Separator();
+    ImGui::Text("CPU: %.3f ms  |  GPU: %.3f ms",
+        profiler.getCpuTimems(),
+        profiler.getGpuTimems());
+
+    ImGui::PlotLines("CPU (ms)",
+        profiler.cpuHistory().data(), static_cast<int>(profiler.cpuHistory().size()),
+        0, nullptr, 0.0f, 30.0f, ImVec2(0, 60));
+
+    ImGui::PlotLines("GPU (ms)",
+        profiler.gpuHistory().data(), static_cast<int>(profiler.gpuHistory().size()),
+        0, nullptr, 0.0f, 30.0f, ImVec2(0, 60));
+
+    ImGui::PlotLines("FPS",
+        profiler.fpsHistory().data(), static_cast<int>(profiler.fpsHistory().size()),
+        0, nullptr, 0.0f, 120.0f, ImVec2(0, 60));
+}
+
+void TimeManager::play()
+{
+    m_pause = false;
+}
+
+void TimeManager::pause()
+{
+    m_pause = true;
+}
+
+void TimeManager::setPaused(bool paused)
+{
+    m_pause = paused;
+}
+
+void TimeManager::togglePause()
+{
+    m_pause = !m_pause;
+}
+
+void TimeManager::requestSingleStep()
+{
+    m_pause = true;
+    m_stepRequested = true;
+}
+
+void TimeManager::setTimeScale(float value)
+{
+    m_timeScale = std::max(value, 0.0f);
 }
 
 void TimeManager::calculateFPS()

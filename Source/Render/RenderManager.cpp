@@ -584,13 +584,19 @@ void RenderManager::renderShadowCasters(const DirectX::BoundingOrientedBox& casc
 
 void RenderManager::debugImgui()
 {
-    HiZPyramid::Instance().debugImgui();
-
-    if (!ImGui::Begin("RenderManager"))
+    if (!ImGui::Begin("Rendering"))
     {
         ImGui::End();
         return;
     }
+
+    renderDebugContents();
+
+    ImGui::End();
+}
+
+void RenderManager::renderDebugContents()
+{
 
     size_t componentCount = 0;
     {
@@ -629,7 +635,6 @@ void RenderManager::debugImgui()
     if (timings.empty())
     {
         ImGui::TextDisabled(reinterpret_cast<const char*>(u8"計測データはありません"));
-        ImGui::End();
         return;
     }
 
@@ -657,6 +662,4 @@ void RenderManager::debugImgui()
 
         ImGui::EndTable();
     }
-
-    ImGui::End();
 }

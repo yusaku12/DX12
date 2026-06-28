@@ -418,11 +418,19 @@ void RenderPipeline::endFrameProfile()
 
 void RenderPipeline::debugImgui()
 {
-    if (!ImGui::Begin("Render Pass Profiler"))
+    if (!ImGui::Begin("Render Passes"))
     {
         ImGui::End();
         return;
     }
+
+    renderDebugContents();
+
+    ImGui::End();
+}
+
+void RenderPipeline::renderDebugContents()
+{
 
     ImGui::Text("Per-pass CPU timing (ms)");
     ImGui::Separator();
@@ -448,6 +456,4 @@ void RenderPipeline::debugImgui()
             timing.lastMs,
             timing.emaMs);
     }
-
-    ImGui::End();
 }

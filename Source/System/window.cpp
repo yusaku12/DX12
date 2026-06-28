@@ -1,5 +1,7 @@
 ﻿#include "pch.h"
 #include "Window.h"
+#include "System\EventBus.h"
+#include "System\RuntimeUIManager.h"
 
 Window::Window(HWND hwnd)
     : m_hwnd(hwnd)
@@ -49,6 +51,7 @@ void Window::initializeEngineSubsystems()
     DebugPrimitive::Instance().initialize();
     PhysicsWorld::Instance().initialize();
     SceneManager::Instance().initialize();
+    RuntimeUIManager::Instance().initialize();
 
     m_engineSubsystemsInitialized = true;
 }
@@ -65,6 +68,7 @@ void Window::shutdownEngineSubsystems()
     // 1) シーン/オブジェクト
     SceneManager::Instance().shutdown();
     GameObjectRegistry::Instance().shutdown();
+    RuntimeUIManager::Instance().shutdown();
 
     // 2) ランタイム系（Scene に依存しうるものから順に停止）
     PhysicsWorld::Instance().shutdown();
@@ -100,6 +104,10 @@ void Window::update()
 
     // ゲームオブジェクト更新（FreeCameraComponent など、カメラ位置を動かすコンポーネントを先に更新）
     GameObjectRegistry::Instance().update();
+
+    // ランタイムUI更新（ObjectPicker より先にクリックを判定する）
+    RuntimeUIManager::Instance().update();
+    EventBus::Instance().dispatchQueued();
 
     // CameraManager更新（ゲームオブジェクト更新後に GPU バッファを確定させる）
     CameraManager::Instance().update();
@@ -149,24 +157,6 @@ void Window::imguiRender()
 {
     // imgui更新
     IMGUI_CTRL_UPDATE();
-
-    // ログ描画
-    Logger::Instance().renderLog();
-
-    // TimeManagerのimgui描画
-    TimeManager::Instance().imgui();
-
-    // SceneManagerのimgui描画
-    SceneManager::Instance().debugOption();
-
-    // DX12のシーンimgui描画
-    m_dx12.sceneImguiRender();
-
-    // RenderManagerのimgui描画
-    RenderManager::Instance().debugImgui();
-
-    // deferred renderer のimgui描画
-    GBufferRenderTargets::Instance().debugDrawImGui();
 
     // EditorManagerのimgui描画
     EditorManager::Instance().imgui();

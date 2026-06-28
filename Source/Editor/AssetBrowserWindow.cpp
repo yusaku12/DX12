@@ -212,7 +212,7 @@ void drawAssetBrowserWindow()
         s_initialized = true;
     }
 
-    ImGui::Begin("Assets");
+    ImGui::Begin("Project");
 
     if (ImGui::Button("Refresh"))
     {

@@ -75,7 +75,7 @@ void SceneManager::draw()
 
 void SceneManager::debugOption()
 {
-    ImGui::Begin("GameScene");
+    ImGui::Begin("Scene Settings");
 
     // 現在シーン表示
     ImGui::Text("Current Scene: %s", magic_enum::enum_name(m_currentSceneID).data());

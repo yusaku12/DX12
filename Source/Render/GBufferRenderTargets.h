@@ -45,6 +45,9 @@ public:
     //! デバッグ描画（ImGui）
     void debugDrawImGui();
 
+    //! デバッグ中身表示
+    void renderDebugContents();
+
     //! SRV インデックス取得
     UINT getSrvIndex(UINT index) const
     {

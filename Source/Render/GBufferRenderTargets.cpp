@@ -201,12 +201,19 @@ void GBufferRenderTargets::setRenderTargets(ID3D12GraphicsCommandList* cmd, D3D1
 
 void GBufferRenderTargets::debugDrawImGui()
 {
-    ImGui::Begin("GBuffer");
+    ImGui::Begin("GBuffer Debug");
+
+    renderDebugContents();
+
+    ImGui::End();
+}
+
+void GBufferRenderTargets::renderDebugContents()
+{
 
     if (m_srvBaseIndex == UINT_MAX)
     {
         ImGui::Text("GBuffer SRV is not initialized.");
-        ImGui::End();
         return;
     }
 
@@ -233,6 +240,4 @@ void GBufferRenderTargets::debugDrawImGui()
         ImGui::Image(texID, ImVec2(previewWidth, previewWidth));
         ImGui::Separator();
     }
-
-    ImGui::End();
 }

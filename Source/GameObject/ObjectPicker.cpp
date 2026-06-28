@@ -3,6 +3,7 @@
 #include "Editor/EditorContext.h"
 #include "GameObject\GameObject.h"
 #include "Physics\Raycast.h"
+#include "System\RuntimeUIManager.h"
 #include "Component\TransformComponent.h"
 #include "Component\FbxRenderComponent.h"
 #include "Camera\CameraComponent.h"
@@ -10,6 +11,8 @@
 void ObjectPicker::update()
 {
     if (!m_enabled) return;
+
+    if (RuntimeUIManager::Instance().wantsMouseCapture()) return;
 
     // 左クリックされたフレームのみ処理
     if (!InputManager::Instance().isMousePressed(0)) return;

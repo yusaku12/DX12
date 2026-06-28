@@ -6,7 +6,7 @@
 
 namespace
 {
-    constexpr uint32_t kSceneVersion = 1;
+    constexpr uint32_t kSceneVersion = 2;
 
     std::vector<uint8_t> readFileBytes(const std::filesystem::path& filePath)
     {

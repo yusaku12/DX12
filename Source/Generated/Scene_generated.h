@@ -15,12 +15,20 @@ static_assert(FLATBUFFERS_VERSION_MAJOR == 25 &&
 
 namespace scene {
 
+struct vec2;
+
 struct vec3;
 
 struct vec4;
 
 struct TransformComponentData;
 struct TransformComponentDataBuilder;
+
+struct RectTransformComponentData;
+struct RectTransformComponentDataBuilder;
+
+struct CanvasComponentData;
+struct CanvasComponentDataBuilder;
 
 struct CameraComponentData;
 struct CameraComponentDataBuilder;
@@ -52,6 +60,12 @@ struct GpuEffectComponentDataBuilder;
 struct AnimationComponentData;
 struct AnimationComponentDataBuilder;
 
+struct UITextComponentData;
+struct UITextComponentDataBuilder;
+
+struct UIButtonComponentData;
+struct UIButtonComponentDataBuilder;
+
 struct SerializedComponent;
 struct SerializedComponentBuilder;
 
@@ -64,23 +78,29 @@ struct SerializedSceneBuilder;
 enum ComponentPayload : uint8_t {
   ComponentPayload_NONE = 0,
   ComponentPayload_TransformComponentData = 1,
-  ComponentPayload_CameraComponentData = 2,
-  ComponentPayload_FreeCameraComponentData = 3,
-  ComponentPayload_FbxRenderComponentData = 4,
-  ComponentPayload_RigidbodyComponentData = 5,
-  ComponentPayload_ColliderComponentData = 6,
-  ComponentPayload_PostEffectComponentData = 7,
-  ComponentPayload_SkyboxComponentData = 8,
-  ComponentPayload_GpuEffectComponentData = 9,
-  ComponentPayload_AnimationComponentData = 10,
+  ComponentPayload_RectTransformComponentData = 2,
+  ComponentPayload_CanvasComponentData = 3,
+  ComponentPayload_CameraComponentData = 4,
+  ComponentPayload_FreeCameraComponentData = 5,
+  ComponentPayload_FbxRenderComponentData = 6,
+  ComponentPayload_RigidbodyComponentData = 7,
+  ComponentPayload_ColliderComponentData = 8,
+  ComponentPayload_PostEffectComponentData = 9,
+  ComponentPayload_SkyboxComponentData = 10,
+  ComponentPayload_GpuEffectComponentData = 11,
+  ComponentPayload_AnimationComponentData = 12,
+  ComponentPayload_UITextComponentData = 13,
+  ComponentPayload_UIButtonComponentData = 14,
   ComponentPayload_MIN = ComponentPayload_NONE,
-  ComponentPayload_MAX = ComponentPayload_AnimationComponentData
+  ComponentPayload_MAX = ComponentPayload_UIButtonComponentData
 };
 
-inline const ComponentPayload (&EnumValuesComponentPayload())[11] {
+inline const ComponentPayload (&EnumValuesComponentPayload())[15] {
   static const ComponentPayload values[] = {
     ComponentPayload_NONE,
     ComponentPayload_TransformComponentData,
+    ComponentPayload_RectTransformComponentData,
+    ComponentPayload_CanvasComponentData,
     ComponentPayload_CameraComponentData,
     ComponentPayload_FreeCameraComponentData,
     ComponentPayload_FbxRenderComponentData,
@@ -89,15 +109,19 @@ inline const ComponentPayload (&EnumValuesComponentPayload())[11] {
     ComponentPayload_PostEffectComponentData,
     ComponentPayload_SkyboxComponentData,
     ComponentPayload_GpuEffectComponentData,
-    ComponentPayload_AnimationComponentData
+    ComponentPayload_AnimationComponentData,
+    ComponentPayload_UITextComponentData,
+    ComponentPayload_UIButtonComponentData
   };
   return values;
 }
 
 inline const char * const *EnumNamesComponentPayload() {
-  static const char * const names[12] = {
+  static const char * const names[16] = {
     "NONE",
     "TransformComponentData",
+    "RectTransformComponentData",
+    "CanvasComponentData",
     "CameraComponentData",
     "FreeCameraComponentData",
     "FbxRenderComponentData",
@@ -107,13 +131,15 @@ inline const char * const *EnumNamesComponentPayload() {
     "SkyboxComponentData",
     "GpuEffectComponentData",
     "AnimationComponentData",
+    "UITextComponentData",
+    "UIButtonComponentData",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameComponentPayload(ComponentPayload e) {
-  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_AnimationComponentData)) return "";
+  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_UIButtonComponentData)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesComponentPayload()[index];
 }
@@ -124,6 +150,14 @@ template<typename T> struct ComponentPayloadTraits {
 
 template<> struct ComponentPayloadTraits<scene::TransformComponentData> {
   static const ComponentPayload enum_value = ComponentPayload_TransformComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::RectTransformComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_RectTransformComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::CanvasComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_CanvasComponentData;
 };
 
 template<> struct ComponentPayloadTraits<scene::CameraComponentData> {
@@ -162,10 +196,41 @@ template<> struct ComponentPayloadTraits<scene::AnimationComponentData> {
   static const ComponentPayload enum_value = ComponentPayload_AnimationComponentData;
 };
 
+template<> struct ComponentPayloadTraits<scene::UITextComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_UITextComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::UIButtonComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_UIButtonComponentData;
+};
+
 template <bool B = false>
 bool VerifyComponentPayload(::flatbuffers::VerifierTemplate<B> &verifier, const void *obj, ComponentPayload type);
 template <bool B = false>
 bool VerifyComponentPayloadVector(::flatbuffers::VerifierTemplate<B> &verifier, const ::flatbuffers::Vector<::flatbuffers::Offset<void>> *values, const ::flatbuffers::Vector<uint8_t> *types);
+
+FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) vec2 FLATBUFFERS_FINAL_CLASS {
+ private:
+  float x_;
+  float y_;
+
+ public:
+  vec2()
+      : x_(0),
+        y_(0) {
+  }
+  vec2(float _x, float _y)
+      : x_(::flatbuffers::EndianScalar(_x)),
+        y_(::flatbuffers::EndianScalar(_y)) {
+  }
+  float x() const {
+    return ::flatbuffers::EndianScalar(x_);
+  }
+  float y() const {
+    return ::flatbuffers::EndianScalar(y_);
+  }
+};
+FLATBUFFERS_STRUCT_END(vec2, 8);
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) vec3 FLATBUFFERS_FINAL_CLASS {
  private:
@@ -290,6 +355,130 @@ inline ::flatbuffers::Offset<TransformComponentData> CreateTransformComponentDat
   builder_.add_scale(scale);
   builder_.add_rotation(rotation);
   builder_.add_position(position);
+  return builder_.Finish();
+}
+
+struct RectTransformComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef RectTransformComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ANCHOR = 4,
+    VT_POSITION = 6,
+    VT_SIZE = 8,
+    VT_PIVOT = 10
+  };
+  const scene::vec2 *anchor() const {
+    return GetStruct<const scene::vec2 *>(VT_ANCHOR);
+  }
+  const scene::vec2 *position() const {
+    return GetStruct<const scene::vec2 *>(VT_POSITION);
+  }
+  const scene::vec2 *size() const {
+    return GetStruct<const scene::vec2 *>(VT_SIZE);
+  }
+  const scene::vec2 *pivot() const {
+    return GetStruct<const scene::vec2 *>(VT_PIVOT);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<scene::vec2>(verifier, VT_ANCHOR, 4) &&
+           VerifyField<scene::vec2>(verifier, VT_POSITION, 4) &&
+           VerifyField<scene::vec2>(verifier, VT_SIZE, 4) &&
+           VerifyField<scene::vec2>(verifier, VT_PIVOT, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct RectTransformComponentDataBuilder {
+  typedef RectTransformComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_anchor(const scene::vec2 *anchor) {
+    fbb_.AddStruct(RectTransformComponentData::VT_ANCHOR, anchor);
+  }
+  void add_position(const scene::vec2 *position) {
+    fbb_.AddStruct(RectTransformComponentData::VT_POSITION, position);
+  }
+  void add_size(const scene::vec2 *size) {
+    fbb_.AddStruct(RectTransformComponentData::VT_SIZE, size);
+  }
+  void add_pivot(const scene::vec2 *pivot) {
+    fbb_.AddStruct(RectTransformComponentData::VT_PIVOT, pivot);
+  }
+  explicit RectTransformComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<RectTransformComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<RectTransformComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<RectTransformComponentData> CreateRectTransformComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const scene::vec2 *anchor = nullptr,
+    const scene::vec2 *position = nullptr,
+    const scene::vec2 *size = nullptr,
+    const scene::vec2 *pivot = nullptr) {
+  RectTransformComponentDataBuilder builder_(_fbb);
+  builder_.add_pivot(pivot);
+  builder_.add_size(size);
+  builder_.add_position(position);
+  builder_.add_anchor(anchor);
+  return builder_.Finish();
+}
+
+struct CanvasComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef CanvasComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_SORT_ORDER = 4,
+    VT_RECEIVES_INPUT = 6
+  };
+  int32_t sort_order() const {
+    return GetField<int32_t>(VT_SORT_ORDER, 0);
+  }
+  bool receives_input() const {
+    return GetField<uint8_t>(VT_RECEIVES_INPUT, 0) != 0;
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_SORT_ORDER, 4) &&
+           VerifyField<uint8_t>(verifier, VT_RECEIVES_INPUT, 1) &&
+           verifier.EndTable();
+  }
+};
+
+struct CanvasComponentDataBuilder {
+  typedef CanvasComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_sort_order(int32_t sort_order) {
+    fbb_.AddElement<int32_t>(CanvasComponentData::VT_SORT_ORDER, sort_order, 0);
+  }
+  void add_receives_input(bool receives_input) {
+    fbb_.AddElement<uint8_t>(CanvasComponentData::VT_RECEIVES_INPUT, static_cast<uint8_t>(receives_input), 0);
+  }
+  explicit CanvasComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<CanvasComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<CanvasComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<CanvasComponentData> CreateCanvasComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t sort_order = 0,
+    bool receives_input = false) {
+  CanvasComponentDataBuilder builder_(_fbb);
+  builder_.add_sort_order(sort_order);
+  builder_.add_receives_input(receives_input);
   return builder_.Finish();
 }
 
@@ -1154,6 +1343,256 @@ inline ::flatbuffers::Offset<AnimationComponentData> CreateAnimationComponentDat
   return builder_.Finish();
 }
 
+struct UITextComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef UITextComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_TEXT = 4,
+    VT_COLOR = 6,
+    VT_FONT_SCALE = 8,
+    VT_ALIGNMENT = 10
+  };
+  const ::flatbuffers::String *text() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_TEXT);
+  }
+  const scene::vec4 *color() const {
+    return GetStruct<const scene::vec4 *>(VT_COLOR);
+  }
+  float font_scale() const {
+    return GetField<float>(VT_FONT_SCALE, 0.0f);
+  }
+  int32_t alignment() const {
+    return GetField<int32_t>(VT_ALIGNMENT, 0);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_TEXT) &&
+           verifier.VerifyString(text()) &&
+           VerifyField<scene::vec4>(verifier, VT_COLOR, 4) &&
+           VerifyField<float>(verifier, VT_FONT_SCALE, 4) &&
+           VerifyField<int32_t>(verifier, VT_ALIGNMENT, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct UITextComponentDataBuilder {
+  typedef UITextComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_text(::flatbuffers::Offset<::flatbuffers::String> text) {
+    fbb_.AddOffset(UITextComponentData::VT_TEXT, text);
+  }
+  void add_color(const scene::vec4 *color) {
+    fbb_.AddStruct(UITextComponentData::VT_COLOR, color);
+  }
+  void add_font_scale(float font_scale) {
+    fbb_.AddElement<float>(UITextComponentData::VT_FONT_SCALE, font_scale, 0.0f);
+  }
+  void add_alignment(int32_t alignment) {
+    fbb_.AddElement<int32_t>(UITextComponentData::VT_ALIGNMENT, alignment, 0);
+  }
+  explicit UITextComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<UITextComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<UITextComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<UITextComponentData> CreateUITextComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> text = 0,
+    const scene::vec4 *color = nullptr,
+    float font_scale = 0.0f,
+    int32_t alignment = 0) {
+  UITextComponentDataBuilder builder_(_fbb);
+  builder_.add_alignment(alignment);
+  builder_.add_font_scale(font_scale);
+  builder_.add_color(color);
+  builder_.add_text(text);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<UITextComponentData> CreateUITextComponentDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *text = nullptr,
+    const scene::vec4 *color = nullptr,
+    float font_scale = 0.0f,
+    int32_t alignment = 0) {
+  auto text__ = text ? _fbb.CreateString(text) : 0;
+  return scene::CreateUITextComponentData(
+      _fbb,
+      text__,
+      color,
+      font_scale,
+      alignment);
+}
+
+struct UIButtonComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef UIButtonComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_LABEL = 4,
+    VT_CLICK_EVENT_NAME = 6,
+    VT_NORMAL_COLOR = 8,
+    VT_HOVER_COLOR = 10,
+    VT_PRESSED_COLOR = 12,
+    VT_TEXT_COLOR = 14,
+    VT_FONT_SCALE = 16,
+    VT_CORNER_ROUNDING = 18,
+    VT_INTERACTABLE = 20,
+    VT_BLOCK_MOUSE_INPUT = 22
+  };
+  const ::flatbuffers::String *label() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_LABEL);
+  }
+  const ::flatbuffers::String *click_event_name() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_CLICK_EVENT_NAME);
+  }
+  const scene::vec4 *normal_color() const {
+    return GetStruct<const scene::vec4 *>(VT_NORMAL_COLOR);
+  }
+  const scene::vec4 *hover_color() const {
+    return GetStruct<const scene::vec4 *>(VT_HOVER_COLOR);
+  }
+  const scene::vec4 *pressed_color() const {
+    return GetStruct<const scene::vec4 *>(VT_PRESSED_COLOR);
+  }
+  const scene::vec4 *text_color() const {
+    return GetStruct<const scene::vec4 *>(VT_TEXT_COLOR);
+  }
+  float font_scale() const {
+    return GetField<float>(VT_FONT_SCALE, 0.0f);
+  }
+  float corner_rounding() const {
+    return GetField<float>(VT_CORNER_ROUNDING, 0.0f);
+  }
+  bool interactable() const {
+    return GetField<uint8_t>(VT_INTERACTABLE, 0) != 0;
+  }
+  bool block_mouse_input() const {
+    return GetField<uint8_t>(VT_BLOCK_MOUSE_INPUT, 0) != 0;
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_LABEL) &&
+           verifier.VerifyString(label()) &&
+           VerifyOffset(verifier, VT_CLICK_EVENT_NAME) &&
+           verifier.VerifyString(click_event_name()) &&
+           VerifyField<scene::vec4>(verifier, VT_NORMAL_COLOR, 4) &&
+           VerifyField<scene::vec4>(verifier, VT_HOVER_COLOR, 4) &&
+           VerifyField<scene::vec4>(verifier, VT_PRESSED_COLOR, 4) &&
+           VerifyField<scene::vec4>(verifier, VT_TEXT_COLOR, 4) &&
+           VerifyField<float>(verifier, VT_FONT_SCALE, 4) &&
+           VerifyField<float>(verifier, VT_CORNER_ROUNDING, 4) &&
+           VerifyField<uint8_t>(verifier, VT_INTERACTABLE, 1) &&
+           VerifyField<uint8_t>(verifier, VT_BLOCK_MOUSE_INPUT, 1) &&
+           verifier.EndTable();
+  }
+};
+
+struct UIButtonComponentDataBuilder {
+  typedef UIButtonComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_label(::flatbuffers::Offset<::flatbuffers::String> label) {
+    fbb_.AddOffset(UIButtonComponentData::VT_LABEL, label);
+  }
+  void add_click_event_name(::flatbuffers::Offset<::flatbuffers::String> click_event_name) {
+    fbb_.AddOffset(UIButtonComponentData::VT_CLICK_EVENT_NAME, click_event_name);
+  }
+  void add_normal_color(const scene::vec4 *normal_color) {
+    fbb_.AddStruct(UIButtonComponentData::VT_NORMAL_COLOR, normal_color);
+  }
+  void add_hover_color(const scene::vec4 *hover_color) {
+    fbb_.AddStruct(UIButtonComponentData::VT_HOVER_COLOR, hover_color);
+  }
+  void add_pressed_color(const scene::vec4 *pressed_color) {
+    fbb_.AddStruct(UIButtonComponentData::VT_PRESSED_COLOR, pressed_color);
+  }
+  void add_text_color(const scene::vec4 *text_color) {
+    fbb_.AddStruct(UIButtonComponentData::VT_TEXT_COLOR, text_color);
+  }
+  void add_font_scale(float font_scale) {
+    fbb_.AddElement<float>(UIButtonComponentData::VT_FONT_SCALE, font_scale, 0.0f);
+  }
+  void add_corner_rounding(float corner_rounding) {
+    fbb_.AddElement<float>(UIButtonComponentData::VT_CORNER_ROUNDING, corner_rounding, 0.0f);
+  }
+  void add_interactable(bool interactable) {
+    fbb_.AddElement<uint8_t>(UIButtonComponentData::VT_INTERACTABLE, static_cast<uint8_t>(interactable), 0);
+  }
+  void add_block_mouse_input(bool block_mouse_input) {
+    fbb_.AddElement<uint8_t>(UIButtonComponentData::VT_BLOCK_MOUSE_INPUT, static_cast<uint8_t>(block_mouse_input), 0);
+  }
+  explicit UIButtonComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<UIButtonComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<UIButtonComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<UIButtonComponentData> CreateUIButtonComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> label = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> click_event_name = 0,
+    const scene::vec4 *normal_color = nullptr,
+    const scene::vec4 *hover_color = nullptr,
+    const scene::vec4 *pressed_color = nullptr,
+    const scene::vec4 *text_color = nullptr,
+    float font_scale = 0.0f,
+    float corner_rounding = 0.0f,
+    bool interactable = false,
+    bool block_mouse_input = false) {
+  UIButtonComponentDataBuilder builder_(_fbb);
+  builder_.add_corner_rounding(corner_rounding);
+  builder_.add_font_scale(font_scale);
+  builder_.add_text_color(text_color);
+  builder_.add_pressed_color(pressed_color);
+  builder_.add_hover_color(hover_color);
+  builder_.add_normal_color(normal_color);
+  builder_.add_click_event_name(click_event_name);
+  builder_.add_label(label);
+  builder_.add_block_mouse_input(block_mouse_input);
+  builder_.add_interactable(interactable);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<UIButtonComponentData> CreateUIButtonComponentDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *label = nullptr,
+    const char *click_event_name = nullptr,
+    const scene::vec4 *normal_color = nullptr,
+    const scene::vec4 *hover_color = nullptr,
+    const scene::vec4 *pressed_color = nullptr,
+    const scene::vec4 *text_color = nullptr,
+    float font_scale = 0.0f,
+    float corner_rounding = 0.0f,
+    bool interactable = false,
+    bool block_mouse_input = false) {
+  auto label__ = label ? _fbb.CreateString(label) : 0;
+  auto click_event_name__ = click_event_name ? _fbb.CreateString(click_event_name) : 0;
+  return scene::CreateUIButtonComponentData(
+      _fbb,
+      label__,
+      click_event_name__,
+      normal_color,
+      hover_color,
+      pressed_color,
+      text_color,
+      font_scale,
+      corner_rounding,
+      interactable,
+      block_mouse_input);
+}
+
 struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef SerializedComponentBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -1177,6 +1616,12 @@ struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   template<typename T> const T *payload_as() const;
   const scene::TransformComponentData *payload_as_TransformComponentData() const {
     return payload_type() == scene::ComponentPayload_TransformComponentData ? static_cast<const scene::TransformComponentData *>(payload()) : nullptr;
+  }
+  const scene::RectTransformComponentData *payload_as_RectTransformComponentData() const {
+    return payload_type() == scene::ComponentPayload_RectTransformComponentData ? static_cast<const scene::RectTransformComponentData *>(payload()) : nullptr;
+  }
+  const scene::CanvasComponentData *payload_as_CanvasComponentData() const {
+    return payload_type() == scene::ComponentPayload_CanvasComponentData ? static_cast<const scene::CanvasComponentData *>(payload()) : nullptr;
   }
   const scene::CameraComponentData *payload_as_CameraComponentData() const {
     return payload_type() == scene::ComponentPayload_CameraComponentData ? static_cast<const scene::CameraComponentData *>(payload()) : nullptr;
@@ -1205,6 +1650,12 @@ struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   const scene::AnimationComponentData *payload_as_AnimationComponentData() const {
     return payload_type() == scene::ComponentPayload_AnimationComponentData ? static_cast<const scene::AnimationComponentData *>(payload()) : nullptr;
   }
+  const scene::UITextComponentData *payload_as_UITextComponentData() const {
+    return payload_type() == scene::ComponentPayload_UITextComponentData ? static_cast<const scene::UITextComponentData *>(payload()) : nullptr;
+  }
+  const scene::UIButtonComponentData *payload_as_UIButtonComponentData() const {
+    return payload_type() == scene::ComponentPayload_UIButtonComponentData ? static_cast<const scene::UIButtonComponentData *>(payload()) : nullptr;
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1220,6 +1671,14 @@ struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
 
 template<> inline const scene::TransformComponentData *SerializedComponent::payload_as<scene::TransformComponentData>() const {
   return payload_as_TransformComponentData();
+}
+
+template<> inline const scene::RectTransformComponentData *SerializedComponent::payload_as<scene::RectTransformComponentData>() const {
+  return payload_as_RectTransformComponentData();
+}
+
+template<> inline const scene::CanvasComponentData *SerializedComponent::payload_as<scene::CanvasComponentData>() const {
+  return payload_as_CanvasComponentData();
 }
 
 template<> inline const scene::CameraComponentData *SerializedComponent::payload_as<scene::CameraComponentData>() const {
@@ -1256,6 +1715,14 @@ template<> inline const scene::GpuEffectComponentData *SerializedComponent::payl
 
 template<> inline const scene::AnimationComponentData *SerializedComponent::payload_as<scene::AnimationComponentData>() const {
   return payload_as_AnimationComponentData();
+}
+
+template<> inline const scene::UITextComponentData *SerializedComponent::payload_as<scene::UITextComponentData>() const {
+  return payload_as_UITextComponentData();
+}
+
+template<> inline const scene::UIButtonComponentData *SerializedComponent::payload_as<scene::UIButtonComponentData>() const {
+  return payload_as_UIButtonComponentData();
 }
 
 struct SerializedComponentBuilder {
@@ -1520,6 +1987,14 @@ inline bool VerifyComponentPayload(::flatbuffers::VerifierTemplate<B> &verifier,
       auto ptr = reinterpret_cast<const scene::TransformComponentData *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case ComponentPayload_RectTransformComponentData: {
+      auto ptr = reinterpret_cast<const scene::RectTransformComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_CanvasComponentData: {
+      auto ptr = reinterpret_cast<const scene::CanvasComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     case ComponentPayload_CameraComponentData: {
       auto ptr = reinterpret_cast<const scene::CameraComponentData *>(obj);
       return verifier.VerifyTable(ptr);
@@ -1554,6 +2029,14 @@ inline bool VerifyComponentPayload(::flatbuffers::VerifierTemplate<B> &verifier,
     }
     case ComponentPayload_AnimationComponentData: {
       auto ptr = reinterpret_cast<const scene::AnimationComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_UITextComponentData: {
+      auto ptr = reinterpret_cast<const scene::UITextComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_UIButtonComponentData: {
+      auto ptr = reinterpret_cast<const scene::UIButtonComponentData *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;

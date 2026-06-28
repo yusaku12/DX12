@@ -57,6 +57,9 @@ public:
     //! デバッグImGui描画
     void debugImgui();
 
+    //! デバッグ中身表示
+    void renderDebugContents();
+
     //! 登録数取得
     size_t getComponentCount() const { return m_components.size(); }
 

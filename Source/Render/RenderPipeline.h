@@ -27,6 +27,9 @@ public:
     //! パス実行時間のデバッグ表示
     void debugImgui();
 
+    //! パス実行時間の中身表示
+    void renderDebugContents();
+
 private:
 
     RenderPipeline() = default;

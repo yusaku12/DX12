@@ -32,6 +32,9 @@ public:
     //! ログ表示
     void renderLog();
 
+    //! ログ中身表示
+    void renderLogContents();
+
 private:
 
     Logger() = default;

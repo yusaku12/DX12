@@ -7,13 +7,17 @@
 #include "Camera/CameraComponent.h"
 #include "Camera/FreeCameraComponent.h"
 #include "Component/AnimationComponent.h"
+#include "Component/CanvasComponent.h"
 #include "Component/ColliderComponent.h"
 #include "Component/FbxRenderComponent.h"
 #include "Component/GpuEffectComponent.h"
 #include "Component/PostEffectComponent.h"
+#include "Component/RectTransformComponent.h"
 #include "Component/RigidbodyComponent.h"
 #include "Component/SkyboxComponent.h"
 #include "Component/TransformComponent.h"
+#include "Component/UIButtonComponent.h"
+#include "Component/UITextComponent.h"
 #include "PostEffect/BloomEffect.h"
 #include "PostEffect/ColorGradingEffect.h"
 #include "PostEffect/DepthOfFieldEffect.h"
@@ -31,6 +35,11 @@ namespace SerializationCommon
     inline scene::vec3 toFlatVec3(const Vector3& value)
     {
         return scene::vec3(value.x, value.y, value.z);
+    }
+
+    inline scene::vec2 toFlatVec2(const Vector2& value)
+    {
+        return scene::vec2(value.x, value.y);
     }
 
     inline scene::vec4 toFlatVec4(const Vector4& value)
@@ -89,6 +98,8 @@ namespace SerializationCommon
         static const std::vector<ComponentArchetype> archetypes =
         {
             { "TransformComponent", true, &createDefault<TransformComponent> },
+            { "RectTransformComponent", true, &createDefault<RectTransformComponent> },
+            { "CanvasComponent", true, &createDefault<CanvasComponent> },
             { "FreeCameraComponent", true, &createDefault<FreeCameraComponent> },
             { "CameraComponent", true, &createDefault<CameraComponent> },
             { "FbxRenderComponent", false, &createFbx },
@@ -98,6 +109,8 @@ namespace SerializationCommon
             { "PostEffectComponent", true, &createDefault<PostEffectComponent> },
             { "SkyboxComponent", true, &createDefault<SkyboxComponent> },
             { "GpuEffectComponent", true, &createDefault<GpuEffectComponent> },
+            { "UITextComponent", true, &createDefault<UITextComponent> },
+            { "UIButtonComponent", true, &createDefault<UIButtonComponent> },
         };
         return archetypes;
     }
@@ -134,6 +147,8 @@ namespace SerializationCommon
         }
 
         if (typeName == "TransformComponent") return gameObject->getComponent<TransformComponent>() != nullptr;
+        if (typeName == "RectTransformComponent") return gameObject->getComponent<RectTransformComponent>() != nullptr;
+        if (typeName == "CanvasComponent") return gameObject->getComponent<CanvasComponent>() != nullptr;
         if (typeName == "FreeCameraComponent") return gameObject->getComponent<FreeCameraComponent>() != nullptr;
         if (typeName == "CameraComponent") return gameObject->getComponent<CameraComponent>() != nullptr;
         if (typeName == "FbxRenderComponent") return gameObject->getComponent<FbxRenderComponent>() != nullptr;
@@ -143,6 +158,8 @@ namespace SerializationCommon
         if (typeName == "PostEffectComponent") return gameObject->getComponent<PostEffectComponent>() != nullptr;
         if (typeName == "SkyboxComponent") return gameObject->getComponent<SkyboxComponent>() != nullptr;
         if (typeName == "GpuEffectComponent") return gameObject->getComponent<GpuEffectComponent>() != nullptr;
+        if (typeName == "UITextComponent") return gameObject->getComponent<UITextComponent>() != nullptr;
+        if (typeName == "UIButtonComponent") return gameObject->getComponent<UIButtonComponent>() != nullptr;
 
         return false;
     }
@@ -164,6 +181,37 @@ namespace SerializationCommon
                 "TransformComponent",
                 component->isEnabled(),
                 scene::ComponentPayload_TransformComponentData,
+                payload.Union());
+        }
+
+        if (auto* rectTransform = dynamic_cast<RectTransformComponent*>(component))
+        {
+            const scene::vec2 anchor = toFlatVec2(rectTransform->getAnchor());
+            const scene::vec2 position = toFlatVec2(rectTransform->getPosition());
+            const scene::vec2 size = toFlatVec2(rectTransform->getSize());
+            const scene::vec2 pivot = toFlatVec2(rectTransform->getPivot());
+            const auto payload = scene::CreateRectTransformComponentData(builder, &anchor, &position, &size, &pivot);
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "RectTransformComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_RectTransformComponentData,
+                payload.Union());
+        }
+
+        if (auto* canvas = dynamic_cast<CanvasComponent*>(component))
+        {
+            const auto payload = scene::CreateCanvasComponentData(
+                builder,
+                canvas->getSortOrder(),
+                canvas->receivesInput());
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "CanvasComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_CanvasComponentData,
                 payload.Union());
         }
 
@@ -352,6 +400,51 @@ namespace SerializationCommon
                 payload.Union());
         }
 
+        if (auto* text = dynamic_cast<UITextComponent*>(component))
+        {
+            const scene::vec4 color = toFlatVec4(text->getColor());
+            const auto payload = scene::CreateUITextComponentDataDirect(
+                builder,
+                text->getText().c_str(),
+                &color,
+                text->getFontScale(),
+                static_cast<int32_t>(text->getAlignment()));
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "UITextComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_UITextComponentData,
+                payload.Union());
+        }
+
+        if (auto* button = dynamic_cast<UIButtonComponent*>(component))
+        {
+            const scene::vec4 normal = toFlatVec4(button->getNormalColor());
+            const scene::vec4 hover = toFlatVec4(button->getHoverColor());
+            const scene::vec4 pressed = toFlatVec4(button->getPressedColor());
+            const scene::vec4 textColor = toFlatVec4(button->getTextColor());
+            const auto payload = scene::CreateUIButtonComponentDataDirect(
+                builder,
+                button->getLabel().c_str(),
+                button->getClickEventName().empty() ? nullptr : button->getClickEventName().c_str(),
+                &normal,
+                &hover,
+                &pressed,
+                &textColor,
+                button->getFontScale(),
+                button->getCornerRounding(),
+                button->isInteractable(),
+                button->blocksMouseInput());
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "UIButtonComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_UIButtonComponentData,
+                payload.Union());
+        }
+
         return 0;
     }
 
@@ -387,6 +480,49 @@ namespace SerializationCommon
             {
                 transform->setScale(Vector3(scale->x(), scale->y(), scale->z()));
             }
+            return;
+        }
+        case scene::ComponentPayload_RectTransformComponentData:
+        {
+            auto* rectTransform = dynamic_cast<RectTransformComponent*>(component);
+            const auto* payload = serialized->payload_as_RectTransformComponentData();
+            if (!rectTransform || !payload)
+            {
+                return;
+            }
+
+            if (const auto* anchor = payload->anchor())
+            {
+                rectTransform->setAnchor(Vector2(anchor->x(), anchor->y()));
+            }
+
+            if (const auto* position = payload->position())
+            {
+                rectTransform->setPosition(Vector2(position->x(), position->y()));
+            }
+
+            if (const auto* size = payload->size())
+            {
+                rectTransform->setSize(Vector2(size->x(), size->y()));
+            }
+
+            if (const auto* pivot = payload->pivot())
+            {
+                rectTransform->setPivot(Vector2(pivot->x(), pivot->y()));
+            }
+            return;
+        }
+        case scene::ComponentPayload_CanvasComponentData:
+        {
+            auto* canvas = dynamic_cast<CanvasComponent*>(component);
+            const auto* payload = serialized->payload_as_CanvasComponentData();
+            if (!canvas || !payload)
+            {
+                return;
+            }
+
+            canvas->setSortOrder(payload->sort_order());
+            canvas->setReceivesInput(payload->receives_input());
             return;
         }
         case scene::ComponentPayload_FreeCameraComponentData:
@@ -581,6 +717,74 @@ namespace SerializationCommon
             }
 
             gpuEffect->setMaxParticles(payload->max_particles());
+            return;
+        }
+        case scene::ComponentPayload_UITextComponentData:
+        {
+            auto* text = dynamic_cast<UITextComponent*>(component);
+            const auto* payload = serialized->payload_as_UITextComponentData();
+            if (!text || !payload)
+            {
+                return;
+            }
+
+            if (const auto* textValue = payload->text())
+            {
+                text->setText(textValue->str());
+            }
+
+            if (const auto* color = payload->color())
+            {
+                text->setColor(Vector4(color->x(), color->y(), color->z(), color->w()));
+            }
+
+            text->setFontScale(payload->font_scale());
+            text->setAlignment(static_cast<UITextAlignment>(payload->alignment()));
+            return;
+        }
+        case scene::ComponentPayload_UIButtonComponentData:
+        {
+            auto* button = dynamic_cast<UIButtonComponent*>(component);
+            const auto* payload = serialized->payload_as_UIButtonComponentData();
+            if (!button || !payload)
+            {
+                return;
+            }
+
+            if (const auto* label = payload->label())
+            {
+                button->setLabel(label->str());
+            }
+
+            if (const auto* eventName = payload->click_event_name())
+            {
+                button->setClickEventName(eventName->str());
+            }
+
+            if (const auto* normal = payload->normal_color())
+            {
+                button->setNormalColor(Vector4(normal->x(), normal->y(), normal->z(), normal->w()));
+            }
+
+            if (const auto* hover = payload->hover_color())
+            {
+                button->setHoverColor(Vector4(hover->x(), hover->y(), hover->z(), hover->w()));
+            }
+
+            if (const auto* pressed = payload->pressed_color())
+            {
+                button->setPressedColor(Vector4(pressed->x(), pressed->y(), pressed->z(), pressed->w()));
+            }
+
+            if (const auto* textColor = payload->text_color())
+            {
+                button->setTextColor(Vector4(textColor->x(), textColor->y(), textColor->z(), textColor->w()));
+            }
+
+            button->setFontScale(payload->font_scale());
+            button->setCornerRounding(payload->corner_rounding());
+            button->setInteractable(payload->interactable());
+            button->setBlockMouseInput(payload->block_mouse_input());
             return;
         }
         default:

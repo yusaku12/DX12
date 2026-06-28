@@ -6,6 +6,26 @@
 #include "InspectorWindow.h"
 #include "CubemapToolWindow.h"
 #include "GameObject\ObjectPicker.h"
+#include "Graphics\DX12.h"
+#include "Render\GBufferRenderTargets.h"
+#include "Render\HiZPyramid.h"
+#include "Render\RenderManager.h"
+#include "Render\RenderPipeline.h"
+#include "Scene\SceneManager.h"
+#include "System\Logger.h"
+#include "System\RuntimeUIManager.h"
+#include "System\TimeManager.h"
+
+namespace
+{
+    constexpr const char* kDockspaceWindowName = "EditorRootDockspace";
+    constexpr const char* kSceneWindowName = "Scene";
+    constexpr const char* kHierarchyWindowName = "Hierarchy";
+    constexpr const char* kInspectorWindowName = "Inspector";
+    constexpr const char* kProjectWindowName = "Project";
+    constexpr const char* kDebugHubWindowName = "Debug Hub";
+    constexpr const char* kSceneSettingsWindowName = "Scene Settings";
+}
 
 void EditorManager::update()
 {
@@ -29,13 +49,195 @@ void EditorManager::update()
     }
 
     // Scene ウィンドウ上でのオブジェクトピッキング
-    ObjectPicker::Instance().update();
+    if (m_windowState.scene)
+    {
+        ObjectPicker::Instance().update();
+    }
 }
 
 void EditorManager::imgui()
 {
-    drawAssetBrowserWindow();
-    drawHierarchyWindow();
-    drawInspectorWindow();
-    //drawCubemapToolWindow();
+    drawDockspaceHost();
+    drawManagedWindows();
+}
+
+void EditorManager::drawDockspaceHost()
+{
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    ImGuiWindowFlags windowFlags =
+        ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoBringToFrontOnFocus |
+        ImGuiWindowFlags_NoNavFocus |
+        ImGuiWindowFlags_NoDocking |
+        ImGuiWindowFlags_MenuBar;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+    ImGui::Begin(kDockspaceWindowName, nullptr, windowFlags);
+    ImGui::PopStyleVar(3);
+
+    drawMainMenuBar();
+
+    ImGuiID dockspaceId = ImGui::GetID("EditorDockspace");
+    ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+    if (m_requestLayoutReset || !m_layoutInitialized)
+    {
+        applyDefaultLayout(dockspaceId);
+        m_requestLayoutReset = false;
+        m_layoutInitialized = true;
+    }
+
+    ImGui::End();
+}
+
+void EditorManager::drawMainMenuBar()
+{
+    if (!ImGui::BeginMenuBar())
+    {
+        return;
+    }
+
+    if (ImGui::BeginMenu("Layout"))
+    {
+        if (ImGui::MenuItem("Reset To Default"))
+        {
+            m_requestLayoutReset = true;
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Window"))
+    {
+        ImGui::MenuItem(kSceneWindowName, nullptr, &m_windowState.scene);
+        ImGui::MenuItem(kHierarchyWindowName, nullptr, &m_windowState.hierarchy);
+        ImGui::MenuItem(kInspectorWindowName, nullptr, &m_windowState.inspector);
+        ImGui::MenuItem(kProjectWindowName, nullptr, &m_windowState.project);
+        ImGui::MenuItem(kDebugHubWindowName, nullptr, &m_windowState.debugHub);
+        ImGui::MenuItem(kSceneSettingsWindowName, nullptr, &m_windowState.sceneSettings);
+        ImGui::EndMenu();
+    }
+
+    ImGui::SeparatorText("Workspace");
+    ImGui::TextDisabled("Dock panels and toggle them from Window");
+
+    ImGui::EndMenuBar();
+}
+
+void EditorManager::applyDefaultLayout(ImGuiID dockspaceId)
+{
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+    ImGui::DockBuilderRemoveNode(dockspaceId);
+    ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+    ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
+
+    ImGuiID dockMain = dockspaceId;
+    ImGuiID dockRight = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Right, 0.26f, nullptr, &dockMain);
+    ImGuiID dockLeft = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Left, 0.20f, nullptr, &dockMain);
+    ImGuiID dockBottom = ImGui::DockBuilderSplitNode(dockMain, ImGuiDir_Down, 0.30f, nullptr, &dockMain);
+
+    ImGui::DockBuilderDockWindow(kSceneWindowName, dockMain);
+    ImGui::DockBuilderDockWindow(kHierarchyWindowName, dockLeft);
+    ImGui::DockBuilderDockWindow(kInspectorWindowName, dockRight);
+    ImGui::DockBuilderDockWindow(kProjectWindowName, dockBottom);
+    ImGui::DockBuilderDockWindow(kDebugHubWindowName, dockBottom);
+    ImGui::DockBuilderDockWindow(kSceneSettingsWindowName, dockRight);
+
+    ImGui::DockBuilderFinish(dockspaceId);
+}
+
+void EditorManager::drawManagedWindows()
+{
+    if (m_windowState.sceneSettings)
+    {
+        SceneManager::Instance().debugOption();
+    }
+
+    if (m_windowState.scene)
+    {
+        DX12::Instance().sceneImguiRender();
+        RuntimeUIManager::Instance().render();
+    }
+
+    if (m_windowState.project)
+    {
+        drawAssetBrowserWindow();
+    }
+
+    if (m_windowState.hierarchy)
+    {
+        drawHierarchyWindow();
+    }
+
+    if (m_windowState.inspector)
+    {
+        drawInspectorWindow();
+    }
+
+    if (m_windowState.debugHub)
+    {
+        drawDebugHubWindow();
+    }
+}
+
+void EditorManager::drawDebugHubWindow()
+{
+    if (!ImGui::Begin("Debug Hub"))
+    {
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::BeginTabBar("DebugHubTabs"))
+    {
+        if (ImGui::BeginTabItem("Console"))
+        {
+            Logger::Instance().renderLogContents();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Profiler"))
+        {
+            TimeManager::Instance().renderProfilerContents();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Rendering"))
+        {
+            RenderManager::Instance().renderDebugContents();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Render Passes"))
+        {
+            RenderPipeline::Instance().renderDebugContents();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("GBuffer"))
+        {
+            GBufferRenderTargets::Instance().renderDebugContents();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Hi-Z"))
+        {
+            HiZPyramid::Instance().renderDebugContents();
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
+    }
+
+    ImGui::End();
 }

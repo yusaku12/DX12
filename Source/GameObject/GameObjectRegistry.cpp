@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "System\EventBus.h"
 
 void GameObjectRegistry::registryGameObject(GameObject* obj)
 {
@@ -36,6 +37,9 @@ void GameObjectRegistry::update()
         obj->lateUpdate();
     }
 
+    // update/lateUpdate 中に発行されたイベントをフレーム終端で配送する
+    EventBus::Instance().dispatchQueued();
+
     // 削除予約オブジェクトの破棄
     destroyMarkedObjects();
 }
@@ -68,6 +72,7 @@ void GameObjectRegistry::shutdown()
 
     destroyMarkedObjects();
     m_objects.clear();
+    EventBus::Instance().shutdown();
 }
 
 GameObject* GameObjectRegistry::findByTag(Tag tag) const

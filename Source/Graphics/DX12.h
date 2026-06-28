@@ -72,6 +72,14 @@ class DX12
 {
 public:
 
+    struct EditorViewportState
+    {
+        bool active = false;
+        ImVec2 pos = ImVec2(0.0f, 0.0f);
+        ImVec2 size = ImVec2(0.0f, 0.0f);
+        ImDrawList* drawList = nullptr;
+    };
+
     DX12(HWND hwnd);
     ~DX12() = default;
 
@@ -183,6 +191,9 @@ public:
     ID3D12Resource* getSceneRenderTarget() const { return m_sceneRenderTarget.Get(); }
 
 private:
+
+    void renderViewportWindow(const char* title, EditorViewportState& state, bool allowAssetDrop, bool showToolbar);
+    void renderRuntimeToolbar();
 
     //! DX12で使用するデバッグ機能
     void enableDebugLayer();

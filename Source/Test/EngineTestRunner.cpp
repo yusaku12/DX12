@@ -2,9 +2,14 @@
 #include "EngineTestRunner.h"
 
 #include "Animation/AnimationStateMachine.h"
+#include "Component/CanvasComponent.h"
 #include "Component/ColliderComponent.h"
+#include "Component/RectTransformComponent.h"
 #include "Component/RigidbodyComponent.h"
+#include "Component/ScriptComponent.h"
 #include "Component/TransformComponent.h"
+#include "Component/UIButtonComponent.h"
+#include "Component/UITextComponent.h"
 #include "Editor/AssetMetaManager.h"
 #include "Editor/AsyncAssetLoader.h"
 #include "Editor/EditorTransaction.h"
@@ -16,6 +21,7 @@
 #include "Model/ModelResource.h"
 #include "Scene/PrefabFlatBuffer.h"
 #include "Scene/SceneFlatBuffer.h"
+#include "System/EventBus.h"
 
 namespace
 {
@@ -204,6 +210,68 @@ namespace
         return resource;
     }
 
+    struct ScriptEventProbe
+    {
+        int receiveCount = 0;
+        int lastValue = 0;
+        uint64_t lastSenderId = 0;
+    };
+
+    class TestListenerScript final : public ScriptComponent
+    {
+    public:
+
+        explicit TestListenerScript(ScriptEventProbe* probe)
+            : m_probe(probe)
+        {
+        }
+
+        void awake() override
+        {
+            subscribeEvent(
+                "Test.Event",
+                [this](const Event& eventData)
+                {
+                    if (!m_probe)
+                    {
+                        return;
+                    }
+
+                    ++m_probe->receiveCount;
+                    m_probe->lastSenderId = eventData.senderId;
+
+                    if (const int* value = eventData.payloadAs<int>())
+                    {
+                        m_probe->lastValue = *value;
+                    }
+                });
+        }
+
+        void onDestroy() override
+        {
+            ScriptComponent::onDestroy();
+        }
+
+    private:
+
+        ScriptEventProbe* m_probe = nullptr;
+    };
+
+    class TestEmitterScript final : public ScriptComponent
+    {
+    public:
+
+        void emitValue(int value)
+        {
+            publishEvent("Test.Event", value);
+        }
+
+        void onDestroy() override
+        {
+            ScriptComponent::onDestroy();
+        }
+    };
+
     PixelBuffer generateReferencePattern(int width, int height)
     {
         PixelBuffer pixels(static_cast<size_t>(width) * static_cast<size_t>(height) * 3u, 0u);
@@ -349,6 +417,140 @@ namespace
                 ctx.expectNear(actual.z, gravity.z, 0.001f, "Gravity Z mismatch");
 
                 world.shutdown();
+            }
+        });
+
+        tests.push_back({
+            "Unit.RectTransformComponent.CalculateRect",
+            TestCategory::Unit,
+            [](TestContext& ctx)
+            {
+                RectTransformComponent rectTransform;
+                rectTransform.setAnchor(Vector2(0.5f, 0.5f));
+                rectTransform.setPosition(Vector2(10.0f, -20.0f));
+                rectTransform.setSize(Vector2(200.0f, 80.0f));
+                rectTransform.setPivot(Vector2(0.5f, 0.5f));
+
+                const ImRect parent(ImVec2(100.0f, 50.0f), ImVec2(500.0f, 350.0f));
+                const ImRect actual = rectTransform.calculateRect(parent);
+
+                ctx.expectNear(actual.Min.x, 210.0f, 0.01f, "RectTransform min x mismatch");
+                ctx.expectNear(actual.Min.y, 140.0f, 0.01f, "RectTransform min y mismatch");
+                ctx.expectNear(actual.Max.x, 410.0f, 0.01f, "RectTransform max x mismatch");
+                ctx.expectNear(actual.Max.y, 220.0f, 0.01f, "RectTransform max y mismatch");
+            }
+        });
+
+        tests.push_back({
+            "Unit.UIButtonComponent.PublishClickEvent",
+            TestCategory::Unit,
+            [](TestContext& ctx)
+            {
+                GameObjectRegistry::Instance().shutdown();
+                EventBus::Instance().shutdown();
+
+                UIButtonClickEvent genericPayload{};
+                UIButtonClickEvent customPayload{};
+                int genericCount = 0;
+                int customCount = 0;
+
+                const auto genericToken = EventBus::Instance().subscribe(
+                    "UI.Button.Click",
+                    [&](const EventBus::Event& eventData)
+                    {
+                        if (const auto* payload = eventData.payloadAs<UIButtonClickEvent>())
+                        {
+                            genericPayload = *payload;
+                            ++genericCount;
+                        }
+                    });
+
+                const auto customToken = EventBus::Instance().subscribe(
+                    "UI.Menu.Start",
+                    [&](const EventBus::Event& eventData)
+                    {
+                        if (const auto* payload = eventData.payloadAs<UIButtonClickEvent>())
+                        {
+                            customPayload = *payload;
+                            ++customCount;
+                        }
+                    });
+
+                GameObject* buttonObject = new GameObject("StartButton");
+                auto* button = buttonObject->addComponent<UIButtonComponent>();
+                button->setClickEventName("UI.Menu.Start");
+
+                ctx.expect(button->invokeClick(), "UIButton invokeClick should succeed");
+                EventBus::Instance().dispatchQueued();
+
+                ctx.expect(genericCount == 1, "UIButton should publish generic click event");
+                ctx.expect(customCount == 1, "UIButton should publish named click event");
+                ctx.expect(genericPayload.buttonObjectName == "StartButton", "UIButton generic payload name mismatch");
+                ctx.expect(customPayload.eventName == "UI.Menu.Start", "UIButton custom payload event name mismatch");
+
+                EventBus::Instance().unsubscribe(genericToken);
+                EventBus::Instance().unsubscribe(customToken);
+                GameObjectRegistry::Instance().shutdown();
+                EventBus::Instance().shutdown();
+            }
+        });
+
+        tests.push_back({
+            "Unit.TimeManager.PlayPauseStep",
+            TestCategory::Unit,
+            [](TestContext& ctx)
+            {
+                TimeManager& time = TimeManager::Instance();
+                time.initialize();
+                time.update();
+
+                time.pause();
+                ctx.expect(time.isPaused(), "TimeManager pause should set paused state");
+
+                time.update();
+                ctx.expectNear(time.getDeltaTime(), 0.0f, 0.0001f, "Paused TimeManager should not advance delta time");
+
+                time.requestSingleStep();
+                time.update();
+                ctx.expect(time.isPaused(), "TimeManager step should keep paused state");
+                ctx.expect(time.getDeltaTime() > 0.0f, "TimeManager step should advance one frame");
+
+                time.play();
+                ctx.expect(!time.isPaused(), "TimeManager play should clear paused state");
+            }
+        });
+
+        tests.push_back({
+            "Unit.ScriptComponent.EventBusLifecycle",
+            TestCategory::Unit,
+            [](TestContext& ctx)
+            {
+                GameObjectRegistry::Instance().shutdown();
+
+                ScriptEventProbe probe{};
+
+                GameObject* emitterObject = new GameObject("Emitter");
+                auto* emitter = emitterObject->addComponent<TestEmitterScript>();
+
+                GameObject* listenerObject = new GameObject("Listener");
+                listenerObject->addComponent<TestListenerScript>(&probe);
+
+                emitter->emitValue(42);
+                GameObjectRegistry::Instance().update();
+
+                ctx.expect(probe.receiveCount == 1, "ScriptComponent listener did not receive event");
+                ctx.expect(probe.lastValue == 42, "ScriptComponent listener payload mismatch");
+                ctx.expect(probe.lastSenderId == emitterObject->getInstanceId(), "ScriptComponent listener sender mismatch");
+
+                listenerObject->destroy();
+                GameObjectRegistry::Instance().update();
+
+                emitter->emitValue(7);
+                GameObjectRegistry::Instance().update();
+
+                ctx.expect(probe.receiveCount == 1, "Destroyed ScriptComponent should unsubscribe from EventBus");
+
+                GameObjectRegistry::Instance().shutdown();
             }
         });
 

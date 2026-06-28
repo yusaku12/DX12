@@ -1,5 +1,10 @@
 namespace scene;
 
+struct vec2 {
+    x:float;
+    y:float;
+}
+
 struct vec3 {
     x:float;
     y:float;
@@ -17,6 +22,18 @@ table TransformComponentData {
     position:vec3;
     rotation:vec4;
     scale:vec3;
+}
+
+table RectTransformComponentData {
+    anchor:vec2;
+    position:vec2;
+    size:vec2;
+    pivot:vec2;
+}
+
+table CanvasComponentData {
+    sort_order:int;
+    receives_input:bool;
 }
 
 table CameraComponentData {
@@ -96,8 +113,30 @@ table AnimationComponentData {
     speed:float;
 }
 
+table UITextComponentData {
+    text:string;
+    color:vec4;
+    font_scale:float;
+    alignment:int;
+}
+
+table UIButtonComponentData {
+    label:string;
+    click_event_name:string;
+    normal_color:vec4;
+    hover_color:vec4;
+    pressed_color:vec4;
+    text_color:vec4;
+    font_scale:float;
+    corner_rounding:float;
+    interactable:bool;
+    block_mouse_input:bool;
+}
+
 union ComponentPayload {
     TransformComponentData,
+    RectTransformComponentData,
+    CanvasComponentData,
     CameraComponentData,
     FreeCameraComponentData,
     FbxRenderComponentData,
@@ -106,7 +145,9 @@ union ComponentPayload {
     PostEffectComponentData,
     SkyboxComponentData,
     GpuEffectComponentData,
-    AnimationComponentData
+    AnimationComponentData,
+    UITextComponentData,
+    UIButtonComponentData
 }
 
 table SerializedComponent {

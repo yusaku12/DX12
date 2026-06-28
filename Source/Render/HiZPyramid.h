@@ -23,6 +23,9 @@ public:
     //! Debug UI
     void debugImgui();
 
+    //! Debug content
+    void renderDebugContents();
+
 private:
     HiZPyramid() = default;
 
