@@ -7,6 +7,12 @@
 #include "PostEffect\ColorGradingEffect.h"
 #include "Component\GpuEffectComponent.h"
 #include "Component\SkyboxComponent.h"
+#include "Component\CanvasComponent.h"
+#include "Component\RectTransformComponent.h"
+#include "Component\UIButtonComponent.h"
+#include "Component\UITextComponent.h"
+#include "Component\UIPanelComponent.h"
+#include "Scene\UISetupTemplate.h"
 
 void ParticleScene::onEnter()
 {
@@ -30,6 +36,7 @@ void ParticleScene::onEnter()
     gpuEffectObj->addComponent<TransformComponent>();
     auto* gpuEffect = gpuEffectObj->addComponent<GpuEffectComponent>();
     gpuEffect->setTexture(L"Data/Texture/particle.png");
+
 }
 
 void ParticleScene::update()
