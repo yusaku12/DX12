@@ -6,6 +6,7 @@
 #include "Component\UIButtonComponent.h"
 #include "Component\UITextComponent.h"
 #include "Component\UIPanelComponent.h"
+#include "Component\UIImageComponent.h"
 #include "System\EventBus.h"
 
 //=====================================================
@@ -24,8 +25,10 @@ namespace UISetup
         canvas->setSortOrder(0);
         canvas->setReceivesInput(true);
         
-        // ★重要★ GameObject が enabled 状態になる時に onEnable() が呼ばれる
-        // デフォルトで enabled なので Canvas は自動で RuntimeUIManager に登録される
+        // ★重要★ GameObject が enabled 状態で addComponent されたとき、
+        // onEnable() が自動で呼ばれる（GameObject.h で実装済み）
+        // これにより CanvasComponent::onEnable() が実行され、RuntimeUIManager に登録される
+        
         return canvasGO;
     }
 
@@ -109,6 +112,33 @@ namespace UISetup
         
         return panelGO;
     }
+
+    //! スクリーン Canvas に画像を追加
+    inline GameObject* addImageToCanvas(
+        GameObject* canvasParent,
+        const std::string& imageName,
+        const std::wstring& texturePath,
+        float x, float y, float w, float h)
+    {
+        if (!canvasParent) return nullptr;
+
+        // ★重要★ Canvas を親として指定
+        GameObject* imageGO = new GameObject(imageName);
+        imageGO->setParent(canvasParent);
+        
+        // ★必須★ UI コンポーネントには RectTransformComponent が必須
+        auto* rectTransform = imageGO->addComponent<RectTransformComponent>();
+        rectTransform->setPosition(Vector2(x, y));
+        rectTransform->setSize(Vector2(w, h));
+        
+        // 画像コンポーネント
+        auto* image = imageGO->addComponent<UIImageComponent>();
+        image->setTexturePath(texturePath);
+        image->setTintColor(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
+        image->setAlpha(1.0f);
+        
+        return imageGO;
+    }
 }
 
 // =============================================================
@@ -121,9 +151,10 @@ void MyScene::onEnter()
     GameObject* canvas = UISetup::createScreenCanvas("MyUICanvas");
 
     // ★ステップ 2: UI コンポーネントを追加
-    GameObject* button = UISetup::addButtonToCanvas(canvas, "StartButton", 100, 100, 200, 50);
-    GameObject* text = UISetup::addTextToCanvas(canvas, "Title", "Welcome!", 100, 200, 400, 60);
     GameObject* panel = UISetup::addPanelToCanvas(canvas, "Background", 50, 50, 500, 400);
+    GameObject* image = UISetup::addImageToCanvas(canvas, "Logo", L"Data/Texture/logo.png", 100, 100, 200, 100);
+    GameObject* text = UISetup::addTextToCanvas(canvas, "Title", "Welcome!", 100, 220, 400, 60);
+    GameObject* button = UISetup::addButtonToCanvas(canvas, "StartButton", 150, 300, 200, 50);
 
     // ★ステップ 3: イベントハンドリング（オプション）
     EventBus::Instance().subscribe("UI.Button.Click",

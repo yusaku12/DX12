@@ -358,8 +358,17 @@ void RuntimeUIManager::drawCanvasRecursive(GameObject* object, const ImRect& par
 // =============================================================
 void RuntimeUIManager::renderNative()
 {
-    if (!m_initialized || m_canvases.empty()) return;
-    if (!UIRenderer::Instance().isInitialized())   return;
+    if (!m_initialized) {
+        LOG_WARN("RuntimeUIManager not initialized!");
+        return;
+    }
+    if (m_canvases.empty()) {
+        return;  // Canvas がない場合は無言で戻る（assert を出さない）
+    }
+    if (!UIRenderer::Instance().isInitialized()) {
+        LOG_WARN("UIRenderer not initialized!");
+        return;
+    }
 
     const float screenW = static_cast<float>(DX12::Instance().getScreenWidth());
     const float screenH = static_cast<float>(DX12::Instance().getScreenHeight());
@@ -374,8 +383,18 @@ void RuntimeUIManager::renderNative()
 
     for (CanvasComponent* canvas : canvases)
     {
-        if (!canvas || !canvas->isActiveInHierarchy() || !canvas->gameObject())
+        if (!canvas) {
+            LOG_WARN("  Canvas is nullptr!");
             continue;
+        }
+        if (!canvas->isActiveInHierarchy()) {
+            LOG_WARN("  Canvas not active in hierarchy!");
+            continue;
+        }
+        if (!canvas->gameObject()) {
+            LOG_WARN("  Canvas has no GameObject!");
+            continue;
+        }
 
         if (canvas->getRenderMode() == CanvasRenderMode::WorldSpace)
             renderWorldSpaceCanvas(canvas);

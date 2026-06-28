@@ -166,6 +166,16 @@ void UIRenderer::end()
 
     auto* cmd = DX12::Instance().getGraphicsCommandList();
 
+    // ★修正: リソースバリア - シーン RT を PIXEL_SHADER_RESOURCE → RENDER_TARGET に遷移
+    ID3D12Resource* sceneRT = DX12::Instance().getSceneRenderTarget();
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = sceneRT;
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    cmd->ResourceBarrier(1, &barrier);
+
     // シーン RT を描画ターゲットとして設定
     const D3D12_CPU_DESCRIPTOR_HANDLE rtv = DX12::Instance().getSceneRTVHandle();
     cmd->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
@@ -179,6 +189,16 @@ void UIRenderer::end()
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
 
     flushCommands(cmd);
+
+    // ★修正: リソースバリア - UI 描画完了後、シーン RT を RENDER_TARGET → PIXEL_SHADER_RESOURCE に遷移
+    // （次のフレームで posteffect や他の処理で使用するため）
+    D3D12_RESOURCE_BARRIER barrierEnd = {};
+    barrierEnd.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrierEnd.Transition.pResource = sceneRT;
+    barrierEnd.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrierEnd.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    barrierEnd.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    cmd->ResourceBarrier(1, &barrierEnd);
 }
 
 // =============================================================

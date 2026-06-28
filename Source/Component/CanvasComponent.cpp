@@ -4,6 +4,7 @@
 
 void CanvasComponent::onEnable()
 {
+    LOG_INFO("CanvasComponent::onEnable() - Registering Canvas: %s", gameObject()->getName().c_str());
     RuntimeUIManager::Instance().registerCanvas(this);
 }
 

@@ -133,6 +133,12 @@ table UIButtonComponentData {
     block_mouse_input:bool;
 }
 
+table UIImageComponentData {
+    texture_path:string;
+    tint_color:vec4;
+    alpha:float;
+}
+
 union ComponentPayload {
     TransformComponentData,
     RectTransformComponentData,
@@ -147,7 +153,8 @@ union ComponentPayload {
     GpuEffectComponentData,
     AnimationComponentData,
     UITextComponentData,
-    UIButtonComponentData
+    UIButtonComponentData,
+    UIImageComponentData
 }
 
 table SerializedComponent {

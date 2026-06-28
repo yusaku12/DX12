@@ -17,6 +17,7 @@
 #include "Component/SkyboxComponent.h"
 #include "Component/TransformComponent.h"
 #include "Component/UIButtonComponent.h"
+#include "Component/UIImageComponent.h"
 #include "Component/UITextComponent.h"
 #include "PostEffect/BloomEffect.h"
 #include "PostEffect/ColorGradingEffect.h"
@@ -93,6 +94,41 @@ namespace SerializationCommon
         return gameObject->addComponent<FbxRenderComponent>(modelPath);
     }
 
+    inline Component* createUIImage(GameObject* gameObject, const scene::SerializedComponent* serialized)
+    {
+        if (!gameObject)
+        {
+            return nullptr;
+        }
+
+        UIImageComponent* component = gameObject->addComponent<UIImageComponent>();
+        if (!component || !serialized)
+        {
+            return component;
+        }
+
+        if (const auto* payload = serialized->payload_as_UIImageComponentData(); payload)
+        {
+            if (payload->texture_path())
+            {
+                const std::string& pathStr = payload->texture_path()->str();
+                std::wstring texturePath;
+                texturePath.assign(pathStr.begin(), pathStr.end());
+                component->setTexturePath(texturePath);
+            }
+
+            if (payload->tint_color())
+            {
+                const scene::vec4* color = payload->tint_color();
+                component->setTintColor(Vector4(color->x(), color->y(), color->z(), color->w()));
+            }
+
+            component->setAlpha(payload->alpha());
+        }
+
+        return component;
+    }
+
     inline const std::vector<ComponentArchetype>& getComponentArchetypes()
     {
         static const std::vector<ComponentArchetype> archetypes =
@@ -111,6 +147,7 @@ namespace SerializationCommon
             { "GpuEffectComponent", true, &createDefault<GpuEffectComponent> },
             { "UITextComponent", true, &createDefault<UITextComponent> },
             { "UIButtonComponent", true, &createDefault<UIButtonComponent> },
+            { "UIImageComponent", true, &createUIImage },
         };
         return archetypes;
     }
@@ -160,6 +197,7 @@ namespace SerializationCommon
         if (typeName == "GpuEffectComponent") return gameObject->getComponent<GpuEffectComponent>() != nullptr;
         if (typeName == "UITextComponent") return gameObject->getComponent<UITextComponent>() != nullptr;
         if (typeName == "UIButtonComponent") return gameObject->getComponent<UIButtonComponent>() != nullptr;
+        if (typeName == "UIImageComponent") return gameObject->getComponent<UIImageComponent>() != nullptr;
 
         return false;
     }
@@ -442,6 +480,32 @@ namespace SerializationCommon
                 "UIButtonComponent",
                 component->isEnabled(),
                 scene::ComponentPayload_UIButtonComponentData,
+                payload.Union());
+        }
+
+        if (auto* image = dynamic_cast<UIImageComponent*>(component))
+        {
+            const std::wstring& texturePath = image->getTexturePath();
+            // Convert wstring to string
+            std::string texturePathStr;
+            texturePathStr.reserve(texturePath.size());
+            for (wchar_t c : texturePath)
+            {
+                texturePathStr.push_back(static_cast<char>(c));
+            }
+            const auto texturePathOffset = builder.CreateString(texturePathStr);
+            const scene::vec4 tintColor = toFlatVec4(image->getTintColor());
+            const auto payload = scene::CreateUIImageComponentData(
+                builder,
+                texturePathOffset,
+                &tintColor,
+                image->getAlpha());
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "UIImageComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_UIImageComponentData,
                 payload.Union());
         }
 
@@ -785,6 +849,31 @@ namespace SerializationCommon
             button->setCornerRounding(payload->corner_rounding());
             button->setInteractable(payload->interactable());
             button->setBlockMouseInput(payload->block_mouse_input());
+            return;
+        }
+        case scene::ComponentPayload_UIImageComponentData:
+        {
+            auto* image = dynamic_cast<UIImageComponent*>(component);
+            const auto* payload = serialized->payload_as_UIImageComponentData();
+            if (!image || !payload)
+            {
+                return;
+            }
+
+            if (const auto* texturePath = payload->texture_path())
+            {
+                std::wstring wTexturePath;
+                const std::string& pathStr = texturePath->str();
+                wTexturePath.assign(pathStr.begin(), pathStr.end());
+                image->setTexturePath(wTexturePath);
+            }
+
+            if (const auto* tintColor = payload->tint_color())
+            {
+                image->setTintColor(Vector4(tintColor->x(), tintColor->y(), tintColor->z(), tintColor->w()));
+            }
+
+            image->setAlpha(payload->alpha());
             return;
         }
         default:

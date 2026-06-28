@@ -53,6 +53,12 @@ public:
 
         ptr->awake();
 
+        //! ★修正: コンポーネントが enabled で GameObject も enabled なら onEnable() を呼ぶ
+        if (isEnabled() && ptr->isEnabled())
+        {
+            ptr->onEnable();
+        }
+
         //! すでに start 済みの場合、条件が揃っていれば start を 1 回だけ実行する
         if (m_started) ptr->ensureStarted();
         return ptr;

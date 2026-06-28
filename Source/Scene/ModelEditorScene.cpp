@@ -11,6 +11,7 @@
 #include "PostEffect\MotionBlurEffect.h"
 #include "Component\SkyboxComponent.h"
 #include "Component\GpuEffectComponent.h"
+#include "UISetupTemplate.h"
 
 void ModelEditorScene::onEnter()
 {

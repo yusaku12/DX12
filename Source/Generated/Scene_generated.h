@@ -66,6 +66,9 @@ struct UITextComponentDataBuilder;
 struct UIButtonComponentData;
 struct UIButtonComponentDataBuilder;
 
+struct UIImageComponentData;
+struct UIImageComponentDataBuilder;
+
 struct SerializedComponent;
 struct SerializedComponentBuilder;
 
@@ -91,11 +94,12 @@ enum ComponentPayload : uint8_t {
   ComponentPayload_AnimationComponentData = 12,
   ComponentPayload_UITextComponentData = 13,
   ComponentPayload_UIButtonComponentData = 14,
+  ComponentPayload_UIImageComponentData = 15,
   ComponentPayload_MIN = ComponentPayload_NONE,
-  ComponentPayload_MAX = ComponentPayload_UIButtonComponentData
+  ComponentPayload_MAX = ComponentPayload_UIImageComponentData
 };
 
-inline const ComponentPayload (&EnumValuesComponentPayload())[15] {
+inline const ComponentPayload (&EnumValuesComponentPayload())[16] {
   static const ComponentPayload values[] = {
     ComponentPayload_NONE,
     ComponentPayload_TransformComponentData,
@@ -111,13 +115,14 @@ inline const ComponentPayload (&EnumValuesComponentPayload())[15] {
     ComponentPayload_GpuEffectComponentData,
     ComponentPayload_AnimationComponentData,
     ComponentPayload_UITextComponentData,
-    ComponentPayload_UIButtonComponentData
+    ComponentPayload_UIButtonComponentData,
+    ComponentPayload_UIImageComponentData
   };
   return values;
 }
 
 inline const char * const *EnumNamesComponentPayload() {
-  static const char * const names[16] = {
+  static const char * const names[17] = {
     "NONE",
     "TransformComponentData",
     "RectTransformComponentData",
@@ -133,13 +138,14 @@ inline const char * const *EnumNamesComponentPayload() {
     "AnimationComponentData",
     "UITextComponentData",
     "UIButtonComponentData",
+    "UIImageComponentData",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameComponentPayload(ComponentPayload e) {
-  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_UIButtonComponentData)) return "";
+  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_UIImageComponentData)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesComponentPayload()[index];
 }
@@ -202,6 +208,10 @@ template<> struct ComponentPayloadTraits<scene::UITextComponentData> {
 
 template<> struct ComponentPayloadTraits<scene::UIButtonComponentData> {
   static const ComponentPayload enum_value = ComponentPayload_UIButtonComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::UIImageComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_UIImageComponentData;
 };
 
 template <bool B = false>
@@ -1593,6 +1603,82 @@ inline ::flatbuffers::Offset<UIButtonComponentData> CreateUIButtonComponentDataD
       block_mouse_input);
 }
 
+struct UIImageComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef UIImageComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_TEXTURE_PATH = 4,
+    VT_TINT_COLOR = 6,
+    VT_ALPHA = 8
+  };
+  const ::flatbuffers::String *texture_path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_TEXTURE_PATH);
+  }
+  const scene::vec4 *tint_color() const {
+    return GetStruct<const scene::vec4 *>(VT_TINT_COLOR);
+  }
+  float alpha() const {
+    return GetField<float>(VT_ALPHA, 0.0f);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_TEXTURE_PATH) &&
+           verifier.VerifyString(texture_path()) &&
+           VerifyField<scene::vec4>(verifier, VT_TINT_COLOR, 4) &&
+           VerifyField<float>(verifier, VT_ALPHA, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct UIImageComponentDataBuilder {
+  typedef UIImageComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_texture_path(::flatbuffers::Offset<::flatbuffers::String> texture_path) {
+    fbb_.AddOffset(UIImageComponentData::VT_TEXTURE_PATH, texture_path);
+  }
+  void add_tint_color(const scene::vec4 *tint_color) {
+    fbb_.AddStruct(UIImageComponentData::VT_TINT_COLOR, tint_color);
+  }
+  void add_alpha(float alpha) {
+    fbb_.AddElement<float>(UIImageComponentData::VT_ALPHA, alpha, 0.0f);
+  }
+  explicit UIImageComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<UIImageComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<UIImageComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<UIImageComponentData> CreateUIImageComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> texture_path = 0,
+    const scene::vec4 *tint_color = nullptr,
+    float alpha = 0.0f) {
+  UIImageComponentDataBuilder builder_(_fbb);
+  builder_.add_alpha(alpha);
+  builder_.add_tint_color(tint_color);
+  builder_.add_texture_path(texture_path);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<UIImageComponentData> CreateUIImageComponentDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *texture_path = nullptr,
+    const scene::vec4 *tint_color = nullptr,
+    float alpha = 0.0f) {
+  auto texture_path__ = texture_path ? _fbb.CreateString(texture_path) : 0;
+  return scene::CreateUIImageComponentData(
+      _fbb,
+      texture_path__,
+      tint_color,
+      alpha);
+}
+
 struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef SerializedComponentBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -1655,6 +1741,9 @@ struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   }
   const scene::UIButtonComponentData *payload_as_UIButtonComponentData() const {
     return payload_type() == scene::ComponentPayload_UIButtonComponentData ? static_cast<const scene::UIButtonComponentData *>(payload()) : nullptr;
+  }
+  const scene::UIImageComponentData *payload_as_UIImageComponentData() const {
+    return payload_type() == scene::ComponentPayload_UIImageComponentData ? static_cast<const scene::UIImageComponentData *>(payload()) : nullptr;
   }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
@@ -1723,6 +1812,10 @@ template<> inline const scene::UITextComponentData *SerializedComponent::payload
 
 template<> inline const scene::UIButtonComponentData *SerializedComponent::payload_as<scene::UIButtonComponentData>() const {
   return payload_as_UIButtonComponentData();
+}
+
+template<> inline const scene::UIImageComponentData *SerializedComponent::payload_as<scene::UIImageComponentData>() const {
+  return payload_as_UIImageComponentData();
 }
 
 struct SerializedComponentBuilder {
@@ -2037,6 +2130,10 @@ inline bool VerifyComponentPayload(::flatbuffers::VerifierTemplate<B> &verifier,
     }
     case ComponentPayload_UIButtonComponentData: {
       auto ptr = reinterpret_cast<const scene::UIButtonComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_UIImageComponentData: {
+      auto ptr = reinterpret_cast<const scene::UIImageComponentData *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;

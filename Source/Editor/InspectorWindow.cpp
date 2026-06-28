@@ -2,6 +2,7 @@
 #include "EditorContext.h"
 #include "EditorTransaction.h"
 #include "Component/FbxRenderComponent.h"
+#include "Component/UIImageComponent.h"
 #include "GameObject\GameObject.h"
 #include "Scene/PrefabFlatBuffer.h"
 #include "Scene/SerializationCommon.h"
@@ -149,6 +150,27 @@ void drawInspectorWindow()
                         if (!added)
                         {
                             LOG_WARN("[Inspector] Failed to add FbxRenderComponent");
+                        }
+                    }
+                }
+            }
+
+            if ((filter[0] == '\0' || std::string("UIImageComponent").find(filter) != std::string::npos)
+                && !SerializationCommon::hasComponentByTypeName(g_editor.selectedObject, "UIImageComponent"))
+            {
+                if (ImGui::MenuItem("UIImageComponent..."))
+                {
+                    std::vector<std::wstring> paths;
+                    if (Dialog::openFile(paths, L"Select Texture", L"", false) == DialogResult::OK && !paths.empty())
+                    {
+                        UIImageComponent* added = g_editor.selectedObject->addComponent<UIImageComponent>();
+                        if (added)
+                        {
+                            added->setTexturePath(paths.front());
+                        }
+                        else
+                        {
+                            LOG_WARN("[Inspector] Failed to add UIImageComponent");
                         }
                     }
                 }

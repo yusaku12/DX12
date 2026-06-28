@@ -37,6 +37,33 @@ void ParticleScene::onEnter()
     auto* gpuEffect = gpuEffectObj->addComponent<GpuEffectComponent>();
     gpuEffect->setTexture(L"Data/Texture/particle.png");
 
+    // ===== UI セットアップ =====
+    // ★ステップ 1: Canvas を作成（UI 描画用コンテナ）
+    GameObject* uiCanvas = UISetup::createScreenCanvas("UICanvas");
+
+    // ★ステップ 2: UI パネルを追加（背景）
+    UISetup::addPanelToCanvas(uiCanvas, "Panel_Background", 
+        50.0f, 50.0f, 300.0f, 250.0f);
+
+    // ★ステップ 3: タイトルテキストを追加
+    UISetup::addTextToCanvas(uiCanvas, "Text_Title", 
+        "Particle Scene", 60.0f, 70.0f, 280.0f, 50.0f);
+
+    // ★ステップ 4: ボタンを追加
+    GameObject* testButton = UISetup::addButtonToCanvas(uiCanvas, "Button_Test",
+        80.0f, 150.0f, 240.0f, 50.0f);
+    if (auto* btn = testButton->getComponent<UIButtonComponent>())
+    {
+        btn->setLabel("Test UI Button");
+        btn->setClickEventName("ParticleScene.TestButton");
+    }
+
+    // ★ステップ 5: イベントハンドリング（オプション）
+    EventBus::Instance().subscribe("ParticleScene.TestButton",
+        [](const EventBus::Event&)
+        {
+            LOG_INFO("Particle Scene: Test button clicked!");
+        });
 }
 
 void ParticleScene::update()
