@@ -51,6 +51,7 @@
     <ClCompile Include="Source\pch.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
+    <ClCompile Include="Source\System\MemorySystem.cpp" />
     <ClCompile Include="Source\System\DebugPrimitive.cpp" />
     <ClCompile Include="Source\System\Dialog.cpp" />
     <ClCompile Include="Source\System\CrashReporter.cpp" />
@@ -185,6 +186,9 @@
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\System\CpuGpuProfiler.h">
+      <Filter>�w�b�_�[ �t�@�C��</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\System\MemorySystem.h">
       <Filter>�w�b�_�[ �t�@�C��</Filter>
     </ClInclude>
     <ClInclude Include="Source\Graphics\RootSignatureManager.h">

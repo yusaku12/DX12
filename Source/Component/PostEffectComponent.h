@@ -63,7 +63,7 @@ public:
             LOG_WARN("PostEffect already exists, skipping add");
             return existing;
         }
-        auto effect = std::make_unique<T>(std::forward<Args>(args)...);
+        auto effect = DXMem::makeUnique<T>(std::forward<Args>(args)...);
         effect->initialize();
         T* ptr = effect.get();
         m_effects.push_back(std::move(effect));

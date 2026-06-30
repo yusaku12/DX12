@@ -52,7 +52,7 @@ void GameObjectRegistry::destroyMarkedObjects()
         GameObject* obj = *it;
         if (obj->isDestroyed())
         {
-            delete obj;
+            DX_DELETE(obj);
             it = m_objects.erase(it);
         }
         else

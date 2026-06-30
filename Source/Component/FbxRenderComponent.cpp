@@ -206,7 +206,7 @@ void FbxRenderComponent::renderAABB()
 
 bool FbxRenderComponent::loadModelAsset(const std::string& fbxPath)
 {
-    auto fbx = std::make_unique<FbxLoad>();
+    auto fbx = DXMem::makeUnique<FbxLoad>();
 
     if (!fbx->load(fbxPath.c_str()))
     {
@@ -215,7 +215,7 @@ bool FbxRenderComponent::loadModelAsset(const std::string& fbxPath)
     }
 
     // 所有権をModelに移動
-    m_model = std::make_unique<Model>(std::move(fbx));
+    m_model = DXMem::makeUnique<Model>(std::move(fbx));
 
     return true;
 }
@@ -289,7 +289,7 @@ void FbxRenderComponent::loadAutoLodAssets()
             continue;
         }
 
-        auto fbx = std::make_unique<FbxLoad>();
+        auto fbx = DXMem::makeUnique<FbxLoad>();
         const std::string lodPathStr = lodPath.generic_string();
         if (!fbx->load(lodPathStr.c_str()))
         {
@@ -298,7 +298,7 @@ void FbxRenderComponent::loadAutoLodAssets()
         }
 
         LodEntry entry{};
-        entry.model = std::make_unique<Model>(std::move(fbx));
+        entry.model = DXMem::makeUnique<Model>(std::move(fbx));
         entry.sourcePath = lodPathStr;
         m_lods.push_back(std::move(entry));
 
@@ -316,7 +316,7 @@ void FbxRenderComponent::buildGPUResources()
 
             // モデル行列 CBV
             UINT meshCount = static_cast<UINT>(model->getResource()->getModelData().meshes.size());
-            outModelCB = std::make_unique<ConstantBuffer<ModelCB>>(meshCount);
+            outModelCB = DXMem::makeUnique<ConstantBuffer<ModelCB>>(meshCount);
             for (UINT i = 0; i < meshCount; ++i)
             {
                 outModelCB->update(ModelCB{}, i);
@@ -336,7 +336,7 @@ void FbxRenderComponent::buildGPUResources()
                 matCount = 1;
             }
 
-            outMaterialCB = std::make_unique<ConstantBuffer<MaterialCB>>(matCount);
+            outMaterialCB = DXMem::makeUnique<ConstantBuffer<MaterialCB>>(matCount);
             for (UINT i = 0; i < matCount; ++i)
             {
                 MaterialCB cb{};
@@ -456,7 +456,7 @@ void FbxRenderComponent::createMaterialCBV()
     }
 
     // マテリアル CBV をマテリアル数分確保（最低1つ）
-    m_materialCB = std::make_unique<ConstantBuffer<MaterialCB>>(matCount);
+    m_materialCB = DXMem::makeUnique<ConstantBuffer<MaterialCB>>(matCount);
 
     for (UINT i = 0; i < matCount; ++i)
     {

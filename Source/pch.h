@@ -53,6 +53,7 @@
 #include "Graphics\DX12.h"
 #include "System\Logger.h"
 #include "System\LoggerMacros.h"
+#include "System\MemorySystem.h"
 #include "imgui_render.h"
 #include "Graphics\PiplineState.h"
 #include "Graphics\TextureManager.h"

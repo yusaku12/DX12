@@ -4,7 +4,7 @@
 void ColorGradingEffect::initialize()
 {
     registerPSO(ShaderID::ColorGradingPS);
-    m_cb = std::make_unique<ConstantBuffer<CBuffer>>();
+    m_cb = DXMem::makeUnique<ConstantBuffer<CBuffer>>();
 }
 
 void ColorGradingEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)

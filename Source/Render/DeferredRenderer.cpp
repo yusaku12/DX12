@@ -2,7 +2,7 @@
 
 void DeferredRenderer::initialize()
 {
-    m_lightCB = std::make_unique<ConstantBuffer<LightParams>>();
+    m_lightCB = DXMem::makeUnique<ConstantBuffer<LightParams>>();
     m_lightCB->update(m_lightParams);
 
     PSOCreator::PSOData pso{};

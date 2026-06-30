@@ -11,7 +11,7 @@ void SkyboxComponent::awake()
 {
     buildMesh();
     buildPSO();
-    m_paramCB = std::make_unique<ConstantBuffer<SkyboxParams>>();
+    m_paramCB = DXMem::makeUnique<ConstantBuffer<SkyboxParams>>();
 
     if (!m_cubemapPath.empty())
     {
@@ -107,8 +107,8 @@ void SkyboxComponent::buildMesh()
         4, 0, 3, 4, 3, 7, // -Y
     };
 
-    m_vertexBuffer = std::make_unique<VertexBuffer<Vertex>>(vertices);
-    m_indexBuffer = std::make_unique<IndexBuffer<uint16_t>>(indices);
+    m_vertexBuffer = DXMem::makeUnique<VertexBuffer<Vertex>>(vertices);
+    m_indexBuffer = DXMem::makeUnique<IndexBuffer<uint16_t>>(indices);
 }
 
 void SkyboxComponent::buildPSO()

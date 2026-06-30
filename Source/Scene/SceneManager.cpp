@@ -314,7 +314,7 @@ void SceneManager::dispatchBackgroundSceneLoads()
                 BackgroundSceneResult result;
                 result.task = task;
 
-                auto prepared = std::make_unique<SceneFlatBuffer::PreparedSceneData>();
+                auto prepared = DXMem::makeUnique<SceneFlatBuffer::PreparedSceneData>();
                 std::string errorMessage;
                 result.ok = SceneFlatBuffer::prepareLoad(task.path, *prepared, &errorMessage);
                 if (result.ok)

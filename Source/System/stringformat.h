@@ -24,17 +24,14 @@ static std::string wstringToString(std::wstring oWString)
         , -1, (char*)NULL, 0, NULL, NULL);
 
     // バッファの取得
-    CHAR* cpMultiByte = new CHAR[iBufferSize];
+    std::vector<CHAR> cpMultiByte(static_cast<size_t>(iBufferSize));
 
     // wstring → SJIS
-    WideCharToMultiByte(CP_OEMCP, 0, oWString.c_str(), -1, cpMultiByte
+    WideCharToMultiByte(CP_OEMCP, 0, oWString.c_str(), -1, cpMultiByte.data()
         , iBufferSize, NULL, NULL);
 
     // stringの生成
-    std::string oRet(cpMultiByte, cpMultiByte + iBufferSize - 1);
-
-    // バッファの破棄
-    delete[] cpMultiByte;
+    std::string oRet(cpMultiByte.data(), cpMultiByte.data() + iBufferSize - 1);
 
     // 変換結果を返す
     return(oRet);

@@ -5,7 +5,7 @@
 void MotionBlurEffect::initialize()
 {
     m_psoKey = registerPSO(ShaderID::MotionBlurPS, RootSignatureType::PostEffectDepth);
-    m_cb = std::make_unique<ConstantBuffer<CBuffer>>();
+    m_cb = DXMem::makeUnique<ConstantBuffer<CBuffer>>();
 }
 
 void MotionBlurEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)

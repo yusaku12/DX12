@@ -5,7 +5,7 @@
 void DepthOfFieldEffect::initialize()
 {
     m_psoKey = registerPSO(ShaderID::DepthOfFieldPS, RootSignatureType::PostEffectDepth);
-    m_cb = std::make_unique<ConstantBuffer<CBuffer>>();
+    m_cb = DXMem::makeUnique<ConstantBuffer<CBuffer>>();
 }
 
 void DepthOfFieldEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)

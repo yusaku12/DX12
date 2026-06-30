@@ -16,23 +16,23 @@
 
 void ParticleScene::onEnter()
 {
-    GameObject* cameraObject = new GameObject("MainCamera");
+    GameObject* cameraObject = DX_NEW(GameObject, "MainCamera");
     cameraObject->addComponent<TransformComponent>()->setPosition({ 0.0f, 9.0f, -23.0f });
     cameraObject->addComponent<FreeCameraComponent>();
 
-    GameObject* postEffectObj = new GameObject("PostEffectVolume");
+    GameObject* postEffectObj = DX_NEW(GameObject, "PostEffectVolume");
     postEffectObj->addComponent<TransformComponent>();
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
     pe->addEffect<BloomEffect>();
     pe->addEffect<ColorGradingEffect>();
 
-    GameObject* skyboxObj = new GameObject("Skybox");
+    GameObject* skyboxObj = DX_NEW(GameObject, "Skybox");
     auto* skybox = skyboxObj->addComponent<SkyboxComponent>();
     skybox->setCubemap(L"Data/Texture/test.dds");
     skyboxObj->setEnabled(false);
 
-    GameObject* gpuEffectObj = new GameObject("GpuEffect");
+    GameObject* gpuEffectObj = DX_NEW(GameObject, "GpuEffect");
     gpuEffectObj->addComponent<TransformComponent>();
     auto* gpuEffect = gpuEffectObj->addComponent<GpuEffectComponent>();
     gpuEffect->setTexture(L"Data/Texture/particle.png");

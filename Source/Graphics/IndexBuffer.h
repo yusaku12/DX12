@@ -28,7 +28,7 @@ public:
         m_bufferSize = sizeof(T) * m_indexCount;
 
         // UploadBuffer 作成
-        m_uploadBuffer = std::make_unique<UploadBuffer>(m_bufferSize);
+        m_uploadBuffer = DXMem::makeUnique<UploadBuffer>(m_bufferSize);
 
         void* mapped = nullptr;
         HRESULT hr = m_uploadBuffer->getResource()->Map(0, nullptr, &mapped);

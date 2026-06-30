@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "AsyncAssetLoader.h"
 
 #include "Component/FbxRenderComponent.h"
@@ -479,7 +479,7 @@ namespace EditorAsyncAsset
                 ? "Model"
                 : result.request.path.stem().string();
 
-            GameObject* object = new GameObject(objectName);
+            GameObject* object = DX_NEW(GameObject, objectName);
             object->addComponent<TransformComponent>();
 
             const std::string modelPath = pathToUtf8(result.request.path);

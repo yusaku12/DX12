@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SceneFlatBuffer.h"
 
 #include "Generated/Scene_generated.h"
@@ -249,7 +249,7 @@ namespace SceneFlatBuffer
                 continue;
             }
 
-            GameObject* object = new GameObject(serializedObject->name()->str());
+            GameObject* object = DX_NEW(GameObject, serializedObject->name()->str());
 
             if (const auto* components = serializedObject->components())
             {

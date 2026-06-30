@@ -28,7 +28,7 @@ public:
         m_bufferSize = sizeof(T) * m_vertexCount;
 
         // バッファ作成
-        m_uploadBuffer = std::make_unique<UploadBuffer>(m_bufferSize);
+        m_uploadBuffer = DXMem::makeUnique<UploadBuffer>(m_bufferSize);
 
         // Map → Copy → Unmap
         void* mapped = nullptr;

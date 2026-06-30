@@ -34,7 +34,7 @@ public:
 
         m_sceneFactory[static_cast<size_t>(id)] = []()
             {
-                return std::make_unique<T>();
+                return DXMem::makeUnique<T>();
             };
     }
 

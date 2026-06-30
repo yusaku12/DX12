@@ -252,14 +252,14 @@ namespace
 
 void RenderPipeline::initialize()
 {
-    registerPass(std::make_unique<ShadowMapPass>());
-    registerPass(std::make_unique<GBufferPass>(), { RenderPassId::ShadowMap });
-    registerPass(std::make_unique<ForwardScenePass>());
-    registerPass(std::make_unique<LightingPass>(), { RenderPassId::GBuffer });
-    registerPass(std::make_unique<ForwardPass>(), { RenderPassId::Lighting });
-    registerPass(std::make_unique<HiZPass>(), { RenderPassId::Forward });
-    registerPass(std::make_unique<DebugPass>(), { RenderPassId::HiZPyramid });
-    registerPass(std::make_unique<PostEffectPass>());
+    registerPass(DXMem::makeUnique<ShadowMapPass>());
+    registerPass(DXMem::makeUnique<GBufferPass>(), { RenderPassId::ShadowMap });
+    registerPass(DXMem::makeUnique<ForwardScenePass>());
+    registerPass(DXMem::makeUnique<LightingPass>(), { RenderPassId::GBuffer });
+    registerPass(DXMem::makeUnique<ForwardPass>(), { RenderPassId::Lighting });
+    registerPass(DXMem::makeUnique<HiZPass>(), { RenderPassId::Forward });
+    registerPass(DXMem::makeUnique<DebugPass>(), { RenderPassId::HiZPyramid });
+    registerPass(DXMem::makeUnique<PostEffectPass>());
 }
 
 RenderPassBase* RenderPipeline::registerPass(std::unique_ptr<RenderPassBase> pass, std::vector<RenderPassId> dependencies)

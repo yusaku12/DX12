@@ -233,7 +233,7 @@ namespace EditorAssetThumbnail
         std::vector<uint8_t> pixels = buildIconPixels(assetPath, importer, kThumbSize);
 
         IconCacheEntry entry;
-        entry.texture = std::make_unique<LoadTexture>(kThumbSize, kThumbSize, DXGI_FORMAT_R8G8B8A8_UNORM, pixels.data(), pixels.size());
+        entry.texture = DXMem::makeUnique<LoadTexture>(kThumbSize, kThumbSize, DXGI_FORMAT_R8G8B8A8_UNORM, pixels.data(), pixels.size());
         entry.lastWriteTime = writeTime;
 
         LoadTexture* texture = entry.texture.get();

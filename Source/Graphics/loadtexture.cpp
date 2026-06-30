@@ -113,7 +113,7 @@ LoadTexture::LoadTexture(UINT width, UINT height, DXGI_FORMAT format, const void
 
     // UploadBuffer 作成
     UINT64 uploadSize = GetRequiredIntermediateSize(m_texture.Get(), 0, 1);
-    m_upload = std::make_unique<UploadBuffer>(uploadSize);
+    m_upload = DXMem::makeUnique<UploadBuffer>(uploadSize);
 
     // GPUへコピー
     UpdateSubresources(
@@ -223,7 +223,7 @@ void LoadTexture::createTextureResource(const DirectX::TexMetadata& meta, const 
     // UploadBuffer作成
     UINT64 uploadSize = GetRequiredIntermediateSize(m_texture.Get(), 0, (UINT)subresources.size());
 
-    m_upload = std::make_unique<UploadBuffer>(uploadSize);
+    m_upload = DXMem::makeUnique<UploadBuffer>(uploadSize);
 
     // GPUへコピー
     UpdateSubresources(

@@ -10,13 +10,13 @@ LoadTexture* TextureManager::load(const std::wstring& filePath)
     }
 
     // 存在しない場合 → 新規ロード
-    auto newTex = std::make_unique<LoadTexture>(filePath.c_str());
+    auto newTex = DXMem::makeUnique<LoadTexture>(filePath.c_str());
 
     // 失敗した場合は白色テクスチャを返す
     if (!newTex->isValid())
     {
         uint8_t whitePixel[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
-        newTex = std::make_unique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel));
+        newTex = DXMem::makeUnique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel));
     }
 
     LoadTexture* texPtr = newTex.get();
@@ -132,7 +132,7 @@ LoadTexture* TextureManager::getFallbackTexture()
     if (!m_fallbackTexture)
     {
         uint8_t whitePixel[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
-        m_fallbackTexture = std::make_unique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel));
+        m_fallbackTexture = DXMem::makeUnique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel));
     }
 
     return m_fallbackTexture.get();
@@ -218,7 +218,7 @@ void TextureManager::applyStreamingResults()
         {
             uint8_t whitePixel[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
             it = m_textureCache.emplace(result.request.filePath,
-                std::make_unique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel))).first;
+                DXMem::makeUnique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel))).first;
         }
 
         const bool replaced = it->second->replaceFromDecoded(std::move(result.decoded));
@@ -276,7 +276,7 @@ TextureManager::StreamRequestResult TextureManager::requestStreamingInternal(con
     {
         uint8_t whitePixel[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
         m_textureCache.emplace(filePath,
-            std::make_unique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel)));
+            DXMem::makeUnique<LoadTexture>(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, whitePixel, sizeof(whitePixel)));
     }
 
     StreamRequest request;

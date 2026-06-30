@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "PrefabFlatBuffer.h"
 
 #include "Generated/Prefab_generated.h"
@@ -520,7 +520,7 @@ namespace PrefabFlatBuffer
                 continue;
             }
 
-            GameObject* object = new GameObject(serializedObject->name()->str());
+            GameObject* object = DX_NEW(GameObject, serializedObject->name()->str());
 
             if (const auto* components = serializedObject->components())
             {

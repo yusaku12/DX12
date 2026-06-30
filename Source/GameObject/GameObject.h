@@ -36,7 +36,7 @@ public:
             return static_cast<T*>(it->second);
         }
 
-        auto comp = std::make_unique<T>(std::forward<Args>(args)...);
+        auto comp = DXMem::makeUnique<T>(std::forward<Args>(args)...);
         comp->m_gameObject = this;
         std::string typeName = typeid(T).name();
         const std::string classPrefix = "class ";

@@ -2,7 +2,7 @@
 
 //=====================================================
 // ShadowMapRenderer 実装
-// Cascaded Shadow Maps (CSM) — Unity / Unreal 準拠
+// Cascaded Shadow Maps (CSM) ? Unity / Unreal 準拠
 //=====================================================
 
 void ShadowMapRenderer::initialize()
@@ -12,9 +12,9 @@ void ShadowMapRenderer::initialize()
     // 定数バッファ生成
     for (int i = 0; i < CascadeCount; ++i)
     {
-        m_lightVPCBs[i] = std::make_unique<ConstantBuffer<ShadowLightCB>>();
+        m_lightVPCBs[i] = DXMem::makeUnique<ConstantBuffer<ShadowLightCB>>();
     }
-    m_shadowParamsCB = std::make_unique<ConstantBuffer<ShadowParamsCB>>();
+    m_shadowParamsCB = DXMem::makeUnique<ConstantBuffer<ShadowParamsCB>>();
 
     LOG_INFO("ShadowMapRenderer: initialized (CSM 4 cascades, 2048x2048)");
 }

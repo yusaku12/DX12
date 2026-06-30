@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "UIRenderer.h"
 #include "UIFontManager.h"
 
@@ -8,7 +8,7 @@ void UIRenderer::initialize()
 
     auto* device = DX12::Instance().getDevice();
 
-    // ── 頂点バッファ（動的 Upload ヒープ、マップ常時保持）───────────────
+    // 笏笏 鬆らせ繝舌ャ繝輔ぃ・亥虚逧・Upload 繝偵・繝励√・繝・・蟶ｸ譎ゆｿ晄戟・俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     {
         const UINT64 vbSize = sizeof(UIVertex) * k_maxVertices;
         const CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
@@ -28,9 +28,9 @@ void UIRenderer::initialize()
         m_vbView.SizeInBytes    = static_cast<UINT>(vbSize);
     }
 
-    // ── インデックスバッファ（静的、全クワッド共有）───────────────────────
+    // 笏笏 繧､繝ｳ繝・ャ繧ｯ繧ｹ繝舌ャ繝輔ぃ・磯撕逧・∝・繧ｯ繝ｯ繝・ラ蜈ｱ譛会ｼ俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     {
-        // 各クワッドの三角形インデックス: [0,1,2] [0,2,3]
+        // 蜷・け繝ｯ繝・ラ縺ｮ荳芽ｧ貞ｽ｢繧､繝ｳ繝・ャ繧ｯ繧ｹ: [0,1,2] [0,2,3]
         std::vector<uint32_t> indices(k_maxQuads * 6);
         for (UINT q = 0; q < k_maxQuads; ++q)
         {
@@ -65,9 +65,9 @@ void UIRenderer::initialize()
         m_ibView.SizeInBytes    = static_cast<UINT>(ibSize);
     }
 
-    // ── 定数バッファ（デスクリプタヒープ不要の CBV リングバッファ）─────────────────
+    // 笏笏 螳壽焚繝舌ャ繝輔ぃ・医ョ繧ｹ繧ｯ繝ｪ繝励ち繝偵・繝嶺ｸ崎ｦ√・ CBV 繝ｪ繝ｳ繧ｰ繝舌ャ繝輔ぃ・俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     {
-        // Root CBV は GPU 仮想アドレスバインド。ヒープエントリ不要。
+        // Root CBV 縺ｯ GPU 莉ｮ諠ｳ繧｢繝峨Ξ繧ｹ繝舌う繝ｳ繝峨ゅヲ繝ｼ繝励お繝ｳ繝医Μ荳崎ｦ√・
         m_cbStride = (static_cast<UINT>(sizeof(UIConstantData)) + 255u) & ~255u;
         const UINT64 cbSize = static_cast<UINT64>(m_cbStride) * k_maxCBSlots;
 
@@ -83,10 +83,10 @@ void UIRenderer::initialize()
         m_cbRingBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_cbMapped));
     }
 
-    // ── ホワイトテクスチャ────────────────────────────────────────────────
+    // 笏笏 繝帙Ρ繧､繝医ユ繧ｯ繧ｹ繝√Ε笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     createWhiteTexture();
 
-    // ── PSO 登録──────────────────────────────────────────────────────────
+    // 笏笏 PSO 逋ｻ骭ｲ笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
     {
         static const D3D12_INPUT_ELEMENT_DESC layout[] =
         {
@@ -140,7 +140,7 @@ void UIRenderer::shutdown()
 }
 
 // =============================================================
-//  フレーム制御
+//  繝輔Ξ繝ｼ繝蛻ｶ蠕｡
 // =============================================================
 void UIRenderer::begin(float screenWidth, float screenHeight)
 {
@@ -150,7 +150,7 @@ void UIRenderer::begin(float screenWidth, float screenHeight)
     m_vertices.clear();
     m_drawCommands.clear();
 
-    // 正射影行列: (0,0)=左上 → NDC(-1,+1), (screenW, screenH)=右下 → NDC(+1,-1)
+    // 豁｣蟆・ｽｱ陦悟・: (0,0)=蟾ｦ荳・竊・NDC(-1,+1), (screenW, screenH)=蜿ｳ荳・竊・NDC(+1,-1)
     m_orthoMatrix = Matrix::CreateOrthographicOffCenter(
         0.f, screenWidth, screenHeight, 0.f, 0.f, 1.f);
 }
@@ -159,14 +159,14 @@ void UIRenderer::end()
 {
     if (!m_initialized || m_drawCommands.empty()) return;
 
-    // CPU バッファ → GPU マップへコピー
+    // CPU 繝舌ャ繝輔ぃ 竊・GPU 繝槭ャ繝励∈繧ｳ繝斐・
     const UINT vertCount = static_cast<UINT>(m_vertices.size());
     assert(vertCount <= k_maxVertices);
     memcpy(m_mappedVerts, m_vertices.data(), sizeof(UIVertex) * vertCount);
 
     auto* cmd = DX12::Instance().getGraphicsCommandList();
 
-    // ★修正: リソースバリア - シーン RT を PIXEL_SHADER_RESOURCE → RENDER_TARGET に遷移
+    // 笘・ｿｮ豁｣: 繝ｪ繧ｽ繝ｼ繧ｹ繝舌Μ繧｢ - 繧ｷ繝ｼ繝ｳ RT 繧・PIXEL_SHADER_RESOURCE 竊・RENDER_TARGET 縺ｫ驕ｷ遘ｻ
     ID3D12Resource* sceneRT = DX12::Instance().getSceneRenderTarget();
     D3D12_RESOURCE_BARRIER barrier = {};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -176,11 +176,11 @@ void UIRenderer::end()
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     cmd->ResourceBarrier(1, &barrier);
 
-    // シーン RT を描画ターゲットとして設定
+    // 繧ｷ繝ｼ繝ｳ RT 繧呈緒逕ｻ繧ｿ繝ｼ繧ｲ繝・ヨ縺ｨ縺励※險ｭ螳・
     const D3D12_CPU_DESCRIPTOR_HANDLE rtv = DX12::Instance().getSceneRTVHandle();
     cmd->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
 
-    // ビューポートとシザーを画面サイズに合わせる
+    // 繝薙Η繝ｼ繝昴・繝医→繧ｷ繧ｶ繝ｼ繧堤判髱｢繧ｵ繧､繧ｺ縺ｫ蜷医ｏ縺帙ｋ
     D3D12_VIEWPORT vp = { 0.f, 0.f, m_screenWidth, m_screenHeight, 0.f, 1.f };
     D3D12_RECT     sr = { 0, 0, static_cast<LONG>(m_screenWidth), static_cast<LONG>(m_screenHeight) };
     cmd->RSSetViewports(1, &vp);
@@ -190,8 +190,8 @@ void UIRenderer::end()
 
     flushCommands(cmd);
 
-    // ★修正: リソースバリア - UI 描画完了後、シーン RT を RENDER_TARGET → PIXEL_SHADER_RESOURCE に遷移
-    // （次のフレームで posteffect や他の処理で使用するため）
+    // 笘・ｿｮ豁｣: 繝ｪ繧ｽ繝ｼ繧ｹ繝舌Μ繧｢ - UI 謠冗判螳御ｺ・ｾ後√す繝ｼ繝ｳ RT 繧・RENDER_TARGET 竊・PIXEL_SHADER_RESOURCE 縺ｫ驕ｷ遘ｻ
+    // ・域ｬ｡縺ｮ繝輔Ξ繝ｼ繝縺ｧ posteffect 繧・ｻ悶・蜃ｦ逅・〒菴ｿ逕ｨ縺吶ｋ縺溘ａ・・
     D3D12_RESOURCE_BARRIER barrierEnd = {};
     barrierEnd.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrierEnd.Transition.pResource = sceneRT;
@@ -202,7 +202,7 @@ void UIRenderer::end()
 }
 
 // =============================================================
-//  描画 API
+//  謠冗判 API
 // =============================================================
 void UIRenderer::drawRect(float x, float y, float w, float h,
                           const Vector4& color,
@@ -280,10 +280,10 @@ void UIRenderer::drawWorldRect(const Matrix& worldTransform,
                                float w, float h,
                                const Vector4& color, float alpha)
 {
-    //! ワールド空間: Canvas のワールド行列 * VP を transform として使用
+    //! 繝ｯ繝ｼ繝ｫ繝臥ｩｺ髢・ Canvas 縺ｮ繝ｯ繝ｼ繝ｫ繝芽｡悟・ * VP 繧・transform 縺ｨ縺励※菴ｿ逕ｨ
     const Matrix mvp = worldTransform * viewProjection;
 
-    //! ローカル座標は中心原点 [-w/2, w/2] x [-h/2, h/2]
+    //! 繝ｭ繝ｼ繧ｫ繝ｫ蠎ｧ讓吶・荳ｭ蠢・次轤ｹ [-w/2, w/2] x [-h/2, h/2]
     const float hw = w * 0.5f;
     const float hh = h * 0.5f;
 
@@ -302,7 +302,7 @@ UINT UIRenderer::getFontAtlasSrvIndex() const
 }
 
 // =============================================================
-//  内部実装
+//  蜀・Κ螳溯｣・
 // =============================================================
 void UIRenderer::pushQuad(float x, float y, float w, float h,
                           float u0, float v0, float u1, float v1,
@@ -314,13 +314,13 @@ void UIRenderer::pushQuad(float x, float y, float w, float h,
 {
     if (m_vertices.size() + 4 > k_maxVertices) return;
 
-    // 4 頂点をプッシュ（左上→右上→右下→左下）
+    // 4 鬆らせ繧偵・繝・す繝･・亥ｷｦ荳岩・蜿ｳ荳岩・蜿ｳ荳銀・蟾ｦ荳具ｼ・
     m_vertices.push_back({ {x,     y    }, {u0, v0}, color });
     m_vertices.push_back({ {x + w, y    }, {u1, v0}, color });
     m_vertices.push_back({ {x + w, y + h}, {u1, v1}, color });
     m_vertices.push_back({ {x,     y + h}, {u0, v1}, color });
 
-    // 定数バッファにアップロード
+    // 螳壽焚繝舌ャ繝輔ぃ縺ｫ繧｢繝・・繝ｭ繝ｼ繝・
     UIConstantData cbData{};
     cbData.transform      = worldTransform;
     cbData.localTransform = localTransform;
@@ -330,7 +330,7 @@ void UIRenderer::pushQuad(float x, float y, float w, float h,
 
     const UINT cbSlot = uploadConstants(cbData);
 
-    // 既存コマンドと同一条件ならマージ（バッチ最適化）
+    // 譌｢蟄倥さ繝槭Φ繝峨→蜷御ｸ譚｡莉ｶ縺ｪ繧峨・繝ｼ繧ｸ・医ヰ繝・メ譛驕ｩ蛹厄ｼ・
     if (!m_drawCommands.empty())
     {
         auto& last = m_drawCommands.back();
@@ -354,7 +354,7 @@ void UIRenderer::pushQuad(float x, float y, float w, float h,
 
 UINT UIRenderer::uploadConstants(const UIConstantData& data)
 {
-    // スロットが満杯なら末尾を上書き（フレーム内で過剰な描画がある場合の安全策）
+    // 繧ｹ繝ｭ繝・ヨ縺梧ｺ譚ｯ縺ｪ繧画忰蟆ｾ繧剃ｸ頑嶌縺搾ｼ医ヵ繝ｬ繝ｼ繝蜀・〒驕主臆縺ｪ謠冗判縺後≠繧句ｴ蜷医・螳牙・遲厄ｼ・
     const UINT slot = (m_cbSlot < k_maxCBSlots) ? m_cbSlot++ : k_maxCBSlots - 1;
     memcpy(m_cbMapped + static_cast<size_t>(slot) * m_cbStride, &data, sizeof(data));
     return slot;
@@ -377,11 +377,11 @@ void UIRenderer::flushCommands(ID3D12GraphicsCommandList* cmd)
 
     for (const auto& dc : m_drawCommands)
     {
-        // CBV (b0) —— Root CBV: GPU 仮想アドレスを直接設定（デスクリプタヒープ不要）
+        // CBV (b0) 窶披・Root CBV: GPU 莉ｮ諠ｳ繧｢繝峨Ξ繧ｹ繧堤峩謗･險ｭ螳夲ｼ医ョ繧ｹ繧ｯ繝ｪ繝励ち繝偵・繝嶺ｸ崎ｦ・ｼ・
         cmd->SetGraphicsRootConstantBufferView(
             0, getCBGPUAddress(dc.cbSlot));
 
-        // SRV テーブル (t0)
+        // SRV 繝・・繝悶Ν (t0)
         const UINT srvIdx = (dc.srvIndex == UINT_MAX) ? m_whiteSrvIndex : dc.srvIndex;
         cmd->SetGraphicsRootDescriptorTable(
             1, DescriptorHeapManager::Instance().getGPUHandle(srvIdx));
@@ -394,9 +394,9 @@ void UIRenderer::flushCommands(ID3D12GraphicsCommandList* cmd)
 
 void UIRenderer::createWhiteTexture()
 {
-    //! 1x1 白ピクセル RGBA
+    //! 1x1 逋ｽ繝斐け繧ｻ繝ｫ RGBA
     constexpr uint32_t white = 0xFFFFFFFF;
-    m_whiteTexture = std::make_unique<LoadTexture>(
+    m_whiteTexture = DXMem::makeUnique<LoadTexture>(
         1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &white, sizeof(white));
     m_whiteSrvIndex = m_whiteTexture->getSRVIndex();
 }

@@ -59,10 +59,10 @@ void ModelResource::createMesh()
         GpuMesh gpuMesh;
 
         // VB
-        gpuMesh.vb = std::make_unique<VertexBuffer<Vertex>>(srcMesh.vertices);
+        gpuMesh.vb = DXMem::makeUnique<VertexBuffer<Vertex>>(srcMesh.vertices);
 
         // IB
-        gpuMesh.ib = std::make_unique<IndexBuffer<uint32_t>>(srcMesh.indices);
+        gpuMesh.ib = DXMem::makeUnique<IndexBuffer<uint32_t>>(srcMesh.indices);
 
         // SubMesh処理
         for (auto& sub : srcMesh.subMeshes)

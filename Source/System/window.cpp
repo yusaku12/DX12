@@ -28,6 +28,7 @@ void Window::initializeEngineSubsystems()
     // GPU/Descriptor 系の基盤を先に構築
     DescriptorHeapManager::Instance().initialize();
     m_dx12.initialize();
+    MemorySystem::Instance().bindDevice(m_dx12.getDevice());
     GBufferRenderTargets::Instance().initialize();
     CommandListPool::Instance().initialize(m_dx12.getDevice(), m_dx12.getFence(), 4);
 

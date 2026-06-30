@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "EngineTestRunner.h"
 
 #include "Animation/AnimationStateMachine.h"
@@ -163,7 +163,7 @@ namespace
 
     std::shared_ptr<ModelResource> createMinimalAnimatedResource()
     {
-        auto resource = std::make_shared<ModelResource>();
+        auto resource = DX_MAKE_SHARED(ModelResource);
         auto& modelData = resource->getModelData();
 
         ModelResource::Bone bone{};
@@ -476,7 +476,7 @@ namespace
                         }
                     });
 
-                GameObject* buttonObject = new GameObject("StartButton");
+                GameObject* buttonObject = DX_NEW(GameObject, "StartButton");
                 auto* button = buttonObject->addComponent<UIButtonComponent>();
                 button->setClickEventName("UI.Menu.Start");
 
@@ -529,10 +529,10 @@ namespace
 
                 ScriptEventProbe probe{};
 
-                GameObject* emitterObject = new GameObject("Emitter");
+                GameObject* emitterObject = DX_NEW(GameObject, "Emitter");
                 auto* emitter = emitterObject->addComponent<TestEmitterScript>();
 
-                GameObject* listenerObject = new GameObject("Listener");
+                GameObject* listenerObject = DX_NEW(GameObject, "Listener");
                 listenerObject->addComponent<TestListenerScript>(&probe);
 
                 emitter->emitValue(42);
@@ -566,10 +566,10 @@ namespace
                 GameObjectRegistry::Instance().shutdown();
 
                 {
-                    GameObject* root = new GameObject("SceneRoot");
+                    GameObject* root = DX_NEW(GameObject, "SceneRoot");
                     root->addTag(Tag::PostEffect);
 
-                    GameObject* child = new GameObject("SceneChild");
+                    GameObject* child = DX_NEW(GameObject, "SceneChild");
                     child->setParent(root);
                     child->setEnabled(false);
 
@@ -608,8 +608,8 @@ namespace
                 GameObjectRegistry::Instance().shutdown();
 
                 {
-                    GameObject* root = new GameObject("PrefabRoot");
-                    GameObject* child = new GameObject("PrefabChild");
+                    GameObject* root = DX_NEW(GameObject, "PrefabRoot");
+                    GameObject* child = DX_NEW(GameObject, "PrefabChild");
                     child->setParent(root);
 
                     ctx.expect(PrefabFlatBuffer::save(prefabPath, root), "Prefab save failed");
@@ -650,7 +650,7 @@ namespace
 
                 GameObjectRegistry::Instance().shutdown();
 
-                GameObject* dynamicObj = new GameObject("DynamicBody");
+                GameObject* dynamicObj = DX_NEW(GameObject, "DynamicBody");
                 auto* tf = dynamicObj->addComponent<TransformComponent>();
                 tf->setPosition(Vector3(0.0f, 4.0f, 0.0f));
 
@@ -956,7 +956,7 @@ namespace
 
                 GameObjectRegistry::Instance().shutdown();
 
-                GameObject* sourceRoot = new GameObject("BaseRoot");
+                GameObject* sourceRoot = DX_NEW(GameObject, "BaseRoot");
                 sourceRoot->addComponent<TransformComponent>();
                 sourceRoot->start();
 
@@ -1011,7 +1011,7 @@ namespace
                 EditorAsyncAsset::AsyncAssetLoader::Instance().clear();
 
                 {
-                    GameObject* sceneRoot = new GameObject("AsyncSceneRoot");
+                    GameObject* sceneRoot = DX_NEW(GameObject, "AsyncSceneRoot");
                     sceneRoot->addComponent<TransformComponent>();
                     ctx.expect(SceneFlatBuffer::save(scenePath, SceneId::ParticleEditor), "Async scene save failed");
                 }
@@ -1019,7 +1019,7 @@ namespace
                 GameObjectRegistry::Instance().shutdown();
 
                 {
-                    GameObject* prefabRoot = new GameObject("AsyncPrefabRoot");
+                    GameObject* prefabRoot = DX_NEW(GameObject, "AsyncPrefabRoot");
                     prefabRoot->addComponent<TransformComponent>();
                     ctx.expect(PrefabFlatBuffer::save(prefabPath, prefabRoot), "Async prefab save failed");
                 }

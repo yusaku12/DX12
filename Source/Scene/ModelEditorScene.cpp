@@ -15,20 +15,20 @@
 
 void ModelEditorScene::onEnter()
 {
-    GameObject* cameraObject = new GameObject("MainCamera");
+    GameObject* cameraObject = DX_NEW(GameObject, "MainCamera");
     cameraObject->addComponent<TransformComponent>()->setPosition({ 0.0f, 9.0f, -23.0f });
     cameraObject->addComponent<FreeCameraComponent>();
 
-    GameObject* object = new GameObject("ModelObject");
+    GameObject* object = DX_NEW(GameObject, "ModelObject");
     object->addComponent<TransformComponent>();
     object->addComponent<FbxRenderComponent>("Data/Model/Jammo/Jammo.mdl");
     object->addComponent<AnimationComponent>();
 
-    GameObject* skyboxObj = new GameObject("Skybox");
+    GameObject* skyboxObj = DX_NEW(GameObject, "Skybox");
     auto* skybox = skyboxObj->addComponent<SkyboxComponent>();
     skybox->setCubemap(L"Data/Texture/test.dds");
 
-    GameObject* postEffectObj = new GameObject("PostEffectVolume");
+    GameObject* postEffectObj = DX_NEW(GameObject, "PostEffectVolume");
     postEffectObj->addComponent<TransformComponent>();
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "EditorTransaction.h"
 
 namespace EditorTransaction
@@ -232,7 +232,7 @@ namespace EditorTransaction
             return;
         }
 
-        pushCommand(std::make_unique<CompositeCommand>(std::move(record)));
+        pushCommand(DXMem::makeUnique<CompositeCommand>(std::move(record)));
     }
 
     void Manager::pushCommand(std::unique_ptr<ICommand> command)

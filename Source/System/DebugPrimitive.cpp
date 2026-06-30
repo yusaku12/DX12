@@ -10,11 +10,11 @@ void DebugPrimitive::initialize()
     createLineMesh();
 
     // メッシュ定数バッファ作成（ドローコールごとに個別エレメント）
-    m_meshCB = std::make_unique<ConstantBuffer<CbMesh>>(MAX_DRAW_CALLS);
+    m_meshCB = DXMem::makeUnique<ConstantBuffer<CbMesh>>(MAX_DRAW_CALLS);
 
     // グリッド用動的バッファ（最大 2048 ライン = 4096 頂点）
     constexpr UINT gridMaxVerts = 4096;
-    m_gridUploadBuffer = std::make_unique<UploadBuffer>(sizeof(Vertex) * gridMaxVerts);
+    m_gridUploadBuffer = DXMem::makeUnique<UploadBuffer>(sizeof(Vertex) * gridMaxVerts);
     auto* res = m_gridUploadBuffer->getResource();
     res->Map(0, nullptr, reinterpret_cast<void**>(&m_gridMapped));
     m_gridVBV.BufferLocation = res->GetGPUVirtualAddress();
@@ -294,7 +294,7 @@ void DebugPrimitive::createSphereMesh(int subdivisions)
 {
     static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
     m_sphereVertexCount = subdivisions * 2 * 3;
-    auto verts = std::make_unique<Vertex[]>(m_sphereVertexCount);
+    auto verts = DXMem::makeUnique<Vertex[]>(m_sphereVertexCount);
     Vertex* p = verts.get();
     float step = XM_2PI / subdivisions;
 
@@ -334,7 +334,7 @@ void DebugPrimitive::createHalfSphereMesh(int subdivisions)
     static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
     int halfSub = subdivisions / 2;
     m_halfSphereVertexCount = subdivisions * 2 + halfSub * 2 + halfSub * 2;
-    auto verts = std::make_unique<Vertex[]>(m_halfSphereVertexCount);
+    auto verts = DXMem::makeUnique<Vertex[]>(m_halfSphereVertexCount);
     Vertex* p = verts.get();
     float step = XM_2PI / subdivisions;
 
@@ -373,7 +373,7 @@ void DebugPrimitive::createCylinderMesh(int subdivisions)
 {
     static constexpr Vector4 defaultColor = { 1, 1, 1, 1 };
     m_cylinderVertexCount = (subdivisions * 2 * 2) + (2 * 2 * 2);
-    auto verts = std::make_unique<Vertex[]>(m_cylinderVertexCount);
+    auto verts = DXMem::makeUnique<Vertex[]>(m_cylinderVertexCount);
     Vertex* p = verts.get();
     float step = XM_2PI / subdivisions;
 

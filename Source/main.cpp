@@ -24,10 +24,12 @@ INT WINAPI wWinMain(
 {
     Logger::Instance().initialize();
     CrashReporter::Instance().initialize();
+    MemorySystem::Instance().initialize();
 
     if (EngineTests::hasAnyTestFlag(cmdLine))
     {
         int result = EngineTests::runFromCommandLine(cmdLine);
+        MemorySystem::Instance().shutdown();
         CrashReporter::Instance().shutdown();
         Logger::Instance().shutdown();
         return result;
@@ -85,6 +87,7 @@ INT WINAPI wWinMain(
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&window));
     int result = window.run();
 
+    MemorySystem::Instance().shutdown();
     CrashReporter::Instance().shutdown();
     Logger::Instance().shutdown();
     return result;

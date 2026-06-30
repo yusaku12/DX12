@@ -10,9 +10,9 @@ void BloomEffect::initialize()
     m_psoComposite = registerPSO(ShaderID::BloomCompositePS, RootSignatureType::BloomComposite);
 
     // 定数バッファ作成
-    m_cbPrefilter = std::make_unique<ConstantBuffer<PrefilterCBuffer>>();
-    m_cbBloom = std::make_unique<ConstantBuffer<BloomCBuffer>>();
-    m_cbComposite = std::make_unique<ConstantBuffer<CompositeCBuffer>>();
+    m_cbPrefilter = DXMem::makeUnique<ConstantBuffer<PrefilterCBuffer>>();
+    m_cbBloom = DXMem::makeUnique<ConstantBuffer<BloomCBuffer>>();
+    m_cbComposite = DXMem::makeUnique<ConstantBuffer<CompositeCBuffer>>();
 
     // 中間 RT 作成
     UINT w = DX12::Instance().getScreenWidth();

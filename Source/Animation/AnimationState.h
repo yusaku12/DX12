@@ -44,7 +44,7 @@ public:
     {
         if (!m_blendTree)
         {
-            m_blendTree = std::make_unique<BlendTreeData>();
+            m_blendTree = DXMem::makeUnique<BlendTreeData>();
         }
         m_blendTree->type = type;
         return *m_blendTree;

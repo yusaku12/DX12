@@ -46,7 +46,7 @@ RenderPassFlags CameraManager::getMainRenderPassMask() const
 void CameraManager::initialize()
 {
     // カメラ定数バッファ作成
-    m_cameraCB = std::make_unique<ConstantBuffer<GPUCameraBuffer>>();
+    m_cameraCB = DXMem::makeUnique<ConstantBuffer<GPUCameraBuffer>>();
 
     // カメラ定数バッファをGPUにアップロード
     uploadCameraBufferToGPU();

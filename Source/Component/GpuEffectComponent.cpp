@@ -343,7 +343,7 @@ void GpuEffectComponent::setMaxParticles(UINT maxParticles)
 
 void GpuEffectComponent::initializeResources()
 {
-    m_renderCB = std::make_unique<ConstantBuffer<RenderParams>>(1);
+    m_renderCB = DXMem::makeUnique<ConstantBuffer<RenderParams>>(1);
 
     // テクスチャをロード (ディスクリプタテーブル未割当なので updateDescriptorTables は後で呼ぶ)
     if (!m_texturePath.empty())

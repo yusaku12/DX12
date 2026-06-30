@@ -146,6 +146,7 @@
     <ClCompile Include="Source\Scene\SceneFlatBuffer.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\System\CpuGpuProfiler.cpp" />
+    <ClCompile Include="Source\System\MemorySystem.cpp" />
     <ClCompile Include="Source\System\DebugPrimitive.cpp" />
     <ClCompile Include="Source\System\Dialog.cpp" />
     <ClCompile Include="Source\System\CrashReporter.cpp" />
@@ -283,6 +284,7 @@
     <ClInclude Include="Source\Scene\SceneFlatBuffer.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\System\CpuGpuProfiler.h" />
+    <ClInclude Include="Source\System\MemorySystem.h" />
     <ClInclude Include="Source\System\DebugPrimitive.h" />
     <ClInclude Include="Source\System\Dialog.h" />
     <ClInclude Include="Source\System\CrashReporter.h" />

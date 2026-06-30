@@ -53,7 +53,7 @@ void HiZPyramid::ensureInitialized()
     const HRESULT hr = device->CreateComputePipelineState(&desc, IID_PPV_ARGS(m_pso.ReleaseAndGetAddressOf()));
     LOG_HR(hr, "[HiZPyramid] Failed to create compute PSO");
 
-    m_paramsCB = std::make_unique<ConstantBuffer<HiZParams>>();
+    m_paramsCB = DXMem::makeUnique<ConstantBuffer<HiZParams>>();
     m_initialized = true;
 }
 

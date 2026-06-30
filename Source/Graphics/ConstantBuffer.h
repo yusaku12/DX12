@@ -14,7 +14,7 @@ public:
         m_elementSize = (sizeof(T) + 255) & ~255;
         m_bufferSize = m_elementSize * m_elementCount;
 
-        m_uploadBuffer = std::make_unique<UploadBuffer>(m_bufferSize);
+        m_uploadBuffer = DXMem::makeUnique<UploadBuffer>(m_bufferSize);
 
         auto res = m_uploadBuffer->getResource();
         res->Map(0, nullptr, reinterpret_cast<void**>(&m_mapped));

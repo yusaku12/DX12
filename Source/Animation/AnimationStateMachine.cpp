@@ -199,7 +199,7 @@ AnimationState* AnimationStateMachine::addState(const std::string& name, int ani
         return findState(name);
     }
 
-    auto state = std::make_unique<AnimationState>(name, animIndex);
+    auto state = DXMem::makeUnique<AnimationState>(name, animIndex);
     AnimationState* ptr = state.get();
     m_states.push_back(std::move(state));
     return ptr;

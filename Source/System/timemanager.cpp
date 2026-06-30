@@ -72,6 +72,8 @@ void TimeManager::update()
 
 void TimeManager::frameStart(ID3D12GraphicsCommandList* cmd)
 {
+    MemorySystem::Instance().beginFrame();
+
     // プロファイラ更新(書き込み開始)
     m_profiler.beginFrame(cmd);
 }
@@ -127,6 +129,57 @@ void TimeManager::renderProfilerContents()
     ImGui::Text("CPU Memory: %.1f MB  |  GPU Memory: %.1f MB",
         profiler.getCpuMemoryMB(),
         profiler.getGpuMemoryMB());
+
+    const MemorySystem& memory = MemorySystem::Instance();
+    const MemorySystem::LeakStats leakStats = memory.getLeakStats();
+    const MemorySystem::LinearAllocatorStats linearStats = memory.getLinearAllocatorStats();
+    const MemorySystem::StackAllocatorStats stackStats = memory.getStackAllocatorStats();
+    const MemorySystem::PoolAllocatorStats poolStats = memory.getPoolAllocatorStats();
+
+    const float trackedActiveMB = static_cast<float>(leakStats.activeBytes) / (1024.0f * 1024.0f);
+    const float trackedPeakMB = static_cast<float>(leakStats.peakActiveBytes) / (1024.0f * 1024.0f);
+
+    ImGui::Text("Tracked Allocations: %llu active | %.2f MB active | %.2f MB peak",
+        static_cast<unsigned long long>(leakStats.activeAllocations),
+        trackedActiveMB,
+        trackedPeakMB);
+
+    const float gpuBudgetMB = memory.getGpuLocalBudgetMB();
+    const float gpuUsageMB = memory.getGpuLocalUsageMB();
+    const float gpuPeakMB = memory.getGpuLocalPeakMB();
+    const float gpuUsageRatio = memory.getGpuLocalUsageRatio();
+
+    ImGui::Text("GPU Local: %.1f / %.1f MB (peak %.1f MB)", gpuUsageMB, gpuBudgetMB, gpuPeakMB);
+    ImGui::ProgressBar(std::clamp(gpuUsageRatio, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f), "GPU Budget Usage");
+
+    const float linearUsage = linearStats.capacityBytes > 0
+        ? static_cast<float>(linearStats.usedBytes) / static_cast<float>(linearStats.capacityBytes)
+        : 0.0f;
+    const float stackUsage = stackStats.capacityBytes > 0
+        ? static_cast<float>(stackStats.usedBytes) / static_cast<float>(stackStats.capacityBytes)
+        : 0.0f;
+    const float poolUsage = poolStats.capacityBlocks > 0
+        ? static_cast<float>(poolStats.activeBlocks) / static_cast<float>(poolStats.capacityBlocks)
+        : 0.0f;
+
+    ImGui::Text("Linear Allocator: %zu / %zu KB (peak %zu KB)",
+        linearStats.usedBytes / 1024,
+        linearStats.capacityBytes / 1024,
+        linearStats.peakBytes / 1024);
+    ImGui::ProgressBar(std::clamp(linearUsage, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f), "Linear Usage");
+
+    ImGui::Text("Stack Allocator: %zu / %zu KB (peak %zu KB)",
+        stackStats.usedBytes / 1024,
+        stackStats.capacityBytes / 1024,
+        stackStats.peakBytes / 1024);
+    ImGui::ProgressBar(std::clamp(stackUsage, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f), "Stack Usage");
+
+    ImGui::Text("Pool Allocator: %zu / %zu blocks (%zu B block, peak %zu blocks)",
+        poolStats.activeBlocks,
+        poolStats.capacityBlocks,
+        poolStats.blockSizeBytes,
+        poolStats.peakActiveBlocks);
+    ImGui::ProgressBar(std::clamp(poolUsage, 0.0f, 1.0f), ImVec2(-1.0f, 0.0f), "Pool Usage");
 
     ImGui::PlotLines("CPU (ms)",
         profiler.cpuHistory().data(), static_cast<int>(profiler.cpuHistory().size()),

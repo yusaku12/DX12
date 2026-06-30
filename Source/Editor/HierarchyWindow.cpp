@@ -254,7 +254,7 @@ void drawHierarchyWindow()
     {
         if (ImGui::MenuItem("Create Empty"))
         {
-            new GameObject("GameObject");
+            DX_NEW(GameObject, "GameObject");
         }
 
         if (ImGui::MenuItem("Instantiate Prefab..."))

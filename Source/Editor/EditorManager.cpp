@@ -276,6 +276,12 @@ void EditorManager::drawDebugHubWindow()
             ImGui::EndTabItem();
         }
 
+        if (ImGui::BeginTabItem("Audio"))
+        {
+            AudioManager::Instance().renderDebugContents();
+            ImGui::EndTabItem();
+        }
+
         ImGui::EndTabBar();
     }
 
