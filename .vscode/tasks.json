@@ -10,8 +10,10 @@
 				"/t:Build",
 				"/p:Configuration=Debug",
 				"/p:Platform=x64",
+				"/p:UseMultiToolTask=true",
+				"/p:EnforceProcessCountAcrossBuilds=true",
 				"/nologo",
-				"/m:1",
+				"/m",
 				"/v:minimal"
 			],
 			"group": "build"
@@ -25,8 +27,10 @@
 				"/t:Build",
 				"/p:Configuration=Debug",
 				"/p:Platform=x64",
+				"/p:UseMultiToolTask=true",
+				"/p:EnforceProcessCountAcrossBuilds=true",
 				"/nologo",
-				"/m:1",
+				"/m",
 				"/v:minimal"
 			],
 			"group": "build"
@@ -40,8 +44,10 @@
 				"/t:Build",
 				"/p:Configuration=Debug",
 				"/p:Platform=x64",
+				"/p:UseMultiToolTask=true",
+				"/p:EnforceProcessCountAcrossBuilds=true",
 				"/nologo",
-				"/m:1",
+				"/m",
 				"/v:minimal"
 			],
 			"group": "build"
@@ -55,7 +61,7 @@
 				"-ExecutionPolicy",
 				"Bypass",
 				"-Command",
-				"& \"$env:ProgramFiles\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\" .\\DirectX12.sln /t:Build /p:Configuration=Debug /p:Platform=x64 /nologo /m:1 /v:minimal"
+				"& \"$env:ProgramFiles\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\" .\\DirectX12.sln /t:Build /p:Configuration=Debug /p:Platform=x64 /p:UseMultiToolTask=true /p:EnforceProcessCountAcrossBuilds=true /nologo /m /v:minimal"
 			],
 			"group": "build"
 		}
