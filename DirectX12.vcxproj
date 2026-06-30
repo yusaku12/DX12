@@ -105,8 +105,8 @@
     <ClCompile Include="Source\Editor\AssetThumbnailManager.cpp" />
     <ClCompile Include="Source\Editor\CubemapToolWindow.cpp" />
     <ClCompile Include="Source\Editor\EditorContext.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Source\Editor\EditorManager.cpp" />
     <ClCompile Include="Source\Editor\HierarchyWindow.cpp" />
