@@ -31,6 +31,15 @@ void MemorySystem::initialize()
     const bool stackOk = m_stackAllocator.initialize(kStackAllocatorSize);
     const bool poolOk = m_poolAllocator.initialize(kPoolBlockSize, kPoolBlockCount);
 
+    if (!linearOk || !stackOk || !poolOk)
+    {
+        LOG_ERROR("MemorySystem: allocator initialize failed (linear=%d stack=%d pool=%d)",
+            linearOk ? 1 : 0,
+            stackOk ? 1 : 0,
+            poolOk ? 1 : 0);
+        return;
+    }
+
     LOG_ASSERT(linearOk, "MemorySystem: LinearAllocator initialize failed");
     LOG_ASSERT(stackOk, "MemorySystem: StackAllocator initialize failed");
     LOG_ASSERT(poolOk, "MemorySystem: PoolAllocator initialize failed");

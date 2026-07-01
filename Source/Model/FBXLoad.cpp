@@ -124,6 +124,13 @@ bool FbxLoad::load(const char* filename)
         // インポータを生成
         FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
         bool result = fbxImporter->Initialize(fbxFilename, -1, fbxManager->GetIOSettings());	// -1でファイルフォーマット自動判定
+        if (!result)
+        {
+            LOG_ERROR("FbxImporter::Initialize() : Failed");
+            fbxImporter->Destroy();
+            fbxManager->Destroy();
+            return false;
+        }
         LOG_ASSERT(result, "FbxImporter::Initialize() : Failed!!\n");
 
         // SceneオブジェクトにFBXファイル内の情報を流し込む
@@ -206,6 +213,13 @@ void FbxLoad::addAnimation(const char* filename)
     // インポータを生成
     FbxImporter* fbxImporter = FbxImporter::Create(fbxManager, "");
     bool result = fbxImporter->Initialize(fbxFilename, -1, fbxManager->GetIOSettings());	// -1でファイルフォーマット自動判定
+    if (!result)
+    {
+        LOG_ERROR("FbxImporter::Initialize() : Failed");
+        fbxImporter->Destroy();
+        fbxManager->Destroy();
+        return;
+    }
     LOG_ASSERT(result, "FbxImporter::Initialize() : Failed!!\n");
 
     // SceneオブジェクトにFBXファイル内の情報を流し込む

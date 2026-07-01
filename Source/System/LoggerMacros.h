@@ -49,6 +49,7 @@
 
 #else
 #define LOG_ASSERT(expr, fmt, ...) ((void)0)
+#define LOG_ASSERT_NO_JUDGE(fmt, ...) ((void)0)
 #endif
 
 //=====================================================

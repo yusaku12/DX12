@@ -19,13 +19,13 @@
 			"group": "build"
 		},
 		{
-			"label": "Build Debug x64 (cmd)",
+			"label": "Build Release x64",
 			"type": "shell",
 			"command": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
 			"args": [
 				".\\DirectX12.sln",
 				"/t:Build",
-				"/p:Configuration=Debug",
+				"/p:Configuration=Release",
 				"/p:Platform=x64",
 				"/p:UseMultiToolTask=true",
 				"/p:EnforceProcessCountAcrossBuilds=true",
@@ -36,32 +36,19 @@
 			"group": "build"
 		},
 		{
-			"label": "Build Debug x64 (pwsh)",
+			"label": "Build Release x64",
 			"type": "shell",
 			"command": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
 			"args": [
 				".\\DirectX12.sln",
 				"/t:Build",
-				"/p:Configuration=Debug",
+				"/p:Configuration=Release",
 				"/p:Platform=x64",
 				"/p:UseMultiToolTask=true",
 				"/p:EnforceProcessCountAcrossBuilds=true",
 				"/nologo",
 				"/m",
 				"/v:minimal"
-			],
-			"group": "build"
-		},
-		{
-			"label": "Build Debug x64 (pwsh direct)",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-NoProfile",
-				"-ExecutionPolicy",
-				"Bypass",
-				"-Command",
-				"& \"$env:ProgramFiles\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe\" .\\DirectX12.sln /t:Build /p:Configuration=Debug /p:Platform=x64 /p:UseMultiToolTask=true /p:EnforceProcessCountAcrossBuilds=true /nologo /m /v:minimal"
 			],
 			"group": "build"
 		}

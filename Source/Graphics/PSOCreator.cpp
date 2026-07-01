@@ -154,7 +154,11 @@ Microsoft::WRL::ComPtr<ID3D12PipelineState> PSOCreator::buildPSO(const PSOData& 
     // パイプラインステート作成
     Microsoft::WRL::ComPtr<ID3D12PipelineState> pso;
     HRESULT hr = DX12::Instance().getDevice()->CreateGraphicsPipelineState(&gpipeline, IID_PPV_ARGS(pso.GetAddressOf()));
-    assert(SUCCEEDED(hr));
+    if (FAILED(hr))
+    {
+        LOG_ERROR("PSOCreator: CreateGraphicsPipelineState failed");
+        return nullptr;
+    }
 
     return pso;
 }
