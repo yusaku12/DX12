@@ -132,24 +132,24 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="DX12.Animation.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1001}</Project><Name>DX12.Animation</Name></ProjectReference>
-    <ProjectReference Include="DX12.Audio.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1002}</Project><Name>DX12.Audio</Name></ProjectReference>
-    <ProjectReference Include="DX12.Camera.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1003}</Project><Name>DX12.Camera</Name></ProjectReference>
-    <ProjectReference Include="DX12.Component.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1004}</Project><Name>DX12.Component</Name></ProjectReference>
-    <ProjectReference Include="DX12.Editor.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1005}</Project><Name>DX12.Editor</Name></ProjectReference>
-    <ProjectReference Include="DX12.GameObject.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1006}</Project><Name>DX12.GameObject</Name></ProjectReference>
-    <ProjectReference Include="DX12.Graphics.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1007}</Project><Name>DX12.Graphics</Name></ProjectReference>
-    <ProjectReference Include="DX12.Input.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1008}</Project><Name>DX12.Input</Name></ProjectReference>
-    <ProjectReference Include="DX12.Math.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1009}</Project><Name>DX12.Math</Name></ProjectReference>
-    <ProjectReference Include="DX12.Model.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1010}</Project><Name>DX12.Model</Name></ProjectReference>
-    <ProjectReference Include="DX12.Physics.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1011}</Project><Name>DX12.Physics</Name></ProjectReference>
-    <ProjectReference Include="DX12.PostEffect.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1012}</Project><Name>DX12.PostEffect</Name></ProjectReference>
-    <ProjectReference Include="DX12.Render.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1013}</Project><Name>DX12.Render</Name></ProjectReference>
-    <ProjectReference Include="DX12.Scene.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1014}</Project><Name>DX12.Scene</Name></ProjectReference>
-    <ProjectReference Include="DX12.System.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1015}</Project><Name>DX12.System</Name></ProjectReference>
-    <ProjectReference Include="DX12.Test.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1016}</Project><Name>DX12.Test</Name></ProjectReference>
-    <ProjectReference Include="DX12.UI.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1017}</Project><Name>DX12.UI</Name></ProjectReference>
-    <ProjectReference Include="DX12.ThirdParty.ImGui.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1018}</Project><Name>DX12.ThirdParty.ImGui</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Animation.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1001}</Project><Name>DX12.Animation</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Audio.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1002}</Project><Name>DX12.Audio</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Camera.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1003}</Project><Name>DX12.Camera</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Component.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1004}</Project><Name>DX12.Component</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Editor.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1005}</Project><Name>DX12.Editor</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.GameObject.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1006}</Project><Name>DX12.GameObject</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Graphics.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1007}</Project><Name>DX12.Graphics</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Input.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1008}</Project><Name>DX12.Input</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Math.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1009}</Project><Name>DX12.Math</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Model.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1010}</Project><Name>DX12.Model</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Physics.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1011}</Project><Name>DX12.Physics</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.PostEffect.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1012}</Project><Name>DX12.PostEffect</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Render.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1013}</Project><Name>DX12.Render</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Scene.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1014}</Project><Name>DX12.Scene</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.System.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1015}</Project><Name>DX12.System</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.Test.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1016}</Project><Name>DX12.Test</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.UI.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1017}</Project><Name>DX12.UI</Name></ProjectReference>
+    <ProjectReference Include="Modules\DX12.ThirdParty.ImGui.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1018}</Project><Name>DX12.ThirdParty.ImGui</Name></ProjectReference>
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

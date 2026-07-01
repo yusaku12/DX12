@@ -19,7 +19,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External.\magic_enum;.\External\Physx;.\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -43,7 +43,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External.\FBX SDK.\2020.3.9.\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External.\magic_enum;.\External\Physx;.\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -52,6 +52,6 @@
   </ItemDefinitionGroup>
 
   <Target Name="ValidateModuleDependencies" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64' and '$(MSBuildProjectName)'!='DX12.ThirdParty.ImGui'">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Tool\Validate-ModuleDependencies.ps1&quot; -ProjectName &quot;$(MSBuildProjectName)&quot; -SolutionDir &quot;$(MSBuildProjectDirectory)&quot;" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Tool\Validate-ModuleDependencies.ps1&quot; -ProjectName &quot;$(MSBuildProjectName)&quot; -SolutionDir &quot;$(SolutionDir)&quot;" />
   </Target>
 </Project>
