@@ -51,6 +51,19 @@
 				"/v:minimal"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Clean Root Generated Artifacts",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Get-ChildItem -File -Filter '*.vcxproj.user' | Remove-Item -Force; Get-ChildItem -Directory -Filter 'DX12.*' | Remove-Item -Recurse -Force; if (Test-Path 'DirectX12') { Remove-Item 'DirectX12' -Recurse -Force }; if (Test-Path 'Intermediate') { Remove-Item 'Intermediate' -Recurse -Force }"
+			],
+			"group": "build"
 		}
 	]
 }

@@ -1,5 +1,7 @@
 .vs/
 DirectX12/
 x64/
+Intermediate/
 Data/
 imgui.ini
+*.vcxproj.user
