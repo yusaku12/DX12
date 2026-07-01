@@ -39,102 +39,30 @@
 // SV_TARGET                0   xyzw        0   TARGET   float   xyzw
 //
 ps_5_0
-dcl_globalFlags refactoringAllowed | skipOptimization
+dcl_globalFlags refactoringAllowed
 dcl_constantbuffer CB0[1], immediateIndexed
 dcl_sampler s3, mode_default
 dcl_resource_texture2d (float,float,float,float) t0
 dcl_input_ps linear v1.xy
 dcl_output o0.xyzw
 dcl_temps 3
-//
-// Initial variable locations:
-//   v0.x <- input.svpos.x; v0.y <- input.svpos.y; v0.z <- input.svpos.z; v0.w <- input.svpos.w; 
-//   v1.x <- input.uv.x; v1.y <- input.uv.y; 
-//   o0.x <- <PS return value>.x; o0.y <- <PS return value>.y; o0.z <- <PS return value>.z; o0.w <- <PS return value>.w
-//
-#line 56 "C:\Users\2210359\Desktop\DirectX12\HLSL\BloomPrefilterPS.hlsl"
-sample_indexable(texture2d)(float,float,float,float) r0.xyz, v1.xyxx, t0.xyzw, s3
-mov r0.xyz, r0.xyzx  // r0.x <- color.x; r0.y <- color.y; r0.z <- color.z
-
-#line 57
-nop 
-mov r0.xyz, r0.xyzx
-mov r0.w, cb0[0].x
-mov r1.x, cb0[0].y
-
-#line 23
-mul r1.x, r0.w, r1.x  // r1.x <- kneeSize
-
-#line 25
-add r1.y, r1.x, l(0.000010)
-div r1.y, l(0.500000), r1.y  // r1.y <- rcp2Knee
-
-#line 26
-nop 
-mov r0.xyz, r0.xyzx
-
-#line 16
-dp3 r1.z, r0.xyzx, l(0.212600, 0.715200, 0.072200, 0.000000)  // r1.z <- <luminance return value>
-
-#line 26
-mov r1.z, r1.z  // r1.z <- lum
-
-#line 28
-mov r0.xyz, r0.xyzx  // r0.x <- result.x; r0.y <- result.y; r0.z <- result.z
-
-#line 31
-mov r1.w, -r1.x
-add r1.w, r0.w, r1.w  // r1.w <- lo
-
-#line 32
-add r1.x, r0.w, r1.x  // r1.x <- hi
-
-#line 34
-lt r2.x, r1.z, r1.w
-if_nz r2.x
-
-#line 36
-  mov r2.xyz, l(0,0,0,0)  // r2.x <- result.x; r2.y <- result.y; r2.z <- result.z
-
-#line 37
-else   // Prior locations: r0.x <- result.x; r0.y <- result.y; r0.z <- result.z
-
-#line 38
-  lt r1.x, r1.z, r1.x
-  if_nz r1.x
-
-#line 41
-    mov r1.x, -r1.w
-    add r1.x, r1.x, r1.z  // r1.x <- t
-
-#line 42
-    mul r1.x, r1.x, r1.x
-    mul r1.x, r1.y, r1.x  // r1.x <- w
-
-#line 43
-    max r1.y, r1.z, l(0.000010)
-    div r1.x, r1.x, r1.y
-    mul r2.xyz, r0.xyzx, r1.xxxx  // r2.x <- result.x; r2.y <- result.y; r2.z <- result.z
-
-#line 44
-  else   // Prior locations: r1.y <- rcp2Knee; r0.x <- result.x; r0.y <- result.y; r0.z <- result.z
-
-#line 48
-    mov r1.xyz, -r0.wwww
-    add r2.xyz, r0.xyzx, r1.xyzx  // r2.x <- result.x; r2.y <- result.y; r2.z <- result.z
-
-#line 49
-  endif 
-endif 
-
-#line 51
-max r0.xyz, r2.xyzx, l(0.000000, 0.000000, 0.000000, 0.000000)  // r0.x <- <quadraticThreshold return value>.x; r0.y <- <quadraticThreshold return value>.y; r0.z <- <quadraticThreshold return value>.z
-
-#line 57
-mov r0.xyz, r0.xyzx  // r0.x <- bloom.x; r0.y <- bloom.y; r0.z <- bloom.z
-
-#line 58
-mov o0.xyz, r0.xyzx
+mad r0.x, cb0[0].x, cb0[0].y, l(0.000010)
+div r0.x, l(0.500000), r0.x
+mad r0.y, -cb0[0].x, cb0[0].y, cb0[0].x
+sample_indexable(texture2d)(float,float,float,float) r1.xyz, v1.xyxx, t0.xyzw, s3
+dp3 r0.z, r1.xyzx, l(0.212600, 0.715200, 0.072200, 0.000000)
+add r0.w, -r0.y, r0.z
+mul r0.w, r0.w, r0.w
+mul r0.x, r0.x, r0.w
+max r0.w, r0.z, l(0.000010)
+div r0.x, r0.x, r0.w
+mul r2.xyz, r0.xxxx, r1.xyzx
+add r1.xyz, r1.xyzx, -cb0[0].xxxx
+mad r0.x, cb0[0].x, cb0[0].y, cb0[0].x
+lt r0.xy, r0.zzzz, r0.xyxx
+movc r0.xzw, r0.xxxx, r2.xxyz, r1.xxyz
+max r0.xzw, r0.xxzw, l(0.000000, 0.000000, 0.000000, 0.000000)
+movc o0.xyz, r0.yyyy, l(0,0,0,0), r0.xzwx
 mov o0.w, l(1.000000)
 ret 
-// Approximately 40 instruction slots used
+// Approximately 19 instruction slots used

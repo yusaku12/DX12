@@ -18,7 +18,11 @@ void UIRenderer::initialize()
             &heapProps, D3D12_HEAP_FLAG_NONE, &resDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
             IID_PPV_ARGS(&m_vertexBuffer));
-        assert(SUCCEEDED(hr));
+        if (FAILED(hr))
+        {
+            LOG_ERROR("UIRenderer: failed to create vertex buffer");
+            return;
+        }
         m_vertexBuffer->SetName(L"UIRenderer::VertexBuffer");
 
         m_vertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_mappedVerts));
@@ -52,7 +56,11 @@ void UIRenderer::initialize()
             &heapProps, D3D12_HEAP_FLAG_NONE, &resDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
             IID_PPV_ARGS(&m_indexBuffer));
-        assert(SUCCEEDED(hr));
+        if (FAILED(hr))
+        {
+            LOG_ERROR("UIRenderer: failed to create index buffer");
+            return;
+        }
         m_indexBuffer->SetName(L"UIRenderer::IndexBuffer");
 
         void* mapped = nullptr;
@@ -78,7 +86,11 @@ void UIRenderer::initialize()
             &cbHeap, D3D12_HEAP_FLAG_NONE, &cbDesc,
             D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
             IID_PPV_ARGS(&m_cbRingBuffer));
-        assert(SUCCEEDED(hr));
+        if (FAILED(hr))
+        {
+            LOG_ERROR("UIRenderer: failed to create constant buffer ring");
+            return;
+        }
         m_cbRingBuffer->SetName(L"UIRenderer::CBRingBuffer");
         m_cbRingBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_cbMapped));
     }

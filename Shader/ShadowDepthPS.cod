@@ -15,8 +15,6 @@
 // -------------------- ----- ------ -------- -------- ------- ------
 // no Output
 ps_5_0
-dcl_globalFlags refactoringAllowed | skipOptimization
-
-#line 3 "C:\Users\2210359\Desktop\DirectX12\HLSL\ShadowDepthPS.hlsl"
+dcl_globalFlags refactoringAllowed
 ret 
 // Approximately 1 instruction slots used
