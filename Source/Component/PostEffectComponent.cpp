@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "PostEffect/PostEffectManager.h"
 #include "PostEffectComponent.h"
 #include "TransformComponent.h"
 

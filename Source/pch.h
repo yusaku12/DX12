@@ -47,6 +47,11 @@
 
 // 自作の機能
 #include "Math\SimpleMath.h"
+
+//! 省略系
+using namespace DirectX;
+using namespace SimpleMath;
+
 #include "System\Dialog.h"
 #include "System\stringformat.h"
 #include "System\CrashReporter.h"
@@ -61,29 +66,13 @@
 #include "Graphics\RootsignatureManager.h"
 #include "Graphics\DescriptorHeapManager.h"
 #include "Graphics\PSOCreator.h"
-#include "System\TimeManager.h"
-#include "Scene\SceneManager.h"
-#include "GameObject\GameObjectRegistry.h"
-#include "Editor\EditorManager.h"
-#include "Input\InputManager.h"
-#include "Audio\AudioManager.h"
 #include "System\DebugPrimitive.h"
 #include "Graphics\CommandListPool.h"
 #include "Physics\PhysicsWorld.h"
-#include "Render\RenderManager.h"
-#include "Camera\CameraManager.h"
 #include "Editor\ScreenCapture.h"
 #include "PostEffect\PostEffectRenderTargets.h"
 #include "Graphics\IBLManager.h"
 #include "Render\DeferredRenderer.h"
 #include "Render\GBufferRenderTargets.h"
-#include "PostEffect\PostEffectManager.h"
 #include "Render/RenderPipeline.h"
 #include "Render/ShadowMapRenderer.h"
-#include "UI/UIRenderer.h"
-#include "UI/UIFontManager.h"
-#include "UI/UIAnimator.h"
-
-//! 省略系
-using namespace DirectX;
-using namespace SimpleMath;

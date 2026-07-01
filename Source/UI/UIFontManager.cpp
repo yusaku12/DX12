@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "UI/UIFontManager.h"
 #include "UIFontManager.h"
 
 void UIFontManager::initialize(const std::wstring& fontFace, int pixelHeight)

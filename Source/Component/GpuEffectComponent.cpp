@@ -1,4 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "System/TimeManager.h"
+#include "Camera/CameraManager.h"
 #include "GpuEffectComponent.h"
 #include "Graphics/LoadTexture.h"
 #include "Component/TransformComponent.h"

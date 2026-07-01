@@ -1,4 +1,7 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Input/InputManager.h"
+#include "Camera/CameraManager.h"
+#include "GameObject/GameObjectRegistry.h"
 #include "ObjectPicker.h"
 #include "Editor/EditorContext.h"
 #include "GameObject\GameObject.h"

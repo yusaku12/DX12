@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "RuntimeUIManager.h"
+#include "Input/InputManager.h"
+#include "System/TimeManager.h"
 
 #include "Component\CanvasComponent.h"
 #include "Component\RectTransformComponent.h"

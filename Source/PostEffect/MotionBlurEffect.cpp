@@ -1,4 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Camera/CameraManager.h"
+#include "System/TimeManager.h"
 #include "MotionBlurEffect.h"
 #include "Camera/CameraComponent.h"
 

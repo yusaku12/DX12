@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Scene/SceneManager.h"
 #include "Editor/AsyncAssetLoader.h"
 #include "ModelEditorScene.h"
 #include "ParticleScene.h"

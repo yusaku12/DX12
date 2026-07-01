@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "UI/UIAnimator.h"
 #include "UIAnimator.h"
 
 // =============================================================
@@ -68,7 +69,7 @@ float UIAnimator::evaluate(UIEaseType ease, float t)
     {
         //! 減衰振動によるバウンス
         constexpr float omega = 20.f;
-        constexpr float zeta  = 0.5f;
+        constexpr float zeta = 0.5f;
         const float e = std::expf(-zeta * omega * t);
         return 1.f - e * std::cosf(std::sqrtf(1.f - zeta * zeta) * omega * t);
     }
@@ -93,7 +94,7 @@ void UIAnimator::update(float deltaTime)
             tw.delay -= deltaTime;
             if (tw.delay > 0.f) continue;
             deltaTime = -tw.delay; // 遅延を超えた分だけ elapsed に加算
-            tw.delay  = 0.f;
+            tw.delay = 0.f;
         }
 
         tw.elapsed += deltaTime;
@@ -138,7 +139,7 @@ void UIAnimator::update(float deltaTime)
     // 完了分を一括削除
     m_tweens.erase(
         std::remove_if(m_tweens.begin(), m_tweens.end(),
-                       [](const Tween& t) { return t.done; }),
+            [](const Tween& t) { return t.done; }),
         m_tweens.end());
 }
 
@@ -151,20 +152,20 @@ void UIAnimator::clear()
 //  Tween 生成
 // =============================================================
 uint64_t UIAnimator::animateFloat(float* target, float to, float duration,
-                                  UIEaseType ease, float delay,
-                                  std::function<void()> onComplete)
+    UIEaseType ease, float delay,
+    std::function<void()> onComplete)
 {
     cancelAll(target); // 既存の同一ターゲット Tween をキャンセル
 
     Tween tw{};
-    tw.id         = m_nextId++;
-    tw.type       = TweenType::Float;
-    tw.ease       = ease;
-    tw.duration   = std::max(0.001f, duration);
-    tw.delay      = std::max(0.f, delay);
-    tw.target     = target;
-    tw.from[0]    = *target;
-    tw.to[0]      = to;
+    tw.id = m_nextId++;
+    tw.type = TweenType::Float;
+    tw.ease = ease;
+    tw.duration = std::max(0.001f, duration);
+    tw.delay = std::max(0.f, delay);
+    tw.target = target;
+    tw.from[0] = *target;
+    tw.to[0] = to;
     tw.onComplete = std::move(onComplete);
     m_tweens.push_back(std::move(tw));
 
@@ -172,20 +173,20 @@ uint64_t UIAnimator::animateFloat(float* target, float to, float duration,
 }
 
 uint64_t UIAnimator::animateVector2(Vector2* target, const Vector2& to,
-                                    float duration, UIEaseType ease, float delay,
-                                    std::function<void()> onComplete)
+    float duration, UIEaseType ease, float delay,
+    std::function<void()> onComplete)
 {
     cancelAll(target);
 
     Tween tw{};
-    tw.id         = m_nextId++;
-    tw.type       = TweenType::Vector2;
-    tw.ease       = ease;
-    tw.duration   = std::max(0.001f, duration);
-    tw.delay      = std::max(0.f, delay);
-    tw.target     = target;
-    tw.from[0]    = target->x;  tw.from[1] = target->y;
-    tw.to[0]      = to.x;       tw.to[1]   = to.y;
+    tw.id = m_nextId++;
+    tw.type = TweenType::Vector2;
+    tw.ease = ease;
+    tw.duration = std::max(0.001f, duration);
+    tw.delay = std::max(0.f, delay);
+    tw.target = target;
+    tw.from[0] = target->x;  tw.from[1] = target->y;
+    tw.to[0] = to.x;       tw.to[1] = to.y;
     tw.onComplete = std::move(onComplete);
     m_tweens.push_back(std::move(tw));
 
@@ -193,18 +194,18 @@ uint64_t UIAnimator::animateVector2(Vector2* target, const Vector2& to,
 }
 
 uint64_t UIAnimator::animateVector4(Vector4* target, const Vector4& to,
-                                    float duration, UIEaseType ease, float delay,
-                                    std::function<void()> onComplete)
+    float duration, UIEaseType ease, float delay,
+    std::function<void()> onComplete)
 {
     cancelAll(target);
 
     Tween tw{};
-    tw.id         = m_nextId++;
-    tw.type       = TweenType::Vector4;
-    tw.ease       = ease;
-    tw.duration   = std::max(0.001f, duration);
-    tw.delay      = std::max(0.f, delay);
-    tw.target     = target;
+    tw.id = m_nextId++;
+    tw.type = TweenType::Vector4;
+    tw.ease = ease;
+    tw.duration = std::max(0.001f, duration);
+    tw.delay = std::max(0.f, delay);
+    tw.target = target;
     tw.from[0] = target->x; tw.from[1] = target->y;
     tw.from[2] = target->z; tw.from[3] = target->w;
     tw.to[0] = to.x; tw.to[1] = to.y;

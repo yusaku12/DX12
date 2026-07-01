@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "GameObject/GameObjectRegistry.h"
 #include "SceneFlatBuffer.h"
 
 #include "Generated/Scene_generated.h"

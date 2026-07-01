@@ -10,8 +10,38 @@
 				"/t:Build",
 				"/p:Configuration=Debug",
 				"/p:Platform=x64",
+				"/p:EnableModuleDependencyValidation=false",
 				"/p:UseMultiToolTask=true",
 				"/p:EnforceProcessCountAcrossBuilds=true",
+				"/nologo",
+				"/m",
+				"/v:minimal"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build Active Module Debug x64",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"$f='${file}'; if (-not $f) { throw 'Active file is required.' }; $root='${workspaceFolder}'; $rel=[System.IO.Path]::GetRelativePath($root, $f).Replace('\\','/'); if ($rel -notmatch '^Source/([^/]+)/') { throw \"File is not under Source/<Module>/: $rel\" }; $module=$matches[1]; $proj=Join-Path $root (\"Modules/DX12.{0}.vcxproj\" -f $module); if (-not (Test-Path $proj)) { throw \"Module project not found: $proj\" }; & 'C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe' $proj /t:Build /p:Configuration=Debug /p:Platform=x64 /p:EnableModuleDependencyValidation=false /nologo /m /v:minimal"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Build App Only Debug x64",
+			"type": "shell",
+			"command": "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
+			"args": [
+				".\\DirectX12.vcxproj",
+				"/t:Build",
+				"/p:Configuration=Debug",
+				"/p:Platform=x64",
+				"/p:BuildProjectReferences=false",
 				"/nologo",
 				"/m",
 				"/v:minimal"

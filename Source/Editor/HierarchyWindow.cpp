@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "GameObject/GameObjectRegistry.h"
 #include "HierarchyWindow.h"
 #include "AsyncAssetLoader.h"
 #include "AssetDragDrop.h"

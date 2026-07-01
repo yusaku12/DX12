@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Camera/CameraManager.h"
 #include "FbxRenderComponent.h"
 #include "TransformComponent.h"
 #include "Editor/EditorContext.h"

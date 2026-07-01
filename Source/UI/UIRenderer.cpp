@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "UI/UIRenderer.h"
 #include "UIRenderer.h"
 #include "UIFontManager.h"
 

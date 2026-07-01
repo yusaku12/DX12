@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "GameObject/GameObjectRegistry.h"
 #include "Editor/EditorTransaction.h"
 #include "GameObject\GameObject.h"
 #include "Component\TransformComponent.h"

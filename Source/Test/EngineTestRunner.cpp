@@ -1,6 +1,9 @@
 ﻿#include "pch.h"
 #include "EngineTestRunner.h"
 
+#include "Scene/SceneManager.h"
+#include "System/TimeManager.h"
+
 #include "Animation/AnimationStateMachine.h"
 #include "Component/CanvasComponent.h"
 #include "Component/ColliderComponent.h"

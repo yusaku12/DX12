@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Camera/CameraManager.h"
 #include "DepthOfFieldEffect.h"
 #include "Camera/CameraComponent.h"
 

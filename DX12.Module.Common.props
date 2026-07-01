@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <EnableModuleDependencyValidation Condition="'$(EnableModuleDependencyValidation)'=='' and '$(Configuration)'=='Debug'">false</EnableModuleDependencyValidation>
+    <EnableModuleDependencyValidation Condition="'$(EnableModuleDependencyValidation)'=='' and '$(Configuration)'!='Debug'">true</EnableModuleDependencyValidation>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Intermediate\$(MSBuildProjectName)\$(Platform)\$(Configuration)\</IntDir>
@@ -51,7 +56,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
 
-  <Target Name="ValidateModuleDependencies" BeforeTargets="ClCompile" Condition="'$(Platform)'=='x64' and '$(MSBuildProjectName)'!='DX12.ThirdParty.ImGui'">
+  <Target Name="ValidateModuleDependencies" BeforeTargets="ClCompile" Condition="'$(EnableModuleDependencyValidation)'=='true' and '$(Platform)'=='x64' and '$(MSBuildProjectName)'!='DX12.ThirdParty.ImGui'">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(SolutionDir)Tool\Validate-ModuleDependencies.ps1&quot; -ProjectName &quot;$(MSBuildProjectName)&quot; -SolutionDir &quot;$(SolutionDir)&quot;" />
   </Target>
 </Project>

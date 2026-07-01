@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ScriptComponent.h"
+#include "GameObject/GameObject.h"
 
 ScriptComponent::SubscriptionToken ScriptComponent::subscribeEvent(const std::string& eventName, EventBus::Handler handler)
 {

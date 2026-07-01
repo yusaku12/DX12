@@ -1,4 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Render/RenderManager.h"
+#include "GameObject/GameObjectRegistry.h"
 #include "Scene.h"
 #include "GameObject\GameObject.h"
 #include "Camera/CameraComponent.h"

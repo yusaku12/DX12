@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Render/RenderManager.h"
 #include "IRenderComponent.h"
 
 void IRenderComponent::start()

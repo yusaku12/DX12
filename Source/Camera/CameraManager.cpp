@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Camera/CameraManager.h"
 #include "CameraComponent.h"
 
 void CameraManager::registerCamera(CameraComponent* cam)

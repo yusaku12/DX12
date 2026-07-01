@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Camera/CameraManager.h"
 #include "SkyboxComponent.h"
 
 SkyboxComponent::SkyboxComponent(const std::wstring& cubemapPath)

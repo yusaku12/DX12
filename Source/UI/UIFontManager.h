@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 //=====================================================
 //! グリフ情報（フォントアトラス内の 1 文字分のメタデータ）
@@ -35,7 +35,7 @@ public:
     //! @param fontFace   フォントフェイス名（例: L"Arial"）
     //! @param pixelHeight  フォントの高さ（ピクセル）
     void initialize(const std::wstring& fontFace = L"Meiryo UI",
-                    int pixelHeight = 20);
+        int pixelHeight = 20);
 
     //! 破棄
     void shutdown();
@@ -64,16 +64,16 @@ private:
     //! 指定文字を HDC/HFONT でラスタライズしてアトラスに書き込む
     //! @return 書き込み成功なら true
     bool bakeGlyph(HDC hdc,
-                   wchar_t ch,
-                   std::vector<uint8_t>& atlasData,
-                   int atlasW, int atlasH,
-                   int& penX, int& penY, int& rowH);
+        wchar_t ch,
+        std::vector<uint8_t>& atlasData,
+        int atlasW, int atlasH,
+        int& penX, int& penY, int& rowH);
 
-    static constexpr int k_atlasWidth  = 512;
+    static constexpr int k_atlasWidth = 512;
     static constexpr int k_atlasHeight = 512;
 
     std::unordered_map<uint32_t, UIGlyphInfo> m_glyphs;
     std::unique_ptr<class LoadTexture>        m_atlasTexture;
-    float m_lineHeight  = 20.f;
+    float m_lineHeight = 20.f;
     bool  m_initialized = false;
 };

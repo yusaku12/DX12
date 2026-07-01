@@ -1,4 +1,7 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "Render/RenderManager.h"
+#include "PostEffect/PostEffectManager.h"
+#include "System/TimeManager.h"
 #include "HiZPyramid.h"
 #include "Graphics/GpuDebugMarker.h"
 #include "System/DebugPrimitive.h"

@@ -1,4 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "System/TimeManager.h"
+#include "Scene/SceneManager.h"
 #include "Render/RenderPassContextFactory.h"
 #include "GameObject\GameObject.h"
 #include "Component\PostEffectComponent.h"

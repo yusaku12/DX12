@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "GameObject/GameObjectRegistry.h"
 #include "System\EventBus.h"
 
 void GameObjectRegistry::registryGameObject(GameObject* obj)

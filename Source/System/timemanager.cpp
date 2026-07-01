@@ -1,4 +1,5 @@
-﻿#include "pch.h"
+#include "pch.h"
+#include "System/TimeManager.h"
 #include "Render/RenderPipeline.h"
 
 void TimeManager::initialize()

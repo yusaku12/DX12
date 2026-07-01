@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RenderPassBase.h"
+#include "Camera/CameraManager.h"
 
 // RenderPassContext creation helper
 inline RenderPassContext BuildRenderPassContext(bool useMultiThreaded, UINT sceneSrvIndex)
