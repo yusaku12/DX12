@@ -14,6 +14,7 @@
 #include "Component/UIButtonComponent.h"
 #include "Component/UITextComponent.h"
 #include "Editor/AssetMetaManager.h"
+#include "Editor/AssetPipelineManager.h"
 #include "Editor/AsyncAssetLoader.h"
 #include "Editor/EditorTransaction.h"
 #include "GameObject/GameObject.h"
@@ -103,6 +104,31 @@ namespace
 
         out.write(reinterpret_cast<const char*>(data), static_cast<std::streamsize>(size));
         return out.good();
+    }
+
+    bool writeTinyBmp(const std::filesystem::path& filePath, uint8_t red, uint8_t green, uint8_t blue)
+    {
+        const std::array<uint8_t, 58> bmp =
+        {
+            0x42, 0x4D,
+            0x3A, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x36, 0x00, 0x00, 0x00,
+            0x28, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00,
+            0x01, 0x00,
+            0x20, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x04, 0x00, 0x00, 0x00,
+            0x13, 0x0B, 0x00, 0x00,
+            0x13, 0x0B, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            blue, green, red, 0xFF
+        };
+
+        return writeFileBytes(filePath, bmp.data(), bmp.size());
     }
 
     bool readTextFile(const std::filesystem::path& filePath, std::string& outText)
@@ -828,6 +854,75 @@ namespace
                 ctx.expect(readTextFile(cookReport.manifestPath, manifestText), "Failed to read cook manifest");
                 ctx.expect(manifestText.find("manifestVersion=") != std::string::npos, "Cook manifest missing version");
                 ctx.expect(manifestText.find("dependency=") != std::string::npos, "Cook manifest missing dependency entries");
+            }
+        });
+
+        tests.push_back({
+            "Integration.AssetPipeline.PakAndPatch",
+            TestCategory::Integration,
+            [](TestContext& ctx)
+            {
+                const auto root = testTempRoot() / "asset_pipeline_pak";
+                ensureCleanDir(root);
+
+                const auto sourceRoot = root / "Data";
+                const auto textureDir = sourceRoot / "Texture";
+                const auto prefabDir = sourceRoot / "Prefab";
+                std::filesystem::create_directories(textureDir);
+                std::filesystem::create_directories(prefabDir);
+
+                const auto texturePath = textureDir / "pak_tex.bmp";
+                ctx.expect(writeTinyBmp(texturePath, 255, 64, 32), "Failed to write initial BMP texture");
+
+                const auto prefabPath = prefabDir / "pak.prefab";
+                ctx.expect(writePrefabWithTextureDependency(prefabPath, texturePath.generic_string()), "Failed to write pak prefab");
+
+                auto& pipeline = EditorAssetPipeline::AssetPipelineManager::Instance();
+
+                EditorAssetPipeline::CookSettings cookSettings{};
+                cookSettings.sourceRoot = sourceRoot;
+                cookSettings.cookRoot = root / "CookedData";
+                cookSettings.texture.target = EditorAssetPipeline::TextureTarget::BC7;
+
+                EditorAssetPipeline::CookReport cookReport{};
+                ctx.expect(pipeline.cookAssets(cookSettings, &cookReport), "Initial BC7 cook failed");
+                ctx.expect(cookReport.textureCount >= 1, "Cook should recognize the BMP texture");
+
+                const auto cookedTexture = cookSettings.cookRoot / "Texture" / "pak_tex.dds";
+                ctx.expect(std::filesystem::exists(cookedTexture), "Cooked BC7 texture missing");
+
+                EditorAssetPipeline::PackageReport packageReport{};
+                const auto pakPath = root / "Package" / "Game.pak";
+                ctx.expect(pipeline.buildPak(cookSettings.cookRoot, pakPath, &packageReport), "Initial pak build failed");
+                ctx.expect(packageReport.entryCount >= 2, "Pak should contain prefab and texture entries");
+                ctx.expect(std::filesystem::exists(packageReport.manifestPath), "Pak manifest missing");
+
+                std::string pakManifestText;
+                ctx.expect(readTextFile(packageReport.manifestPath, pakManifestText), "Failed to read pak manifest");
+                ctx.expect(pakManifestText.find("entry=") != std::string::npos, "Pak manifest missing entry rows");
+
+                const auto cookRootV2 = root / "CookedDataV2";
+                ctx.expect(writeTinyBmp(texturePath, 16, 200, 240), "Failed to update BMP texture");
+
+                EditorAssetPipeline::CookSettings cookSettingsV2 = cookSettings;
+                cookSettingsV2.cookRoot = cookRootV2;
+
+                EditorAssetPipeline::CookReport cookReportV2{};
+                ctx.expect(pipeline.cookAssets(cookSettingsV2, &cookReportV2), "Updated BC7 cook failed");
+
+                EditorAssetPipeline::PackageReport packageReportV2{};
+                const auto pakPathV2 = root / "Package" / "GameV2.pak";
+                ctx.expect(pipeline.buildPak(cookSettingsV2.cookRoot, pakPathV2, &packageReportV2), "Updated pak build failed");
+
+                EditorAssetPipeline::PatchReport patchReport{};
+                const auto patchPath = root / "Package" / "Game.patchpak";
+                ctx.expect(pipeline.buildPatch(pakPath, pakPathV2, patchPath, &patchReport), "Patch build failed");
+                ctx.expect(patchReport.changedCount >= 1, "Patch should contain at least one changed asset");
+                ctx.expect(std::filesystem::exists(patchReport.manifestPath), "Patch manifest missing");
+
+                std::string patchManifestText;
+                ctx.expect(readTextFile(patchReport.manifestPath, patchManifestText), "Failed to read patch manifest");
+                ctx.expect(patchManifestText.find("changed=") != std::string::npos, "Patch manifest missing changed rows");
             }
         });
 

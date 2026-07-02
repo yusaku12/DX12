@@ -4,6 +4,7 @@
 #include "AsyncAssetLoader.h"
 #include "AssetDragDrop.h"
 #include "AssetMetaManager.h"
+#include "AssetPipelineManager.h"
 #include "AssetThumbnailManager.h"
 #include "Scene/PrefabFlatBuffer.h"
 #include "Scene/SceneManager.h"
@@ -33,6 +34,20 @@ namespace
     bool s_initialized = false;
     char s_search[128] = "";
     std::string s_pipelineStatus;
+    char s_cookRoot[260] = "CookedData/Windows";
+    char s_pakPath[260] = "CookedData/Windows/Game.pak";
+    char s_basePakPath[260] = "CookedData/Windows/Base/Game.pak";
+    char s_patchPath[260] = "CookedData/Windows/Game.patchpak";
+    char s_externalEncoderPath[260] = "";
+    char s_externalEncoderArgs[260] = "\"{input}\" \"{output}\"";
+    int s_textureTargetIndex = 1;
+
+    const char* s_textureTargetItems[] =
+    {
+        "CopySource",
+        "BC7",
+        "ExternalCommand"
+    };
 
     enum class AssetTab
     {
@@ -93,6 +108,37 @@ namespace
     std::filesystem::path getAssetRoot()
     {
         return std::filesystem::current_path() / "Data";
+    }
+
+    std::filesystem::path getCookRoot()
+    {
+        return std::filesystem::current_path() / std::filesystem::path(s_cookRoot);
+    }
+
+    std::filesystem::path getPakPath()
+    {
+        return std::filesystem::current_path() / std::filesystem::path(s_pakPath);
+    }
+
+    std::filesystem::path getBasePakPath()
+    {
+        return std::filesystem::current_path() / std::filesystem::path(s_basePakPath);
+    }
+
+    std::filesystem::path getPatchPath()
+    {
+        return std::filesystem::current_path() / std::filesystem::path(s_patchPath);
+    }
+
+    EditorAssetPipeline::TextureTarget getSelectedTextureTarget()
+    {
+        switch (s_textureTargetIndex)
+        {
+        case 0: return EditorAssetPipeline::TextureTarget::CopySource;
+        case 1: return EditorAssetPipeline::TextureTarget::BC7;
+        case 2: return EditorAssetPipeline::TextureTarget::ExternalCommand;
+        default: return EditorAssetPipeline::TextureTarget::BC7;
+        }
     }
 
     void rebuildAssetList()
@@ -233,15 +279,23 @@ void drawAssetBrowserWindow()
     ImGui::SameLine();
     if (ImGui::Button("Cook"))
     {
-        EditorAssetMeta::CookReport report{};
-        const bool ok = EditorAssetMeta::AssetMetaManager::Instance().cookAssets(
-            getAssetRoot(),
-            std::filesystem::current_path() / "CookedData",
-            &report);
+        EditorAssetPipeline::CookSettings settings{};
+        settings.sourceRoot = getAssetRoot();
+        settings.cookRoot = getCookRoot();
+        settings.texture.target = getSelectedTextureTarget();
+        settings.texture.externalEncoderPath = std::filesystem::path(s_externalEncoderPath).wstring();
+        settings.texture.externalEncoderArguments.assign(
+            s_externalEncoderArgs,
+            s_externalEncoderArgs + std::strlen(s_externalEncoderArgs));
+
+        EditorAssetPipeline::CookReport report{};
+        const bool ok = EditorAssetPipeline::AssetPipelineManager::Instance().cookAssets(settings, &report);
 
         if (ok)
         {
-            s_pipelineStatus = "Cook complete: assets=" + std::to_string(report.cookedAssetCount)
+            s_pipelineStatus = "Cook complete: assets=" + std::to_string(report.assetCount)
+                + " textures=" + std::to_string(report.textureCount)
+                + " converted=" + std::to_string(report.convertedTextureCount)
                 + " copied=" + std::to_string(report.copiedFileCount)
                 + " manifest=" + pathToUtf8(report.manifestPath);
         }
@@ -252,8 +306,71 @@ void drawAssetBrowserWindow()
     }
 
     ImGui::SameLine();
+    if (ImGui::Button("Build Pak"))
+    {
+        EditorAssetPipeline::PackageReport report{};
+        const bool ok = EditorAssetPipeline::AssetPipelineManager::Instance().buildPak(
+            getCookRoot(),
+            getPakPath(),
+            &report);
+
+        if (ok)
+        {
+            s_pipelineStatus = "Pak complete: entries=" + std::to_string(report.entryCount)
+                + " bytes=" + std::to_string(report.payloadBytes)
+                + " pak=" + pathToUtf8(report.pakPath);
+        }
+        else
+        {
+            s_pipelineStatus = "Pak build failed. Check logs.";
+        }
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Build Patch"))
+    {
+        EditorAssetPipeline::PatchReport report{};
+        const bool ok = EditorAssetPipeline::AssetPipelineManager::Instance().buildPatch(
+            getBasePakPath(),
+            getPakPath(),
+            getPatchPath(),
+            &report);
+
+        if (ok)
+        {
+            s_pipelineStatus = "Patch complete: changed=" + std::to_string(report.changedCount)
+                + " removed=" + std::to_string(report.removedCount)
+                + " patch=" + pathToUtf8(report.patchPath);
+        }
+        else
+        {
+            s_pipelineStatus = "Patch build failed. Check logs.";
+        }
+    }
+
+    ImGui::SameLine();
     ImGui::SetNextItemWidth(240.0f);
     ImGui::InputTextWithHint("##AssetSearch", "Search assets...", s_search, IM_ARRAYSIZE(s_search));
+
+    ImGui::Separator();
+    ImGui::Text("Pipeline Settings");
+    ImGui::SetNextItemWidth(220.0f);
+    ImGui::InputText("Cook Root", s_cookRoot, IM_ARRAYSIZE(s_cookRoot));
+    ImGui::SetNextItemWidth(220.0f);
+    ImGui::InputText("Pak Path", s_pakPath, IM_ARRAYSIZE(s_pakPath));
+    ImGui::SetNextItemWidth(220.0f);
+    ImGui::InputText("Base Pak", s_basePakPath, IM_ARRAYSIZE(s_basePakPath));
+    ImGui::SetNextItemWidth(220.0f);
+    ImGui::InputText("Patch Path", s_patchPath, IM_ARRAYSIZE(s_patchPath));
+    ImGui::SetNextItemWidth(220.0f);
+    ImGui::Combo("Texture Target", &s_textureTargetIndex, s_textureTargetItems, IM_ARRAYSIZE(s_textureTargetItems));
+    if (s_textureTargetIndex == 2)
+    {
+        ImGui::SetNextItemWidth(220.0f);
+        ImGui::InputText("External Encoder", s_externalEncoderPath, IM_ARRAYSIZE(s_externalEncoderPath));
+        ImGui::SetNextItemWidth(220.0f);
+        ImGui::InputText("Encoder Args", s_externalEncoderArgs, IM_ARRAYSIZE(s_externalEncoderArgs));
+    }
 
     if (!s_pipelineStatus.empty())
     {
