@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Render/GBufferRenderTargets.h"
 
 namespace
 {

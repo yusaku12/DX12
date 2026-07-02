@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "PostEffect/PostEffectRenderTargets.h"
 
 void PostEffectRenderTargets::initialize()
 {

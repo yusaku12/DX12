@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "BloomEffect.h"
+#include "PostEffect/PostEffectRenderTargets.h"
 
 void BloomEffect::initialize()
 {

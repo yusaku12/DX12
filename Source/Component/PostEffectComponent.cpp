@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "PostEffect/PostEffectManager.h"
+#include "PostEffect/PostEffectRenderTargets.h"
 #include "PostEffectComponent.h"
 #include "TransformComponent.h"
 

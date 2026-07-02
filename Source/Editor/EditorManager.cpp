@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Editor/EditorManager.h"
+#include "Render/RenderPipeline.h"
+#include "Render/RenderManager.h"
+#include "Render/GBufferRenderTargets.h"
 #include "AssetBrowserWindow.h"
 #include "AsyncAssetLoader.h"
 #include "EditorTransaction.h"

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "PostEffect/PostEffectManager.h"
 #include "Camera/CameraManager.h"
+#include "PostEffect/PostEffectRenderTargets.h"
 #include "Component\PostEffectComponent.h"
 #include "Camera\CameraComponent.h"
 

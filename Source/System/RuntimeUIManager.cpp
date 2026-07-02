@@ -14,6 +14,7 @@
 #include "UI\UIAnimator.h"
 #include "Component\TransformComponent.h"
 #include "Camera\CameraManager.h"
+#include "Camera\CameraComponent.h"
 
 namespace
 {

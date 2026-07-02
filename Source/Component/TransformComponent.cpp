@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "GameObject/GameObjectRegistry.h"
 #include "Camera/CameraManager.h"
+#include "Camera/CameraComponent.h"
 #include "TransformComponent.h"
 #include "Editor/EditorTransaction.h"
 #include "ImGuizmo.h"

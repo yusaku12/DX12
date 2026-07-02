@@ -1,5 +1,7 @@
 #include "pch.h"
+#include "Render/ShadowMapRenderer.h"
 #include "Camera/CameraManager.h"
+#include "Camera/CameraComponent.h"
 
 //=====================================================
 // ShadowMapRenderer 実装

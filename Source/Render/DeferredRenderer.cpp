@@ -1,5 +1,9 @@
 #include "pch.h"
+#include "Render/DeferredRenderer.h"
 #include "Camera/CameraManager.h"
+#include "Render/GBufferRenderTargets.h"
+#include "Graphics/IBLManager.h"
+#include "Render/ShadowMapRenderer.h"
 
 void DeferredRenderer::initialize()
 {

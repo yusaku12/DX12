@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Graphics/IBLManager.h"
 
 void IBLManager::initialize()
 {
