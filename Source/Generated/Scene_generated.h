@@ -60,6 +60,12 @@ struct GpuEffectComponentDataBuilder;
 struct AnimationComponentData;
 struct AnimationComponentDataBuilder;
 
+struct NavAgentComponentData;
+struct NavAgentComponentDataBuilder;
+
+struct BehaviorTreeComponentData;
+struct BehaviorTreeComponentDataBuilder;
+
 struct UITextComponentData;
 struct UITextComponentDataBuilder;
 
@@ -92,14 +98,16 @@ enum ComponentPayload : uint8_t {
   ComponentPayload_SkyboxComponentData = 10,
   ComponentPayload_GpuEffectComponentData = 11,
   ComponentPayload_AnimationComponentData = 12,
-  ComponentPayload_UITextComponentData = 13,
-  ComponentPayload_UIButtonComponentData = 14,
-  ComponentPayload_UIImageComponentData = 15,
+  ComponentPayload_NavAgentComponentData = 13,
+  ComponentPayload_BehaviorTreeComponentData = 14,
+  ComponentPayload_UITextComponentData = 15,
+  ComponentPayload_UIButtonComponentData = 16,
+  ComponentPayload_UIImageComponentData = 17,
   ComponentPayload_MIN = ComponentPayload_NONE,
   ComponentPayload_MAX = ComponentPayload_UIImageComponentData
 };
 
-inline const ComponentPayload (&EnumValuesComponentPayload())[16] {
+inline const ComponentPayload (&EnumValuesComponentPayload())[18] {
   static const ComponentPayload values[] = {
     ComponentPayload_NONE,
     ComponentPayload_TransformComponentData,
@@ -114,6 +122,8 @@ inline const ComponentPayload (&EnumValuesComponentPayload())[16] {
     ComponentPayload_SkyboxComponentData,
     ComponentPayload_GpuEffectComponentData,
     ComponentPayload_AnimationComponentData,
+    ComponentPayload_NavAgentComponentData,
+    ComponentPayload_BehaviorTreeComponentData,
     ComponentPayload_UITextComponentData,
     ComponentPayload_UIButtonComponentData,
     ComponentPayload_UIImageComponentData
@@ -122,7 +132,7 @@ inline const ComponentPayload (&EnumValuesComponentPayload())[16] {
 }
 
 inline const char * const *EnumNamesComponentPayload() {
-  static const char * const names[17] = {
+  static const char * const names[19] = {
     "NONE",
     "TransformComponentData",
     "RectTransformComponentData",
@@ -136,6 +146,8 @@ inline const char * const *EnumNamesComponentPayload() {
     "SkyboxComponentData",
     "GpuEffectComponentData",
     "AnimationComponentData",
+    "NavAgentComponentData",
+    "BehaviorTreeComponentData",
     "UITextComponentData",
     "UIButtonComponentData",
     "UIImageComponentData",
@@ -200,6 +212,14 @@ template<> struct ComponentPayloadTraits<scene::GpuEffectComponentData> {
 
 template<> struct ComponentPayloadTraits<scene::AnimationComponentData> {
   static const ComponentPayload enum_value = ComponentPayload_AnimationComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::NavAgentComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_NavAgentComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::BehaviorTreeComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_BehaviorTreeComponentData;
 };
 
 template<> struct ComponentPayloadTraits<scene::UITextComponentData> {
@@ -1353,6 +1373,182 @@ inline ::flatbuffers::Offset<AnimationComponentData> CreateAnimationComponentDat
   return builder_.Finish();
 }
 
+struct NavAgentComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef NavAgentComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAVMESH_ASSET_PATH = 4,
+    VT_MOVE_SPEED = 6,
+    VT_ACCELERATION = 8,
+    VT_STOPPING_DISTANCE = 10,
+    VT_REPATH_INTERVAL = 12
+  };
+  const ::flatbuffers::String *navmesh_asset_path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_NAVMESH_ASSET_PATH);
+  }
+  float move_speed() const {
+    return GetField<float>(VT_MOVE_SPEED, 0.0f);
+  }
+  float acceleration() const {
+    return GetField<float>(VT_ACCELERATION, 0.0f);
+  }
+  float stopping_distance() const {
+    return GetField<float>(VT_STOPPING_DISTANCE, 0.0f);
+  }
+  float repath_interval() const {
+    return GetField<float>(VT_REPATH_INTERVAL, 0.0f);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAVMESH_ASSET_PATH) &&
+           verifier.VerifyString(navmesh_asset_path()) &&
+           VerifyField<float>(verifier, VT_MOVE_SPEED, 4) &&
+           VerifyField<float>(verifier, VT_ACCELERATION, 4) &&
+           VerifyField<float>(verifier, VT_STOPPING_DISTANCE, 4) &&
+           VerifyField<float>(verifier, VT_REPATH_INTERVAL, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct NavAgentComponentDataBuilder {
+  typedef NavAgentComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_navmesh_asset_path(::flatbuffers::Offset<::flatbuffers::String> navmesh_asset_path) {
+    fbb_.AddOffset(NavAgentComponentData::VT_NAVMESH_ASSET_PATH, navmesh_asset_path);
+  }
+  void add_move_speed(float move_speed) {
+    fbb_.AddElement<float>(NavAgentComponentData::VT_MOVE_SPEED, move_speed, 0.0f);
+  }
+  void add_acceleration(float acceleration) {
+    fbb_.AddElement<float>(NavAgentComponentData::VT_ACCELERATION, acceleration, 0.0f);
+  }
+  void add_stopping_distance(float stopping_distance) {
+    fbb_.AddElement<float>(NavAgentComponentData::VT_STOPPING_DISTANCE, stopping_distance, 0.0f);
+  }
+  void add_repath_interval(float repath_interval) {
+    fbb_.AddElement<float>(NavAgentComponentData::VT_REPATH_INTERVAL, repath_interval, 0.0f);
+  }
+  explicit NavAgentComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<NavAgentComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<NavAgentComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<NavAgentComponentData> CreateNavAgentComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> navmesh_asset_path = 0,
+    float move_speed = 0.0f,
+    float acceleration = 0.0f,
+    float stopping_distance = 0.0f,
+    float repath_interval = 0.0f) {
+  NavAgentComponentDataBuilder builder_(_fbb);
+  builder_.add_repath_interval(repath_interval);
+  builder_.add_stopping_distance(stopping_distance);
+  builder_.add_acceleration(acceleration);
+  builder_.add_move_speed(move_speed);
+  builder_.add_navmesh_asset_path(navmesh_asset_path);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<NavAgentComponentData> CreateNavAgentComponentDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *navmesh_asset_path = nullptr,
+    float move_speed = 0.0f,
+    float acceleration = 0.0f,
+    float stopping_distance = 0.0f,
+    float repath_interval = 0.0f) {
+  auto navmesh_asset_path__ = navmesh_asset_path ? _fbb.CreateString(navmesh_asset_path) : 0;
+  return scene::CreateNavAgentComponentData(
+      _fbb,
+      navmesh_asset_path__,
+      move_speed,
+      acceleration,
+      stopping_distance,
+      repath_interval);
+}
+
+struct BehaviorTreeComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef BehaviorTreeComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ASSET_PATH = 4,
+    VT_TREE_ENABLED = 6,
+    VT_TICK_INTERVAL = 8
+  };
+  const ::flatbuffers::String *asset_path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_ASSET_PATH);
+  }
+  bool tree_enabled() const {
+    return GetField<uint8_t>(VT_TREE_ENABLED, 0) != 0;
+  }
+  float tick_interval() const {
+    return GetField<float>(VT_TICK_INTERVAL, 0.0f);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_ASSET_PATH) &&
+           verifier.VerifyString(asset_path()) &&
+           VerifyField<uint8_t>(verifier, VT_TREE_ENABLED, 1) &&
+           VerifyField<float>(verifier, VT_TICK_INTERVAL, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct BehaviorTreeComponentDataBuilder {
+  typedef BehaviorTreeComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_asset_path(::flatbuffers::Offset<::flatbuffers::String> asset_path) {
+    fbb_.AddOffset(BehaviorTreeComponentData::VT_ASSET_PATH, asset_path);
+  }
+  void add_tree_enabled(bool tree_enabled) {
+    fbb_.AddElement<uint8_t>(BehaviorTreeComponentData::VT_TREE_ENABLED, static_cast<uint8_t>(tree_enabled), 0);
+  }
+  void add_tick_interval(float tick_interval) {
+    fbb_.AddElement<float>(BehaviorTreeComponentData::VT_TICK_INTERVAL, tick_interval, 0.0f);
+  }
+  explicit BehaviorTreeComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<BehaviorTreeComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<BehaviorTreeComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<BehaviorTreeComponentData> CreateBehaviorTreeComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> asset_path = 0,
+    bool tree_enabled = false,
+    float tick_interval = 0.0f) {
+  BehaviorTreeComponentDataBuilder builder_(_fbb);
+  builder_.add_tick_interval(tick_interval);
+  builder_.add_asset_path(asset_path);
+  builder_.add_tree_enabled(tree_enabled);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<BehaviorTreeComponentData> CreateBehaviorTreeComponentDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *asset_path = nullptr,
+    bool tree_enabled = false,
+    float tick_interval = 0.0f) {
+  auto asset_path__ = asset_path ? _fbb.CreateString(asset_path) : 0;
+  return scene::CreateBehaviorTreeComponentData(
+      _fbb,
+      asset_path__,
+      tree_enabled,
+      tick_interval);
+}
+
 struct UITextComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef UITextComponentDataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -1736,6 +1932,12 @@ struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   const scene::AnimationComponentData *payload_as_AnimationComponentData() const {
     return payload_type() == scene::ComponentPayload_AnimationComponentData ? static_cast<const scene::AnimationComponentData *>(payload()) : nullptr;
   }
+  const scene::NavAgentComponentData *payload_as_NavAgentComponentData() const {
+    return payload_type() == scene::ComponentPayload_NavAgentComponentData ? static_cast<const scene::NavAgentComponentData *>(payload()) : nullptr;
+  }
+  const scene::BehaviorTreeComponentData *payload_as_BehaviorTreeComponentData() const {
+    return payload_type() == scene::ComponentPayload_BehaviorTreeComponentData ? static_cast<const scene::BehaviorTreeComponentData *>(payload()) : nullptr;
+  }
   const scene::UITextComponentData *payload_as_UITextComponentData() const {
     return payload_type() == scene::ComponentPayload_UITextComponentData ? static_cast<const scene::UITextComponentData *>(payload()) : nullptr;
   }
@@ -1804,6 +2006,14 @@ template<> inline const scene::GpuEffectComponentData *SerializedComponent::payl
 
 template<> inline const scene::AnimationComponentData *SerializedComponent::payload_as<scene::AnimationComponentData>() const {
   return payload_as_AnimationComponentData();
+}
+
+template<> inline const scene::NavAgentComponentData *SerializedComponent::payload_as<scene::NavAgentComponentData>() const {
+  return payload_as_NavAgentComponentData();
+}
+
+template<> inline const scene::BehaviorTreeComponentData *SerializedComponent::payload_as<scene::BehaviorTreeComponentData>() const {
+  return payload_as_BehaviorTreeComponentData();
 }
 
 template<> inline const scene::UITextComponentData *SerializedComponent::payload_as<scene::UITextComponentData>() const {
@@ -2122,6 +2332,14 @@ inline bool VerifyComponentPayload(::flatbuffers::VerifierTemplate<B> &verifier,
     }
     case ComponentPayload_AnimationComponentData: {
       auto ptr = reinterpret_cast<const scene::AnimationComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_NavAgentComponentData: {
+      auto ptr = reinterpret_cast<const scene::NavAgentComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_BehaviorTreeComponentData: {
+      auto ptr = reinterpret_cast<const scene::BehaviorTreeComponentData *>(obj);
       return verifier.VerifyTable(ptr);
     }
     case ComponentPayload_UITextComponentData: {

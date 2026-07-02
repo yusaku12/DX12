@@ -113,6 +113,20 @@ table AnimationComponentData {
     speed:float;
 }
 
+table NavAgentComponentData {
+    navmesh_asset_path:string;
+    move_speed:float;
+    acceleration:float;
+    stopping_distance:float;
+    repath_interval:float;
+}
+
+table BehaviorTreeComponentData {
+    asset_path:string;
+    tree_enabled:bool;
+    tick_interval:float;
+}
+
 table UITextComponentData {
     text:string;
     color:vec4;
@@ -152,6 +166,8 @@ union ComponentPayload {
     SkyboxComponentData,
     GpuEffectComponentData,
     AnimationComponentData,
+    NavAgentComponentData,
+    BehaviorTreeComponentData,
     UITextComponentData,
     UIButtonComponentData,
     UIImageComponentData

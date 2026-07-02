@@ -7,10 +7,12 @@
 #include "Camera/CameraComponent.h"
 #include "Camera/FreeCameraComponent.h"
 #include "Component/AnimationComponent.h"
+#include "Component/BehaviorTreeComponent.h"
 #include "Component/CanvasComponent.h"
 #include "Component/ColliderComponent.h"
 #include "Component/FbxRenderComponent.h"
 #include "Component/GpuEffectComponent.h"
+#include "Component/NavAgentComponent.h"
 #include "Component/PostEffectComponent.h"
 #include "Component/RectTransformComponent.h"
 #include "Component/RigidbodyComponent.h"
@@ -150,6 +152,8 @@ namespace SerializationCommon
             { "CameraComponent", true, &createDefault<CameraComponent> },
             { "FbxRenderComponent", false, &createFbx },
             { "AnimationComponent", true, &createDefault<AnimationComponent> },
+            { "NavAgentComponent", true, &createDefault<NavAgentComponent> },
+            { "BehaviorTreeComponent", true, &createDefault<BehaviorTreeComponent> },
             { "RigidbodyComponent", true, &createDefault<RigidbodyComponent> },
             { "ColliderComponent", true, &createDefault<ColliderComponent> },
             { "PostEffectComponent", true, &createDefault<PostEffectComponent> },
@@ -200,6 +204,8 @@ namespace SerializationCommon
         if (typeName == "CameraComponent") return gameObject->getComponent<CameraComponent>() != nullptr;
         if (typeName == "FbxRenderComponent") return gameObject->getComponent<FbxRenderComponent>() != nullptr;
         if (typeName == "AnimationComponent") return gameObject->getComponent<AnimationComponent>() != nullptr;
+        if (typeName == "NavAgentComponent") return gameObject->getComponent<NavAgentComponent>() != nullptr;
+        if (typeName == "BehaviorTreeComponent") return gameObject->getComponent<BehaviorTreeComponent>() != nullptr;
         if (typeName == "RigidbodyComponent") return gameObject->getComponent<RigidbodyComponent>() != nullptr;
         if (typeName == "ColliderComponent") return gameObject->getComponent<ColliderComponent>() != nullptr;
         if (typeName == "PostEffectComponent") return gameObject->getComponent<PostEffectComponent>() != nullptr;
@@ -324,6 +330,42 @@ namespace SerializationCommon
                 "AnimationComponent",
                 component->isEnabled(),
                 scene::ComponentPayload_AnimationComponentData,
+                payload.Union());
+        }
+
+        if (auto* navAgent = dynamic_cast<NavAgentComponent*>(component))
+        {
+            const auto navMeshPath = builder.CreateString(navAgent->getNavMeshAssetPath());
+            const auto payload = scene::CreateNavAgentComponentData(
+                builder,
+                navMeshPath,
+                navAgent->getMoveSpeed(),
+                navAgent->getAcceleration(),
+                navAgent->getStoppingDistance(),
+                navAgent->getRepathInterval());
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "NavAgentComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_NavAgentComponentData,
+                payload.Union());
+        }
+
+        if (auto* behaviorTree = dynamic_cast<BehaviorTreeComponent*>(component))
+        {
+            const auto assetPath = builder.CreateString(behaviorTree->getAssetPath());
+            const auto payload = scene::CreateBehaviorTreeComponentData(
+                builder,
+                assetPath,
+                behaviorTree->isTreeEnabled(),
+                behaviorTree->getTickInterval());
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "BehaviorTreeComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_BehaviorTreeComponentData,
                 payload.Union());
         }
 
@@ -642,6 +684,43 @@ namespace SerializationCommon
 
             animation->setStateMachineEnabled(payload->state_machine_enabled());
             animation->setSpeed(payload->speed());
+            return;
+        }
+        case scene::ComponentPayload_NavAgentComponentData:
+        {
+            auto* navAgent = dynamic_cast<NavAgentComponent*>(component);
+            const auto* payload = serialized->payload_as_NavAgentComponentData();
+            if (!navAgent || !payload)
+            {
+                return;
+            }
+
+            if (const auto* path = payload->navmesh_asset_path())
+            {
+                navAgent->setNavMeshAssetPath(path->str());
+            }
+            navAgent->setMoveSpeed(payload->move_speed());
+            navAgent->setAcceleration(payload->acceleration());
+            navAgent->setStoppingDistance(payload->stopping_distance());
+            navAgent->setRepathInterval(payload->repath_interval());
+            return;
+        }
+        case scene::ComponentPayload_BehaviorTreeComponentData:
+        {
+            auto* behaviorTree = dynamic_cast<BehaviorTreeComponent*>(component);
+            const auto* payload = serialized->payload_as_BehaviorTreeComponentData();
+            if (!behaviorTree || !payload)
+            {
+                return;
+            }
+
+            if (const auto* path = payload->asset_path())
+            {
+                behaviorTree->setAssetPath(path->str());
+            }
+
+            behaviorTree->setTreeEnabled(payload->tree_enabled());
+            behaviorTree->setTickInterval(payload->tick_interval());
             return;
         }
         case scene::ComponentPayload_RigidbodyComponentData:

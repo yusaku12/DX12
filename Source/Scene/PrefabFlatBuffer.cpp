@@ -4,11 +4,10 @@
 #include "Generated/Prefab_generated.h"
 #include "Generated/Scene_generated.h"
 #include "SerializationCommon.h"
+#include "SaveDataSchema.h"
 
 namespace
 {
-    constexpr uint32_t kPrefabVersion = 1;
-
     void collectHierarchy(GameObject* root, std::vector<GameObject*>& out);
 
     std::string normalizeAssetPath(const std::filesystem::path& filePath)
@@ -304,6 +303,25 @@ namespace
             return false;
         }
 
+        const SaveDataSchema::VersionCheckResult versionCheck = SaveDataSchema::checkPrefabVersion(root->version());
+        if (!versionCheck.supported)
+        {
+            LOG_ERROR("[PrefabFlatBuffer] Unsupported prefab schema version: %u file=%s current=%u min=%u",
+                root->version(),
+                prefabPath.string().c_str(),
+                SaveDataSchema::kPrefabCurrentVersion,
+                SaveDataSchema::kPrefabMinimumSupportedVersion);
+            return false;
+        }
+
+        if (versionCheck.needsResave)
+        {
+            LOG_WARN("[PrefabFlatBuffer] Prefab schema is old. Please resave file=%s version=%u current=%u",
+                prefabPath.string().c_str(),
+                root->version(),
+                SaveDataSchema::kPrefabCurrentVersion);
+        }
+
         const auto* objects = root->objects();
         if (!objects)
         {
@@ -459,7 +477,7 @@ namespace PrefabFlatBuffer
 
         const auto prefabRoot = scene::CreateSerializedPrefabDirect(
             builder,
-            kPrefabVersion,
+            SaveDataSchema::kPrefabCurrentVersion,
             0,
             &serializedObjects);
         scene::FinishSerializedPrefabBuffer(builder, prefabRoot);
@@ -501,6 +519,25 @@ namespace PrefabFlatBuffer
         {
             LOG_ERROR("[PrefabFlatBuffer] Invalid flatbuffer prefab: %s", filePath.string().c_str());
             return nullptr;
+        }
+
+        const SaveDataSchema::VersionCheckResult versionCheck = SaveDataSchema::checkPrefabVersion(root->version());
+        if (!versionCheck.supported)
+        {
+            LOG_ERROR("[PrefabFlatBuffer] Unsupported prefab schema version: %u file=%s current=%u min=%u",
+                root->version(),
+                filePath.string().c_str(),
+                SaveDataSchema::kPrefabCurrentVersion,
+                SaveDataSchema::kPrefabMinimumSupportedVersion);
+            return nullptr;
+        }
+
+        if (versionCheck.needsResave)
+        {
+            LOG_WARN("[PrefabFlatBuffer] Prefab schema is old. Please resave file=%s version=%u current=%u",
+                filePath.string().c_str(),
+                root->version(),
+                SaveDataSchema::kPrefabCurrentVersion);
         }
 
         const auto* serializedObjects = root->objects();

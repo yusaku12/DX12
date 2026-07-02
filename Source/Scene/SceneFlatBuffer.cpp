@@ -4,11 +4,10 @@
 
 #include "Generated/Scene_generated.h"
 #include "SerializationCommon.h"
+#include "SaveDataSchema.h"
 
 namespace
 {
-    constexpr uint32_t kSceneVersion = 2;
-
     std::vector<uint8_t> readFileBytes(const std::filesystem::path& filePath)
     {
         std::ifstream file(filePath, std::ios::binary | std::ios::ate);
@@ -80,6 +79,30 @@ namespace
             }
             LOG_ERROR("[SceneFlatBuffer] Invalid flatbuffer scene: %s", filePath.string().c_str());
             return nullptr;
+        }
+
+        const SaveDataSchema::VersionCheckResult versionCheck = SaveDataSchema::checkSceneVersion(root->version());
+        if (!versionCheck.supported)
+        {
+            if (outErrorMessage)
+            {
+                *outErrorMessage = std::format("Unsupported scene schema version: {}", root->version());
+            }
+
+            LOG_ERROR("[SceneFlatBuffer] Unsupported scene schema version: %u file=%s current=%u min=%u",
+                root->version(),
+                filePath.string().c_str(),
+                SaveDataSchema::kSceneCurrentVersion,
+                SaveDataSchema::kSceneMinimumSupportedVersion);
+            return nullptr;
+        }
+
+        if (versionCheck.needsResave)
+        {
+            LOG_WARN("[SceneFlatBuffer] Scene schema is old. Please resave file=%s version=%u current=%u",
+                filePath.string().c_str(),
+                root->version(),
+                SaveDataSchema::kSceneCurrentVersion);
         }
 
         return root;
@@ -163,7 +186,7 @@ namespace SceneFlatBuffer
 
         const auto sceneRoot = scene::CreateSerializedSceneDirect(
             builder,
-            kSceneVersion,
+            SaveDataSchema::kSceneCurrentVersion,
             static_cast<int32_t>(sceneId),
             &serializedObjects);
 

@@ -5,8 +5,10 @@
 #include "System/TimeManager.h"
 
 #include "Animation/AnimationStateMachine.h"
+#include "Component/BehaviorTreeComponent.h"
 #include "Component/CanvasComponent.h"
 #include "Component/ColliderComponent.h"
+#include "Component/NavAgentComponent.h"
 #include "Component/RectTransformComponent.h"
 #include "Component/RigidbodyComponent.h"
 #include "Component/ScriptComponent.h"
@@ -26,6 +28,7 @@
 #include "Scene/PrefabFlatBuffer.h"
 #include "Scene/SceneFlatBuffer.h"
 #include "System/EventBus.h"
+#include "System/NavMeshSystem.h"
 
 namespace
 {
@@ -34,6 +37,7 @@ namespace
         Unit = 1u << 0,
         Integration = 1u << 1,
         RenderRegression = 1u << 2,
+        AIIntegration = 1u << 3,
     };
 
     struct TestContext
@@ -175,6 +179,41 @@ namespace
         scene::FinishSerializedPrefabBuffer(builder, prefab);
 
         return writeFileBytes(prefabPath, builder.GetBufferPointer(), builder.GetSize());
+    }
+
+    bool writeSimpleNavMesh(const std::filesystem::path& navPath)
+    {
+        std::ofstream out(navPath, std::ios::trunc);
+        if (!out)
+        {
+            return false;
+        }
+
+        out << "version 1\n";
+        out << "nodes 3\n";
+        out << "node 0 0 0 0\n";
+        out << "node 1 2 0 0\n";
+        out << "node 2 4 0 0\n";
+        out << "edge 0 1\n";
+        out << "edge 1 2\n";
+        return out.good();
+    }
+
+    bool writeSimpleBehaviorTree(const std::filesystem::path& treePath)
+    {
+        std::ofstream out(treePath, std::ios::trunc);
+        if (!out)
+        {
+            return false;
+        }
+
+        out << "root 1\n";
+        out << "node 1 Sequence\n";
+        out << "node 2 ConditionHasDestination\n";
+        out << "node 3 ActionMoveToDestination\n";
+        out << "child 1 2\n";
+        out << "child 1 3\n";
+        return out.good();
     }
 
     GameObject* findObjectByName(const std::vector<GameObject*>& objects, const std::string& name)
@@ -977,6 +1016,89 @@ namespace
         });
 
         tests.push_back({
+            "Integration.AI.NavAgentAndBehaviorTree.3000Ticks",
+            TestCategory::AIIntegration,
+            [](TestContext& ctx)
+            {
+                const auto root = testTempRoot() / "ai_3000_ticks";
+                ensureCleanDir(root);
+
+                const auto navPath = root / "test.navmesh";
+                const auto treePath = root / "test.btree";
+                ctx.expect(writeSimpleNavMesh(navPath), "Failed to write navmesh test asset");
+                ctx.expect(writeSimpleBehaviorTree(treePath), "Failed to write behavior tree test asset");
+
+                GameObjectRegistry::Instance().shutdown();
+
+                GameObject* agentObj = DX_NEW(GameObject, "AIAgent");
+                auto* tf = agentObj->addComponent<TransformComponent>();
+                auto* nav = agentObj->addComponent<NavAgentComponent>();
+                auto* bt = agentObj->addComponent<BehaviorTreeComponent>();
+
+                ctx.expect(NavMeshSystem::Instance().loadNavMesh(navPath), "NavMeshSystem failed to load AI test navmesh");
+                nav->setNavMeshAssetPath(navPath.generic_string());
+                nav->setMoveSpeed(20.0f);
+                nav->setDestination(Vector3(4.0f, 0.0f, 0.0f));
+
+                std::vector<Vector3> previewPath;
+                ctx.expect(NavMeshSystem::Instance().findPath(Vector3::Zero, Vector3(4.0f, 0.0f, 0.0f), previewPath), "NavMeshSystem failed to generate preview path");
+                ctx.expect(previewPath.size() >= 2, "Preview path should contain at least start and goal");
+
+                bt->setAssetPath(treePath.generic_string());
+                bt->setTickInterval(0.01f);
+                bt->setTreeEnabled(true);
+
+                nav->requestRepath();
+                nav->update();
+
+                for (int i = 0; i < 3000; ++i)
+                {
+                    bt->update();
+                    nav->update();
+                }
+
+                const float x = tf->getPosition().x;
+                LOG_INFO("[Test][AI] Final position x=%.3f hasPath=%d hasDestination=%d",
+                    x,
+                    nav->hasPath() ? 1 : 0,
+                    nav->hasDestination() ? 1 : 0);
+                ctx.expect(x > 3.0f, "AI agent did not progress along path after 3000 ticks");
+
+                GameObjectRegistry::Instance().shutdown();
+            }
+        });
+
+        tests.push_back({
+            "Integration.AI.MissingAssets.Resilience",
+            TestCategory::AIIntegration,
+            [](TestContext& ctx)
+            {
+                GameObjectRegistry::Instance().shutdown();
+
+                GameObject* agentObj = DX_NEW(GameObject, "AIAgentMissingAssets");
+                auto* tf = agentObj->addComponent<TransformComponent>();
+                auto* nav = agentObj->addComponent<NavAgentComponent>();
+                auto* bt = agentObj->addComponent<BehaviorTreeComponent>();
+
+                nav->setNavMeshAssetPath("Data/NavMesh/DoesNotExist.navmesh");
+                nav->setDestination(Vector3(10.0f, 0.0f, 0.0f));
+
+                bt->setAssetPath("Data/AI/DoesNotExist.btree");
+
+                for (int i = 0; i < 120; ++i)
+                {
+                    bt->update();
+                    nav->update();
+                }
+
+                ctx.expect(!bt->isTreeEnabled(), "BehaviorTree should disable itself when asset is missing");
+                ctx.expect(tf->getPosition().Length() < 0.2f, "Agent unexpectedly moved with missing navmesh");
+
+                GameObjectRegistry::Instance().shutdown();
+            }
+        });
+
+        tests.push_back({
             "Unit.EditorTransaction.UndoRedo",
             TestCategory::Unit,
             [](TestContext& ctx)
@@ -1259,7 +1381,8 @@ namespace EngineTests
             || hasFlag(args, L"--test-all")
             || hasFlag(args, L"--test-unit")
             || hasFlag(args, L"--test-integration")
-            || hasFlag(args, L"--test-render-regression");
+            || hasFlag(args, L"--test-render-regression")
+            || hasFlag(args, L"--test-ai");
     }
 
     int runFromCommandLine(LPWSTR cmdLine)
@@ -1271,6 +1394,7 @@ namespace EngineTests
         const bool runUnit = hasFlag(args, L"--test-unit");
         const bool runIntegration = hasFlag(args, L"--test-integration");
         const bool runRender = hasFlag(args, L"--test-render-regression");
+        const bool runAI = hasFlag(args, L"--test-ai");
         const bool updateGolden = hasFlag(args, L"--update-golden");
 
         uint32_t selectedMask = 0;
@@ -1279,7 +1403,8 @@ namespace EngineTests
         {
             selectedMask = categoryMask(TestCategory::Unit)
                 | categoryMask(TestCategory::Integration)
-                | categoryMask(TestCategory::RenderRegression);
+                | categoryMask(TestCategory::RenderRegression)
+                | categoryMask(TestCategory::AIIntegration);
         }
         else
         {
@@ -1287,7 +1412,8 @@ namespace EngineTests
             {
                 selectedMask |= categoryMask(TestCategory::Unit)
                     | categoryMask(TestCategory::Integration)
-                    | categoryMask(TestCategory::RenderRegression);
+                    | categoryMask(TestCategory::RenderRegression)
+                    | categoryMask(TestCategory::AIIntegration);
             }
             if (runUnit)
             {
@@ -1301,13 +1427,18 @@ namespace EngineTests
             {
                 selectedMask |= categoryMask(TestCategory::RenderRegression);
             }
+            if (runAI)
+            {
+                selectedMask |= categoryMask(TestCategory::AIIntegration);
+            }
         }
 
         if (selectedMask == 0)
         {
             selectedMask = categoryMask(TestCategory::Unit)
                 | categoryMask(TestCategory::Integration)
-                | categoryMask(TestCategory::RenderRegression);
+                | categoryMask(TestCategory::RenderRegression)
+                | categoryMask(TestCategory::AIIntegration);
         }
 
         return runTests(selectedMask, updateGolden);

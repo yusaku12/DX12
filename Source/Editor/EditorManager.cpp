@@ -5,10 +5,12 @@
 #include "Render/GBufferRenderTargets.h"
 #include "AssetBrowserWindow.h"
 #include "AsyncAssetLoader.h"
+#include "BehaviorTreeGraphEditorWindow.h"
 #include "EditorTransaction.h"
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
 #include "CubemapToolWindow.h"
+#include "NavMeshBakeWindow.h"
 #include "GameObject\ObjectPicker.h"
 #include "Graphics\DX12.h"
 #include "Render\GBufferRenderTargets.h"
@@ -284,6 +286,18 @@ void EditorManager::drawDebugHubWindow()
         if (ImGui::BeginTabItem("Audio"))
         {
             AudioManager::Instance().renderDebugContents();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("NavMesh Bake"))
+        {
+            drawNavMeshBakeWindow();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("BT Graph"))
+        {
+            drawBehaviorTreeGraphEditorWindow();
             ImGui::EndTabItem();
         }
 
