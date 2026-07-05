@@ -156,6 +156,17 @@ namespace
             signature += payload ? std::to_string(payload->max_particles()) : "0";
             break;
         }
+        case scene::ComponentPayload_CpuParticleComponentData:
+        {
+            const auto* payload = component->payload_as_CpuParticleComponentData();
+            signature += "|tex=";
+            signature += (payload && payload->texture_path()) ? payload->texture_path()->str() : "";
+            signature += "|max=";
+            signature += payload ? std::to_string(payload->max_particles()) : "0";
+            signature += "|etype=";
+            signature += payload ? std::to_string(payload->emitter_type()) : "0";
+            break;
+        }
         case scene::ComponentPayload_SkyboxComponentData:
         {
             const auto* payload = component->payload_as_SkyboxComponentData();

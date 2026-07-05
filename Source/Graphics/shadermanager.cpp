@@ -44,9 +44,13 @@ void ShaderManager::loadShader(ShaderID id)
     shader.desc = shaderTable[static_cast<size_t>(id)];
 
     const std::wstring csoPath = getCsoPath(shader.desc);
+    const std::wstring hlslPath = getHlslPath(shader.desc);
+
+    const bool hasHlsl = std::filesystem::exists(hlslPath);
+    const bool hasCso = std::filesystem::exists(csoPath);
 
     // CSO が存在すれば読み込む
-    if (std::filesystem::exists(csoPath))
+    if (hasCso)
     {
         if (SUCCEEDED(D3DReadFileToBlob(csoPath.c_str(), shader.blob.ReleaseAndGetAddressOf())))
         {
@@ -54,14 +58,32 @@ void ShaderManager::loadShader(ShaderID id)
         }
     }
 
-    // CSO が読み込めなかった場合は HLSL からコンパイル（初回ビルド時など）
-    if (!shader.blob)
+    bool shouldCompileFromHlsl = !shader.blob;
+
+    // HLSL が存在し、CSO が無い or HLSL の方が新しいなら再コンパイル
+    if (hasHlsl)
+    {
+        if (!hasCso)
+        {
+            shouldCompileFromHlsl = true;
+        }
+        else
+        {
+            const auto hlslWriteTime = std::filesystem::last_write_time(hlslPath);
+            const auto csoWriteTime = std::filesystem::last_write_time(csoPath);
+            if (hlslWriteTime > csoWriteTime)
+            {
+                shouldCompileFromHlsl = true;
+            }
+        }
+    }
+
+    if (shouldCompileFromHlsl)
     {
         reloadShader(id);
     }
 
-    const std::wstring hlslPath = getHlslPath(shader.desc);
-    if (std::filesystem::exists(hlslPath))
+    if (hasHlsl)
     {
         shader.lastWriteTime = std::filesystem::last_write_time(hlslPath);
     }

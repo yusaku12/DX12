@@ -18,27 +18,6 @@ namespace
         UINT word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
         return (word >> 22u) ^ word;
     }
-
-    float nextRandom01(UINT& state)
-    {
-        state = state * 747796405u + 2891336453u;
-        UINT word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-        return static_cast<float>((word >> 22u) ^ word) / 4294967295.0f;
-    }
-
-    Vector3 randomDirection(UINT& state)
-    {
-        float angle = nextRandom01(state) * XM_2PI;
-        float y = nextRandom01(state) * 2.0f - 1.0f;
-        float radius = std::sqrt(std::max(0.0f, 1.0f - y * y));
-        return Vector3(radius * std::cos(angle), y, radius * std::sin(angle));
-    }
-
-    Vector3 randomSpherePoint(UINT& state, float radius)
-    {
-        float scale = std::cbrt(nextRandom01(state));
-        return randomDirection(state) * (radius * scale);
-    }
 }
 
 void GpuEffectComponent::start()
@@ -54,16 +33,8 @@ void GpuEffectComponent::start()
 
 void GpuEffectComponent::update()
 {
-    float dt = TimeManager::Instance().getDeltaTime();
+    const float dt = TimeManager::Instance().getDeltaTime();
     m_totalTime += dt;
-    m_emitAccumulator += m_emitterParams.emitRate * dt;
-
-    m_lastEmitCount = static_cast<UINT>(m_emitAccumulator);
-    if (m_lastEmitCount > 0)
-    {
-        m_emitAccumulator -= m_lastEmitCount;
-    }
-
     m_randomSeed = makeRandomSeed(m_totalTime, dt);
 
     if (auto* t = gameObject() ? gameObject()->getComponent<TransformComponent>() : nullptr)
@@ -71,17 +42,57 @@ void GpuEffectComponent::update()
         m_emitOrigin = t->getPosition();
     }
 
-    simulateParticles(dt);
-
-    if (!m_renderCB)
+    if (!m_renderCB || !m_simCB)
+    {
         return;
+    }
 
     m_renderParams.renderMode = static_cast<UINT>(m_renderSettings.mode);
     m_renderParams.flipbookRows = m_renderSettings.flipbookRows;
     m_renderParams.flipbookCols = m_renderSettings.flipbookCols;
     m_renderParams.flipbookFps = m_renderSettings.flipbookFps;
     m_renderCB->update(m_renderParams);
-    syncParticleBuffer();
+
+    refreshSimulationParams(dt);
+}
+
+void GpuEffectComponent::refreshSimulationParams(float deltaTime)
+{
+    if (!m_simCB)
+    {
+        return;
+    }
+
+    m_simParams.deltaTime = deltaTime;
+    m_simParams.totalTime = m_totalTime;
+    m_simParams.emitRate = m_emitterParams.emitRate;
+    m_simParams.emitRadius = m_emitterParams.emitRadius;
+    m_simParams.maxParticles = m_maxParticles;
+    m_simParams.emitterType = static_cast<UINT>(m_emitterParams.type);
+    m_simParams.randomSeed = m_randomSeed;
+    m_simParams.resetAll = m_resetSimulation ? 1u : 0u;
+    m_simParams.spread = m_emitterParams.spread;
+    m_simParams.coneAngle = m_emitterParams.coneAngle;
+    m_simParams.coneHeight = m_emitterParams.coneHeight;
+    m_simParams.emitterSize = m_emitterParams.emitterSize;
+    m_simParams.emitOrigin = m_emitOrigin;
+
+    m_simParams.minLifetime = m_particleParams.minLifetime;
+    m_simParams.maxLifetime = m_particleParams.maxLifetime;
+    m_simParams.minSpeed = m_particleParams.minSpeed;
+    m_simParams.maxSpeed = m_particleParams.maxSpeed;
+    m_simParams.startSize = m_particleParams.startSize;
+    m_simParams.endSize = m_particleParams.endSize;
+    m_simParams.drag = m_particleParams.drag;
+    m_simParams.startRotationSpeed = m_particleParams.startRotationSpeed;
+    m_simParams.stretchFactor = m_particleParams.stretchFactor;
+    m_simParams.noiseStrength = m_particleParams.noiseStrength;
+    m_simParams.noiseFrequency = m_particleParams.noiseFrequency;
+    m_simParams.gravity = m_particleParams.gravity;
+    m_simParams.startColor = m_particleParams.startColor;
+    m_simParams.endColor = m_particleParams.endColor;
+
+    m_simCB->update(m_simParams);
 }
 
 void GpuEffectComponent::onEnable()
@@ -104,13 +115,49 @@ void GpuEffectComponent::onDestroy()
 {
     IRenderComponent::onDestroy();
 
-    if (m_particleSrvIndex != UINT_MAX) DescriptorHeapManager::Instance().free(m_particleSrvIndex);
-    if (m_renderSrvTableBase != UINT_MAX) DescriptorHeapManager::Instance().free(m_renderSrvTableBase, 2);
+    for (UINT& idx : m_particleSrvIndices)
+    {
+        if (idx != UINT_MAX)
+        {
+            DescriptorHeapManager::Instance().free(idx);
+            idx = UINT_MAX;
+        }
+    }
 
-    m_particlesCpu.clear();
-    m_particleBuffer.Reset();
-    m_particleBufferMapped = nullptr;
+    for (UINT& idx : m_particleUavIndices)
+    {
+        if (idx != UINT_MAX)
+        {
+            DescriptorHeapManager::Instance().free(idx);
+            idx = UINT_MAX;
+        }
+    }
+
+    if (m_renderSrvTableBase != UINT_MAX)
+    {
+        DescriptorHeapManager::Instance().free(m_renderSrvTableBase, 2);
+        m_renderSrvTableBase = UINT_MAX;
+    }
+
+    if (m_computeTableBase != UINT_MAX)
+    {
+        DescriptorHeapManager::Instance().free(m_computeTableBase, 3);
+        m_computeTableBase = UINT_MAX;
+    }
+
+    if (m_drawArgsUavIndex != UINT_MAX)
+    {
+        DescriptorHeapManager::Instance().free(m_drawArgsUavIndex);
+        m_drawArgsUavIndex = UINT_MAX;
+    }
+
+    m_particleBuffers[0].Reset();
+    m_particleBuffers[1].Reset();
+    m_drawArgsBuffer.Reset();
     m_renderCB.reset();
+    m_simCB.reset();
+    m_computePSO.Reset();
+    m_drawCommandSignature.Reset();
 }
 
 void GpuEffectComponent::inspectGUI()
@@ -199,12 +246,26 @@ void GpuEffectComponent::inspectGUI()
     }
     ImGui::DragFloat("Flipbook FPS", &render.flipbookFps, 0.1f, 0.0f, 240.0f);
 
+    if (ImGui::Button("Select Texture"))
+    {
+        std::vector<std::wstring> selectedFiles;
+        DialogResult result = Dialog::openFile(
+            selectedFiles,
+            L"Select Particle Texture",
+            L"",
+            false);
+
+        if (result == DialogResult::OK && !selectedFiles.empty())
+        {
+            setTexture(selectedFiles[0]);
+        }
+    }
+
     ImGui::Text("Texture: %s", wstringToString(m_texturePath).c_str());
 
     ImGui::Separator();
     ImGui::Text("Runtime");
-    ImGui::Text("Alive Particles: %u", m_aliveParticleCount);
-    ImGui::Text("Frame Emit Count: %u", m_lastEmitCount);
+    ImGui::Text("Render Particle Count: GPU Indirect");
     ImGui::Text("Random Seed: %u", m_randomSeed);
 }
 
@@ -217,7 +278,11 @@ void GpuEffectComponent::render()
 void GpuEffectComponent::render(ID3D12GraphicsCommandList* cmd)
 {
     if (!cmd || !m_initialized)
+    {
         return;
+    }
+
+    runGpuSimulation(cmd);
 
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
     PSOCreator::Instance().setPSO(m_renderPSOKey, cmd);
@@ -227,101 +292,126 @@ void GpuEffectComponent::render(ID3D12GraphicsCommandList* cmd)
     cmd->SetGraphicsRootConstantBufferView(1, m_renderCB->getGPUAddress());
     cmd->SetGraphicsRootDescriptorTable(2, DescriptorHeapManager::Instance().getGPUHandle(m_renderSrvTableBase));
 
-    if (m_aliveParticleCount == 0)
-        return;
-
-    cmd->DrawInstanced(6, m_aliveParticleCount, 0, 0);
+    if (m_drawCommandSignature && m_drawArgsBuffer)
+    {
+        cmd->ExecuteIndirect(m_drawCommandSignature.Get(), 1, m_drawArgsBuffer.Get(), 0, nullptr, 0);
+    }
 }
 
 void GpuEffectComponent::renderForward(ID3D12GraphicsCommandList* cmd)
 {
     if (!cmd || !m_initialized)
+    {
         return;
+    }
 
     render(cmd);
 }
 
-void GpuEffectComponent::simulateParticles(float dt)
+void GpuEffectComponent::runGpuSimulation(ID3D12GraphicsCommandList* cmd)
 {
-    const auto& emitter = m_emitterParams;
-    const auto& particleParams = m_particleParams;
-
-    if (m_maxParticles == 0)
+    if (!cmd || !m_computePSO || !m_simCB)
     {
-        m_aliveParticleCount = 0;
-        m_particlesCpu.clear();
         return;
     }
 
-    std::vector<Particle> nextParticles;
-    nextParticles.reserve(m_maxParticles);
+    // update() より先に render() が呼ばれても reset 初期化が欠落しないよう、毎回明示的に反映する
+    m_simParams.maxParticles = m_maxParticles;
+    m_simParams.resetAll = m_resetSimulation ? 1u : 0u;
+    m_simCB->update(m_simParams);
 
-    for (const auto& srcParticle : m_particlesCpu)
+    const UINT readIdx = m_readBufferIndex;
+    const UINT writeIdx = 1u - m_readBufferIndex;
+
+    if (m_particleStates[readIdx] != D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
     {
-        Particle updated = srcParticle;
-        updated.age += dt;
-
-        if (updated.age >= updated.lifetime)
-        {
-            continue;
-        }
-
-        updated.velocity += particleParams.gravity * dt;
-        updated.velocity *= std::max(0.0f, 1.0f - particleParams.drag * dt);
-        updated.position += updated.velocity * dt;
-
-        float t = std::clamp(updated.age / std::max(updated.lifetime, 0.0001f), 0.0f, 1.0f);
-        updated.size = std::lerp(particleParams.startSize, particleParams.endSize, t);
-        updated.color = Vector4(
-            std::lerp(particleParams.startColor.x, particleParams.endColor.x, t),
-            std::lerp(particleParams.startColor.y, particleParams.endColor.y, t),
-            std::lerp(particleParams.startColor.z, particleParams.endColor.z, t),
-            std::lerp(particleParams.startColor.w, particleParams.endColor.w, t));
-        updated.rotation += updated.rotationSpeed * dt;
-
-        nextParticles.push_back(updated);
+        auto toSrv = CD3DX12_RESOURCE_BARRIER::Transition(
+            m_particleBuffers[readIdx].Get(),
+            m_particleStates[readIdx],
+            D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        cmd->ResourceBarrier(1, &toSrv);
+        m_particleStates[readIdx] = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
     }
 
-    UINT seed = m_randomSeed;
-    for (UINT i = 0; i < m_lastEmitCount && nextParticles.size() < m_maxParticles; ++i)
+    if (m_particleStates[writeIdx] != D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
     {
-        Particle newParticle{};
-        newParticle.position = m_emitOrigin + randomSpherePoint(seed, emitter.emitRadius);
-
-        Vector3 direction = randomDirection(seed);
-        direction.Normalize();
-        direction = Vector3::Lerp(Vector3::UnitY, direction, emitter.spread);
-        float speedT = nextRandom01(seed);
-        newParticle.velocity = direction * std::lerp(particleParams.minSpeed, particleParams.maxSpeed, speedT);
-        newParticle.age = 0.0f;
-        newParticle.lifetime = std::lerp(particleParams.minLifetime, particleParams.maxLifetime, nextRandom01(seed));
-        newParticle.size = particleParams.startSize;
-        newParticle.rotation = nextRandom01(seed) * XM_2PI;
-        newParticle.rotationSpeed = (nextRandom01(seed) * 2.0f - 1.0f) * particleParams.startRotationSpeed;
-        newParticle.stretch = particleParams.stretchFactor;
-        newParticle.color = particleParams.startColor;
-
-        nextParticles.push_back(newParticle);
+        auto toUav = CD3DX12_RESOURCE_BARRIER::Transition(
+            m_particleBuffers[writeIdx].Get(),
+            m_particleStates[writeIdx],
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        cmd->ResourceBarrier(1, &toUav);
+        m_particleStates[writeIdx] = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
     }
 
-    m_particlesCpu.swap(nextParticles);
-    m_aliveParticleCount = static_cast<UINT>(m_particlesCpu.size());
-}
+    if (m_drawArgsState != D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+    {
+        auto toUav = CD3DX12_RESOURCE_BARRIER::Transition(
+            m_drawArgsBuffer.Get(),
+            m_drawArgsState,
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        cmd->ResourceBarrier(1, &toUav);
+        m_drawArgsState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    }
 
-void GpuEffectComponent::syncParticleBuffer()
-{
-    if (!m_particleBufferMapped)
-        return;
+    updateDescriptorTables();
 
-    if (m_aliveParticleCount == 0)
-        return;
+    DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
 
-    memcpy(m_particleBufferMapped, m_particlesCpu.data(), sizeof(Particle) * m_aliveParticleCount);
+    const UINT clearValues[4] = { 0, 0, 0, 0 };
+    cmd->ClearUnorderedAccessViewUint(
+        DescriptorHeapManager::Instance().getGPUHandle(m_drawArgsUavIndex),
+        DescriptorHeapManager::Instance().getCPUHandle(m_drawArgsUavIndex),
+        m_drawArgsBuffer.Get(),
+        clearValues,
+        0,
+        nullptr);
+
+    auto drawArgsClearUavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(m_drawArgsBuffer.Get());
+    cmd->ResourceBarrier(1, &drawArgsClearUavBarrier);
+
+    cmd->SetComputeRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::GpuEffectCompute));
+    cmd->SetPipelineState(m_computePSO.Get());
+
+    cmd->SetComputeRootConstantBufferView(0, m_simCB->getGPUAddress());
+    cmd->SetComputeRootDescriptorTable(1, DescriptorHeapManager::Instance().getGPUHandle(m_computeTableBase));
+    cmd->SetComputeRootDescriptorTable(2, DescriptorHeapManager::Instance().getGPUHandle(m_computeTableBase + 1));
+
+    const UINT dispatchX = std::max(1u, (m_maxParticles + 255u) / 256u);
+    cmd->Dispatch(dispatchX, 1, 1);
+
+    auto uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(m_particleBuffers[writeIdx].Get());
+    cmd->ResourceBarrier(1, &uavBarrier);
+
+    auto drawArgsUavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(m_drawArgsBuffer.Get());
+    cmd->ResourceBarrier(1, &drawArgsUavBarrier);
+
+    auto toSrv = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_particleBuffers[writeIdx].Get(),
+        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    cmd->ResourceBarrier(1, &toSrv);
+    m_particleStates[writeIdx] = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+    auto drawArgsToIndirect = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_drawArgsBuffer.Get(),
+        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+    cmd->ResourceBarrier(1, &drawArgsToIndirect);
+    m_drawArgsState = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+
+    m_readBufferIndex = writeIdx;
+    m_resetSimulation = false;
+
+    updateDescriptorTables();
 }
 
 void GpuEffectComponent::setTexture(const std::wstring& path)
 {
-    if (path.empty()) return;
+    if (path.empty())
+    {
+        return;
+    }
+
     m_texturePath = path;
     m_texture = TextureManager::Instance().load(path);
     updateDescriptorTables();
@@ -329,84 +419,163 @@ void GpuEffectComponent::setTexture(const std::wstring& path)
 
 void GpuEffectComponent::setMaxParticles(UINT maxParticles)
 {
-    if (maxParticles == 0) maxParticles = 1;
-    if (maxParticles == m_maxParticles) return;
-
-    m_maxParticles = maxParticles;
-
-    if (m_particlesCpu.size() > m_maxParticles)
+    if (maxParticles == 0)
     {
-        m_particlesCpu.resize(m_maxParticles);
+        maxParticles = 1;
     }
 
-    createParticleBuffer();
+    if (maxParticles == m_maxParticles)
+    {
+        return;
+    }
+
+    m_maxParticles = maxParticles;
+    m_aliveParticleCount = maxParticles;
+    m_resetSimulation = true;
+
+    createParticleBuffers();
     updateDescriptorTables();
 }
 
 void GpuEffectComponent::initializeResources()
 {
     m_renderCB = DXMem::makeUnique<ConstantBuffer<RenderParams>>(1);
+    m_simCB = DXMem::makeUnique<ConstantBuffer<SimParams>>(1);
 
-    // テクスチャをロード (ディスクリプタテーブル未割当なので updateDescriptorTables は後で呼ぶ)
     if (!m_texturePath.empty())
     {
         m_texture = TextureManager::Instance().load(m_texturePath);
     }
 
-    createParticleBuffer();
-    createPipelines();
-    m_renderSrvTableBase = DescriptorHeapManager::Instance().allocateRange(2);
+    // 初回描画が update() より先でも、シミュレーション定数が有効値になるよう事前にアップロード
+    m_resetSimulation = true;
+    refreshSimulationParams(0.0f);
 
+    createParticleBuffers();
+    createGpuDrivenDrawResources();
+    createPipelines();
+
+    if (m_renderSrvTableBase == UINT_MAX)
+    {
+        m_renderSrvTableBase = DescriptorHeapManager::Instance().allocateRange(2);
+    }
+
+    if (m_computeTableBase == UINT_MAX)
+    {
+        m_computeTableBase = DescriptorHeapManager::Instance().allocateRange(3);
+    }
+
+    m_aliveParticleCount = m_maxParticles;
+    m_resetSimulation = true;
     updateDescriptorTables();
 }
 
-void GpuEffectComponent::createParticleBuffer()
+void GpuEffectComponent::createParticleBuffers()
 {
-    if (m_particleSrvIndex != UINT_MAX)
+    for (UINT& idx : m_particleSrvIndices)
     {
-        DescriptorHeapManager::Instance().free(m_particleSrvIndex);
-        m_particleSrvIndex = UINT_MAX;
+        if (idx != UINT_MAX)
+        {
+            DescriptorHeapManager::Instance().free(idx);
+            idx = UINT_MAX;
+        }
     }
 
-    m_particleBuffer.Reset();
-    m_particleBufferMapped = nullptr;
-
-    auto device = DX12::Instance().getDevice();
-    UINT64 bufferSize = std::max<UINT64>(1, sizeof(Particle) * m_maxParticles);
-    auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
-    CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
-    HRESULT hr = device->CreateCommittedResource(
-        &uploadHeapProps,
-        D3D12_HEAP_FLAG_NONE,
-        &resDesc,
-        D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr,
-        IID_PPV_ARGS(m_particleBuffer.GetAddressOf()));
-    LOG_HR(hr, "GpuEffect: create particle upload buffer failed");
-
-    if (m_particleBuffer)
+    for (UINT& idx : m_particleUavIndices)
     {
-        void* mapped = nullptr;
-        hr = m_particleBuffer->Map(0, nullptr, &mapped);
-        LOG_HR(hr, "GpuEffect: map particle upload buffer failed");
-        m_particleBufferMapped = reinterpret_cast<Particle*>(mapped);
+        if (idx != UINT_MAX)
+        {
+            DescriptorHeapManager::Instance().free(idx);
+            idx = UINT_MAX;
+        }
     }
 
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    srvDesc.Buffer.FirstElement = 0;
-    srvDesc.Buffer.NumElements = m_maxParticles;
-    srvDesc.Buffer.StructureByteStride = sizeof(Particle);
-    srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+    m_particleBuffers[0].Reset();
+    m_particleBuffers[1].Reset();
 
-    m_particleSrvIndex = DescriptorHeapManager::Instance().createSRV(m_particleBuffer.Get(), srvDesc);
+    auto* device = DX12::Instance().getDevice();
+    const UINT64 bufferSize = std::max<UINT64>(1, sizeof(Particle) * m_maxParticles);
+
+    for (UINT i = 0; i < 2; ++i)
+    {
+        auto resDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+
+        HRESULT hr = device->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &resDesc,
+            D3D12_RESOURCE_STATE_COMMON,
+            nullptr,
+            IID_PPV_ARGS(m_particleBuffers[i].GetAddressOf()));
+        LOG_HR(hr, "GpuEffect: create particle default buffer failed");
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srvDesc.Buffer.FirstElement = 0;
+        srvDesc.Buffer.NumElements = m_maxParticles;
+        srvDesc.Buffer.StructureByteStride = sizeof(Particle);
+        srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+        m_particleSrvIndices[i] = DescriptorHeapManager::Instance().createSRV(m_particleBuffers[i].Get(), srvDesc);
+
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+        uavDesc.Buffer.FirstElement = 0;
+        uavDesc.Buffer.NumElements = m_maxParticles;
+        uavDesc.Buffer.StructureByteStride = sizeof(Particle);
+        uavDesc.Buffer.CounterOffsetInBytes = 0;
+        uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+        m_particleUavIndices[i] = DescriptorHeapManager::Instance().createUAV(m_particleBuffers[i].Get(), nullptr, uavDesc);
+
+        m_particleStates[i] = D3D12_RESOURCE_STATE_COMMON;
+    }
+
+    m_readBufferIndex = 0;
+}
+
+void GpuEffectComponent::createGpuDrivenDrawResources()
+{
+    if (m_drawArgsUavIndex != UINT_MAX)
+    {
+        DescriptorHeapManager::Instance().free(m_drawArgsUavIndex);
+        m_drawArgsUavIndex = UINT_MAX;
+    }
+
+    m_drawArgsBuffer.Reset();
+
+    auto* device = DX12::Instance().getDevice();
+
+    {
+        auto desc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(D3D12_DRAW_ARGUMENTS), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+        HRESULT hr = device->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &desc,
+            D3D12_RESOURCE_STATE_COMMON,
+            nullptr,
+            IID_PPV_ARGS(m_drawArgsBuffer.ReleaseAndGetAddressOf()));
+        LOG_HR(hr, "GpuEffect: create indirect draw-args buffer failed");
+    }
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    uavDesc.Buffer.FirstElement = 0;
+    uavDesc.Buffer.NumElements = static_cast<UINT>(sizeof(D3D12_DRAW_ARGUMENTS) / sizeof(UINT));
+    uavDesc.Buffer.StructureByteStride = 0;
+    uavDesc.Buffer.CounterOffsetInBytes = 0;
+    uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+    m_drawArgsUavIndex = DescriptorHeapManager::Instance().createUAV(m_drawArgsBuffer.Get(), nullptr, uavDesc);
+    m_drawArgsState = D3D12_RESOURCE_STATE_COMMON;
 }
 
 void GpuEffectComponent::createPipelines()
 {
-    // Render PSO
     PSOCreator::PSOData psoData{};
     psoData.rootSignatureType = RootSignatureType::GpuEffectRender;
     psoData.vsShaderId = ShaderID::GpuEffectVS;
@@ -417,17 +586,53 @@ void GpuEffectComponent::createPipelines()
     psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     psoData.inputLayout = {};
     m_renderPSOKey = PSOCreator::Instance().registerPSO(psoData);
+
+    D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc{};
+    computeDesc.pRootSignature = RootSignatureManager::Instance().getRootSignature(RootSignatureType::GpuEffectCompute);
+
+    ID3DBlob* cs = ShaderManager::Instance().getShaderBlob(ShaderID::GpuEffectCS);
+    if (cs)
+    {
+        computeDesc.CS.pShaderBytecode = cs->GetBufferPointer();
+        computeDesc.CS.BytecodeLength = cs->GetBufferSize();
+    }
+
+    HRESULT hr = DX12::Instance().getDevice()->CreateComputePipelineState(&computeDesc, IID_PPV_ARGS(m_computePSO.ReleaseAndGetAddressOf()));
+    LOG_HR(hr, "GpuEffect: create compute PSO failed");
+
+    D3D12_INDIRECT_ARGUMENT_DESC argDesc{};
+    argDesc.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
+
+    D3D12_COMMAND_SIGNATURE_DESC sigDesc{};
+    sigDesc.ByteStride = sizeof(D3D12_DRAW_ARGUMENTS);
+    sigDesc.NumArgumentDescs = 1;
+    sigDesc.pArgumentDescs = &argDesc;
+
+    hr = DX12::Instance().getDevice()->CreateCommandSignature(&sigDesc, nullptr, IID_PPV_ARGS(m_drawCommandSignature.ReleaseAndGetAddressOf()));
+    LOG_HR(hr, "GpuEffect: create draw command signature failed");
 }
 
 void GpuEffectComponent::updateDescriptorTables()
 {
-    if (m_renderSrvTableBase != UINT_MAX && m_texture && m_particleSrvIndex != UINT_MAX)
+    if (m_renderSrvTableBase != UINT_MAX && m_texture)
     {
-        std::vector<UINT> srvIndices =
+        std::vector<UINT> renderSrvIndices =
         {
-            m_particleSrvIndex,
+            m_particleSrvIndices[m_readBufferIndex],
             m_texture->getSRVIndex()
         };
-        DescriptorHeapManager::Instance().copyDescriptorsRange(m_renderSrvTableBase, srvIndices);
+        DescriptorHeapManager::Instance().copyDescriptorsRange(m_renderSrvTableBase, renderSrvIndices);
+    }
+
+    if (m_computeTableBase != UINT_MAX)
+    {
+        const UINT writeIndex = 1u - m_readBufferIndex;
+        std::vector<UINT> computeIndices =
+        {
+            m_particleSrvIndices[m_readBufferIndex],
+            m_particleUavIndices[writeIndex],
+            m_drawArgsUavIndex
+        };
+        DescriptorHeapManager::Instance().copyDescriptorsRange(m_computeTableBase, computeIndices);
     }
 }

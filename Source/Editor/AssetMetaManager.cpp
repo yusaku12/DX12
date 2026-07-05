@@ -306,6 +306,15 @@ namespace
                         }
                         break;
                     }
+                    case scene::ComponentPayload_CpuParticleComponentData:
+                    {
+                        const auto* payload = component->payload_as_CpuParticleComponentData();
+                        if (payload && payload->texture_path())
+                        {
+                            addDependencyPath(out, assetPath, payload->texture_path()->string_view());
+                        }
+                        break;
+                    }
                     default:
                         break;
                     }
@@ -386,6 +395,15 @@ namespace
                     case scene::ComponentPayload_GpuEffectComponentData:
                     {
                         const auto* payload = component->payload_as_GpuEffectComponentData();
+                        if (payload && payload->texture_path())
+                        {
+                            addDependencyPath(out, assetPath, payload->texture_path()->string_view());
+                        }
+                        break;
+                    }
+                    case scene::ComponentPayload_CpuParticleComponentData:
+                    {
+                        const auto* payload = component->payload_as_CpuParticleComponentData();
                         if (payload && payload->texture_path())
                         {
                             addDependencyPath(out, assetPath, payload->texture_path()->string_view());

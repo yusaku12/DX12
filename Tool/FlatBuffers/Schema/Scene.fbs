@@ -108,6 +108,19 @@ table GpuEffectComponentData {
     max_particles:uint;
 }
 
+table CpuParticleComponentData {
+    texture_path:string;
+    max_particles:uint;
+    emitter_type:uint;
+    emit_rate:float;
+    emit_radius:float;
+    mesh_source_object_name:string;
+    collision_mode:uint;
+    subuv_rows:uint;
+    subuv_cols:uint;
+    subuv_fps:float;
+}
+
 table AnimationComponentData {
     state_machine_enabled:bool;
     speed:float;
@@ -170,7 +183,8 @@ union ComponentPayload {
     BehaviorTreeComponentData,
     UITextComponentData,
     UIButtonComponentData,
-    UIImageComponentData
+    UIImageComponentData,
+    CpuParticleComponentData
 }
 
 table SerializedComponent {

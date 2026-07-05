@@ -9,4 +9,8 @@ struct Particle
     float rotationSpeed;
     float stretch;
     float4 color;
+    float subUvStartFrame;
+    uint generation;
+    uint padding0;
+    uint padding1;
 };

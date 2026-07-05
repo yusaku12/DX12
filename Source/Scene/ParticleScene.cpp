@@ -6,6 +6,7 @@
 #include "PostEffect\BloomEffect.h"
 #include "PostEffect\ColorGradingEffect.h"
 #include "Component\GpuEffectComponent.h"
+#include "Component\CpuParticleComponent.h"
 #include "Component\SkyboxComponent.h"
 #include "Component\CanvasComponent.h"
 #include "Component\RectTransformComponent.h"
@@ -36,6 +37,11 @@ void ParticleScene::onEnter()
     gpuEffectObj->addComponent<TransformComponent>();
     auto* gpuEffect = gpuEffectObj->addComponent<GpuEffectComponent>();
     gpuEffect->setTexture(L"Data/Texture/particle.png");
+
+    GameObject* cpuEffectObj = DX_NEW(GameObject, "CpuEffect");
+    cpuEffectObj->addComponent<TransformComponent>()->setPosition({ 3.0f, 0.0f, 0.0f });
+    auto* cpuEffect = cpuEffectObj->addComponent<CpuParticleComponent>();
+    cpuEffect->setTexture(L"Data/Texture/particle.png");
 
     // ===== UI セットアップ =====
     // ★ステップ 1: Canvas を作成（UI 描画用コンテナ）

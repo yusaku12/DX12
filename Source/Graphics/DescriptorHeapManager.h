@@ -21,7 +21,7 @@ public:
     void operator=(const DescriptorHeapManager&) = delete;
 
     //! 初期化（アプリ開始時に1回呼ぶ）
-    void initialize(UINT maxCount = 1024);
+    void initialize(UINT maxCount = 8192);
 
     //! ディスクリプタヒープ設定
     void setDescriptorHeap();

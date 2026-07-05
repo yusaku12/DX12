@@ -10,6 +10,7 @@
 #include "Component/BehaviorTreeComponent.h"
 #include "Component/CanvasComponent.h"
 #include "Component/ColliderComponent.h"
+#include "Component/CpuParticleComponent.h"
 #include "Component/FbxRenderComponent.h"
 #include "Component/GpuEffectComponent.h"
 #include "Component/NavAgentComponent.h"
@@ -135,7 +136,17 @@ namespace SerializationCommon
                 component->setTintColor(Vector4(color->x(), color->y(), color->z(), color->w()));
             }
 
-            component->setAlpha(payload->alpha());
+            // 古いシーンデータでは alpha フィールド未保存の可能性があるため、
+            // 未指定時は既定の 1.0f を維持して不可視化を防ぐ。
+            const auto* imageTable = reinterpret_cast<const flatbuffers::Table*>(payload);
+            if (imageTable && imageTable->GetOptionalFieldOffset(scene::UIImageComponentData::VT_ALPHA) != 0)
+            {
+                component->setAlpha(payload->alpha());
+            }
+            else
+            {
+                component->setAlpha(1.0f);
+            }
         }
 
         return component;
@@ -159,6 +170,7 @@ namespace SerializationCommon
             { "PostEffectComponent", true, &createDefault<PostEffectComponent> },
             { "SkyboxComponent", true, &createDefault<SkyboxComponent> },
             { "GpuEffectComponent", true, &createDefault<GpuEffectComponent> },
+            { "CpuParticleComponent", true, &createDefault<CpuParticleComponent> },
             { "UITextComponent", true, &createDefault<UITextComponent> },
             { "UIButtonComponent", true, &createDefault<UIButtonComponent> },
             { "UIImageComponent", true, &createUIImage },
@@ -211,6 +223,7 @@ namespace SerializationCommon
         if (typeName == "PostEffectComponent") return gameObject->getComponent<PostEffectComponent>() != nullptr;
         if (typeName == "SkyboxComponent") return gameObject->getComponent<SkyboxComponent>() != nullptr;
         if (typeName == "GpuEffectComponent") return gameObject->getComponent<GpuEffectComponent>() != nullptr;
+        if (typeName == "CpuParticleComponent") return gameObject->getComponent<CpuParticleComponent>() != nullptr;
         if (typeName == "UITextComponent") return gameObject->getComponent<UITextComponent>() != nullptr;
         if (typeName == "UIButtonComponent") return gameObject->getComponent<UIButtonComponent>() != nullptr;
         if (typeName == "UIImageComponent") return gameObject->getComponent<UIImageComponent>() != nullptr;
@@ -487,6 +500,31 @@ namespace SerializationCommon
                 "GpuEffectComponent",
                 component->isEnabled(),
                 scene::ComponentPayload_GpuEffectComponentData,
+                payload.Union());
+        }
+
+        if (auto* cpuParticle = dynamic_cast<CpuParticleComponent*>(component))
+        {
+            const auto texturePath = builder.CreateString(wstringToString(cpuParticle->getTexturePath()));
+            const auto meshSourceName = builder.CreateString(cpuParticle->getMeshSourceObjectName());
+            const auto payload = scene::CreateCpuParticleComponentData(
+                builder,
+                texturePath,
+                cpuParticle->getMaxParticles(),
+                cpuParticle->getEmitterType(),
+                cpuParticle->getEmitRate(),
+                cpuParticle->getEmitRadius(),
+                meshSourceName,
+                cpuParticle->getCollisionMode(),
+                cpuParticle->getSubUvRows(),
+                cpuParticle->getSubUvCols(),
+                cpuParticle->getSubUvFps());
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "CpuParticleComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_CpuParticleComponentData,
                 payload.Union());
         }
 
@@ -872,6 +910,39 @@ namespace SerializationCommon
             gpuEffect->setMaxParticles(payload->max_particles());
             return;
         }
+        case scene::ComponentPayload_CpuParticleComponentData:
+        {
+            auto* cpuParticle = dynamic_cast<CpuParticleComponent*>(component);
+            const auto* payload = serialized->payload_as_CpuParticleComponentData();
+            if (!cpuParticle || !payload)
+            {
+                return;
+            }
+
+            if (const auto* texturePath = payload->texture_path())
+            {
+                const std::wstring pathW = stringToWstring(texturePath->str());
+                if (!pathW.empty())
+                {
+                    cpuParticle->setTexture(pathW);
+                }
+            }
+
+            if (const auto* meshSourceName = payload->mesh_source_object_name())
+            {
+                cpuParticle->setMeshSourceObjectName(meshSourceName->str());
+            }
+
+            cpuParticle->setMaxParticles(payload->max_particles());
+            cpuParticle->setEmitterType(payload->emitter_type());
+            cpuParticle->setEmitRate(payload->emit_rate());
+            cpuParticle->setEmitRadius(payload->emit_radius());
+            cpuParticle->setCollisionMode(payload->collision_mode());
+            cpuParticle->setSubUvRows(payload->subuv_rows());
+            cpuParticle->setSubUvCols(payload->subuv_cols());
+            cpuParticle->setSubUvFps(payload->subuv_fps());
+            return;
+        }
         case scene::ComponentPayload_UITextComponentData:
         {
             auto* text = dynamic_cast<UITextComponent*>(component);
@@ -962,7 +1033,17 @@ namespace SerializationCommon
                 image->setTintColor(Vector4(tintColor->x(), tintColor->y(), tintColor->z(), tintColor->w()));
             }
 
-            image->setAlpha(payload->alpha());
+            // 古いシーンデータでは alpha フィールド未保存の可能性があるため、
+            // 未指定時は既定の 1.0f を維持して不可視化を防ぐ。
+            const auto* imageTable = reinterpret_cast<const flatbuffers::Table*>(payload);
+            if (imageTable && imageTable->GetOptionalFieldOffset(scene::UIImageComponentData::VT_ALPHA) != 0)
+            {
+                image->setAlpha(payload->alpha());
+            }
+            else
+            {
+                image->setAlpha(1.0f);
+            }
             return;
         }
         default:

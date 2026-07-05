@@ -168,12 +168,13 @@ VSOut VS(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
 
         if (flipbookFps > 0.0f)
         {
-            currentFrame = uint(p.age * flipbookFps) % totalFrames;
+            currentFrame = uint(p.age * flipbookFps + p.subUvStartFrame) % totalFrames;
         }
         else
         {
-            currentFrame = uint(t * float(totalFrames));
-            if (currentFrame >= totalFrames) currentFrame = totalFrames - 1;
+            uint baseFrame = uint(t * float(totalFrames - 1));
+            uint frameOffset = uint(p.subUvStartFrame);
+            currentFrame = (baseFrame + frameOffset) % totalFrames;
         }
 
         float2 frameSize = float2(1.0f / float(flipbookCols), 1.0f / float(flipbookRows));

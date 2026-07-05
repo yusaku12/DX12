@@ -57,6 +57,9 @@ struct SkyboxComponentDataBuilder;
 struct GpuEffectComponentData;
 struct GpuEffectComponentDataBuilder;
 
+struct CpuParticleComponentData;
+struct CpuParticleComponentDataBuilder;
+
 struct AnimationComponentData;
 struct AnimationComponentDataBuilder;
 
@@ -103,11 +106,12 @@ enum ComponentPayload : uint8_t {
   ComponentPayload_UITextComponentData = 15,
   ComponentPayload_UIButtonComponentData = 16,
   ComponentPayload_UIImageComponentData = 17,
+  ComponentPayload_CpuParticleComponentData = 18,
   ComponentPayload_MIN = ComponentPayload_NONE,
-  ComponentPayload_MAX = ComponentPayload_UIImageComponentData
+  ComponentPayload_MAX = ComponentPayload_CpuParticleComponentData
 };
 
-inline const ComponentPayload (&EnumValuesComponentPayload())[18] {
+inline const ComponentPayload (&EnumValuesComponentPayload())[19] {
   static const ComponentPayload values[] = {
     ComponentPayload_NONE,
     ComponentPayload_TransformComponentData,
@@ -126,13 +130,14 @@ inline const ComponentPayload (&EnumValuesComponentPayload())[18] {
     ComponentPayload_BehaviorTreeComponentData,
     ComponentPayload_UITextComponentData,
     ComponentPayload_UIButtonComponentData,
-    ComponentPayload_UIImageComponentData
+    ComponentPayload_UIImageComponentData,
+    ComponentPayload_CpuParticleComponentData
   };
   return values;
 }
 
 inline const char * const *EnumNamesComponentPayload() {
-  static const char * const names[19] = {
+  static const char * const names[20] = {
     "NONE",
     "TransformComponentData",
     "RectTransformComponentData",
@@ -151,13 +156,14 @@ inline const char * const *EnumNamesComponentPayload() {
     "UITextComponentData",
     "UIButtonComponentData",
     "UIImageComponentData",
+    "CpuParticleComponentData",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameComponentPayload(ComponentPayload e) {
-  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_UIImageComponentData)) return "";
+  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_CpuParticleComponentData)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesComponentPayload()[index];
 }
@@ -232,6 +238,10 @@ template<> struct ComponentPayloadTraits<scene::UIButtonComponentData> {
 
 template<> struct ComponentPayloadTraits<scene::UIImageComponentData> {
   static const ComponentPayload enum_value = ComponentPayload_UIImageComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::CpuParticleComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_CpuParticleComponentData;
 };
 
 template <bool B = false>
@@ -1321,6 +1331,168 @@ inline ::flatbuffers::Offset<GpuEffectComponentData> CreateGpuEffectComponentDat
       max_particles);
 }
 
+struct CpuParticleComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef CpuParticleComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_TEXTURE_PATH = 4,
+    VT_MAX_PARTICLES = 6,
+    VT_EMITTER_TYPE = 8,
+    VT_EMIT_RATE = 10,
+    VT_EMIT_RADIUS = 12,
+    VT_MESH_SOURCE_OBJECT_NAME = 14,
+    VT_COLLISION_MODE = 16,
+    VT_SUBUV_ROWS = 18,
+    VT_SUBUV_COLS = 20,
+    VT_SUBUV_FPS = 22
+  };
+  const ::flatbuffers::String *texture_path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_TEXTURE_PATH);
+  }
+  uint32_t max_particles() const {
+    return GetField<uint32_t>(VT_MAX_PARTICLES, 0);
+  }
+  uint32_t emitter_type() const {
+    return GetField<uint32_t>(VT_EMITTER_TYPE, 0);
+  }
+  float emit_rate() const {
+    return GetField<float>(VT_EMIT_RATE, 0.0f);
+  }
+  float emit_radius() const {
+    return GetField<float>(VT_EMIT_RADIUS, 0.0f);
+  }
+  const ::flatbuffers::String *mesh_source_object_name() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_MESH_SOURCE_OBJECT_NAME);
+  }
+  uint32_t collision_mode() const {
+    return GetField<uint32_t>(VT_COLLISION_MODE, 0);
+  }
+  uint32_t subuv_rows() const {
+    return GetField<uint32_t>(VT_SUBUV_ROWS, 0);
+  }
+  uint32_t subuv_cols() const {
+    return GetField<uint32_t>(VT_SUBUV_COLS, 0);
+  }
+  float subuv_fps() const {
+    return GetField<float>(VT_SUBUV_FPS, 0.0f);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_TEXTURE_PATH) &&
+           verifier.VerifyString(texture_path()) &&
+           VerifyField<uint32_t>(verifier, VT_MAX_PARTICLES, 4) &&
+           VerifyField<uint32_t>(verifier, VT_EMITTER_TYPE, 4) &&
+           VerifyField<float>(verifier, VT_EMIT_RATE, 4) &&
+           VerifyField<float>(verifier, VT_EMIT_RADIUS, 4) &&
+           VerifyOffset(verifier, VT_MESH_SOURCE_OBJECT_NAME) &&
+           verifier.VerifyString(mesh_source_object_name()) &&
+           VerifyField<uint32_t>(verifier, VT_COLLISION_MODE, 4) &&
+           VerifyField<uint32_t>(verifier, VT_SUBUV_ROWS, 4) &&
+           VerifyField<uint32_t>(verifier, VT_SUBUV_COLS, 4) &&
+           VerifyField<float>(verifier, VT_SUBUV_FPS, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct CpuParticleComponentDataBuilder {
+  typedef CpuParticleComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_texture_path(::flatbuffers::Offset<::flatbuffers::String> texture_path) {
+    fbb_.AddOffset(CpuParticleComponentData::VT_TEXTURE_PATH, texture_path);
+  }
+  void add_max_particles(uint32_t max_particles) {
+    fbb_.AddElement<uint32_t>(CpuParticleComponentData::VT_MAX_PARTICLES, max_particles, 0);
+  }
+  void add_emitter_type(uint32_t emitter_type) {
+    fbb_.AddElement<uint32_t>(CpuParticleComponentData::VT_EMITTER_TYPE, emitter_type, 0);
+  }
+  void add_emit_rate(float emit_rate) {
+    fbb_.AddElement<float>(CpuParticleComponentData::VT_EMIT_RATE, emit_rate, 0.0f);
+  }
+  void add_emit_radius(float emit_radius) {
+    fbb_.AddElement<float>(CpuParticleComponentData::VT_EMIT_RADIUS, emit_radius, 0.0f);
+  }
+  void add_mesh_source_object_name(::flatbuffers::Offset<::flatbuffers::String> mesh_source_object_name) {
+    fbb_.AddOffset(CpuParticleComponentData::VT_MESH_SOURCE_OBJECT_NAME, mesh_source_object_name);
+  }
+  void add_collision_mode(uint32_t collision_mode) {
+    fbb_.AddElement<uint32_t>(CpuParticleComponentData::VT_COLLISION_MODE, collision_mode, 0);
+  }
+  void add_subuv_rows(uint32_t subuv_rows) {
+    fbb_.AddElement<uint32_t>(CpuParticleComponentData::VT_SUBUV_ROWS, subuv_rows, 0);
+  }
+  void add_subuv_cols(uint32_t subuv_cols) {
+    fbb_.AddElement<uint32_t>(CpuParticleComponentData::VT_SUBUV_COLS, subuv_cols, 0);
+  }
+  void add_subuv_fps(float subuv_fps) {
+    fbb_.AddElement<float>(CpuParticleComponentData::VT_SUBUV_FPS, subuv_fps, 0.0f);
+  }
+  explicit CpuParticleComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<CpuParticleComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<CpuParticleComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<CpuParticleComponentData> CreateCpuParticleComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> texture_path = 0,
+    uint32_t max_particles = 0,
+    uint32_t emitter_type = 0,
+    float emit_rate = 0.0f,
+    float emit_radius = 0.0f,
+    ::flatbuffers::Offset<::flatbuffers::String> mesh_source_object_name = 0,
+    uint32_t collision_mode = 0,
+    uint32_t subuv_rows = 0,
+    uint32_t subuv_cols = 0,
+    float subuv_fps = 0.0f) {
+  CpuParticleComponentDataBuilder builder_(_fbb);
+  builder_.add_subuv_fps(subuv_fps);
+  builder_.add_subuv_cols(subuv_cols);
+  builder_.add_subuv_rows(subuv_rows);
+  builder_.add_collision_mode(collision_mode);
+  builder_.add_mesh_source_object_name(mesh_source_object_name);
+  builder_.add_emit_radius(emit_radius);
+  builder_.add_emit_rate(emit_rate);
+  builder_.add_emitter_type(emitter_type);
+  builder_.add_max_particles(max_particles);
+  builder_.add_texture_path(texture_path);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<CpuParticleComponentData> CreateCpuParticleComponentDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *texture_path = nullptr,
+    uint32_t max_particles = 0,
+    uint32_t emitter_type = 0,
+    float emit_rate = 0.0f,
+    float emit_radius = 0.0f,
+    const char *mesh_source_object_name = nullptr,
+    uint32_t collision_mode = 0,
+    uint32_t subuv_rows = 0,
+    uint32_t subuv_cols = 0,
+    float subuv_fps = 0.0f) {
+  auto texture_path__ = texture_path ? _fbb.CreateString(texture_path) : 0;
+  auto mesh_source_object_name__ = mesh_source_object_name ? _fbb.CreateString(mesh_source_object_name) : 0;
+  return scene::CreateCpuParticleComponentData(
+      _fbb,
+      texture_path__,
+      max_particles,
+      emitter_type,
+      emit_rate,
+      emit_radius,
+      mesh_source_object_name__,
+      collision_mode,
+      subuv_rows,
+      subuv_cols,
+      subuv_fps);
+}
+
 struct AnimationComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef AnimationComponentDataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -1947,6 +2119,9 @@ struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   const scene::UIImageComponentData *payload_as_UIImageComponentData() const {
     return payload_type() == scene::ComponentPayload_UIImageComponentData ? static_cast<const scene::UIImageComponentData *>(payload()) : nullptr;
   }
+  const scene::CpuParticleComponentData *payload_as_CpuParticleComponentData() const {
+    return payload_type() == scene::ComponentPayload_CpuParticleComponentData ? static_cast<const scene::CpuParticleComponentData *>(payload()) : nullptr;
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -2026,6 +2201,10 @@ template<> inline const scene::UIButtonComponentData *SerializedComponent::paylo
 
 template<> inline const scene::UIImageComponentData *SerializedComponent::payload_as<scene::UIImageComponentData>() const {
   return payload_as_UIImageComponentData();
+}
+
+template<> inline const scene::CpuParticleComponentData *SerializedComponent::payload_as<scene::CpuParticleComponentData>() const {
+  return payload_as_CpuParticleComponentData();
 }
 
 struct SerializedComponentBuilder {
@@ -2352,6 +2531,10 @@ inline bool VerifyComponentPayload(::flatbuffers::VerifierTemplate<B> &verifier,
     }
     case ComponentPayload_UIImageComponentData: {
       auto ptr = reinterpret_cast<const scene::UIImageComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_CpuParticleComponentData: {
+      auto ptr = reinterpret_cast<const scene::CpuParticleComponentData *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;

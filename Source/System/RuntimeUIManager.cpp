@@ -445,13 +445,6 @@ void RuntimeUIManager::drawNativeRecursive(GameObject* object,
     float cx, cy, cw, ch;
     resolveNativeRect(object, parentX, parentY, parentW, parentH, cx, cy, cw, ch);
 
-    // Debug: オブジェクト処理ログ
-    if (object->getComponent<UIImageComponent>())
-    {
-        LOG_INFO("[UI DEBUG] drawNativeRecursive: object=%s, parent=(%.0f,%.0f,%.0f,%.0f) -> resolved=(%.0f,%.0f,%.0f,%.0f)",
-                 object->getName().c_str(), parentX, parentY, parentW, parentH, cx, cy, cw, ch);
-    }
-
     // ── UIPanelComponent ─────────────────────────────
     if (auto* panel = object->getComponent<UIPanelComponent>())
     {
@@ -475,26 +468,15 @@ void RuntimeUIManager::drawNativeRecursive(GameObject* object,
     // ── UIImageComponent ─────────────────────────────
     if (auto* img = object->getComponent<UIImageComponent>())
     {
-        // RectTransformComponent がなければ警告を出す（これが既存シーンの問題原因）
-        if (!object->getComponent<RectTransformComponent>())
-        {
-            LOG_WARN("[UI DEBUG] UIImageComponent on '%s' is missing RectTransformComponent! Image will render at parent size.", 
-                     object->getName().c_str());
-        }
-
         const UINT srv = img->getSrvIndex();
-        LOG_INFO("[UI DEBUG] UIImageComponent found: path=%ls, srv=%u, alpha=%.2f, rect=%.0f,%.0f,%.0f,%.0f",
-                 img->getTexturePath().c_str(), srv, img->getAlpha(), cx, cy, cw, ch);
-        
+
         if (srv != UINT_MAX)
         {
-            LOG_INFO("[UI DEBUG] Drawing textured rect (srv=%u)", srv);
             UIRenderer::Instance().drawTexturedRect(cx, cy, cw, ch,
                 srv, img->getTintColor(), nullptr, img->getAlpha());
         }
         else
         {
-            LOG_WARN("[UI DEBUG] Texture SRV is UINT_MAX - drawing white rect instead");
             // テクスチャ未設定 → ホワイト矩形
             UIRenderer::Instance().drawRect(cx, cy, cw, ch,
                 img->getTintColor(), nullptr, img->getAlpha());

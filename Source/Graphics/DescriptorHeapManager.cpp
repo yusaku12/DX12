@@ -53,7 +53,11 @@ UINT DescriptorHeapManager::createSRV(ID3D12Resource* resource, const D3D12_SHAD
     if (!device || !resource) return InvalidIndex;
 
     UINT index = allocateRange();
-    if (index == InvalidIndex) return InvalidIndex;
+    if (index == InvalidIndex)
+    {
+        LOG_ERROR("DescriptorHeapManager::createSRV failed: descriptor heap exhausted (max=%u)", m_maxCount);
+        return InvalidIndex;
+    }
 
     // getCPUHandle が staging 側を返すため、自動的に非表示ヒープに作成されます
     D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
@@ -71,7 +75,11 @@ UINT DescriptorHeapManager::createCBV(const D3D12_CONSTANT_BUFFER_VIEW_DESC& des
     if (!device) return InvalidIndex;
 
     UINT index = allocateRange();
-    if (index == InvalidIndex) return InvalidIndex;
+    if (index == InvalidIndex)
+    {
+        LOG_ERROR("DescriptorHeapManager::createCBV failed: descriptor heap exhausted (max=%u)", m_maxCount);
+        return InvalidIndex;
+    }
 
     // getCPUHandle が staging 側を返す
     D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
@@ -89,7 +97,11 @@ UINT DescriptorHeapManager::createUAV(ID3D12Resource* resource, ID3D12Resource* 
     if (!device || !resource) return InvalidIndex;
 
     UINT index = allocateRange();
-    if (index == InvalidIndex) return InvalidIndex;
+    if (index == InvalidIndex)
+    {
+        LOG_ERROR("DescriptorHeapManager::createUAV failed: descriptor heap exhausted (max=%u)", m_maxCount);
+        return InvalidIndex;
+    }
 
     // getCPUHandle が staging 側を返す
     D3D12_CPU_DESCRIPTOR_HANDLE stagingHandle = getCPUHandle(index);
