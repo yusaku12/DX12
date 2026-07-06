@@ -17,6 +17,13 @@ ModelResource::~ModelResource()
     }
 }
 
+std::shared_ptr<ModelResource> ModelResource::createFromModelData(Model modelData)
+{
+    std::shared_ptr<ModelResource> resource = std::make_shared<ModelResource>();
+    resource->m_model = std::move(modelData);
+    return resource;
+}
+
 void ModelResource::createTextures()
 {
     m_textures.clear();

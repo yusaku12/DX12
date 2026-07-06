@@ -2,6 +2,11 @@
 
 class IRenderComponent;
 
+#include <functional>
+#include <unordered_map>
+#include <vector>
+#include <wrl/client.h>
+
 //=====================================================
 // RenderManager
 // - IRenderComponent の登録・解除
@@ -75,9 +80,16 @@ public:
     void setAutoHlodEnabled(bool enabled) { m_enableAutoHlod = enabled; }
     bool isAutoHlodEnabled() const { return m_enableAutoHlod; }
 
+    //! GPU Occlusion Query 設定
+    void setGpuOcclusionEnabled(bool enabled) { m_enableGpuOcclusion = enabled; }
+    bool isGpuOcclusionEnabled() const { return m_enableGpuOcclusion; }
+
     //! HLOD切替距離
     void setHlodSwitchDistance(float distance) { m_hlodSwitchDistance = std::max(distance, 0.0f); }
     float getHlodSwitchDistance() const { return m_hlodSwitchDistance; }
+
+    //! フレーム開始通知（Occlusionフィードバック更新の準備）
+    void notifyFrameStart() { m_occlusionFramePrepared = false; }
 
     //! マルチスレッド計測情報（デバッグ用）
     struct ThreadTimingInfo
@@ -138,8 +150,36 @@ private:
     //! 自動LODを各コンポーネントへ反映
     void applyAutoLod(const std::vector<IRenderComponent*>& comps);
 
+    //! フレーム開始時の GPU Occlusion Query フィードバック更新
+    void beginOcclusionFrame();
+
+    //! Occlusion 判定で描画をスキップしてよいか
+    bool isOcclusionVisible(IRenderComponent* comp) const;
+
+    //! Occlusion Query の発行可否
+    bool shouldIssueOcclusionQuery(IRenderComponent* comp) const;
+
+    //! Occlusion Query を発行して描画関数を実行
+    void executeWithOcclusionQuery(ID3D12GraphicsCommandList* cmd, IRenderComponent* comp, const std::function<void()>& drawFn);
+
+    //! Occlusion Query リソースを必要数に拡張
+    void ensureOcclusionCapacity(UINT requiredCount);
+
+    //! Query インデックスを確保
+    bool allocateOcclusionQueryIndex(IRenderComponent* comp, UINT& outIndex);
+
+    struct OcclusionQueryState
+    {
+        Microsoft::WRL::ComPtr<ID3D12QueryHeap> queryHeap;
+        Microsoft::WRL::ComPtr<ID3D12Resource> readbackBuffer;
+        UINT capacity = 0;
+        UINT used = 0;
+        std::vector<IRenderComponent*> indexToComponent;
+    };
+
     std::vector<IRenderComponent*> m_components;
     std::mutex m_mutex;
+    mutable std::mutex m_occlusionMutex;
 
     //! 計測情報
     std::vector<ThreadTimingInfo> m_timings;
@@ -151,11 +191,18 @@ private:
     bool m_enableFrustumCulling = true;
     bool m_enableAutoLod = true;
     bool m_enableAutoHlod = true;
+    bool m_enableGpuOcclusion = true;
     float m_hlodSwitchDistance = 60.0f;
+    bool m_occlusionFramePrepared = false;
+
+    OcclusionQueryState m_occlusionState;
+    std::unordered_map<IRenderComponent*, bool> m_occlusionVisibleByComponent;
 
     size_t m_lastSubmittedCount = 0;
     size_t m_lastVisibleCount = 0;
     size_t m_lastFrustumCulledCount = 0;
+    size_t m_lastOcclusionCulledCount = 0;
+    size_t m_lastOcclusionQueryCount = 0;
     size_t m_lastHlodMergedCount = 0;
     size_t m_lastLodAdjustedCount = 0;
 };

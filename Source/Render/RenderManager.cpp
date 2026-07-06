@@ -11,6 +11,11 @@
 
 namespace
 {
+    constexpr UINT kMinOcclusionQueryCapacity = 1024;
+}
+
+namespace
+{
     DirectX::BoundingFrustum buildWorldFrustum(const CameraComponent* camera)
     {
         DirectX::BoundingFrustum localFrustum;
@@ -105,6 +110,209 @@ std::vector<IRenderComponent*> RenderManager::copyComponents()
     return m_components;
 }
 
+void RenderManager::ensureOcclusionCapacity(UINT requiredCount)
+{
+    if (requiredCount == 0)
+    {
+        requiredCount = kMinOcclusionQueryCapacity;
+    }
+
+    requiredCount = std::max(requiredCount, kMinOcclusionQueryCapacity);
+
+    if (m_occlusionState.capacity >= requiredCount && m_occlusionState.queryHeap && m_occlusionState.readbackBuffer)
+    {
+        return;
+    }
+
+    ID3D12Device* device = DX12::Instance().getDevice();
+    if (!device)
+    {
+        return;
+    }
+
+    D3D12_QUERY_HEAP_DESC heapDesc{};
+    heapDesc.Count = requiredCount;
+    heapDesc.NodeMask = 0;
+    heapDesc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+
+    Microsoft::WRL::ComPtr<ID3D12QueryHeap> queryHeap;
+    HRESULT hr = device->CreateQueryHeap(&heapDesc, IID_PPV_ARGS(queryHeap.GetAddressOf()));
+    if (FAILED(hr))
+    {
+        LOG_HR(hr, "[RenderManager] Failed to create occlusion query heap");
+        return;
+    }
+
+    D3D12_RESOURCE_DESC readbackDesc = CD3DX12_RESOURCE_DESC::Buffer(static_cast<UINT64>(requiredCount) * sizeof(UINT64));
+    CD3DX12_HEAP_PROPERTIES readbackHeap(D3D12_HEAP_TYPE_READBACK);
+
+    Microsoft::WRL::ComPtr<ID3D12Resource> readback;
+    hr = device->CreateCommittedResource(
+        &readbackHeap,
+        D3D12_HEAP_FLAG_NONE,
+        &readbackDesc,
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(readback.GetAddressOf()));
+    if (FAILED(hr))
+    {
+        LOG_HR(hr, "[RenderManager] Failed to create occlusion readback buffer");
+        return;
+    }
+
+    m_occlusionState.queryHeap = std::move(queryHeap);
+    m_occlusionState.readbackBuffer = std::move(readback);
+    m_occlusionState.capacity = requiredCount;
+    m_occlusionState.used = 0;
+    m_occlusionState.indexToComponent.assign(requiredCount, nullptr);
+}
+
+void RenderManager::beginOcclusionFrame()
+{
+    if (!m_enableGpuOcclusion)
+    {
+        m_occlusionFramePrepared = true;
+        m_lastOcclusionQueryCount = 0;
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(m_occlusionMutex);
+
+    ensureOcclusionCapacity(static_cast<UINT>(std::max<size_t>(m_components.size() * 3, kMinOcclusionQueryCapacity)));
+    if (!m_occlusionState.readbackBuffer)
+    {
+        m_occlusionFramePrepared = true;
+        return;
+    }
+
+    if (m_occlusionState.used > 0)
+    {
+        void* mapped = nullptr;
+        D3D12_RANGE readRange{};
+        readRange.Begin = 0;
+        readRange.End = static_cast<SIZE_T>(m_occlusionState.used) * sizeof(UINT64);
+        HRESULT hr = m_occlusionState.readbackBuffer->Map(0, &readRange, &mapped);
+        if (SUCCEEDED(hr) && mapped)
+        {
+            const UINT64* samples = static_cast<const UINT64*>(mapped);
+            for (UINT i = 0; i < m_occlusionState.used; ++i)
+            {
+                IRenderComponent* comp = m_occlusionState.indexToComponent[i];
+                if (!comp)
+                {
+                    continue;
+                }
+
+                m_occlusionVisibleByComponent[comp] = (samples[i] > 0);
+            }
+
+            D3D12_RANGE writeRange{};
+            writeRange.Begin = 0;
+            writeRange.End = 0;
+            m_occlusionState.readbackBuffer->Unmap(0, &writeRange);
+        }
+        else
+        {
+            LOG_HR(hr, "[RenderManager] Failed to map occlusion readback buffer");
+        }
+    }
+
+    m_lastOcclusionQueryCount = m_occlusionState.used;
+    m_occlusionState.used = 0;
+    std::fill(m_occlusionState.indexToComponent.begin(), m_occlusionState.indexToComponent.end(), nullptr);
+    m_occlusionFramePrepared = true;
+}
+
+bool RenderManager::allocateOcclusionQueryIndex(IRenderComponent* comp, UINT& outIndex)
+{
+    outIndex = UINT_MAX;
+    if (!comp)
+    {
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(m_occlusionMutex);
+    if (!m_enableGpuOcclusion || !m_occlusionState.queryHeap || !m_occlusionState.readbackBuffer)
+    {
+        return false;
+    }
+
+    if (m_occlusionState.used >= m_occlusionState.capacity)
+    {
+        return false;
+    }
+
+    outIndex = m_occlusionState.used++;
+    m_occlusionState.indexToComponent[outIndex] = comp;
+    return true;
+}
+
+bool RenderManager::shouldIssueOcclusionQuery(IRenderComponent* comp) const
+{
+    if (!m_enableGpuOcclusion || !comp)
+    {
+        return false;
+    }
+
+    Vector3 center{};
+    Vector3 extents{};
+    if (!comp->getWorldAABB(center, extents))
+    {
+        return false;
+    }
+
+    constexpr float kMinExtent = 0.005f;
+    return extents.x > kMinExtent || extents.y > kMinExtent || extents.z > kMinExtent;
+}
+
+void RenderManager::executeWithOcclusionQuery(ID3D12GraphicsCommandList* cmd, IRenderComponent* comp, const std::function<void()>& drawFn)
+{
+    if (!drawFn)
+    {
+        return;
+    }
+
+    if (!cmd || !shouldIssueOcclusionQuery(comp))
+    {
+        drawFn();
+        return;
+    }
+
+    UINT queryIndex = UINT_MAX;
+    if (!allocateOcclusionQueryIndex(comp, queryIndex))
+    {
+        drawFn();
+        return;
+    }
+
+    cmd->BeginQuery(m_occlusionState.queryHeap.Get(), D3D12_QUERY_TYPE_BINARY_OCCLUSION, queryIndex);
+    drawFn();
+    cmd->EndQuery(m_occlusionState.queryHeap.Get(), D3D12_QUERY_TYPE_BINARY_OCCLUSION, queryIndex);
+    cmd->ResolveQueryData(
+        m_occlusionState.queryHeap.Get(),
+        D3D12_QUERY_TYPE_BINARY_OCCLUSION,
+        queryIndex,
+        1,
+        m_occlusionState.readbackBuffer.Get(),
+        static_cast<UINT64>(queryIndex) * sizeof(UINT64));
+}
+
+bool RenderManager::isOcclusionVisible(IRenderComponent* comp) const
+{
+    if (!m_enableGpuOcclusion || !comp)
+    {
+        return true;
+    }
+
+    auto it = m_occlusionVisibleByComponent.find(comp);
+    if (it == m_occlusionVisibleByComponent.end())
+    {
+        return true;
+    }
+
+    return it->second;
+}
+
 std::vector<IRenderComponent*> RenderManager::collectVisibleComponents(const std::vector<IRenderComponent*>& comps)
 {
     m_lastSubmittedCount = comps.size();
@@ -168,16 +376,46 @@ std::vector<IRenderComponent*> RenderManager::collectVisibleComponents(const std
         visible.push_back(comp);
     }
 
+    size_t occlusionCulled = 0;
+    if (m_enableGpuOcclusion)
+    {
+        std::vector<IRenderComponent*> occlusionVisible;
+        occlusionVisible.reserve(visible.size());
+
+        for (IRenderComponent* comp : visible)
+        {
+            if (!comp)
+            {
+                continue;
+            }
+
+            if (!shouldIssueOcclusionQuery(comp) || isOcclusionVisible(comp))
+            {
+                occlusionVisible.push_back(comp);
+                continue;
+            }
+
+            ++occlusionCulled;
+        }
+
+        if (!occlusionVisible.empty())
+        {
+            visible = std::move(occlusionVisible);
+        }
+    }
+
     // カメラ/境界の一時的不整合で全落ちするのを防ぐフェイルセーフ
     if (visible.empty() && !comps.empty())
     {
         m_lastVisibleCount = comps.size();
         m_lastFrustumCulledCount = 0;
+        m_lastOcclusionCulledCount = 0;
         return comps;
     }
 
     m_lastVisibleCount = visible.size();
     m_lastFrustumCulledCount = culled;
+    m_lastOcclusionCulledCount = occlusionCulled;
     return visible;
 }
 
@@ -227,6 +465,15 @@ void RenderManager::shutdown()
         m_timings.clear();
         m_totalMs = 0.0f;
         m_singleEstimateMs = 0.0f;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_occlusionMutex);
+        m_occlusionState = {};
+        m_occlusionVisibleByComponent.clear();
+        m_occlusionFramePrepared = false;
+        m_lastOcclusionCulledCount = 0;
+        m_lastOcclusionQueryCount = 0;
     }
 }
 
@@ -288,6 +535,11 @@ void RenderManager::executeRender(RenderPassKind kind, IRenderComponent* comp, I
 
 void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
 {
+    if (!m_occlusionFramePrepared)
+    {
+        beginOcclusionFrame();
+    }
+
     auto comps = collectVisibleComponents(copyComponents());
     if (comps.empty()) return;
 
@@ -296,27 +548,38 @@ void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
 
     applyAutoLod(comps);
 
+    auto* cmd = DX12::Instance().getGraphicsCommandList();
+    if (!cmd) return;
+
     if (kind == RenderPassKind::Default)
     {
         for (auto* comp : comps)
         {
-            comp->render();
+            executeWithOcclusionQuery(cmd, comp, [this, kind, comp, cmd]()
+                {
+                    executeRender(kind, comp, cmd);
+                });
         }
         return;
     }
 
-    auto* cmd = DX12::Instance().getGraphicsCommandList();
-    if (!cmd) return;
-
     for (auto* comp : comps)
     {
-        executeRender(kind, comp, cmd);
+        executeWithOcclusionQuery(cmd, comp, [this, kind, comp, cmd]()
+            {
+                executeRender(kind, comp, cmd);
+            });
     }
 }
 
 void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
 {
     using Clock = std::chrono::high_resolution_clock;
+
+    if (!m_occlusionFramePrepared)
+    {
+        beginOcclusionFrame();
+    }
 
     auto comps = collectVisibleComponents(copyComponents());
     if (comps.empty()) return;
@@ -338,23 +601,18 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
     if (activeComps.size() == 1)
     {
         auto start = Clock::now();
+        auto* cmd = DX12::Instance().getGraphicsCommandList();
+        if (!cmd) return;
 
-        if (kind == RenderPassKind::Default)
+        if (kind == RenderPassKind::Forward)
         {
-            activeComps[0]->render();
+            setupCommandList(kind, cmd);
         }
-        else
-        {
-            auto* cmd = DX12::Instance().getGraphicsCommandList();
-            if (cmd)
+
+        executeWithOcclusionQuery(cmd, activeComps[0], [this, kind, cmd, &activeComps]()
             {
-                if (kind == RenderPassKind::Forward)
-                {
-                    setupCommandList(kind, cmd);
-                }
                 executeRender(kind, activeComps[0], cmd);
-            }
-        }
+            });
 
         auto end = Clock::now();
         recordSingleThreadTiming(activeComps[0]->getName(), std::chrono::duration<float, std::milli>(end - start).count());
@@ -380,7 +638,10 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
                 using Clock = std::chrono::high_resolution_clock;
                 auto start = Clock::now();
 
-                executeRender(kind, comp, cmd);
+                executeWithOcclusionQuery(cmd, comp, [this, kind, comp, cmd]()
+                    {
+                        executeRender(kind, comp, cmd);
+                    });
 
                 auto end = Clock::now();
                 float startMs = std::chrono::duration<float, std::milli>(start - frameStart).count();
@@ -548,12 +809,31 @@ void RenderManager::registerComponent(IRenderComponent* comp)
 
 void RenderManager::unregisterComponent(IRenderComponent* comp)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    auto it = std::find(m_components.begin(), m_components.end(), comp);
-    if (it != m_components.end())
     {
-        m_components.erase(it);
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        auto it = std::find(m_components.begin(), m_components.end(), comp);
+        if (it != m_components.end())
+        {
+            m_components.erase(it);
+        }
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_occlusionMutex);
+        m_occlusionVisibleByComponent.erase(comp);
+        for (IRenderComponent*& mapped : m_occlusionState.indexToComponent)
+        {
+            if (mapped == comp)
+            {
+                mapped = nullptr;
+            }
+        }
+    }
+
+    if (comp)
+    {
+        m_lastOcclusionCulledCount = 0;
     }
 }
 
@@ -624,6 +904,10 @@ void RenderManager::debugImgui()
 
 void RenderManager::renderDebugContents()
 {
+    if (!m_occlusionFramePrepared)
+    {
+        beginOcclusionFrame();
+    }
 
     size_t componentCount = 0;
     {
@@ -636,11 +920,14 @@ void RenderManager::renderDebugContents()
     ImGui::Checkbox("Frustum Culling", &m_enableFrustumCulling);
     ImGui::Checkbox("Auto LOD", &m_enableAutoLod);
     ImGui::Checkbox("Auto HLOD", &m_enableAutoHlod);
+    ImGui::Checkbox("GPU Occlusion Query", &m_enableGpuOcclusion);
     ImGui::DragFloat("HLOD Switch Distance", &m_hlodSwitchDistance, 0.5f, 0.0f, 5000.0f);
 
     ImGui::Text("Submitted: %zu", m_lastSubmittedCount);
     ImGui::Text("Visible: %zu", m_lastVisibleCount);
     ImGui::Text("Frustum Culled: %zu", m_lastFrustumCulledCount);
+    ImGui::Text("Occlusion Culled: %zu", m_lastOcclusionCulledCount);
+    ImGui::Text("Occlusion Queries: %zu", m_lastOcclusionQueryCount);
     ImGui::Text("HLOD Skipped: %zu", m_lastHlodMergedCount);
     ImGui::Text("LOD Adjusted: %zu", m_lastLodAdjustedCount);
 

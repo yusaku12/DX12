@@ -29,6 +29,12 @@ FbxRenderComponent::FbxRenderComponent(const std::string& fbxPath)
     // _LOD1, _LOD2 ... を自動探索
     loadAutoLodAssets();
 
+    // 追加LODが見つからない場合はランタイム生成で補完
+    if (m_lods.empty())
+    {
+        generateAutoLodAssets();
+    }
+
     // GPUリソース構築
     buildGPUResources();
 
@@ -304,6 +310,263 @@ void FbxRenderComponent::loadAutoLodAssets()
         m_lods.push_back(std::move(entry));
 
         LOG_INFO("[FbxRenderComponent] Loaded LOD%d: %s", lod, lodPathStr.c_str());
+    }
+}
+
+void FbxRenderComponent::rebuildMeshBounds(ModelResource::Mesh& mesh)
+{
+    if (mesh.vertices.empty())
+    {
+        mesh.boundsMin = { 0.0f, 0.0f, 0.0f };
+        mesh.boundsMax = { 0.0f, 0.0f, 0.0f };
+        return;
+    }
+
+    Vector3 minV(std::numeric_limits<float>::max());
+    Vector3 maxV(std::numeric_limits<float>::lowest());
+    for (const auto& v : mesh.vertices)
+    {
+        minV = Vector3::Min(minV, v.position);
+        maxV = Vector3::Max(maxV, v.position);
+    }
+
+    mesh.boundsMin = { minV.x, minV.y, minV.z };
+    mesh.boundsMax = { maxV.x, maxV.y, maxV.z };
+}
+
+bool FbxRenderComponent::buildReducedLodModel(const ModelResource::Model& src, float triangleRatio, bool mergeByMaterial, ModelResource::Model& out)
+{
+    if (triangleRatio <= 0.0f || src.meshes.empty())
+    {
+        return false;
+    }
+
+    out = src;
+    out.meshes.clear();
+    out.meshes.reserve(src.meshes.size());
+
+    auto reduceSubMeshIndices = [triangleRatio](const std::vector<uint32_t>& srcIndices, const ModelResource::SubMesh& subMesh, std::vector<uint32_t>& outIndices)
+        {
+            const uint32_t triCount = subMesh.indexCount / 3;
+            if (triCount == 0)
+            {
+                return;
+            }
+
+            uint32_t keepTri = static_cast<uint32_t>(std::floor(static_cast<float>(triCount) * triangleRatio));
+            keepTri = std::max<uint32_t>(1, std::min<uint32_t>(triCount, keepTri));
+
+            outIndices.reserve(outIndices.size() + static_cast<size_t>(keepTri) * 3);
+
+            uint32_t emitted = 0;
+            for (uint32_t t = 0; t < triCount && emitted < keepTri; ++t)
+            {
+                const uint32_t a = (t * keepTri) / triCount;
+                const uint32_t b = ((t + 1) * keepTri) / triCount;
+                if (a == b)
+                {
+                    continue;
+                }
+
+                const size_t base = static_cast<size_t>(subMesh.startIndex) + static_cast<size_t>(t) * 3;
+                if (base + 2 >= srcIndices.size())
+                {
+                    break;
+                }
+
+                outIndices.push_back(srcIndices[base + 0]);
+                outIndices.push_back(srcIndices[base + 1]);
+                outIndices.push_back(srcIndices[base + 2]);
+                ++emitted;
+            }
+
+            // 比率計算で取りこぼした場合の保険
+            for (uint32_t t = 0; t < triCount && emitted < keepTri; ++t)
+            {
+                const size_t base = static_cast<size_t>(subMesh.startIndex) + static_cast<size_t>(t) * 3;
+                if (base + 2 >= srcIndices.size())
+                {
+                    break;
+                }
+
+                outIndices.push_back(srcIndices[base + 0]);
+                outIndices.push_back(srcIndices[base + 1]);
+                outIndices.push_back(srcIndices[base + 2]);
+                ++emitted;
+            }
+        };
+
+    for (const auto& srcMesh : src.meshes)
+    {
+        if (srcMesh.indices.size() < 3 || srcMesh.subMeshes.empty())
+        {
+            out.meshes.push_back(srcMesh);
+            continue;
+        }
+
+        ModelResource::Mesh reduced = srcMesh;
+        reduced.vertices.clear();
+        reduced.indices.clear();
+        reduced.subMeshes.clear();
+
+        std::vector<ModelResource::SubMesh> workSubMeshes;
+        std::vector<uint32_t> workIndices;
+
+        if (mergeByMaterial)
+        {
+            std::unordered_map<uint32_t, std::vector<uint32_t>> byMaterial;
+            std::vector<uint32_t> materialOrder;
+
+            for (const auto& sub : srcMesh.subMeshes)
+            {
+                auto [it, inserted] = byMaterial.emplace(sub.materialIndex, std::vector<uint32_t>{});
+                if (inserted)
+                {
+                    materialOrder.push_back(sub.materialIndex);
+                }
+                reduceSubMeshIndices(srcMesh.indices, sub, it->second);
+            }
+
+            for (uint32_t mat : materialOrder)
+            {
+                auto it = byMaterial.find(mat);
+                if (it == byMaterial.end() || it->second.empty())
+                {
+                    continue;
+                }
+
+                ModelResource::SubMesh sub{};
+                sub.startIndex = static_cast<uint32_t>(workIndices.size());
+                sub.indexCount = static_cast<uint32_t>(it->second.size());
+                sub.materialIndex = mat;
+                sub.textureIndices.fill(-1);
+                sub.descriptorBase = UINT_MAX;
+                sub.visible = true;
+
+                workIndices.insert(workIndices.end(), it->second.begin(), it->second.end());
+                workSubMeshes.push_back(sub);
+            }
+        }
+        else
+        {
+            for (const auto& sub : srcMesh.subMeshes)
+            {
+                std::vector<uint32_t> reducedSub;
+                reduceSubMeshIndices(srcMesh.indices, sub, reducedSub);
+                if (reducedSub.empty())
+                {
+                    continue;
+                }
+
+                ModelResource::SubMesh newSub = sub;
+                newSub.startIndex = static_cast<uint32_t>(workIndices.size());
+                newSub.indexCount = static_cast<uint32_t>(reducedSub.size());
+                newSub.descriptorBase = UINT_MAX;
+                newSub.textureIndices.fill(-1);
+
+                workIndices.insert(workIndices.end(), reducedSub.begin(), reducedSub.end());
+                workSubMeshes.push_back(newSub);
+            }
+        }
+
+        if (workIndices.empty() || workSubMeshes.empty())
+        {
+            out.meshes.push_back(srcMesh);
+            continue;
+        }
+
+        std::unordered_map<uint32_t, uint32_t> remap;
+        remap.reserve(workIndices.size());
+        reduced.vertices.reserve(workIndices.size());
+        reduced.indices.reserve(workIndices.size());
+
+        for (uint32_t srcIndex : workIndices)
+        {
+            if (srcIndex >= srcMesh.vertices.size())
+            {
+                continue;
+            }
+
+            auto it = remap.find(srcIndex);
+            uint32_t dstIndex = 0;
+            if (it == remap.end())
+            {
+                dstIndex = static_cast<uint32_t>(reduced.vertices.size());
+                remap.emplace(srcIndex, dstIndex);
+                reduced.vertices.push_back(srcMesh.vertices[srcIndex]);
+            }
+            else
+            {
+                dstIndex = it->second;
+            }
+
+            reduced.indices.push_back(dstIndex);
+        }
+
+        // 実際に残った index 数に合わせてサブメッシュを再補正
+        uint32_t cursor = 0;
+        for (auto& sub : workSubMeshes)
+        {
+            sub.startIndex = cursor;
+            const uint32_t remaining = (cursor < reduced.indices.size())
+                ? static_cast<uint32_t>(reduced.indices.size() - cursor)
+                : 0;
+            const uint32_t count = std::min<uint32_t>(sub.indexCount, remaining);
+            sub.indexCount = count;
+            cursor += count;
+            if (sub.indexCount > 0)
+            {
+                reduced.subMeshes.push_back(sub);
+            }
+        }
+
+        if (reduced.indices.empty() || reduced.vertices.empty() || reduced.subMeshes.empty())
+        {
+            out.meshes.push_back(srcMesh);
+            continue;
+        }
+
+        rebuildMeshBounds(reduced);
+        out.meshes.push_back(std::move(reduced));
+    }
+
+    return !out.meshes.empty();
+}
+
+void FbxRenderComponent::generateAutoLodAssets()
+{
+    if (!m_enableRuntimeLodGeneration || !m_model)
+    {
+        return;
+    }
+
+    const ModelResource::Model& base = m_model->getResource()->getModelData();
+    if (base.meshes.empty())
+    {
+        return;
+    }
+
+    for (size_t i = 0; i < m_generatedLodRatios.size(); ++i)
+    {
+        const float ratio = m_generatedLodRatios[i];
+        ModelResource::Model generated{};
+        if (!buildReducedLodModel(base, ratio, m_enableRuntimeLodMerge, generated))
+        {
+            continue;
+        }
+
+        auto resource = ModelResource::createFromModelData(std::move(generated));
+        if (!resource)
+        {
+            continue;
+        }
+
+        LodEntry entry{};
+        entry.model = DXMem::makeUnique<Model>(std::move(resource));
+        entry.sourcePath = std::format("[Generated LOD ratio={:.2f}]", ratio);
+        m_lods.push_back(std::move(entry));
+
+        LOG_INFO("[FbxRenderComponent] Generated runtime LOD%zu (ratio=%.2f)", i + 1, ratio);
     }
 }
 
@@ -1068,6 +1331,7 @@ void FbxRenderComponent::imguiDebugPanel()
 
     ImGui::Separator();
     ImGui::Checkbox("Auto LOD", &m_enableAutoLod);
+    ImGui::Checkbox("Runtime LOD Merge", &m_enableRuntimeLodMerge);
 
     const int lodCount = getLodLevelCount();
     if (lodCount > 1)

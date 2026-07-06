@@ -34,8 +34,13 @@ private:
 
 public:
 
+    struct Model;
+
     explicit ModelResource() {};
     virtual ~ModelResource();
+
+    //! 生成済みモデルデータからランタイムリソースを作成
+    static std::shared_ptr<ModelResource> createFromModelData(Model modelData);
 
     // ボーン
     struct Bone

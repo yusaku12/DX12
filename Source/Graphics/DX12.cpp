@@ -2,6 +2,7 @@
 #include "System/TimeManager.h"
 #include "Scene/SceneManager.h"
 #include "Render/RenderPipeline.h"
+#include "Render/RenderManager.h"
 #include "Render/RenderPassContextFactory.h"
 #include "Render/DeferredRenderer.h"
 #include "Render/GBufferRenderTargets.h"
@@ -305,6 +306,8 @@ void DX12::initialize()
 
 void DX12::screenClear(RenderPath renderPath)
 {
+    RenderManager::Instance().notifyFrameStart();
+
     // DescriptorHeap
     DescriptorHeapManager::Instance().setDescriptorHeap();
 

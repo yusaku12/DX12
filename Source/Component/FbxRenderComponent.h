@@ -88,6 +88,15 @@ private:
     //! 自動検出された LOD モデルを読み込む
     void loadAutoLodAssets();
 
+    //! ベースメッシュから自動 LOD を生成する
+    void generateAutoLodAssets();
+
+    //! 指定比率で簡易デシメーションした LOD モデルを構築
+    static bool buildReducedLodModel(const ModelResource::Model& src, float triangleRatio, bool mergeByMaterial, ModelResource::Model& out);
+
+    //! メッシュ境界を再計算
+    static void rebuildMeshBounds(ModelResource::Mesh& mesh);
+
     //! GPU リソースを構築
     void buildGPUResources();
 
@@ -169,4 +178,7 @@ private:
     int m_runtimeLod = 0;
     bool m_enableAutoLod = true;
     std::vector<float> m_lodSwitchDistances = { 20.0f, 45.0f, 85.0f };
+    bool m_enableRuntimeLodGeneration = true;
+    bool m_enableRuntimeLodMerge = true;
+    std::vector<float> m_generatedLodRatios = { 0.50f, 0.25f, 0.12f };
 };
