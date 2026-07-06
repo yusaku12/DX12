@@ -26,6 +26,21 @@ public:
     float getAlpha() const { return m_alpha; }
     void setAlpha(float v) { m_alpha = std::clamp(v, 0.f, 1.f); }
 
+    float getGraphId() const { return m_graphId; }
+    void setGraphId(float value) { m_graphId = std::max(0.0f, value); }
+
+    float getGraphMetallic() const { return m_graphMetallic; }
+    void setGraphMetallic(float value) { m_graphMetallic = std::clamp(value, 0.0f, 1.0f); }
+
+    float getGraphRoughness() const { return m_graphRoughness; }
+    void setGraphRoughness(float value) { m_graphRoughness = std::clamp(value, 0.0f, 1.0f); }
+
+    float getGraphAo() const { return m_graphAo; }
+    void setGraphAo(float value) { m_graphAo = std::clamp(value, 0.0f, 1.0f); }
+
+    float getGraphBlend() const { return m_graphBlend; }
+    void setGraphBlend(float value) { m_graphBlend = std::clamp(value, 0.0f, 1.0f); }
+
     //! UIAnimator を使ってフェードイン/フェードアウト
     void fadeIn (float duration = 0.3f, UIEaseType ease = UIEaseType::EaseOutQuad);
     void fadeOut(float duration = 0.3f, UIEaseType ease = UIEaseType::EaseOutQuad,
@@ -39,6 +54,11 @@ private:
     std::wstring m_texturePath;
     Vector4      m_tintColor = Vector4(1, 1, 1, 1);
     float        m_alpha     = 1.0f;
+    float        m_graphId = 0.0f;
+    float        m_graphMetallic = 0.0f;
+    float        m_graphRoughness = 1.0f;
+    float        m_graphAo = 1.0f;
+    float        m_graphBlend = 0.0f;
 
     class LoadTexture* m_texture = nullptr; //!< TextureManager 所有、解放不要
 };

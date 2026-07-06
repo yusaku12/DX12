@@ -8,6 +8,11 @@ cbuffer UIConstantsCB : register(b0)
     float4             g_tintColor;      //!< グローバルティント（頂点カラーに乗算）
     uint               g_textureMode;    //!< 0=カラー / 1=RGBAテクスチャ / 2=フォント alpha-only
     float              g_globalAlpha;    //!< フェードトランジション用グローバルアルファ
+    float              g_graphId;
+    float              g_graphMetallic;
+    float              g_graphRoughness;
+    float              g_graphAo;
+    float              g_graphBlend;
     float2             g_pad;
 };
 

@@ -51,6 +51,10 @@ void GpuEffectComponent::update()
     m_renderParams.flipbookRows = m_renderSettings.flipbookRows;
     m_renderParams.flipbookCols = m_renderSettings.flipbookCols;
     m_renderParams.flipbookFps = m_renderSettings.flipbookFps;
+    m_renderParams.graphId = static_cast<float>(std::max(0, m_renderSettings.graphId));
+    m_renderParams.metallic = std::clamp(m_renderSettings.metallic, 0.0f, 1.0f);
+    m_renderParams.roughness = std::clamp(m_renderSettings.roughness, 0.0f, 1.0f);
+    m_renderParams.ao = std::clamp(m_renderSettings.ao, 0.0f, 1.0f);
     m_renderCB->update(m_renderParams);
 
     refreshSimulationParams(dt);
@@ -233,6 +237,12 @@ void GpuEffectComponent::inspectGUI()
     {
         render.mode = static_cast<RenderMode>(std::clamp(renderMode, 0, kRenderModeCount - 1));
     }
+
+    ImGui::InputInt("Shader Graph ID", &render.graphId);
+    render.graphId = std::max(0, render.graphId);
+    ImGui::SliderFloat("Graph Metallic", &render.metallic, 0.0f, 1.0f);
+    ImGui::SliderFloat("Graph Roughness", &render.roughness, 0.0f, 1.0f);
+    ImGui::SliderFloat("Graph AO", &render.ao, 0.0f, 1.0f);
 
     int flipbookRows = static_cast<int>(render.flipbookRows);
     int flipbookCols = static_cast<int>(render.flipbookCols);

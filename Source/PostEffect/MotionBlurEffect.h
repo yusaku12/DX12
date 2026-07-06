@@ -32,6 +32,8 @@ private:
         Matrix  invViewProj{};
         Vector4 params0{}; //!< x=shutterSpeed y=maxBlurRadius z=deltaTime w=blendWeight
         Vector4 params1{}; //!< x=nearZ y=farZ z=texelSize.x w=texelSize.y
+        Vector4 graph{};   //!< x=graphId y=metallic z=roughness w=ao
+        Vector4 graphBlend{}; //!< x=blend
     };
 
     std::unique_ptr<ConstantBuffer<CBuffer>> m_cb;
@@ -40,4 +42,9 @@ private:
 
     float m_shutterSpeed = 0.8f;
     float m_maxBlurRadius = 12.0f;
+    float m_graphId = 0.0f;
+    float m_graphMetallic = 0.0f;
+    float m_graphRoughness = 1.0f;
+    float m_graphAo = 1.0f;
+    float m_graphBlend = 0.0f;
 };

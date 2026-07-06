@@ -10,10 +10,10 @@ namespace SaveDataSchema
         bool needsResave = false;
     };
 
-    constexpr uint32_t kSceneCurrentVersion = 3;
+    constexpr uint32_t kSceneCurrentVersion = 4;
     constexpr uint32_t kSceneMinimumSupportedVersion = 1;
 
-    constexpr uint32_t kPrefabCurrentVersion = 1;
+    constexpr uint32_t kPrefabCurrentVersion = 2;
     constexpr uint32_t kPrefabMinimumSupportedVersion = 1;
 
     inline VersionCheckResult checkSceneVersion(uint32_t version)

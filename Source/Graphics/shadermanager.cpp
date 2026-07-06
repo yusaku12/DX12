@@ -8,6 +8,14 @@ void ShaderManager::initialize()
     {
         loadShader(static_cast<ShaderID>(i));
     }
+
+    const std::filesystem::path includePath = L"HLSL/MaterialGraphGenerated.hlsli";
+    std::error_code ec;
+    if (std::filesystem::exists(includePath, ec) && !ec)
+    {
+        m_materialGraphIncludeWriteTime = std::filesystem::last_write_time(includePath, ec);
+        m_hasMaterialGraphIncludeTime = !ec;
+    }
 }
 
 void ShaderManager::update()
@@ -34,8 +42,52 @@ void ShaderManager::update()
         }
     }
 
+    refreshMaterialGraphDependentShaders();
+
     // シェーダーの更新をPSOCreatorに通知
     PSOCreator::Instance().refreshDirtyPSOs();
+}
+
+void ShaderManager::refreshMaterialGraphDependentShaders()
+{
+    const std::filesystem::path includePath = L"HLSL/MaterialGraphGenerated.hlsli";
+    std::error_code ec;
+    if (!std::filesystem::exists(includePath, ec) || ec)
+    {
+        return;
+    }
+
+    const auto currentWriteTime = std::filesystem::last_write_time(includePath, ec);
+    if (ec)
+    {
+        return;
+    }
+
+    if (m_hasMaterialGraphIncludeTime && currentWriteTime == m_materialGraphIncludeWriteTime)
+    {
+        return;
+    }
+
+    m_materialGraphIncludeWriteTime = currentWriteTime;
+    m_hasMaterialGraphIncludeTime = true;
+
+    LOG_INFO("MaterialGraph include updated. Reloading dependent shaders.");
+
+    const ShaderID deps[] =
+    {
+        ShaderID::FBXPS,
+        ShaderID::GBufferPS,
+        ShaderID::GpuEffectPS,
+        ShaderID::ColorGradingPS,
+    };
+
+    for (ShaderID dep : deps)
+    {
+        if (!reloadShader(dep))
+        {
+            LOG_ERROR("Failed to reload shader dependent on MaterialGraphGenerated.hlsli");
+        }
+    }
 }
 
 void ShaderManager::loadShader(ShaderID id)

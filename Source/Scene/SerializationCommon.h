@@ -21,6 +21,7 @@
 #include "Component/TransformComponent.h"
 #include "Component/UIButtonComponent.h"
 #include "Component/UIImageComponent.h"
+#include "Component/UIPanelComponent.h"
 #include "Component/UITextComponent.h"
 #include "PostEffect/BloomEffect.h"
 #include "PostEffect/ColorGradingEffect.h"
@@ -152,6 +153,52 @@ namespace SerializationCommon
         return component;
     }
 
+    inline Component* createUIPanel(GameObject* gameObject, const scene::SerializedComponent* serialized)
+    {
+        if (!gameObject)
+        {
+            return nullptr;
+        }
+
+        if (!gameObject->getComponent<RectTransformComponent>())
+        {
+            RectTransformComponent* rt = gameObject->addComponent<RectTransformComponent>();
+            if (rt)
+            {
+                rt->setSize(Vector2(200.f, 120.f));
+            }
+        }
+
+        UIPanelComponent* component = gameObject->addComponent<UIPanelComponent>();
+        if (!component || !serialized)
+        {
+            return component;
+        }
+
+        if (const auto* payload = serialized->payload_as_UIPanelComponentData(); payload)
+        {
+            if (const auto* bg = payload->background_color())
+            {
+                component->setBackgroundColor(Vector4(bg->x(), bg->y(), bg->z(), bg->w()));
+            }
+
+            if (const auto* border = payload->border_color())
+            {
+                component->setBorderColor(Vector4(border->x(), border->y(), border->z(), border->w()));
+            }
+
+            component->setBorderWidth(payload->border_width());
+            component->setAlpha(payload->alpha());
+            component->setGraphId(payload->graph_id());
+            component->setGraphMetallic(payload->graph_metallic());
+            component->setGraphRoughness(payload->graph_roughness());
+            component->setGraphAo(payload->graph_ao());
+            component->setGraphBlend(payload->graph_blend());
+        }
+
+        return component;
+    }
+
     inline const std::vector<ComponentArchetype>& getComponentArchetypes()
     {
         static const std::vector<ComponentArchetype> archetypes =
@@ -174,6 +221,7 @@ namespace SerializationCommon
             { "UITextComponent", true, &createDefault<UITextComponent> },
             { "UIButtonComponent", true, &createDefault<UIButtonComponent> },
             { "UIImageComponent", true, &createUIImage },
+            { "UIPanelComponent", true, &createUIPanel },
         };
         return archetypes;
     }
@@ -227,6 +275,7 @@ namespace SerializationCommon
         if (typeName == "UITextComponent") return gameObject->getComponent<UITextComponent>() != nullptr;
         if (typeName == "UIButtonComponent") return gameObject->getComponent<UIButtonComponent>() != nullptr;
         if (typeName == "UIImageComponent") return gameObject->getComponent<UIImageComponent>() != nullptr;
+        if (typeName == "UIPanelComponent") return gameObject->getComponent<UIPanelComponent>() != nullptr;
 
         return false;
     }
@@ -536,7 +585,12 @@ namespace SerializationCommon
                 text->getText().c_str(),
                 &color,
                 text->getFontScale(),
-                static_cast<int32_t>(text->getAlignment()));
+                static_cast<int32_t>(text->getAlignment()),
+                text->getGraphId(),
+                text->getGraphMetallic(),
+                text->getGraphRoughness(),
+                text->getGraphAo(),
+                text->getGraphBlend());
 
             return scene::CreateSerializedComponentDirect(
                 builder,
@@ -563,7 +617,12 @@ namespace SerializationCommon
                 button->getFontScale(),
                 button->getCornerRounding(),
                 button->isInteractable(),
-                button->blocksMouseInput());
+                button->blocksMouseInput(),
+                button->getGraphId(),
+                button->getGraphMetallic(),
+                button->getGraphRoughness(),
+                button->getGraphAo(),
+                button->getGraphBlend());
 
             return scene::CreateSerializedComponentDirect(
                 builder,
@@ -589,13 +648,42 @@ namespace SerializationCommon
                 builder,
                 texturePathOffset,
                 &tintColor,
-                image->getAlpha());
+                image->getAlpha(),
+                image->getGraphId(),
+                image->getGraphMetallic(),
+                image->getGraphRoughness(),
+                image->getGraphAo(),
+                image->getGraphBlend());
 
             return scene::CreateSerializedComponentDirect(
                 builder,
                 "UIImageComponent",
                 component->isEnabled(),
                 scene::ComponentPayload_UIImageComponentData,
+                payload.Union());
+        }
+
+        if (auto* panel = dynamic_cast<UIPanelComponent*>(component))
+        {
+            const scene::vec4 bg = toFlatVec4(panel->getBackgroundColor());
+            const scene::vec4 border = toFlatVec4(panel->getBorderColor());
+            const auto payload = scene::CreateUIPanelComponentData(
+                builder,
+                &bg,
+                &border,
+                panel->getBorderWidth(),
+                panel->getAlpha(),
+                panel->getGraphId(),
+                panel->getGraphMetallic(),
+                panel->getGraphRoughness(),
+                panel->getGraphAo(),
+                panel->getGraphBlend());
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "UIPanelComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_UIPanelComponentData,
                 payload.Union());
         }
 
@@ -964,6 +1052,11 @@ namespace SerializationCommon
 
             text->setFontScale(payload->font_scale());
             text->setAlignment(static_cast<UITextAlignment>(payload->alignment()));
+            text->setGraphId(payload->graph_id());
+            text->setGraphMetallic(payload->graph_metallic());
+            text->setGraphRoughness(payload->graph_roughness());
+            text->setGraphAo(payload->graph_ao());
+            text->setGraphBlend(payload->graph_blend());
             return;
         }
         case scene::ComponentPayload_UIButtonComponentData:
@@ -1009,6 +1102,11 @@ namespace SerializationCommon
             button->setCornerRounding(payload->corner_rounding());
             button->setInteractable(payload->interactable());
             button->setBlockMouseInput(payload->block_mouse_input());
+            button->setGraphId(payload->graph_id());
+            button->setGraphMetallic(payload->graph_metallic());
+            button->setGraphRoughness(payload->graph_roughness());
+            button->setGraphAo(payload->graph_ao());
+            button->setGraphBlend(payload->graph_blend());
             return;
         }
         case scene::ComponentPayload_UIImageComponentData:
@@ -1044,6 +1142,40 @@ namespace SerializationCommon
             {
                 image->setAlpha(1.0f);
             }
+
+            image->setGraphId(payload->graph_id());
+            image->setGraphMetallic(payload->graph_metallic());
+            image->setGraphRoughness(payload->graph_roughness());
+            image->setGraphAo(payload->graph_ao());
+            image->setGraphBlend(payload->graph_blend());
+            return;
+        }
+        case scene::ComponentPayload_UIPanelComponentData:
+        {
+            auto* panel = dynamic_cast<UIPanelComponent*>(component);
+            const auto* payload = serialized->payload_as_UIPanelComponentData();
+            if (!panel || !payload)
+            {
+                return;
+            }
+
+            if (const auto* bg = payload->background_color())
+            {
+                panel->setBackgroundColor(Vector4(bg->x(), bg->y(), bg->z(), bg->w()));
+            }
+
+            if (const auto* border = payload->border_color())
+            {
+                panel->setBorderColor(Vector4(border->x(), border->y(), border->z(), border->w()));
+            }
+
+            panel->setBorderWidth(payload->border_width());
+            panel->setAlpha(payload->alpha());
+            panel->setGraphId(payload->graph_id());
+            panel->setGraphMetallic(payload->graph_metallic());
+            panel->setGraphRoughness(payload->graph_roughness());
+            panel->setGraphAo(payload->graph_ao());
+            panel->setGraphBlend(payload->graph_blend());
             return;
         }
         default:

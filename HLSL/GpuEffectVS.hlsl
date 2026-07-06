@@ -7,6 +7,10 @@ cbuffer SimParams : register(b1)
     uint flipbookRows;
     uint flipbookCols;
     float flipbookFps;
+    float graphId;
+    float metallic;
+    float roughness;
+    float ao;
 };
 
 StructuredBuffer<Particle> particles : register(t0);

@@ -1,5 +1,6 @@
 #include "PostEffect.hlsli"
 #include "Common.hlsli"
+#include "MaterialGraphGenerated.hlsli"
 
 //!=======================================================
 //! 色調補正ピクセルシェーダー
@@ -30,6 +31,11 @@ cbuffer CBuffer : register(b0)
 
     // トーンマッピング
     int    g_tonemapMode;       //!< 0=Linear 1=ACES 2=Filmic
+    float  g_graphId;
+    float  g_graphMetallic;
+    float  g_graphRoughness;
+    float  g_graphAo;
+    float  g_graphBlend;
     float3 g_pad2;
 };
 
@@ -145,7 +151,8 @@ float3 ApplyColorWheels(float3 c)
 
 float4 PS(PostEffectVSOut input) : SV_Target
 {
-    float3 col = sceneTexture.Sample(samplerStates[LINEAR_CLAMP], input.uv).rgb;
+    float4 src = sceneTexture.Sample(samplerStates[LINEAR_CLAMP], input.uv);
+    float3 col = src.rgb;
 
 // 露出補正（Linear 空間）
 col *= pow(2.0f, g_exposure);
@@ -178,13 +185,20 @@ if (abs(g_hueShift) > 0.001f)
 // Shadows / Midtones / Highlights
 col = ApplyColorWheels(col);
 
-// トーンマッピング
-if (g_tonemapMode == 1)
-    col = ACESFilm(col);
-else if (g_tonemapMode == 2)
-    col = FilmicTonemap(col);
-else
-    col = saturate(col); // Linear クランプ
+    // トーンマッピング
+    if (g_tonemapMode == 1)
+        col = ACESFilm(col);
+    else if (g_tonemapMode == 2)
+        col = FilmicTonemap(col);
+    else
+        col = saturate(col); // Linear クランプ
 
-return float4(col, 1.0f);
+    // ShaderGraph をポストプロセスにも適用（任意ブレンド）
+    float3 graphPbr = float3(g_graphMetallic, g_graphRoughness, g_graphAo);
+    MaterialGraphResult graph = EvaluatePostEffectGraphById((int)g_graphId, input.uv, float4(col, src.a), graphPbr, sceneTexture, sceneTexture, samplerStates[LINEAR_CLAMP]);
+    float blend = saturate(g_graphBlend);
+    float3 outColor = lerp(col, graph.baseColor.rgb, blend);
+    float outAlpha = lerp(src.a, graph.alpha, blend);
+
+    return float4(outColor, outAlpha);
 }

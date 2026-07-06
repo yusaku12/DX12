@@ -145,6 +145,11 @@ table UITextComponentData {
     color:vec4;
     font_scale:float;
     alignment:int;
+    graph_id:float;
+    graph_metallic:float;
+    graph_roughness:float;
+    graph_ao:float;
+    graph_blend:float;
 }
 
 table UIButtonComponentData {
@@ -158,12 +163,34 @@ table UIButtonComponentData {
     corner_rounding:float;
     interactable:bool;
     block_mouse_input:bool;
+    graph_id:float;
+    graph_metallic:float;
+    graph_roughness:float;
+    graph_ao:float;
+    graph_blend:float;
 }
 
 table UIImageComponentData {
     texture_path:string;
     tint_color:vec4;
     alpha:float;
+    graph_id:float;
+    graph_metallic:float;
+    graph_roughness:float;
+    graph_ao:float;
+    graph_blend:float;
+}
+
+table UIPanelComponentData {
+    background_color:vec4;
+    border_color:vec4;
+    border_width:float;
+    alpha:float;
+    graph_id:float;
+    graph_metallic:float;
+    graph_roughness:float;
+    graph_ao:float;
+    graph_blend:float;
 }
 
 union ComponentPayload {
@@ -184,7 +211,8 @@ union ComponentPayload {
     UITextComponentData,
     UIButtonComponentData,
     UIImageComponentData,
-    CpuParticleComponentData
+    CpuParticleComponentData,
+    UIPanelComponentData
 }
 
 table SerializedComponent {

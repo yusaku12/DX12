@@ -71,6 +71,11 @@ private:
 
         // トーンマップ
         int     tonemapMode = static_cast<int>(ToneMapMode::ACES);
+        float   graphId = 0.0f;
+        float   graphMetallic = 0.0f;
+        float   graphRoughness = 1.0f;
+        float   graphAo = 1.0f;
+        float   graphBlend = 1.0f;
         Vector3 pad2 = {};
     };
 

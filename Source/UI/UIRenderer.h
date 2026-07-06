@@ -10,9 +10,23 @@ struct UIConstantData
     Vector4  tintColor;       //!< グローバルティント: 16 bytes
     uint32_t textureMode;     //!< 0=カラー / 1=RGBA / 2=フォント: 4 bytes
     float    globalAlpha;     //!< フェードアルファ [0, 1]: 4 bytes
+    float    graphId = 0.0f;
+    float    graphMetallic = 0.0f;
+    float    graphRoughness = 1.0f;
+    float    graphAo = 1.0f;
+    float    graphBlend = 0.0f;
     float    pad0 = 0.f;
     float    pad1 = 0.f;
     // 合計 160 bytes → 256 byte アライメントは ConstantBuffer<T> が処理
+};
+
+struct UIGraphicsParams
+{
+    float graphId = 0.0f;
+    float graphMetallic = 0.0f;
+    float graphRoughness = 1.0f;
+    float graphAo = 1.0f;
+    float graphBlend = 0.0f;
 };
 
 //=====================================================
@@ -72,14 +86,16 @@ public:
     void drawRect(float x, float y, float w, float h,
                   const Vector4& color,
                   const Matrix* localTransform = nullptr,
-                  float alpha = 1.0f);
+                  float alpha = 1.0f,
+                  const UIGraphicsParams* graphParams = nullptr);
 
     //! RGBA テクスチャ付き矩形
     void drawTexturedRect(float x, float y, float w, float h,
                           UINT srvIndex,
                           const Vector4& tintColor = Vector4(1, 1, 1, 1),
                           const Matrix* localTransform = nullptr,
-                          float alpha = 1.0f);
+                          float alpha = 1.0f,
+                          const UIGraphicsParams* graphParams = nullptr);
 
     //! テキスト描画（UIFontManager に委譲）
     //! @return 描画後のカーソル X 座標
@@ -88,7 +104,8 @@ public:
                    const Vector4& color,
                    float scale = 1.0f,
                    const Matrix* localTransform = nullptr,
-                   float alpha = 1.0f);
+                   float alpha = 1.0f,
+                   const UIGraphicsParams* graphParams = nullptr);
 
     //! テキストの描画サイズを計算（描画なし）
     Vector2 measureText(const std::string& text, float scale = 1.0f) const;
@@ -100,7 +117,8 @@ public:
                        const Matrix& viewProjection,
                        float w, float h,
                        const Vector4& color,
-                       float alpha = 1.0f);
+                       float alpha = 1.0f,
+                       const UIGraphicsParams* graphParams = nullptr);
 
     // ── 状態設定 API ─────────────────────────────────
 
@@ -130,7 +148,8 @@ private:
                   UINT srvIndex, UINT textureMode,
                   const Matrix& worldTransform,
                   const Matrix& localTransform,
-                  float alpha);
+                  float alpha,
+                  const UIGraphicsParams* graphParams);
 
     //! ホワイト 1x1 テクスチャを作成する（ソリッドカラー描画用）
     void createWhiteTexture();

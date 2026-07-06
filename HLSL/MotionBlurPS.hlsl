@@ -1,5 +1,6 @@
 #include "PostEffect.hlsli"
 #include "Common.hlsli"
+#include "MaterialGraphGenerated.hlsli"
 
 //!=======================================================
 //! スクリーン空間モーションブラー
@@ -15,6 +16,8 @@ cbuffer CBuffer : register(b0)
     row_major float4x4 g_invViewProj;
     float4 g_params0; //!< x=shutterSpeed y=maxBlurRadius z=deltaTime w=blendWeight
     float4 g_params1; //!< x=nearZ y=farZ z=texelSize.x w=texelSize.y
+    float4 g_graph;   //!< x=graphId y=metallic z=roughness w=ao
+    float4 g_graphBlend; //!< x=blend
 };
 
 float4 PS(PostEffectVSOut input) : SV_Target
@@ -69,5 +72,11 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float3 blurred = accum / max(total, 1e-4f);
     float blurAmount = saturate(len / maxLen) * g_params0.w;
 
-    return float4(lerp(center, blurred, blurAmount), 1.0f);
+    float3 base = lerp(center, blurred, blurAmount);
+    float3 pbr = float3(g_graph.y, g_graph.z, g_graph.w);
+    MaterialGraphResult graph = EvaluatePostEffectGraphById((int)g_graph.x, input.uv, float4(base, 1.0f), pbr, sceneTexture, depthTexture, samplerStates[LINEAR_CLAMP]);
+    float blend = saturate(g_graphBlend.x);
+    float3 outColor = lerp(base, graph.baseColor.rgb, blend);
+    float outAlpha = lerp(1.0f, graph.alpha, blend);
+    return float4(outColor, outAlpha);
 }

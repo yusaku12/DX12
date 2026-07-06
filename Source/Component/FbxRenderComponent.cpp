@@ -11,6 +11,95 @@ namespace
     {
         return std::max(minV, std::min(v, maxV));
     }
+
+    const char* kMaterialGraphBindingPath = "Data/MaterialGraph/MaterialGraphBindings.txt";
+
+    struct MaterialGraphBindingCache
+    {
+        std::unordered_map<std::string, int> byMaterial;
+        std::filesystem::file_time_type writeTime{};
+        bool hasWriteTime = false;
+    };
+
+    const std::unordered_map<std::string, int>& loadMaterialGraphBindings()
+    {
+        static MaterialGraphBindingCache cache;
+
+        std::error_code ec;
+        if (!std::filesystem::exists(kMaterialGraphBindingPath, ec) || ec)
+        {
+            cache.byMaterial.clear();
+            cache.hasWriteTime = false;
+            return cache.byMaterial;
+        }
+
+        const auto currentWriteTime = std::filesystem::last_write_time(kMaterialGraphBindingPath, ec);
+        if (ec)
+        {
+            return cache.byMaterial;
+        }
+
+        if (cache.hasWriteTime && currentWriteTime == cache.writeTime)
+        {
+            return cache.byMaterial;
+        }
+
+        cache.byMaterial.clear();
+
+        std::ifstream in(kMaterialGraphBindingPath);
+        if (!in)
+        {
+            cache.hasWriteTime = false;
+            return cache.byMaterial;
+        }
+
+        std::string line;
+        while (std::getline(in, line))
+        {
+            if (line.empty())
+            {
+                continue;
+            }
+
+            const size_t firstTab = line.find('\t');
+            if (firstTab == std::string::npos)
+            {
+                continue;
+            }
+
+            const std::string keyword = line.substr(0, firstTab);
+            if (keyword != "bind")
+            {
+                continue;
+            }
+
+            const size_t secondTab = line.find('\t', firstTab + 1);
+            if (secondTab == std::string::npos)
+            {
+                continue;
+            }
+
+            const std::string idText = line.substr(firstTab + 1, secondTab - (firstTab + 1));
+            const std::string materialName = line.substr(secondTab + 1);
+            if (materialName.empty())
+            {
+                continue;
+            }
+
+            char* endPtr = nullptr;
+            const long parsed = std::strtol(idText.c_str(), &endPtr, 10);
+            if (endPtr == idText.c_str())
+            {
+                continue;
+            }
+
+            cache.byMaterial[materialName] = static_cast<int>(parsed);
+        }
+
+        cache.writeTime = currentWriteTime;
+        cache.hasWriteTime = true;
+        return cache.byMaterial;
+    }
 }
 
 FbxRenderComponent::FbxRenderComponent(const std::string& fbxPath)
@@ -594,6 +683,10 @@ void FbxRenderComponent::buildGPUResources()
 
             // マテリアルCBV作成
             const auto& modelData = model->getResource()->getModelData();
+            if (model == m_model.get())
+            {
+                applyMaterialGraphBindings();
+            }
             UINT matCount = static_cast<UINT>(modelData.materials.size());
             if (matCount == 0)
             {
@@ -609,11 +702,16 @@ void FbxRenderComponent::buildGPUResources()
                     const auto& m = modelData.materials[i];
                     cb.diffuse = m.diffuseColor;
                     cb.pbr = Vector3{ m.metallic, m.roughness, m.ao };
+                    if (model == m_model.get() && i < static_cast<UINT>(m_materialGraphIds.size()))
+                    {
+                        cb.graphId = static_cast<float>(m_materialGraphIds[i]);
+                    }
                 }
                 else
                 {
                     cb.diffuse = Vector4{ 1.f, 1.f, 1.f, 1.f };
                     cb.pbr = Vector3{ 1.0f, 1.0f, 1.0f };
+                    cb.graphId = 0.0f;
                 }
                 outMaterialCB->update(cb, i);
             }
@@ -713,6 +811,10 @@ int FbxRenderComponent::getLodLevelCount() const
 void FbxRenderComponent::createMaterialCBV()
 {
     const auto& modelData = m_model->getResource()->getModelData();
+    if (m_materialGraphIds.size() < modelData.materials.size())
+    {
+        m_materialGraphIds.resize(modelData.materials.size(), 0);
+    }
     UINT matCount = static_cast<UINT>(modelData.materials.size());
     if (matCount == 0)
     {
@@ -730,12 +832,14 @@ void FbxRenderComponent::createMaterialCBV()
             const auto& m = modelData.materials[i];
             cb.diffuse = m.diffuseColor;
             cb.pbr = Vector3{ m.metallic, m.roughness, m.ao };
+            cb.graphId = static_cast<float>(m_materialGraphIds[i]);
         }
         else
         {
             // マテリアルが無い場合はデフォルト白
             cb.diffuse = Vector4{ 1.f, 1.f, 1.f, 1.f };
             cb.pbr = Vector3{ 1.0f, 1.0f, 1.0f };
+            cb.graphId = 0.0f;
         }
         m_materialCB->update(cb, i);
     }
@@ -746,12 +850,40 @@ void FbxRenderComponent::updateMaterialCBV()
     const auto& modelData = m_model->getResource()->getModelData();
     UINT matCount = static_cast<UINT>(modelData.materials.size());
 
+    if (m_materialGraphIds.size() < modelData.materials.size())
+    {
+        m_materialGraphIds.resize(modelData.materials.size(), 0);
+    }
+
     for (UINT i = 0; i < matCount; ++i)
     {
         MaterialCB cb{};
         cb.diffuse = modelData.materials[i].diffuseColor;
         cb.pbr = Vector3{ modelData.materials[i].metallic, modelData.materials[i].roughness, modelData.materials[i].ao };
+        cb.graphId = static_cast<float>(m_materialGraphIds[i]);
         m_materialCB->update(cb, i);
+    }
+}
+
+void FbxRenderComponent::applyMaterialGraphBindings()
+{
+    if (!m_model)
+    {
+        return;
+    }
+
+    const auto& modelData = m_model->getResource()->getModelData();
+    m_materialGraphIds.resize(modelData.materials.size(), 0);
+
+    const auto& bindings = loadMaterialGraphBindings();
+    for (size_t i = 0; i < modelData.materials.size(); ++i)
+    {
+        const std::string& materialName = modelData.materials[i].name;
+        auto it = bindings.find(materialName);
+        if (it != bindings.end())
+        {
+            m_materialGraphIds[i] = std::max(0, it->second);
+        }
     }
 }
 
@@ -1040,6 +1172,11 @@ void FbxRenderComponent::imguiMaterialPanel()
 {
     auto& modelData = m_model->getResource()->getModelData();
 
+    if (m_materialGraphIds.size() < modelData.materials.size())
+    {
+        m_materialGraphIds.resize(modelData.materials.size(), 0);
+    }
+
     if (modelData.materials.empty())
     {
         ImGui::TextDisabled(reinterpret_cast<const char*>(u8"マテリアルなし"));
@@ -1050,6 +1187,14 @@ void FbxRenderComponent::imguiMaterialPanel()
     static constexpr float TEX_PREVIEW_SIZE = 64.0f;
 
     bool materialChanged = false;
+
+    if (ImGui::Button("Apply Graph Binding Preset"))
+    {
+        applyMaterialGraphBindings();
+        materialChanged = true;
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("Binding file: Data/MaterialGraph/MaterialGraphBindings.txt");
 
     for (size_t i = 0; i < modelData.materials.size(); ++i)
     {
@@ -1091,6 +1236,13 @@ void FbxRenderComponent::imguiMaterialPanel()
             std::string aoId = std::string(reinterpret_cast<const char*>(u8"AO##matAO")) + std::to_string(i);
             if (ImGui::SliderFloat(aoId.c_str(), &mat.ao, 0.0f, 1.0f))
             {
+                materialChanged = true;
+            }
+
+            std::string graphIdLabel = std::string("Graph ID##matGraph") + std::to_string(i);
+            if (ImGui::InputInt(graphIdLabel.c_str(), &m_materialGraphIds[i]))
+            {
+                m_materialGraphIds[i] = std::max(0, m_materialGraphIds[i]);
                 materialChanged = true;
             }
 

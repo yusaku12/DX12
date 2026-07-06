@@ -219,7 +219,8 @@ void UIRenderer::end()
 // =============================================================
 void UIRenderer::drawRect(float x, float y, float w, float h,
                           const Vector4& color,
-                          const Matrix* localTransform, float alpha)
+                          const Matrix* localTransform, float alpha,
+                          const UIGraphicsParams* graphParams)
 {
     pushQuad(x, y, w, h,
              0.f, 0.f, 1.f, 1.f,
@@ -227,12 +228,14 @@ void UIRenderer::drawRect(float x, float y, float w, float h,
              m_whiteSrvIndex, 0u,
              m_orthoMatrix,
              localTransform ? *localTransform : Matrix::Identity,
-             alpha * m_globalAlpha);
+             alpha * m_globalAlpha,
+             graphParams);
 }
 
 void UIRenderer::drawTexturedRect(float x, float y, float w, float h,
                                   UINT srvIndex, const Vector4& tintColor,
-                                  const Matrix* localTransform, float alpha)
+                                  const Matrix* localTransform, float alpha,
+                                  const UIGraphicsParams* graphParams)
 {
     pushQuad(x, y, w, h,
              0.f, 0.f, 1.f, 1.f,
@@ -240,14 +243,16 @@ void UIRenderer::drawTexturedRect(float x, float y, float w, float h,
              srvIndex, 1u,
              m_orthoMatrix,
              localTransform ? *localTransform : Matrix::Identity,
-             alpha * m_globalAlpha);
+             alpha * m_globalAlpha,
+             graphParams);
 }
 
 float UIRenderer::drawText(float x, float y,
                            const std::string& text,
                            const Vector4& color,
                            float scale,
-                           const Matrix* localTransform, float alpha)
+                           const Matrix* localTransform, float alpha,
+                           const UIGraphicsParams* graphParams)
 {
     if (!UIFontManager::Instance().isInitialized()) return x;
 
@@ -274,7 +279,8 @@ float UIRenderer::drawText(float x, float y,
                      fontSrv, 2u,
                      m_orthoMatrix,
                      localMat,
-                     alpha * m_globalAlpha);
+                     alpha * m_globalAlpha,
+                     graphParams);
         }
 
         cursorX += glyph->advance * scale;
@@ -291,7 +297,8 @@ Vector2 UIRenderer::measureText(const std::string& text, float scale) const
 void UIRenderer::drawWorldRect(const Matrix& worldTransform,
                                const Matrix& viewProjection,
                                float w, float h,
-                               const Vector4& color, float alpha)
+                               const Vector4& color, float alpha,
+                               const UIGraphicsParams* graphParams)
 {
     //! 繝ｯ繝ｼ繝ｫ繝臥ｩｺ髢・ Canvas 縺ｮ繝ｯ繝ｼ繝ｫ繝芽｡悟・ * VP 繧・transform 縺ｨ縺励※菴ｿ逕ｨ
     const Matrix mvp = worldTransform * viewProjection;
@@ -306,7 +313,8 @@ void UIRenderer::drawWorldRect(const Matrix& worldTransform,
              m_whiteSrvIndex, 0u,
              mvp,
              Matrix::Identity,
-             alpha * m_globalAlpha);
+             alpha * m_globalAlpha,
+             graphParams);
 }
 
 UINT UIRenderer::getFontAtlasSrvIndex() const
@@ -323,7 +331,8 @@ void UIRenderer::pushQuad(float x, float y, float w, float h,
                           UINT srvIndex, UINT textureMode,
                           const Matrix& worldTransform,
                           const Matrix& localTransform,
-                          float alpha)
+                          float alpha,
+                          const UIGraphicsParams* graphParams)
 {
     if (m_vertices.size() + 4 > k_maxVertices) return;
 
@@ -340,6 +349,22 @@ void UIRenderer::pushQuad(float x, float y, float w, float h,
     cbData.tintColor      = Vector4(1, 1, 1, 1);
     cbData.textureMode    = textureMode;
     cbData.globalAlpha    = alpha;
+    if (graphParams)
+    {
+        cbData.graphId = std::max(0.0f, graphParams->graphId);
+        cbData.graphMetallic = std::clamp(graphParams->graphMetallic, 0.0f, 1.0f);
+        cbData.graphRoughness = std::clamp(graphParams->graphRoughness, 0.0f, 1.0f);
+        cbData.graphAo = std::clamp(graphParams->graphAo, 0.0f, 1.0f);
+        cbData.graphBlend = std::clamp(graphParams->graphBlend, 0.0f, 1.0f);
+    }
+    else
+    {
+        cbData.graphId = 0.0f;
+        cbData.graphMetallic = 0.0f;
+        cbData.graphRoughness = 1.0f;
+        cbData.graphAo = 1.0f;
+        cbData.graphBlend = 0.0f;
+    }
 
     const UINT cbSlot = uploadConstants(cbData);
 

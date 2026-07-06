@@ -1,5 +1,6 @@
 #include "PostEffect.hlsli"
 #include "Common.hlsli"
+#include "MaterialGraphGenerated.hlsli"
 
 //!=======================================================
 //! 被写界深度ピクセルシェーダー
@@ -18,6 +19,11 @@ cbuffer CBuffer : register(b0)
     float  g_nearZ;
     float  g_farZ;
     float  g_blendWeight;
+    float  g_graphId;
+    float  g_graphMetallic;
+    float  g_graphRoughness;
+    float  g_graphAo;
+    float  g_graphBlend;
     float3 g_padding;
 };
 
@@ -84,5 +90,10 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float blend = saturate(coc * g_blendWeight);
     float3 finalColor = lerp(center, blurred, blend);
 
-    return float4(finalColor, 1.0f);
+    float3 pbr = float3(g_graphMetallic, g_graphRoughness, g_graphAo);
+    MaterialGraphResult graph = EvaluatePostEffectGraphById((int)g_graphId, input.uv, float4(finalColor, 1.0f), pbr, sceneTexture, depthTexture, samplerStates[LINEAR_CLAMP]);
+    float graphBlend = saturate(g_graphBlend);
+    float3 outColor = lerp(finalColor, graph.baseColor.rgb, graphBlend);
+    float outAlpha = lerp(1.0f, graph.alpha, graphBlend);
+    return float4(outColor, outAlpha);
 }

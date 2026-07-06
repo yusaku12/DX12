@@ -6,6 +6,7 @@
 #include "AssetBrowserWindow.h"
 #include "AsyncAssetLoader.h"
 #include "BehaviorTreeGraphEditorWindow.h"
+#include "MaterialGraphEditorWindow.h"
 #include "EditorTransaction.h"
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
@@ -298,6 +299,12 @@ void EditorManager::drawDebugHubWindow()
         if (ImGui::BeginTabItem("BT Graph"))
         {
             drawBehaviorTreeGraphEditorWindow();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Material Graph"))
+        {
+            drawMaterialGraphEditorWindow();
             ImGui::EndTabItem();
         }
 

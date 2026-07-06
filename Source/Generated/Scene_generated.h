@@ -78,6 +78,9 @@ struct UIButtonComponentDataBuilder;
 struct UIImageComponentData;
 struct UIImageComponentDataBuilder;
 
+struct UIPanelComponentData;
+struct UIPanelComponentDataBuilder;
+
 struct SerializedComponent;
 struct SerializedComponentBuilder;
 
@@ -107,11 +110,12 @@ enum ComponentPayload : uint8_t {
   ComponentPayload_UIButtonComponentData = 16,
   ComponentPayload_UIImageComponentData = 17,
   ComponentPayload_CpuParticleComponentData = 18,
+  ComponentPayload_UIPanelComponentData = 19,
   ComponentPayload_MIN = ComponentPayload_NONE,
-  ComponentPayload_MAX = ComponentPayload_CpuParticleComponentData
+  ComponentPayload_MAX = ComponentPayload_UIPanelComponentData
 };
 
-inline const ComponentPayload (&EnumValuesComponentPayload())[19] {
+inline const ComponentPayload (&EnumValuesComponentPayload())[20] {
   static const ComponentPayload values[] = {
     ComponentPayload_NONE,
     ComponentPayload_TransformComponentData,
@@ -131,13 +135,14 @@ inline const ComponentPayload (&EnumValuesComponentPayload())[19] {
     ComponentPayload_UITextComponentData,
     ComponentPayload_UIButtonComponentData,
     ComponentPayload_UIImageComponentData,
-    ComponentPayload_CpuParticleComponentData
+    ComponentPayload_CpuParticleComponentData,
+    ComponentPayload_UIPanelComponentData
   };
   return values;
 }
 
 inline const char * const *EnumNamesComponentPayload() {
-  static const char * const names[20] = {
+  static const char * const names[21] = {
     "NONE",
     "TransformComponentData",
     "RectTransformComponentData",
@@ -157,13 +162,14 @@ inline const char * const *EnumNamesComponentPayload() {
     "UIButtonComponentData",
     "UIImageComponentData",
     "CpuParticleComponentData",
+    "UIPanelComponentData",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameComponentPayload(ComponentPayload e) {
-  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_CpuParticleComponentData)) return "";
+  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_UIPanelComponentData)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesComponentPayload()[index];
 }
@@ -242,6 +248,10 @@ template<> struct ComponentPayloadTraits<scene::UIImageComponentData> {
 
 template<> struct ComponentPayloadTraits<scene::CpuParticleComponentData> {
   static const ComponentPayload enum_value = ComponentPayload_CpuParticleComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::UIPanelComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_UIPanelComponentData;
 };
 
 template <bool B = false>
@@ -1727,7 +1737,12 @@ struct UITextComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
     VT_TEXT = 4,
     VT_COLOR = 6,
     VT_FONT_SCALE = 8,
-    VT_ALIGNMENT = 10
+    VT_ALIGNMENT = 10,
+    VT_GRAPH_ID = 12,
+    VT_GRAPH_METALLIC = 14,
+    VT_GRAPH_ROUGHNESS = 16,
+    VT_GRAPH_AO = 18,
+    VT_GRAPH_BLEND = 20
   };
   const ::flatbuffers::String *text() const {
     return GetPointer<const ::flatbuffers::String *>(VT_TEXT);
@@ -1741,6 +1756,21 @@ struct UITextComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   int32_t alignment() const {
     return GetField<int32_t>(VT_ALIGNMENT, 0);
   }
+  float graph_id() const {
+    return GetField<float>(VT_GRAPH_ID, 0.0f);
+  }
+  float graph_metallic() const {
+    return GetField<float>(VT_GRAPH_METALLIC, 0.0f);
+  }
+  float graph_roughness() const {
+    return GetField<float>(VT_GRAPH_ROUGHNESS, 0.0f);
+  }
+  float graph_ao() const {
+    return GetField<float>(VT_GRAPH_AO, 0.0f);
+  }
+  float graph_blend() const {
+    return GetField<float>(VT_GRAPH_BLEND, 0.0f);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1749,6 +1779,11 @@ struct UITextComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
            VerifyField<scene::vec4>(verifier, VT_COLOR, 4) &&
            VerifyField<float>(verifier, VT_FONT_SCALE, 4) &&
            VerifyField<int32_t>(verifier, VT_ALIGNMENT, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_ID, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_METALLIC, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_ROUGHNESS, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_AO, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_BLEND, 4) &&
            verifier.EndTable();
   }
 };
@@ -1769,6 +1804,21 @@ struct UITextComponentDataBuilder {
   void add_alignment(int32_t alignment) {
     fbb_.AddElement<int32_t>(UITextComponentData::VT_ALIGNMENT, alignment, 0);
   }
+  void add_graph_id(float graph_id) {
+    fbb_.AddElement<float>(UITextComponentData::VT_GRAPH_ID, graph_id, 0.0f);
+  }
+  void add_graph_metallic(float graph_metallic) {
+    fbb_.AddElement<float>(UITextComponentData::VT_GRAPH_METALLIC, graph_metallic, 0.0f);
+  }
+  void add_graph_roughness(float graph_roughness) {
+    fbb_.AddElement<float>(UITextComponentData::VT_GRAPH_ROUGHNESS, graph_roughness, 0.0f);
+  }
+  void add_graph_ao(float graph_ao) {
+    fbb_.AddElement<float>(UITextComponentData::VT_GRAPH_AO, graph_ao, 0.0f);
+  }
+  void add_graph_blend(float graph_blend) {
+    fbb_.AddElement<float>(UITextComponentData::VT_GRAPH_BLEND, graph_blend, 0.0f);
+  }
   explicit UITextComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1785,8 +1835,18 @@ inline ::flatbuffers::Offset<UITextComponentData> CreateUITextComponentData(
     ::flatbuffers::Offset<::flatbuffers::String> text = 0,
     const scene::vec4 *color = nullptr,
     float font_scale = 0.0f,
-    int32_t alignment = 0) {
+    int32_t alignment = 0,
+    float graph_id = 0.0f,
+    float graph_metallic = 0.0f,
+    float graph_roughness = 0.0f,
+    float graph_ao = 0.0f,
+    float graph_blend = 0.0f) {
   UITextComponentDataBuilder builder_(_fbb);
+  builder_.add_graph_blend(graph_blend);
+  builder_.add_graph_ao(graph_ao);
+  builder_.add_graph_roughness(graph_roughness);
+  builder_.add_graph_metallic(graph_metallic);
+  builder_.add_graph_id(graph_id);
   builder_.add_alignment(alignment);
   builder_.add_font_scale(font_scale);
   builder_.add_color(color);
@@ -1799,14 +1859,24 @@ inline ::flatbuffers::Offset<UITextComponentData> CreateUITextComponentDataDirec
     const char *text = nullptr,
     const scene::vec4 *color = nullptr,
     float font_scale = 0.0f,
-    int32_t alignment = 0) {
+    int32_t alignment = 0,
+    float graph_id = 0.0f,
+    float graph_metallic = 0.0f,
+    float graph_roughness = 0.0f,
+    float graph_ao = 0.0f,
+    float graph_blend = 0.0f) {
   auto text__ = text ? _fbb.CreateString(text) : 0;
   return scene::CreateUITextComponentData(
       _fbb,
       text__,
       color,
       font_scale,
-      alignment);
+      alignment,
+      graph_id,
+      graph_metallic,
+      graph_roughness,
+      graph_ao,
+      graph_blend);
 }
 
 struct UIButtonComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -1821,7 +1891,12 @@ struct UIButtonComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Ta
     VT_FONT_SCALE = 16,
     VT_CORNER_ROUNDING = 18,
     VT_INTERACTABLE = 20,
-    VT_BLOCK_MOUSE_INPUT = 22
+    VT_BLOCK_MOUSE_INPUT = 22,
+    VT_GRAPH_ID = 24,
+    VT_GRAPH_METALLIC = 26,
+    VT_GRAPH_ROUGHNESS = 28,
+    VT_GRAPH_AO = 30,
+    VT_GRAPH_BLEND = 32
   };
   const ::flatbuffers::String *label() const {
     return GetPointer<const ::flatbuffers::String *>(VT_LABEL);
@@ -1853,6 +1928,21 @@ struct UIButtonComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Ta
   bool block_mouse_input() const {
     return GetField<uint8_t>(VT_BLOCK_MOUSE_INPUT, 0) != 0;
   }
+  float graph_id() const {
+    return GetField<float>(VT_GRAPH_ID, 0.0f);
+  }
+  float graph_metallic() const {
+    return GetField<float>(VT_GRAPH_METALLIC, 0.0f);
+  }
+  float graph_roughness() const {
+    return GetField<float>(VT_GRAPH_ROUGHNESS, 0.0f);
+  }
+  float graph_ao() const {
+    return GetField<float>(VT_GRAPH_AO, 0.0f);
+  }
+  float graph_blend() const {
+    return GetField<float>(VT_GRAPH_BLEND, 0.0f);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1868,6 +1958,11 @@ struct UIButtonComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Ta
            VerifyField<float>(verifier, VT_CORNER_ROUNDING, 4) &&
            VerifyField<uint8_t>(verifier, VT_INTERACTABLE, 1) &&
            VerifyField<uint8_t>(verifier, VT_BLOCK_MOUSE_INPUT, 1) &&
+           VerifyField<float>(verifier, VT_GRAPH_ID, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_METALLIC, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_ROUGHNESS, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_AO, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_BLEND, 4) &&
            verifier.EndTable();
   }
 };
@@ -1906,6 +2001,21 @@ struct UIButtonComponentDataBuilder {
   void add_block_mouse_input(bool block_mouse_input) {
     fbb_.AddElement<uint8_t>(UIButtonComponentData::VT_BLOCK_MOUSE_INPUT, static_cast<uint8_t>(block_mouse_input), 0);
   }
+  void add_graph_id(float graph_id) {
+    fbb_.AddElement<float>(UIButtonComponentData::VT_GRAPH_ID, graph_id, 0.0f);
+  }
+  void add_graph_metallic(float graph_metallic) {
+    fbb_.AddElement<float>(UIButtonComponentData::VT_GRAPH_METALLIC, graph_metallic, 0.0f);
+  }
+  void add_graph_roughness(float graph_roughness) {
+    fbb_.AddElement<float>(UIButtonComponentData::VT_GRAPH_ROUGHNESS, graph_roughness, 0.0f);
+  }
+  void add_graph_ao(float graph_ao) {
+    fbb_.AddElement<float>(UIButtonComponentData::VT_GRAPH_AO, graph_ao, 0.0f);
+  }
+  void add_graph_blend(float graph_blend) {
+    fbb_.AddElement<float>(UIButtonComponentData::VT_GRAPH_BLEND, graph_blend, 0.0f);
+  }
   explicit UIButtonComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1928,8 +2038,18 @@ inline ::flatbuffers::Offset<UIButtonComponentData> CreateUIButtonComponentData(
     float font_scale = 0.0f,
     float corner_rounding = 0.0f,
     bool interactable = false,
-    bool block_mouse_input = false) {
+    bool block_mouse_input = false,
+    float graph_id = 0.0f,
+    float graph_metallic = 0.0f,
+    float graph_roughness = 0.0f,
+    float graph_ao = 0.0f,
+    float graph_blend = 0.0f) {
   UIButtonComponentDataBuilder builder_(_fbb);
+  builder_.add_graph_blend(graph_blend);
+  builder_.add_graph_ao(graph_ao);
+  builder_.add_graph_roughness(graph_roughness);
+  builder_.add_graph_metallic(graph_metallic);
+  builder_.add_graph_id(graph_id);
   builder_.add_corner_rounding(corner_rounding);
   builder_.add_font_scale(font_scale);
   builder_.add_text_color(text_color);
@@ -1954,7 +2074,12 @@ inline ::flatbuffers::Offset<UIButtonComponentData> CreateUIButtonComponentDataD
     float font_scale = 0.0f,
     float corner_rounding = 0.0f,
     bool interactable = false,
-    bool block_mouse_input = false) {
+    bool block_mouse_input = false,
+    float graph_id = 0.0f,
+    float graph_metallic = 0.0f,
+    float graph_roughness = 0.0f,
+    float graph_ao = 0.0f,
+    float graph_blend = 0.0f) {
   auto label__ = label ? _fbb.CreateString(label) : 0;
   auto click_event_name__ = click_event_name ? _fbb.CreateString(click_event_name) : 0;
   return scene::CreateUIButtonComponentData(
@@ -1968,7 +2093,12 @@ inline ::flatbuffers::Offset<UIButtonComponentData> CreateUIButtonComponentDataD
       font_scale,
       corner_rounding,
       interactable,
-      block_mouse_input);
+      block_mouse_input,
+      graph_id,
+      graph_metallic,
+      graph_roughness,
+      graph_ao,
+      graph_blend);
 }
 
 struct UIImageComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -1976,7 +2106,12 @@ struct UIImageComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_TEXTURE_PATH = 4,
     VT_TINT_COLOR = 6,
-    VT_ALPHA = 8
+    VT_ALPHA = 8,
+    VT_GRAPH_ID = 10,
+    VT_GRAPH_METALLIC = 12,
+    VT_GRAPH_ROUGHNESS = 14,
+    VT_GRAPH_AO = 16,
+    VT_GRAPH_BLEND = 18
   };
   const ::flatbuffers::String *texture_path() const {
     return GetPointer<const ::flatbuffers::String *>(VT_TEXTURE_PATH);
@@ -1987,6 +2122,21 @@ struct UIImageComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
   float alpha() const {
     return GetField<float>(VT_ALPHA, 0.0f);
   }
+  float graph_id() const {
+    return GetField<float>(VT_GRAPH_ID, 0.0f);
+  }
+  float graph_metallic() const {
+    return GetField<float>(VT_GRAPH_METALLIC, 0.0f);
+  }
+  float graph_roughness() const {
+    return GetField<float>(VT_GRAPH_ROUGHNESS, 0.0f);
+  }
+  float graph_ao() const {
+    return GetField<float>(VT_GRAPH_AO, 0.0f);
+  }
+  float graph_blend() const {
+    return GetField<float>(VT_GRAPH_BLEND, 0.0f);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1994,6 +2144,11 @@ struct UIImageComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
            verifier.VerifyString(texture_path()) &&
            VerifyField<scene::vec4>(verifier, VT_TINT_COLOR, 4) &&
            VerifyField<float>(verifier, VT_ALPHA, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_ID, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_METALLIC, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_ROUGHNESS, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_AO, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_BLEND, 4) &&
            verifier.EndTable();
   }
 };
@@ -2011,6 +2166,21 @@ struct UIImageComponentDataBuilder {
   void add_alpha(float alpha) {
     fbb_.AddElement<float>(UIImageComponentData::VT_ALPHA, alpha, 0.0f);
   }
+  void add_graph_id(float graph_id) {
+    fbb_.AddElement<float>(UIImageComponentData::VT_GRAPH_ID, graph_id, 0.0f);
+  }
+  void add_graph_metallic(float graph_metallic) {
+    fbb_.AddElement<float>(UIImageComponentData::VT_GRAPH_METALLIC, graph_metallic, 0.0f);
+  }
+  void add_graph_roughness(float graph_roughness) {
+    fbb_.AddElement<float>(UIImageComponentData::VT_GRAPH_ROUGHNESS, graph_roughness, 0.0f);
+  }
+  void add_graph_ao(float graph_ao) {
+    fbb_.AddElement<float>(UIImageComponentData::VT_GRAPH_AO, graph_ao, 0.0f);
+  }
+  void add_graph_blend(float graph_blend) {
+    fbb_.AddElement<float>(UIImageComponentData::VT_GRAPH_BLEND, graph_blend, 0.0f);
+  }
   explicit UIImageComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2026,8 +2196,18 @@ inline ::flatbuffers::Offset<UIImageComponentData> CreateUIImageComponentData(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     ::flatbuffers::Offset<::flatbuffers::String> texture_path = 0,
     const scene::vec4 *tint_color = nullptr,
-    float alpha = 0.0f) {
+    float alpha = 0.0f,
+    float graph_id = 0.0f,
+    float graph_metallic = 0.0f,
+    float graph_roughness = 0.0f,
+    float graph_ao = 0.0f,
+    float graph_blend = 0.0f) {
   UIImageComponentDataBuilder builder_(_fbb);
+  builder_.add_graph_blend(graph_blend);
+  builder_.add_graph_ao(graph_ao);
+  builder_.add_graph_roughness(graph_roughness);
+  builder_.add_graph_metallic(graph_metallic);
+  builder_.add_graph_id(graph_id);
   builder_.add_alpha(alpha);
   builder_.add_tint_color(tint_color);
   builder_.add_texture_path(texture_path);
@@ -2038,13 +2218,145 @@ inline ::flatbuffers::Offset<UIImageComponentData> CreateUIImageComponentDataDir
     ::flatbuffers::FlatBufferBuilder &_fbb,
     const char *texture_path = nullptr,
     const scene::vec4 *tint_color = nullptr,
-    float alpha = 0.0f) {
+    float alpha = 0.0f,
+    float graph_id = 0.0f,
+    float graph_metallic = 0.0f,
+    float graph_roughness = 0.0f,
+    float graph_ao = 0.0f,
+    float graph_blend = 0.0f) {
   auto texture_path__ = texture_path ? _fbb.CreateString(texture_path) : 0;
   return scene::CreateUIImageComponentData(
       _fbb,
       texture_path__,
       tint_color,
-      alpha);
+      alpha,
+      graph_id,
+      graph_metallic,
+      graph_roughness,
+      graph_ao,
+      graph_blend);
+}
+
+struct UIPanelComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef UIPanelComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_BACKGROUND_COLOR = 4,
+    VT_BORDER_COLOR = 6,
+    VT_BORDER_WIDTH = 8,
+    VT_ALPHA = 10,
+    VT_GRAPH_ID = 12,
+    VT_GRAPH_METALLIC = 14,
+    VT_GRAPH_ROUGHNESS = 16,
+    VT_GRAPH_AO = 18,
+    VT_GRAPH_BLEND = 20
+  };
+  const scene::vec4 *background_color() const {
+    return GetStruct<const scene::vec4 *>(VT_BACKGROUND_COLOR);
+  }
+  const scene::vec4 *border_color() const {
+    return GetStruct<const scene::vec4 *>(VT_BORDER_COLOR);
+  }
+  float border_width() const {
+    return GetField<float>(VT_BORDER_WIDTH, 0.0f);
+  }
+  float alpha() const {
+    return GetField<float>(VT_ALPHA, 0.0f);
+  }
+  float graph_id() const {
+    return GetField<float>(VT_GRAPH_ID, 0.0f);
+  }
+  float graph_metallic() const {
+    return GetField<float>(VT_GRAPH_METALLIC, 0.0f);
+  }
+  float graph_roughness() const {
+    return GetField<float>(VT_GRAPH_ROUGHNESS, 0.0f);
+  }
+  float graph_ao() const {
+    return GetField<float>(VT_GRAPH_AO, 0.0f);
+  }
+  float graph_blend() const {
+    return GetField<float>(VT_GRAPH_BLEND, 0.0f);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<scene::vec4>(verifier, VT_BACKGROUND_COLOR, 4) &&
+           VerifyField<scene::vec4>(verifier, VT_BORDER_COLOR, 4) &&
+           VerifyField<float>(verifier, VT_BORDER_WIDTH, 4) &&
+           VerifyField<float>(verifier, VT_ALPHA, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_ID, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_METALLIC, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_ROUGHNESS, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_AO, 4) &&
+           VerifyField<float>(verifier, VT_GRAPH_BLEND, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct UIPanelComponentDataBuilder {
+  typedef UIPanelComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_background_color(const scene::vec4 *background_color) {
+    fbb_.AddStruct(UIPanelComponentData::VT_BACKGROUND_COLOR, background_color);
+  }
+  void add_border_color(const scene::vec4 *border_color) {
+    fbb_.AddStruct(UIPanelComponentData::VT_BORDER_COLOR, border_color);
+  }
+  void add_border_width(float border_width) {
+    fbb_.AddElement<float>(UIPanelComponentData::VT_BORDER_WIDTH, border_width, 0.0f);
+  }
+  void add_alpha(float alpha) {
+    fbb_.AddElement<float>(UIPanelComponentData::VT_ALPHA, alpha, 0.0f);
+  }
+  void add_graph_id(float graph_id) {
+    fbb_.AddElement<float>(UIPanelComponentData::VT_GRAPH_ID, graph_id, 0.0f);
+  }
+  void add_graph_metallic(float graph_metallic) {
+    fbb_.AddElement<float>(UIPanelComponentData::VT_GRAPH_METALLIC, graph_metallic, 0.0f);
+  }
+  void add_graph_roughness(float graph_roughness) {
+    fbb_.AddElement<float>(UIPanelComponentData::VT_GRAPH_ROUGHNESS, graph_roughness, 0.0f);
+  }
+  void add_graph_ao(float graph_ao) {
+    fbb_.AddElement<float>(UIPanelComponentData::VT_GRAPH_AO, graph_ao, 0.0f);
+  }
+  void add_graph_blend(float graph_blend) {
+    fbb_.AddElement<float>(UIPanelComponentData::VT_GRAPH_BLEND, graph_blend, 0.0f);
+  }
+  explicit UIPanelComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<UIPanelComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<UIPanelComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<UIPanelComponentData> CreateUIPanelComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const scene::vec4 *background_color = nullptr,
+    const scene::vec4 *border_color = nullptr,
+    float border_width = 0.0f,
+    float alpha = 0.0f,
+    float graph_id = 0.0f,
+    float graph_metallic = 0.0f,
+    float graph_roughness = 0.0f,
+    float graph_ao = 0.0f,
+    float graph_blend = 0.0f) {
+  UIPanelComponentDataBuilder builder_(_fbb);
+  builder_.add_graph_blend(graph_blend);
+  builder_.add_graph_ao(graph_ao);
+  builder_.add_graph_roughness(graph_roughness);
+  builder_.add_graph_metallic(graph_metallic);
+  builder_.add_graph_id(graph_id);
+  builder_.add_alpha(alpha);
+  builder_.add_border_width(border_width);
+  builder_.add_border_color(border_color);
+  builder_.add_background_color(background_color);
+  return builder_.Finish();
 }
 
 struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -2121,6 +2433,9 @@ struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   }
   const scene::CpuParticleComponentData *payload_as_CpuParticleComponentData() const {
     return payload_type() == scene::ComponentPayload_CpuParticleComponentData ? static_cast<const scene::CpuParticleComponentData *>(payload()) : nullptr;
+  }
+  const scene::UIPanelComponentData *payload_as_UIPanelComponentData() const {
+    return payload_type() == scene::ComponentPayload_UIPanelComponentData ? static_cast<const scene::UIPanelComponentData *>(payload()) : nullptr;
   }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
@@ -2205,6 +2520,10 @@ template<> inline const scene::UIImageComponentData *SerializedComponent::payloa
 
 template<> inline const scene::CpuParticleComponentData *SerializedComponent::payload_as<scene::CpuParticleComponentData>() const {
   return payload_as_CpuParticleComponentData();
+}
+
+template<> inline const scene::UIPanelComponentData *SerializedComponent::payload_as<scene::UIPanelComponentData>() const {
+  return payload_as_UIPanelComponentData();
 }
 
 struct SerializedComponentBuilder {
@@ -2535,6 +2854,10 @@ inline bool VerifyComponentPayload(::flatbuffers::VerifierTemplate<B> &verifier,
     }
     case ComponentPayload_CpuParticleComponentData: {
       auto ptr = reinterpret_cast<const scene::CpuParticleComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_UIPanelComponentData: {
+      auto ptr = reinterpret_cast<const scene::UIPanelComponentData *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;
