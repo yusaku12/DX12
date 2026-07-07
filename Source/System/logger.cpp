@@ -1,10 +1,18 @@
 #include "pch.h"
 
+#include <spdlog/pattern_formatter.h>
+#include <spdlog/sinks/msvc_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
 namespace
 {
     constexpr const char* kLogFileName = "DirectX12.log";
     constexpr const char* kLogDirectoryName = "DirectX12";
     constexpr const char* kLogSubDirectoryName = "Logs";
+    constexpr size_t kMaxLogEntries = 2048;
+    constexpr size_t kMaxLogFileSize = 2 * 1024 * 1024;
+    constexpr size_t kMaxLogFileCount = 5;
 }
 
 void Logger::setExternalSink(std::function<void(LogLevel, const std::string&)>&& sink)
@@ -21,10 +29,25 @@ void Logger::initialize()
         return;
     }
 
-    m_logDirectory = getLogBaseDirectory();
+    const std::filesystem::path logDirectory = getLogBaseDirectory();
     std::error_code ec;
-    std::filesystem::create_directories(m_logDirectory, ec);
-    openLogFile();
+    std::filesystem::create_directories(logDirectory, ec);
+
+    std::vector<spdlog::sink_ptr> sinks;
+    sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+    sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+        (logDirectory / kLogFileName).string(),
+        kMaxLogFileSize,
+        kMaxLogFileCount));
+#if defined(_WIN32)
+    sinks.push_back(std::make_shared<spdlog::sinks::msvc_sink_mt>());
+#endif
+
+    m_logger = std::make_shared<spdlog::logger>("dx12", sinks.begin(), sinks.end());
+    m_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%^%l%$] %v");
+    m_logger->set_level(spdlog::level::trace);
+    m_logger->flush_on(spdlog::level::warn);
+
     m_initialized = true;
 }
 
@@ -36,10 +59,10 @@ void Logger::shutdown()
         return;
     }
 
-    if (m_logFile.is_open())
+    if (m_logger)
     {
-        m_logFile.flush();
-        m_logFile.close();
+        m_logger->flush();
+        m_logger.reset();
     }
 
     m_initialized = false;
@@ -80,7 +103,6 @@ void Logger::log(LogLevel level, const std::string& message)
 {
     std::function<void(LogLevel, const std::string&)> externalSink;
     std::string consoleLine;
-    std::string fileLine;
     ImVec4 color = levelColor(level);
 
     {
@@ -94,21 +116,14 @@ void Logger::log(LogLevel level, const std::string& message)
 
         const char* levelLabel = levelName(level);
         consoleLine = std::format("[{}] {}", levelLabel, message);
-        fileLine = std::format("[{}][{}] {}", makeTimestampString(), levelLabel, message);
 
-        std::ostream* out = (level == LogLevel::INFO) ? static_cast<std::ostream*>(&std::cout) : static_cast<std::ostream*>(&std::cerr);
-        (*out) << consoleLine << std::endl;
-
-        if (m_logFile.is_open())
+        if (m_logger)
         {
-            rotateLogFilesIfNeeded();
-            m_logFile << fileLine << std::endl;
-            m_logFile.flush();
-            m_currentLogSize += fileLine.size() + 1;
+            m_logger->log(toSpdLevel(level), message);
         }
 
         m_imguiLogs.push_back({ consoleLine, color });
-        if (m_imguiLogs.size() > 2048)
+        if (m_imguiLogs.size() > kMaxLogEntries)
         {
             m_imguiLogs.erase(m_imguiLogs.begin());
         }
@@ -122,72 +137,19 @@ void Logger::log(LogLevel level, const std::string& message)
     }
 }
 
-void Logger::openLogFile()
+spdlog::level::level_enum Logger::toSpdLevel(LogLevel level)
 {
-    std::error_code ec;
-    m_logDirectory = getLogBaseDirectory();
-    std::filesystem::create_directories(m_logDirectory, ec);
-
-    m_currentLogFile = m_logDirectory / kLogFileName;
-    if (std::filesystem::exists(m_currentLogFile, ec))
+    switch (level)
     {
-        m_currentLogSize = std::filesystem::file_size(m_currentLogFile, ec);
+    case LogLevel::INFO:
+        return spdlog::level::info;
+    case LogLevel::WARN:
+        return spdlog::level::warn;
+    case LogLevel::ERROR:
+        return spdlog::level::err;
+    default:
+        return spdlog::level::info;
     }
-    else
-    {
-        m_currentLogSize = 0;
-    }
-
-    m_logFile.open(m_currentLogFile, std::ios::out | std::ios::app);
-}
-
-void Logger::rotateLogFilesIfNeeded()
-{
-    if (!m_logFile.is_open())
-    {
-        return;
-    }
-
-    if (m_currentLogSize < 2 * 1024 * 1024)
-    {
-        return;
-    }
-
-    m_logFile.flush();
-    m_logFile.close();
-
-    std::error_code ec;
-    for (int index = 4; index >= 1; --index)
-    {
-        std::filesystem::path source = (index == 1) ? m_currentLogFile : m_logDirectory / std::format("DirectX12.{}.log", index - 1);
-        std::filesystem::path destination = m_logDirectory / std::format("DirectX12.{}.log", index);
-
-        if (std::filesystem::exists(destination, ec))
-        {
-            std::filesystem::remove(destination, ec);
-        }
-
-        if (std::filesystem::exists(source, ec))
-        {
-            std::filesystem::rename(source, destination, ec);
-        }
-    }
-
-    m_currentLogSize = 0;
-    m_logFile.open(m_currentLogFile, std::ios::out | std::ios::trunc);
-}
-
-std::string Logger::makeTimestampString()
-{
-    SYSTEMTIME time{};
-    GetLocalTime(&time);
-    return std::format("{:04}{:02}{:02}_{:02}{:02}{:02}",
-        time.wYear,
-        time.wMonth,
-        time.wDay,
-        time.wHour,
-        time.wMinute,
-        time.wSecond);
 }
 
 const char* Logger::levelName(LogLevel level)

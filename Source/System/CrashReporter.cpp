@@ -1,11 +1,13 @@
 #include "pch.h"
 #include <dbghelp.h>
+#include <winhttp.h>
 #include <cctype>
 #include <cerrno>
 #include <cstdlib>
 #include <limits>
 
 #pragma comment(lib, "dbghelp.lib")
+#pragma comment(lib, "winhttp.lib")
 
 namespace
 {
@@ -98,6 +100,36 @@ namespace
         outPointer = reinterpret_cast<void*>(static_cast<uintptr_t>(parsed));
         return true;
     }
+
+    std::wstring readEnvVar(const wchar_t* key)
+    {
+        wchar_t buffer[1024]{};
+        const DWORD length = GetEnvironmentVariableW(key, buffer, static_cast<DWORD>(std::size(buffer)));
+        if (length == 0 || length >= std::size(buffer))
+        {
+            return L"";
+        }
+        return std::wstring(buffer, buffer + length);
+    }
+
+    std::string escapeJson(std::string_view text)
+    {
+        std::string out;
+        out.reserve(text.size() + 16);
+        for (char ch : text)
+        {
+            switch (ch)
+            {
+            case '\\': out += "\\\\"; break;
+            case '"': out += "\\\""; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default: out += ch; break;
+            }
+        }
+        return out;
+    }
 }
 
 void CrashReporter::initialize()
@@ -118,6 +150,13 @@ void CrashReporter::initialize()
 
         m_previousUnhandledExceptionFilter = SetUnhandledExceptionFilter(&CrashReporter::unhandledExceptionFilter);
         m_previousTerminateHandler = std::set_terminate(&CrashReporter::terminateHandler);
+
+        if (m_uploadSettings.endpointUrl.empty())
+        {
+            m_uploadSettings.endpointUrl = readEnvVar(L"DX12_CRASH_UPLOAD_URL");
+            m_uploadSettings.bearerToken = readEnvVar(L"DX12_CRASH_UPLOAD_TOKEN");
+        }
+
         m_initialized = true;
     }
 
@@ -162,6 +201,19 @@ void CrashReporter::setQueueDirectory(const std::filesystem::path& queueDirector
     m_queueDirectory = queueDirectory;
 }
 
+void CrashReporter::setUploadEndpoint(const std::wstring& endpointUrl, const std::wstring& bearerToken)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_uploadSettings.endpointUrl = endpointUrl;
+    m_uploadSettings.bearerToken = bearerToken;
+}
+
+void CrashReporter::clearUploadEndpoint()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_uploadSettings = {};
+}
+
 void CrashReporter::dispatchPendingReports()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -193,6 +245,7 @@ void CrashReporter::handleTerminate()
 bool CrashReporter::writeDump(EXCEPTION_POINTERS* exceptionPointers, const std::wstring& description)
 {
     ExternalCrashSink externalSink;
+    UploadSettings uploadSettings;
     std::filesystem::path queueDirectory;
     CrashReport report;
     report.schemaVersion = kCrashMetadataSchemaVersion;
@@ -221,6 +274,7 @@ bool CrashReporter::writeDump(EXCEPTION_POINTERS* exceptionPointers, const std::
         report.metadataPath = buildMetadataPath(report.crashId);
         queueDirectory = m_queueDirectory;
         externalSink = m_externalSink;
+        uploadSettings = m_uploadSettings;
     }
 
     report.exceptionCode = exceptionPointers && exceptionPointers->ExceptionRecord ? exceptionPointers->ExceptionRecord->ExceptionCode : 0;
@@ -269,16 +323,18 @@ bool CrashReporter::writeDump(EXCEPTION_POINTERS* exceptionPointers, const std::
     writeMetadataFile(report);
     enqueueReport(report, queueDirectory);
 
+    const bool uploaded = sendReportToEndpoint(report, uploadSettings);
+
     if (externalSink)
     {
         externalSink(report);
+    }
 
+    if (uploaded || externalSink)
+    {
         std::error_code ec;
-        if (!queueDirectory.empty())
-        {
-            const std::filesystem::path queueFile = queueDirectory / (report.crashId + L".crashmeta");
-            std::filesystem::remove(queueFile, ec);
-        }
+        const std::filesystem::path queueFile = queueDirectory / (report.crashId + L".crashmeta");
+        std::filesystem::remove(queueFile, ec);
     }
 
     return true;
@@ -340,7 +396,7 @@ bool CrashReporter::enqueueReport(const CrashReport& report, const std::filesyst
 
 void CrashReporter::dispatchPendingReportsLocked()
 {
-    if (!m_externalSink)
+    if (!m_externalSink && m_uploadSettings.endpointUrl.empty())
     {
         return;
     }
@@ -368,6 +424,7 @@ void CrashReporter::dispatchPendingReportsLocked()
     }
 
     ExternalCrashSink sink = m_externalSink;
+    const UploadSettings uploadSettings = m_uploadSettings;
     for (const auto& queueFile : queueFiles)
     {
         CrashReport report;
@@ -379,9 +436,140 @@ void CrashReporter::dispatchPendingReportsLocked()
         }
 
         report.recoveredFromQueue = true;
-        sink(report);
-        std::filesystem::remove(queueFile, ec);
+
+        bool delivered = false;
+        if (sink)
+        {
+            sink(report);
+            delivered = true;
+        }
+        if (sendReportToEndpoint(report, uploadSettings))
+        {
+            delivered = true;
+        }
+
+        if (delivered)
+        {
+            std::filesystem::remove(queueFile, ec);
+        }
     }
+}
+
+bool CrashReporter::sendReportToEndpoint(const CrashReport& report, const UploadSettings& settings) const
+{
+    if (settings.endpointUrl.empty())
+    {
+        return false;
+    }
+
+    URL_COMPONENTS components{};
+    components.dwStructSize = sizeof(components);
+
+    std::wstring hostName(256, L'\0');
+    std::wstring urlPath(2048, L'\0');
+    components.lpszHostName = hostName.data();
+    components.dwHostNameLength = static_cast<DWORD>(hostName.size());
+    components.lpszUrlPath = urlPath.data();
+    components.dwUrlPathLength = static_cast<DWORD>(urlPath.size());
+
+    if (!WinHttpCrackUrl(settings.endpointUrl.c_str(), 0, 0, &components))
+    {
+        LOG_WARN("[CrashReporter] Invalid upload URL");
+        return false;
+    }
+
+    hostName.resize(components.dwHostNameLength);
+    urlPath.resize(components.dwUrlPathLength);
+    const bool secure = components.nScheme == INTERNET_SCHEME_HTTPS;
+
+    HINTERNET session = WinHttpOpen(L"DX12-CrashReporter/1.0", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!session)
+    {
+        return false;
+    }
+
+    HINTERNET connection = WinHttpConnect(session, hostName.c_str(), components.nPort, 0);
+    if (!connection)
+    {
+        WinHttpCloseHandle(session);
+        return false;
+    }
+
+    HINTERNET request = WinHttpOpenRequest(
+        connection,
+        L"POST",
+        urlPath.c_str(),
+        nullptr,
+        WINHTTP_NO_REFERER,
+        WINHTTP_DEFAULT_ACCEPT_TYPES,
+        secure ? WINHTTP_FLAG_SECURE : 0);
+
+    if (!request)
+    {
+        WinHttpCloseHandle(connection);
+        WinHttpCloseHandle(session);
+        return false;
+    }
+
+    std::wstring headers = L"Content-Type: application/json\r\n";
+    if (!settings.bearerToken.empty())
+    {
+        headers += L"Authorization: Bearer " + settings.bearerToken + L"\r\n";
+    }
+
+    const std::string payload = buildUploadPayload(report);
+    const BOOL sendOk = WinHttpSendRequest(
+        request,
+        headers.c_str(),
+        static_cast<DWORD>(headers.size()),
+        payload.empty() ? WINHTTP_NO_REQUEST_DATA : const_cast<char*>(payload.data()),
+        static_cast<DWORD>(payload.size()),
+        static_cast<DWORD>(payload.size()),
+        0);
+
+    bool success = false;
+    if (sendOk && WinHttpReceiveResponse(request, nullptr))
+    {
+        DWORD statusCode = 0;
+        DWORD statusCodeSize = sizeof(statusCode);
+        if (WinHttpQueryHeaders(request,
+            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+            WINHTTP_HEADER_NAME_BY_INDEX,
+            &statusCode,
+            &statusCodeSize,
+            WINHTTP_NO_HEADER_INDEX))
+        {
+            success = statusCode >= 200 && statusCode < 300;
+        }
+    }
+
+    WinHttpCloseHandle(request);
+    WinHttpCloseHandle(connection);
+    WinHttpCloseHandle(session);
+    return success;
+}
+
+std::string CrashReporter::buildUploadPayload(const CrashReport& report)
+{
+    const std::string crashId = escapeJson(wstringToString(report.crashId));
+    const std::string description = escapeJson(wstringToString(report.description));
+    const std::string dumpPath = escapeJson(report.dumpPath.generic_string());
+    const std::string metadataPath = escapeJson(report.metadataPath.generic_string());
+    const std::string exceptionAddress = escapeJson(pointerToString(report.exceptionAddress));
+
+    return std::format(
+        "{{\"schemaVersion\":{},\"crashId\":\"{}\",\"description\":\"{}\",\"dumpPath\":\"{}\",\"metadataPath\":\"{}\",\"exceptionCode\":{},\"exceptionAddress\":\"{}\",\"processId\":{},\"threadId\":{},\"timestampUtcMs\":{},\"recoveredFromQueue\":{}}}",
+        report.schemaVersion,
+        crashId,
+        description,
+        dumpPath,
+        metadataPath,
+        report.exceptionCode,
+        exceptionAddress,
+        report.processId,
+        report.threadId,
+        report.timestampUtcMilliseconds,
+        report.recoveredFromQueue ? "true" : "false");
 }
 
 std::filesystem::path CrashReporter::resolveDumpDirectory() const

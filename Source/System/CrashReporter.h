@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <functional>
 #include <mutex>
+#include <string>
 
 struct CrashReport
 {
@@ -25,6 +26,12 @@ class CrashReporter
 public:
     using ExternalCrashSink = std::function<void(const CrashReport&)>;
 
+    struct UploadSettings
+    {
+        std::wstring endpointUrl;
+        std::wstring bearerToken;
+    };
+
     static CrashReporter& Instance()
     {
         static CrashReporter instance;
@@ -37,6 +44,8 @@ public:
     void setExternalSink(ExternalCrashSink sink);
     void setDumpDirectory(const std::filesystem::path& dumpDirectory);
     void setQueueDirectory(const std::filesystem::path& queueDirectory);
+    void setUploadEndpoint(const std::wstring& endpointUrl, const std::wstring& bearerToken = L"");
+    void clearUploadEndpoint();
     void dispatchPendingReports();
 
     static LONG WINAPI unhandledExceptionFilter(EXCEPTION_POINTERS* exceptionPointers);
@@ -56,6 +65,8 @@ private:
     bool writeDump(EXCEPTION_POINTERS* exceptionPointers, const std::wstring& description);
     bool writeMetadataFile(const CrashReport& report) const;
     bool enqueueReport(const CrashReport& report, const std::filesystem::path& queueDirectory) const;
+    bool sendReportToEndpoint(const CrashReport& report, const UploadSettings& settings) const;
+    static std::string buildUploadPayload(const CrashReport& report);
     void dispatchPendingReportsLocked();
     std::filesystem::path resolveDumpDirectory() const;
     std::filesystem::path resolveQueueDirectory() const;
@@ -67,6 +78,7 @@ private:
 
     std::mutex m_mutex;
     ExternalCrashSink m_externalSink;
+    UploadSettings m_uploadSettings;
     std::filesystem::path m_dumpDirectory;
     std::filesystem::path m_queueDirectory;
     LPTOP_LEVEL_EXCEPTION_FILTER m_previousUnhandledExceptionFilter = nullptr;

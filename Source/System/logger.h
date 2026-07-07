@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <spdlog/logger.h>
+
 //! ログレベル
 enum class LogLevel : int
 {
@@ -58,17 +60,11 @@ private:
     //! 実際のログ出力処理
     void log(LogLevel level, const std::string& message);
 
-    //! ファイルを開く
-    void openLogFile();
-
-    //! ローテーション処理
-    void rotateLogFilesIfNeeded();
+    //! レベル変換
+    static spdlog::level::level_enum toSpdLevel(LogLevel level);
 
     //! ログ保存先ベースディレクトリ
     static std::filesystem::path getLogBaseDirectory();
-
-    //! 現在時刻をファイル名向けに文字列化
-    static std::string makeTimestampString();
 
     //! ログレベル文字列
     static const char* levelName(LogLevel level);
@@ -86,9 +82,6 @@ private:
     std::mutex m_mutex;                     //!< スレッド安全用
     std::vector<ImGuiLogEntry> m_imguiLogs; //!< ImGui 用ログ
     std::function<void(LogLevel, const std::string&)> m_externalSink; //!< 外部連携フック
-    std::filesystem::path m_logDirectory;   //!< ログ保存先ディレクトリ
-    std::filesystem::path m_currentLogFile; //!< 現在のログファイル
-    std::ofstream m_logFile;                //!< ファイル出力
-    std::uintmax_t m_currentLogSize = 0;    //!< 現在サイズ
+    std::shared_ptr<spdlog::logger> m_logger; //!< spdlog ロガー
     bool m_initialized = false;             //!< 初期化済み
 };

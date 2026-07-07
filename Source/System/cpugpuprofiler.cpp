@@ -18,6 +18,8 @@ namespace
 
 CpuGpuProfiler::CpuGpuProfiler()
 {
+    ZoneScopedN("CpuGpuProfiler::Ctor");
+
     const auto& dx12 = DX12::Instance();
 
     // GPU周波数取得
@@ -89,6 +91,8 @@ CpuGpuProfiler::CpuGpuProfiler()
 
 void CpuGpuProfiler::beginFrame(ID3D12GraphicsCommandList* cmd)
 {
+    ZoneScopedN("CpuGpuProfiler::beginFrame");
+
     consumeCompletedFrame();
     sampleMemoryStats();
 
@@ -109,6 +113,8 @@ void CpuGpuProfiler::beginFrame(ID3D12GraphicsCommandList* cmd)
 
 void CpuGpuProfiler::endFrame(ID3D12GraphicsCommandList* cmd)
 {
+    ZoneScopedN("CpuGpuProfiler::endFrame");
+
     auto& frame = m_frames[m_currentFrameIndex];
 
     {
@@ -153,6 +159,8 @@ void CpuGpuProfiler::endFrame(ID3D12GraphicsCommandList* cmd)
 
 CpuGpuProfiler::GpuScopeToken CpuGpuProfiler::beginGpuScope(ID3D12GraphicsCommandList* cmd, const char* name)
 {
+    ZoneScopedN("CpuGpuProfiler::beginGpuScope");
+
     GpuScopeToken token{};
 
     if (!cmd || !name || name[0] == '\0')
@@ -179,6 +187,8 @@ CpuGpuProfiler::GpuScopeToken CpuGpuProfiler::beginGpuScope(ID3D12GraphicsComman
 
 void CpuGpuProfiler::endGpuScope(ID3D12GraphicsCommandList* cmd, GpuScopeToken token)
 {
+    ZoneScopedN("CpuGpuProfiler::endGpuScope");
+
     if (!token.valid || !cmd)
     {
         return;
@@ -234,6 +244,8 @@ bool CpuGpuProfiler::allocateQuery(QueryFrameData& frame, UINT& outQueryIndex)
 
 void CpuGpuProfiler::consumeCompletedFrame()
 {
+    ZoneScopedN("CpuGpuProfiler::consumeCompletedFrame");
+
     if (!m_hasCompletedFrame)
     {
         return;
@@ -315,6 +327,8 @@ void CpuGpuProfiler::consumeCompletedFrame()
 
 void CpuGpuProfiler::sampleMemoryStats()
 {
+    ZoneScopedN("CpuGpuProfiler::sampleMemoryStats");
+
     PROCESS_MEMORY_COUNTERS_EX mem = {};
     if (GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&mem), sizeof(mem)))
     {

@@ -42,6 +42,11 @@
 #include <deque>
 #include <unordered_set>
 
+#pragma warning(push)
+#pragma warning(disable:4366)
+#include <tracy/Tracy.hpp>
+#pragma warning(pop)
+
 #undef ERROR
 #undef OPAQUE
 

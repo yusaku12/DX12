@@ -20,6 +20,8 @@ void TimeManager::initialize()
 
 void TimeManager::update()
 {
+    ZoneScopedN("TimeManager::update");
+
     using namespace std::chrono;
 
     // 現在時間
@@ -73,6 +75,8 @@ void TimeManager::update()
 
 void TimeManager::frameStart(ID3D12GraphicsCommandList* cmd)
 {
+    ZoneScopedN("TimeManager::frameStart");
+
     MemorySystem::Instance().beginFrame();
 
     // プロファイラ更新(書き込み開始)
@@ -81,6 +85,8 @@ void TimeManager::frameStart(ID3D12GraphicsCommandList* cmd)
 
 void TimeManager::frameEnd(ID3D12GraphicsCommandList* cmd)
 {
+    ZoneScopedN("TimeManager::frameEnd");
+
     // プロファイラ更新(書き込み終了)
     m_profiler.endFrame(cmd);
 
@@ -89,6 +95,8 @@ void TimeManager::frameEnd(ID3D12GraphicsCommandList* cmd)
 
     // プロファイラにFPS記録
     m_profiler.recordFps(static_cast<float>(m_fps));
+
+    FrameMark;
 }
 
 void TimeManager::imgui()
@@ -102,6 +110,8 @@ void TimeManager::imgui()
 
 void TimeManager::renderProfilerContents()
 {
+    ZoneScopedN("TimeManager::renderProfilerContents");
+
     ImGui::Text("Delta: %.5f  (Unscaled: %.5f)", m_deltaTime, m_unscaledDeltaTime);
     ImGui::Text("Time : %.2f  (Unscaled: %.2f)", m_time, m_unscaledTime);
     ImGui::Text("SmoothDelta: %.5f", m_smoothDeltaTime);

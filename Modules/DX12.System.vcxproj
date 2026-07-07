@@ -16,7 +16,15 @@
   <Import Project="..\DX12.Module.Common.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"><TargetName>DX12.System</TargetName></PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'"><TargetName>DX12.System</TargetName></PropertyGroup>
-  <ItemGroup><ClCompile Include="..\Source\System\*.cpp" /></ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Source\System\*.cpp" />
+    <ClCompile Include="..\External\tracy\public\TracyClient.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/wd4366 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/wd4366 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemGroup>
   <ItemGroup><ClInclude Include="..\Source\System\*.h" /></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /><ImportGroup Label="ExtensionTargets" />
 </Project>
