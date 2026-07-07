@@ -24,7 +24,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External\spdlog\include;..\External\tracy\public;..\External\taskflow;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External\spdlog\include;..\External\tracy\public;..\External\taskflow;..\External\recastnavigation\Detour\Include;..\External\recastnavigation\Recast\Include;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -48,7 +48,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External\spdlog\include;..\External\tracy\public;..\External\taskflow;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External\spdlog\include;..\External\tracy\public;..\External\taskflow;..\External\recastnavigation\Detour\Include;..\External\recastnavigation\Recast\Include;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
