@@ -2,183 +2,322 @@
 #include "UI/UIFontManager.h"
 #include "UIFontManager.h"
 
-void UIFontManager::initialize(const std::wstring& fontFace, int pixelHeight)
+#include <msdfgen.h>
+#include <msdfgen-ext.h>
+
+namespace
 {
-    if (m_initialized) return;
-
-    m_lineHeight = static_cast<float>(pixelHeight);
-
-    // 笏笏 GDI 繧ｳ繝ｳ繝・く繧ｹ繝域ｺ門ｙ 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
-    HDC hdc = CreateCompatibleDC(nullptr);
-    SetBkMode(hdc, TRANSPARENT);
-    SetTextColor(hdc, RGB(255, 255, 255));
-    SetBkColor(hdc, RGB(0, 0, 0));
-
-    HFONT hFont = CreateFontW(
-        -pixelHeight,           // 譁・ｭ励そ繝ｫ縺ｮ鬮倥＆・郁ｲ蛟､ = 繝斐け繧ｻ繝ｫ謖・ｮ夲ｼ・
-        0,                      // 蟷ｳ蝮・枚蟄怜ｹ・ｼ・ = 閾ｪ蜍包ｼ・
-        0, 0,                   // 蛯ｾ縺阪・蛯ｾ縺崎ｧ貞ｺｦ
-        FW_NORMAL,              // 螟ｪ縺・
-        FALSE, FALSE, FALSE,    // italic, underline, strikeout
-        DEFAULT_CHARSET,
-        OUT_TT_PRECIS,          // TrueType 蜆ｪ蜈・
-        CLIP_DEFAULT_PRECIS,
-        ANTIALIASED_QUALITY,    // 繧｢繝ｳ繝√お繧､繝ｪ繧｢繧ｹ
-        DEFAULT_PITCH | FF_DONTCARE,
-        fontFace.c_str()
-    );
-
-    if (!hFont)
+    std::string toUtf8(const std::wstring& text)
     {
-        // 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ: Arial
-        hFont = CreateFontW(-pixelHeight, 0, 0, 0, FW_NORMAL,
-            FALSE, FALSE, FALSE, DEFAULT_CHARSET,
-            OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
-            ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Arial");
+        if (text.empty())
+        {
+            return {};
+        }
+
+        const int size = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+        if (size <= 0)
+        {
+            return {};
+        }
+
+        std::string out(static_cast<size_t>(size), '\0');
+        const int written = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), out.data(), size, nullptr, nullptr);
+        if (written != size)
+        {
+            return {};
+        }
+
+        return out;
     }
 
-    SelectObject(hdc, hFont);
+    uint8_t toByte(float value)
+    {
+        const float clamped = std::clamp(value, 0.0f, 1.0f);
+        return static_cast<uint8_t>(std::lround(clamped * 255.0f));
+    }
+}
 
-    // 笏笏 繧｢繝医Λ繧ｹ繝舌ャ繝輔ぃ・・8_UNORM・俄楳笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
-    std::vector<uint8_t> atlasData(k_atlasWidth * k_atlasHeight, 0);
+void UIFontManager::initialize(const std::wstring& fontFace, int pixelHeight)
+{
+    if (m_initialized)
+    {
+        return;
+    }
+
+    m_lineHeight = static_cast<float>(std::max(8, pixelHeight));
+    m_baseFontPixels = m_lineHeight;
+
+    std::filesystem::path fontPath;
+    if (!resolveFontPath(fontFace, fontPath))
+    {
+        LOG_ERROR("UIFontManager: failed to resolve font path (face=%s)", toUtf8(fontFace).c_str());
+        return;
+    }
+
+    msdfgen::FreetypeHandle* ft = msdfgen::initializeFreetype();
+    if (!ft)
+    {
+        LOG_ERROR("UIFontManager: initializeFreetype failed");
+        return;
+    }
+
+    const std::string fontPathUtf8 = fontPath.string();
+    msdfgen::FontHandle* font = msdfgen::loadFont(ft, fontPathUtf8.c_str());
+    if (!font)
+    {
+        msdfgen::deinitializeFreetype(ft);
+        LOG_ERROR("UIFontManager: loadFont failed (%s)", fontPathUtf8.c_str());
+        return;
+    }
+
+    msdfgen::FontMetrics metrics{};
+    if (!msdfgen::getFontMetrics(metrics, font, msdfgen::FONT_SCALING_EM_NORMALIZED))
+    {
+        msdfgen::destroyFont(font);
+        msdfgen::deinitializeFreetype(ft);
+        LOG_ERROR("UIFontManager: getFontMetrics failed (%s)", fontPathUtf8.c_str());
+        return;
+    }
+
+    m_lineHeight = static_cast<float>(std::max(1.0, metrics.lineHeight * m_baseFontPixels));
+
+    std::vector<uint8_t> atlasData(static_cast<size_t>(k_atlasWidth) * k_atlasHeight * 4, 0);
 
     int penX = 1;
     int penY = 1;
     int rowH = 0;
 
-    // ASCII 32縲・26・医せ繝壹・繧ｹ縲懊メ繝ｫ繝・・
-    for (uint32_t cp = 32; cp < 127; ++cp)
+    for (uint32_t cp = k_firstCodepoint; cp < k_lastCodepointExclusive; ++cp)
     {
-        bakeGlyph(hdc, static_cast<wchar_t>(cp),
-                  atlasData, k_atlasWidth, k_atlasHeight,
-                  penX, penY, rowH);
+        msdfgen::Shape shape;
+        double advanceEm = 0.0;
+        if (!msdfgen::loadGlyph(shape, font, cp, msdfgen::FONT_SCALING_EM_NORMALIZED, &advanceEm))
+        {
+            UIGlyphInfo fallback{};
+            fallback.advance = static_cast<float>(advanceEm * m_baseFontPixels);
+            m_glyphs[cp] = fallback;
+            continue;
+        }
+
+        UIGlyphInfo info{};
+        info.advance = static_cast<float>(advanceEm * m_baseFontPixels);
+
+        if (shape.contours.empty())
+        {
+            m_glyphs[cp] = info;
+            continue;
+        }
+
+        shape.normalize();
+        msdfgen::edgeColoringSimple(shape, 3.0, cp * 977u);
+
+        const msdfgen::Shape::Bounds bounds = shape.getBounds();
+        const double boundsW = bounds.r - bounds.l;
+        const double boundsH = bounds.t - bounds.b;
+        if (boundsW <= 0.0 || boundsH <= 0.0)
+        {
+            m_glyphs[cp] = info;
+            continue;
+        }
+
+        const double padding = 2.0;
+        const double targetSize = static_cast<double>(k_msdfGlyphBitmapSize) - 2.0 * padding;
+        const double scale = std::min(targetSize / boundsW, targetSize / boundsH);
+        const msdfgen::Vector2 translate(padding - bounds.l * scale, padding - bounds.b * scale);
+        const msdfgen::SDFTransformation transform(msdfgen::Projection(scale, translate), msdfgen::Range(k_msdfPixelRange));
+
+        msdfgen::Bitmap<float, 3> msdf(k_msdfGlyphBitmapSize, k_msdfGlyphBitmapSize);
+        msdfgen::generateMSDF(msdf, shape, transform);
+
+        if (penX + k_msdfGlyphBitmapSize + 1 > k_atlasWidth)
+        {
+            penX = 1;
+            penY += rowH + 2;
+            rowH = 0;
+        }
+
+        if (penY + k_msdfGlyphBitmapSize + 1 > k_atlasHeight)
+        {
+            LOG_WARN("UIFontManager: atlas full, skipping codepoint %u", cp);
+            break;
+        }
+
+        for (int y = 0; y < k_msdfGlyphBitmapSize; ++y)
+        {
+            for (int x = 0; x < k_msdfGlyphBitmapSize; ++x)
+            {
+                const float* value = msdf(x, y);
+                const size_t atlasIndex = (static_cast<size_t>(penY + y) * k_atlasWidth + (penX + x)) * 4;
+                atlasData[atlasIndex + 0] = toByte(value[0]);
+                atlasData[atlasIndex + 1] = toByte(value[1]);
+                atlasData[atlasIndex + 2] = toByte(value[2]);
+                atlasData[atlasIndex + 3] = 255;
+            }
+        }
+
+        info.uv0 = Vector2(static_cast<float>(penX) / k_atlasWidth, static_cast<float>(penY) / k_atlasHeight);
+        info.uv1 = Vector2(static_cast<float>(penX + k_msdfGlyphBitmapSize) / k_atlasWidth,
+                           static_cast<float>(penY + k_msdfGlyphBitmapSize) / k_atlasHeight);
+        info.bearingX = static_cast<float>(bounds.l * m_baseFontPixels);
+        info.bearingY = static_cast<float>(bounds.t * m_baseFontPixels);
+        info.width = static_cast<float>(boundsW * m_baseFontPixels);
+        info.height = static_cast<float>(boundsH * m_baseFontPixels);
+
+        m_glyphs[cp] = info;
+
+        penX += k_msdfGlyphBitmapSize + 2;
+        rowH = std::max(rowH, k_msdfGlyphBitmapSize);
     }
 
-    DeleteObject(hFont);
-    DeleteDC(hdc);
+    for (uint32_t left = k_firstCodepoint; left < k_lastCodepointExclusive; ++left)
+    {
+        for (uint32_t right = k_firstCodepoint; right < k_lastCodepointExclusive; ++right)
+        {
+            double kerningEm = 0.0;
+            if (!msdfgen::getKerning(kerningEm, font, left, right, msdfgen::FONT_SCALING_EM_NORMALIZED))
+            {
+                continue;
+            }
 
-    // 笏笏 DX12 繝・け繧ｹ繝√Ε縺ｸ繧｢繝・・繝ｭ繝ｼ繝・笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+            if (std::abs(kerningEm) < 0.000001)
+            {
+                continue;
+            }
+
+            m_kerningPairs[makeKerningKey(left, right)] = static_cast<float>(kerningEm * m_baseFontPixels);
+        }
+    }
+
+    msdfgen::destroyFont(font);
+    msdfgen::deinitializeFreetype(ft);
+
     m_atlasTexture = DXMem::makeUnique<LoadTexture>(
-        k_atlasWidth, k_atlasHeight,
-        DXGI_FORMAT_R8_UNORM,
+        k_atlasWidth,
+        k_atlasHeight,
+        DXGI_FORMAT_R8G8B8A8_UNORM,
         atlasData.data(),
         atlasData.size());
 
-    m_initialized = true;
-    LOG_INFO("UIFontManager: font atlas baked ({} x {})", k_atlasWidth, k_atlasHeight);
+    m_initialized = m_atlasTexture && m_atlasTexture->isValid();
+
+    if (!m_initialized)
+    {
+        m_glyphs.clear();
+        m_kerningPairs.clear();
+        m_atlasTexture.reset();
+        LOG_ERROR("UIFontManager: atlas texture creation failed");
+        return;
+    }
+
+    LOG_INFO("UIFontManager: MSDF atlas baked (%d x %d) font=%s", k_atlasWidth, k_atlasHeight, fontPathUtf8.c_str());
 }
 
 void UIFontManager::shutdown()
 {
     m_atlasTexture.reset();
     m_glyphs.clear();
+    m_kerningPairs.clear();
     m_initialized = false;
-}
-
-bool UIFontManager::bakeGlyph(HDC hdc,
-                              wchar_t ch,
-                              std::vector<uint8_t>& atlasData,
-                              int atlasW, int atlasH,
-                              int& penX, int& penY, int& rowH)
-{
-    GLYPHMETRICS gm{};
-    MAT2 mat2 = { {0, 1}, {0, 0}, {0, 0}, {0, 1} };
-
-    //! 繝舌ャ繝輔ぃ繧ｵ繧､繧ｺ繧貞叙蠕暦ｼ・GO_GRAY8_BITMAP = 64 谿ｵ髫弱げ繝ｬ繝ｼ繧ｹ繧ｱ繝ｼ繝ｫ・・
-    const DWORD bufSize = GetGlyphOutlineW(
-        hdc, static_cast<UINT>(ch),
-        GGO_GRAY8_BITMAP, &gm, 0, nullptr, &mat2);
-
-    //! 繧ｹ繝壹・繧ｹ縺ｪ縺ｩ遨ｺ繧ｰ繝ｪ繝輔・ GLYPHMETRICS 縺ｮ advance 縺縺醍匳骭ｲ
-    const int glyphW   = static_cast<int>((gm.gmBlackBoxX + 3) & ~3u); // 4 繝舌う繝医い繝ｩ繧､繝ｳ
-    const int glyphH   = static_cast<int>(gm.gmBlackBoxY);
-    const bool hasPixel = (bufSize != GDI_ERROR && bufSize > 0 && glyphH > 0);
-
-    if (hasPixel)
-    {
-        // 陦後∪縺溘℃繝√ぉ繝・け
-        if (penX + glyphW + 1 > atlasW)
-        {
-            penX  = 1;
-            penY += rowH + 2;
-            rowH  = 0;
-        }
-
-        if (penY + glyphH + 1 > atlasH)
-        {
-            LOG_WARN("UIFontManager: atlas full, skipping codepoint {}", (int)ch);
-            return false;
-        }
-
-        std::vector<uint8_t> glyphBuf(bufSize, 0);
-        GetGlyphOutlineW(hdc, static_cast<UINT>(ch),
-                         GGO_GRAY8_BITMAP, &gm,
-                         bufSize, glyphBuf.data(), &mat2);
-
-        // GGO_GRAY8 縺ｮ蛟､縺ｯ 0縲・4 竊・0縲・55 縺ｫ繧ｹ繧ｱ繝ｼ繝ｫ
-        for (int row = 0; row < glyphH; ++row)
-        {
-            for (int col = 0; col < static_cast<int>(gm.gmBlackBoxX); ++col)
-            {
-                const uint8_t v = glyphBuf[static_cast<size_t>(row * glyphW + col)];
-                atlasData[static_cast<size_t>((penY + row) * atlasW + penX + col)]
-                    = static_cast<uint8_t>((static_cast<uint32_t>(v) * 255u) / 64u);
-            }
-        }
-
-        UIGlyphInfo info{};
-        info.uv0      = Vector2(static_cast<float>(penX)                  / atlasW,
-                                static_cast<float>(penY)                  / atlasH);
-        info.uv1      = Vector2(static_cast<float>(penX + gm.gmBlackBoxX) / atlasW,
-                                static_cast<float>(penY + glyphH)         / atlasH);
-        info.advance  = static_cast<float>(gm.gmCellIncX);
-        info.bearingX = static_cast<float>(gm.gmptGlyphOrigin.x);
-        info.bearingY = static_cast<float>(gm.gmptGlyphOrigin.y);
-        info.width    = static_cast<float>(gm.gmBlackBoxX);
-        info.height   = static_cast<float>(glyphH);
-        m_glyphs[static_cast<uint32_t>(ch)] = info;
-
-        penX += glyphW + 2;
-        rowH  = std::max(rowH, glyphH);
-    }
-    else
-    {
-        //! 遨ｺ繧ｰ繝ｪ繝包ｼ医せ繝壹・繧ｹ遲会ｼ・ advance 縺ｮ縺ｿ逋ｻ骭ｲ
-        UIGlyphInfo info{};
-        info.uv0     = Vector2(0.f, 0.f);
-        info.uv1     = Vector2(0.f, 0.f);
-        info.advance = static_cast<float>(gm.gmCellIncX);
-        info.width   = 0.f;
-        info.height  = 0.f;
-        m_glyphs[static_cast<uint32_t>(ch)] = info;
-    }
-
-    return true;
 }
 
 const UIGlyphInfo* UIFontManager::getGlyph(uint32_t codepoint) const
 {
-    auto it = m_glyphs.find(codepoint);
+    const auto it = m_glyphs.find(codepoint);
     return (it != m_glyphs.end()) ? &it->second : nullptr;
 }
 
 Vector2 UIFontManager::measureText(const std::string& text, float scale) const
 {
-    float totalW = 0.f;
-    float maxH   = 0.f;
+    float totalW = 0.0f;
+    float maxH = 0.0f;
+    uint32_t prev = 0;
 
     for (unsigned char ch : text)
     {
-        const UIGlyphInfo* g = getGlyph(static_cast<uint32_t>(ch));
-        if (!g) { totalW += 8.f * scale; continue; }
-        totalW += g->advance * scale;
-        maxH    = std::max(maxH, g->height * scale);
+        const uint32_t cp = static_cast<uint32_t>(ch);
+        if (prev != 0)
+        {
+            totalW += lookupKerning(prev, cp) * scale;
+        }
+
+        const UIGlyphInfo* glyph = getGlyph(cp);
+        if (!glyph)
+        {
+            totalW += 8.0f * scale;
+            prev = cp;
+            continue;
+        }
+
+        totalW += glyph->advance * scale;
+        maxH = std::max(maxH, glyph->height * scale);
+        prev = cp;
     }
 
-    return Vector2(totalW, maxH > 0.f ? maxH : m_lineHeight * scale);
+    return Vector2(totalW, maxH > 0.0f ? maxH : m_lineHeight * scale);
 }
 
 UINT UIFontManager::getAtlasSrvIndex() const
 {
     return m_atlasTexture ? m_atlasTexture->getSRVIndex() : UINT_MAX;
+}
+
+float UIFontManager::getKerning(uint32_t leftCodepoint, uint32_t rightCodepoint) const
+{
+    return lookupKerning(leftCodepoint, rightCodepoint);
+}
+
+bool UIFontManager::resolveFontPath(const std::wstring& fontFace, std::filesystem::path& outPath) const
+{
+    const std::filesystem::path explicitPath(fontFace);
+    if (!fontFace.empty() && std::filesystem::exists(explicitPath))
+    {
+        outPath = explicitPath;
+        return true;
+    }
+
+    const std::wstring faceLower = [&]()
+    {
+        std::wstring value = fontFace;
+        std::transform(value.begin(), value.end(), value.begin(), ::towlower);
+        return value;
+    }();
+
+    std::vector<std::filesystem::path> candidates;
+    const std::filesystem::path fontsDir = L"C:/Windows/Fonts";
+
+    if (faceLower.find(L"meiryo") != std::wstring::npos)
+    {
+        candidates.emplace_back(fontsDir / L"meiryo.ttc");
+    }
+
+    if (faceLower.find(L"segoe") != std::wstring::npos)
+    {
+        candidates.emplace_back(fontsDir / L"segoeui.ttf");
+    }
+
+    candidates.emplace_back(fontsDir / L"meiryo.ttc");
+    candidates.emplace_back(fontsDir / L"segoeui.ttf");
+    candidates.emplace_back(fontsDir / L"arial.ttf");
+
+    for (const auto& candidate : candidates)
+    {
+        if (std::filesystem::exists(candidate))
+        {
+            outPath = candidate;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+float UIFontManager::lookupKerning(uint32_t left, uint32_t right) const
+{
+    const auto it = m_kerningPairs.find(makeKerningKey(left, right));
+    if (it == m_kerningPairs.end())
+    {
+        return 0.0f;
+    }
+
+    return it->second;
 }

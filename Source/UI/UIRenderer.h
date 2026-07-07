@@ -8,7 +8,7 @@ struct UIConstantData
     Matrix   transform;       //!< OrthoProj（スクリーン）or MVP（ワールド）: 64 bytes
     Matrix   localTransform;  //!< ローカルアニメーション変換: 64 bytes
     Vector4  tintColor;       //!< グローバルティント: 16 bytes
-    uint32_t textureMode;     //!< 0=カラー / 1=RGBA / 2=フォント: 4 bytes
+    uint32_t textureMode;     //!< 0=カラー / 1=RGBA / 2=旧フォント / 3=MSDFフォント: 4 bytes
     float    globalAlpha;     //!< フェードアルファ [0, 1]: 4 bytes
     float    graphId = 0.0f;
     float    graphMetallic = 0.0f;

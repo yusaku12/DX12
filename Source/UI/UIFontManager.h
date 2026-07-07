@@ -17,9 +17,8 @@ struct UIGlyphInfo
 //=====================================================
 //! フォントアトラスマネージャー
 //!
-//! Windows GDI の GGO_GRAY8_BITMAP を用いて ASCII グリフを
-//! 512x512 の R8_UNORM テクスチャアトラスに焼き込む。
-//! 外部ライブラリ不要・ランタイムコンパイルのみで動作する。
+//! FreeType + msdfgen を用いて ASCII グリフを
+//! MSDF アトラスへ焼き込む。
 //=====================================================
 class UIFontManager
 {
@@ -46,6 +45,9 @@ public:
     //! テキストの描画サイズを計算
     Vector2 measureText(const std::string& text, float scale = 1.0f) const;
 
+    //! 2 文字間のカーニング値（ピクセル）
+    float getKerning(uint32_t leftCodepoint, uint32_t rightCodepoint) const;
+
     //! フォントアトラステクスチャの SRV インデックス
     UINT getAtlasSrvIndex() const;
 
@@ -61,19 +63,26 @@ private:
     UIFontManager(const UIFontManager&) = delete;
     UIFontManager& operator=(const UIFontManager&) = delete;
 
-    //! 指定文字を HDC/HFONT でラスタライズしてアトラスに書き込む
-    //! @return 書き込み成功なら true
-    bool bakeGlyph(HDC hdc,
-        wchar_t ch,
-        std::vector<uint8_t>& atlasData,
-        int atlasW, int atlasH,
-        int& penX, int& penY, int& rowH);
+    bool resolveFontPath(const std::wstring& fontFace, std::filesystem::path& outPath) const;
 
-    static constexpr int k_atlasWidth = 512;
-    static constexpr int k_atlasHeight = 512;
+    float lookupKerning(uint32_t left, uint32_t right) const;
+
+    static uint64_t makeKerningKey(uint32_t left, uint32_t right)
+    {
+        return (static_cast<uint64_t>(left) << 32) | static_cast<uint64_t>(right);
+    }
+
+    static constexpr int k_atlasWidth = 1024;
+    static constexpr int k_atlasHeight = 1024;
+    static constexpr int k_firstCodepoint = 32;
+    static constexpr int k_lastCodepointExclusive = 127;
+    static constexpr int k_msdfGlyphBitmapSize = 48;
+    static constexpr double k_msdfPixelRange = 4.0;
 
     std::unordered_map<uint32_t, UIGlyphInfo> m_glyphs;
+    std::unordered_map<uint64_t, float> m_kerningPairs;
     std::unique_ptr<class LoadTexture>        m_atlasTexture;
     float m_lineHeight = 20.f;
+    float m_baseFontPixels = 20.f;
     bool  m_initialized = false;
 };

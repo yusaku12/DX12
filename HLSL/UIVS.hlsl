@@ -6,7 +6,7 @@ cbuffer UIConstantsCB : register(b0)
     row_major float4x4 g_transform;      //!< OrthoProj（スクリーン空間）or MVP（ワールド空間）
     row_major float4x4 g_localTransform; //!< ローカルアニメーション変換
     float4             g_tintColor;      //!< グローバルティント（頂点カラーに乗算）
-    uint               g_textureMode;    //!< 0=カラー / 1=RGBAテクスチャ / 2=フォント alpha-only
+    uint               g_textureMode;    //!< 0=カラー / 1=RGBAテクスチャ / 2=旧フォントalpha / 3=MSDFフォント
     float              g_globalAlpha;    //!< フェードトランジション用グローバルアルファ
     float              g_graphId;
     float              g_graphMetallic;

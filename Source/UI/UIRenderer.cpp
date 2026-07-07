@@ -259,11 +259,23 @@ float UIRenderer::drawText(float x, float y,
     float cursorX = x;
     const UINT fontSrv = UIFontManager::Instance().getAtlasSrvIndex();
     const Matrix localMat = localTransform ? *localTransform : Matrix::Identity;
+    uint32_t prevCodepoint = 0;
 
     for (unsigned char ch : text)
     {
-        const UIGlyphInfo* glyph = UIFontManager::Instance().getGlyph(ch);
-        if (!glyph) { cursorX += 8.f * scale; continue; }
+        const uint32_t codepoint = static_cast<uint32_t>(ch);
+        if (prevCodepoint != 0)
+        {
+            cursorX += UIFontManager::Instance().getKerning(prevCodepoint, codepoint) * scale;
+        }
+
+        const UIGlyphInfo* glyph = UIFontManager::Instance().getGlyph(codepoint);
+        if (!glyph)
+        {
+            cursorX += 8.f * scale;
+            prevCodepoint = codepoint;
+            continue;
+        }
 
         const float gx = cursorX + glyph->bearingX * scale;
         const float gy = y - glyph->bearingY * scale;
@@ -276,7 +288,7 @@ float UIRenderer::drawText(float x, float y,
                      glyph->uv0.x, glyph->uv0.y,
                      glyph->uv1.x, glyph->uv1.y,
                      color,
-                     fontSrv, 2u,
+                     fontSrv, 3u,
                      m_orthoMatrix,
                      localMat,
                      alpha * m_globalAlpha,
@@ -284,6 +296,7 @@ float UIRenderer::drawText(float x, float y,
         }
 
         cursorX += glyph->advance * scale;
+        prevCodepoint = codepoint;
     }
 
     return cursorX;

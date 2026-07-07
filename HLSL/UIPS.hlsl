@@ -21,6 +21,11 @@ cbuffer UIConstantsCB : register(b0)
 
 Texture2D g_uiTexture : register(t0);
 
+float median3(float a, float b, float c)
+{
+    return max(min(a, b), min(max(a, b), c));
+}
+
 struct PSInput
 {
     float4 position : SV_POSITION;
@@ -39,8 +44,17 @@ float4 PS(PSInput input) : SV_TARGET
     }
     else if (g_textureMode == 2u)
     {
-        //! フォント：R8 テクスチャの赤チャンネルをアルファマスクとして使用
+        //! 旧フォント互換: R8 テクスチャの赤チャンネルをアルファマスクとして使用
         float alpha = g_uiTexture.Sample(samplerStates[LINEAR_CLAMP], input.texcoord).r;
+        baseColor = float4(input.color.rgb, input.color.a * alpha);
+    }
+    else if (g_textureMode == 3u)
+    {
+        //! MSDF フォント
+        float3 msd = g_uiTexture.Sample(samplerStates[LINEAR_CLAMP], input.texcoord).rgb;
+        float sd = median3(msd.r, msd.g, msd.b);
+        float width = max(fwidth(sd), 1.0/128.0);
+        float alpha = smoothstep(0.5 - width, 0.5 + width, sd);
         baseColor = float4(input.color.rgb, input.color.a * alpha);
     }
     else
