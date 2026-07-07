@@ -37,9 +37,13 @@ void SceneManager::shutdown()
     m_requestLoadSceneFile = false;
     m_pendingSceneFilePath.clear();
     cancelAllBackgroundSceneLoads();
+    m_backgroundTaskExecutor.wait_for_all();
     m_backgroundScenePending.clear();
-    m_backgroundSceneWorkers.clear();
-    m_backgroundSceneCompleted.clear();
+    {
+        std::lock_guard<std::mutex> lock(m_backgroundSceneMutex);
+        m_backgroundSceneCompleted.clear();
+        m_backgroundSceneActiveIds.clear();
+    }
     m_backgroundSceneCancelledIds.clear();
 }
 
@@ -56,7 +60,6 @@ void SceneManager::loadScene(SceneId id)
 void SceneManager::update()
 {
     dispatchBackgroundSceneLoads();
-    pumpBackgroundSceneLoads();
     applyBackgroundSceneLoads();
 
     if (m_requestLoadSceneFile)
@@ -235,12 +238,14 @@ bool SceneManager::cancelBackgroundSceneLoad(uint64_t requestId)
         return true;
     }
 
-    for (const BackgroundSceneWorker& worker : m_backgroundSceneWorkers)
     {
-        if (worker.task.id == requestId)
+        std::lock_guard<std::mutex> lock(m_backgroundSceneMutex);
+        if (m_backgroundSceneActiveIds.find(requestId) != m_backgroundSceneActiveIds.end())
         {
             m_backgroundSceneCancelledIds.insert(requestId);
-            reportBackgroundProgress(worker.task, 1.0f, false, false, true, "Cancel requested");
+            BackgroundSceneTask task;
+            task.id = requestId;
+            reportBackgroundProgress(task, 1.0f, false, false, true, "Cancel requested");
             return true;
         }
     }
@@ -257,9 +262,10 @@ void SceneManager::cancelAllBackgroundSceneLoads()
     }
     m_backgroundScenePending.clear();
 
-    for (const BackgroundSceneWorker& worker : m_backgroundSceneWorkers)
+    std::lock_guard<std::mutex> lock(m_backgroundSceneMutex);
+    for (uint64_t requestId : m_backgroundSceneActiveIds)
     {
-        m_backgroundSceneCancelledIds.insert(worker.task.id);
+        m_backgroundSceneCancelledIds.insert(requestId);
     }
 
     for (const BackgroundSceneResult& result : m_backgroundSceneCompleted)
@@ -270,8 +276,9 @@ void SceneManager::cancelAllBackgroundSceneLoads()
 
 bool SceneManager::isBackgroundSceneLoadBusy() const
 {
+    std::lock_guard<std::mutex> lock(m_backgroundSceneMutex);
     return !m_backgroundScenePending.empty()
-        || !m_backgroundSceneWorkers.empty()
+        || !m_backgroundSceneActiveIds.empty()
         || !m_backgroundSceneCompleted.empty();
 }
 
@@ -295,22 +302,32 @@ bool SceneManager::loadSceneFromFileInternal(const std::filesystem::path& filePa
 
 void SceneManager::dispatchBackgroundSceneLoads()
 {
-    while (!m_backgroundScenePending.empty() && m_backgroundSceneWorkers.size() < kMaxBackgroundSceneWorkers)
+    while (true)
     {
-        BackgroundSceneTask task = std::move(m_backgroundScenePending.front());
-        m_backgroundScenePending.pop_front();
+        BackgroundSceneTask task;
+        {
+            std::lock_guard<std::mutex> lock(m_backgroundSceneMutex);
+            if (m_backgroundScenePending.empty() || m_backgroundSceneActiveIds.size() >= kMaxBackgroundSceneWorkers)
+            {
+                break;
+            }
+
+            task = std::move(m_backgroundScenePending.front());
+            m_backgroundScenePending.pop_front();
+            m_backgroundSceneActiveIds.insert(task.id);
+        }
 
         if (isBackgroundSceneLoadCancelled(task.id))
         {
+            std::lock_guard<std::mutex> lock(m_backgroundSceneMutex);
+            m_backgroundSceneActiveIds.erase(task.id);
             reportBackgroundProgress(task, 1.0f, true, false, true, "Cancelled");
             continue;
         }
 
         reportBackgroundProgress(task, 0.2f, false, false, false, "Preparing");
 
-        BackgroundSceneWorker worker;
-        worker.task = task;
-        worker.future = std::async(std::launch::async, [task]()
+        m_backgroundTaskExecutor.silent_async([this, task]()
             {
                 BackgroundSceneResult result;
                 result.task = task;
@@ -328,48 +345,26 @@ void SceneManager::dispatchBackgroundSceneLoads()
                     result.message = errorMessage.empty() ? "Prepare failed" : errorMessage;
                 }
 
-                return result;
-            });
-
-        m_backgroundSceneWorkers.push_back(std::move(worker));
-    }
-}
-
-void SceneManager::pumpBackgroundSceneLoads()
-{
-    auto it = m_backgroundSceneWorkers.begin();
-    while (it != m_backgroundSceneWorkers.end())
-    {
-        if (it->future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-        {
-            BackgroundSceneResult result = it->future.get();
-            if (isBackgroundSceneLoadCancelled(result.task.id))
-            {
-                reportBackgroundProgress(result.task, 1.0f, true, false, true, "Cancelled");
-            }
-            else
-            {
-                reportBackgroundProgress(result.task, 0.8f, false, result.ok, false, result.message);
+                std::lock_guard<std::mutex> lock(m_backgroundSceneMutex);
                 m_backgroundSceneCompleted.push_back(std::move(result));
-            }
-
-            it = m_backgroundSceneWorkers.erase(it);
-            continue;
-        }
-
-        ++it;
+                m_backgroundSceneActiveIds.erase(task.id);
+            });
     }
 }
 
 void SceneManager::applyBackgroundSceneLoads()
 {
-    if (m_backgroundSceneCompleted.empty())
+    BackgroundSceneResult result;
     {
-        return;
-    }
+        std::lock_guard<std::mutex> lock(m_backgroundSceneMutex);
+        if (m_backgroundSceneCompleted.empty())
+        {
+            return;
+        }
 
-    BackgroundSceneResult result = std::move(m_backgroundSceneCompleted.front());
-    m_backgroundSceneCompleted.pop_front();
+        result = std::move(m_backgroundSceneCompleted.front());
+        m_backgroundSceneCompleted.pop_front();
+    }
 
     if (isBackgroundSceneLoadCancelled(result.task.id))
     {

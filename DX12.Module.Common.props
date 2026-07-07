@@ -19,12 +19,12 @@
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;SPDLOG_NO_EXCEPTIONS;FMT_EXCEPTIONS=0;TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;SPDLOG_NO_EXCEPTIONS;FMT_EXCEPTIONS=0;TRACY_ENABLE;TF_DISABLE_EXCEPTION_HANDLING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External\spdlog\include;..\External\tracy\public;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External\spdlog\include;..\External\tracy\public;..\External\taskflow;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -43,12 +43,12 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;SPDLOG_NO_EXCEPTIONS;FMT_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;SPDLOG_NO_EXCEPTIONS;FMT_EXCEPTIONS=0;TF_DISABLE_EXCEPTION_HANDLING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External\spdlog\include;..\External\tracy\public;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\External\imgui;..\Source;..\External\spdlog\include;..\External\tracy\public;..\External\taskflow;..\External.\FBX SDK.\2020.3.9.\include;..\External\DirectXTex-main\DirectXTex;..\External\DirectXTex-main\Common;..\External.\magic_enum;..\External\Physx;..\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>

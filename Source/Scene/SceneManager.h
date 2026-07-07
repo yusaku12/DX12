@@ -3,6 +3,11 @@
 #include "Scene.h"
 #include "SceneFlatBuffer.h"
 
+#pragma warning(push)
+#pragma warning(disable:4324)
+#include <taskflow/taskflow.hpp>
+#pragma warning(pop)
+
 //! シーンID
 enum class SceneId : int
 {
@@ -114,14 +119,7 @@ private:
         std::unique_ptr<SceneFlatBuffer::PreparedSceneData> prepared;
     };
 
-    struct BackgroundSceneWorker
-    {
-        BackgroundSceneTask task;
-        std::future<BackgroundSceneResult> future;
-    };
-
     void dispatchBackgroundSceneLoads();
-    void pumpBackgroundSceneLoads();
     void applyBackgroundSceneLoads();
     void reportBackgroundProgress(const BackgroundSceneTask& task,
         float normalized,
@@ -144,10 +142,12 @@ private:
 
     uint64_t m_nextBackgroundRequestId = 1;
     uint64_t m_nextBackgroundSequence = 1;
+    tf::Executor m_backgroundTaskExecutor;
     std::deque<BackgroundSceneTask> m_backgroundScenePending;
-    std::vector<BackgroundSceneWorker> m_backgroundSceneWorkers;
     std::deque<BackgroundSceneResult> m_backgroundSceneCompleted;
+    std::unordered_set<uint64_t> m_backgroundSceneActiveIds;
     std::unordered_set<uint64_t> m_backgroundSceneCancelledIds;
+    mutable std::mutex m_backgroundSceneMutex;
 
     static constexpr size_t kMaxBackgroundSceneWorkers = 1;
 };

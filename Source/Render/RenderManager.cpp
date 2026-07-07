@@ -624,16 +624,20 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
     auto frameStart = Clock::now();
     clearTimings();
 
-    std::vector<std::pair<ID3D12GraphicsCommandList*, std::future<void>>> tasks;
-    tasks.reserve(activeComps.size());
+    std::vector<ID3D12GraphicsCommandList*> commandLists;
+    commandLists.reserve(activeComps.size());
+
+    tf::Taskflow taskflow;
+    const auto frameStartCopy = frameStart;
 
     for (auto* comp : activeComps)
     {
         auto* cmd = pool.acquire();
         setupCommandList(kind, cmd);
+        commandLists.push_back(cmd);
 
-        auto future = std::async(std::launch::async,
-            [this, comp, cmd, &frameStart, kind]()
+        taskflow.emplace(
+            [this, comp, cmd, frameStartCopy, kind]()
             {
                 using Clock = std::chrono::high_resolution_clock;
                 auto start = Clock::now();
@@ -644,24 +648,19 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
                     });
 
                 auto end = Clock::now();
-                float startMs = std::chrono::duration<float, std::milli>(start - frameStart).count();
+                float startMs = std::chrono::duration<float, std::milli>(start - frameStartCopy).count();
                 float durationMs = std::chrono::duration<float, std::milli>(end - start).count();
 
                 addTiming(comp->getName(), startMs, durationMs, std::this_thread::get_id());
             });
-
-        tasks.push_back({ cmd, std::move(future) });
     }
 
-    for (auto& [cmd, future] : tasks)
-    {
-        future.wait();
-    }
+    m_taskExecutor.run(taskflow).wait();
 
     float totalMs = std::chrono::duration<float, std::milli>(Clock::now() - frameStart).count();
     finalizeTimings(totalMs);
 
-    for (auto& [cmd, future] : tasks)
+    for (auto* cmd : commandLists)
     {
         pool.release(cmd);
     }

@@ -3,6 +3,10 @@
 class IRenderComponent;
 
 #include <functional>
+#pragma warning(push)
+#pragma warning(disable:4324)
+#include <taskflow/taskflow.hpp>
+#pragma warning(pop)
 #include <unordered_map>
 #include <vector>
 #include <wrl/client.h>
@@ -178,6 +182,7 @@ private:
     };
 
     std::vector<IRenderComponent*> m_components;
+    tf::Executor m_taskExecutor;
     std::mutex m_mutex;
     mutable std::mutex m_occlusionMutex;
 
