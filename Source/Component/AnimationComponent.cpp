@@ -1081,6 +1081,143 @@ int AnimationComponent::findAnimationIndex(const std::string& name) const
     return -1;
 }
 
+int AnimationComponent::getAnimationCount() const
+{
+    if (!m_model)
+    {
+        return 0;
+    }
+
+    return static_cast<int>(m_model->getResource()->getModelData().animations.size());
+}
+
+std::string AnimationComponent::getAnimationName(int animationIndex) const
+{
+    if (!m_model)
+    {
+        return std::string();
+    }
+
+    const auto& animations = m_model->getResource()->getModelData().animations;
+    if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size()))
+    {
+        return std::string();
+    }
+
+    return animations[animationIndex].name;
+}
+
+float AnimationComponent::getAnimationLength(int animationIndex) const
+{
+    if (!m_model)
+    {
+        return 0.0f;
+    }
+
+    const auto& animations = m_model->getResource()->getModelData().animations;
+    if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size()))
+    {
+        return 0.0f;
+    }
+
+    return std::max(0.0f, animations[animationIndex].secondsLength);
+}
+
+bool AnimationComponent::sampleAnimation(int animationIndex, float timeSeconds, bool applyRetarget)
+{
+    if (!m_model)
+    {
+        return false;
+    }
+
+    const auto& animations = m_model->getResource()->getModelData().animations;
+    if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size()))
+    {
+        return false;
+    }
+
+    const float length = std::max(0.0f, animations[animationIndex].secondsLength);
+    const float clampedTime = std::clamp(timeSeconds, 0.0f, length);
+
+    std::vector<Model::Bone> pose;
+    if (!evaluateAnimationPose(animationIndex, clampedTime, pose))
+    {
+        return false;
+    }
+
+    if (!applyPose(pose, applyRetarget))
+    {
+        return false;
+    }
+
+    // 外部駆動時に内部プレイヤー状態が競合しないよう停止状態へ揃える。
+    m_animationIndex = animationIndex;
+    m_currentTime = clampedTime;
+    m_playing = false;
+    m_paused = true;
+    m_finished = false;
+    m_fading = false;
+    m_prevAnimIndex = -1;
+    m_prevTime = 0.0f;
+    m_fadeDuration = 0.0f;
+    m_fadeElapsed = 0.0f;
+
+    applyIK();
+
+    if (applyRetarget && m_retargetEnabled)
+    {
+        applyRetargetFromCurrentPose();
+    }
+
+    return true;
+}
+
+bool AnimationComponent::evaluateAnimationPose(int animationIndex, float timeSeconds, std::vector<Model::Bone>& outPose) const
+{
+    if (!m_model)
+    {
+        return false;
+    }
+
+    const auto& animations = m_model->getResource()->getModelData().animations;
+    if (animationIndex < 0 || animationIndex >= static_cast<int>(animations.size()))
+    {
+        return false;
+    }
+
+    outPose = m_model->getBone();
+    const float length = std::max(0.0f, animations[animationIndex].secondsLength);
+    const float clampedTime = std::clamp(timeSeconds, 0.0f, length);
+    evaluateAnimation(animationIndex, clampedTime, outPose);
+    return true;
+}
+
+bool AnimationComponent::applyPose(const std::vector<Model::Bone>& pose, bool applyRetarget)
+{
+    if (!m_model)
+    {
+        return false;
+    }
+
+    auto& bones = m_model->getMutableBone();
+    const size_t count = std::min(bones.size(), pose.size());
+    for (size_t i = 0; i < count; ++i)
+    {
+        bones[i].scale = pose[i].scale;
+        bones[i].rotate = pose[i].rotate;
+        bones[i].translate = pose[i].translate;
+    }
+
+    applyIK();
+
+    if (applyRetarget && m_retargetEnabled)
+    {
+        applyRetargetFromCurrentPose();
+    }
+
+    return true;
+}
+
 void AnimationComponent::evaluateAnimation(int animIndex, float time,
     std::vector<Model::Bone>& bones) const
 {

@@ -81,6 +81,15 @@ struct UIImageComponentDataBuilder;
 struct UIPanelComponentData;
 struct UIPanelComponentDataBuilder;
 
+struct TimelineClipData;
+struct TimelineClipDataBuilder;
+
+struct TimelineSignalData;
+struct TimelineSignalDataBuilder;
+
+struct TimelineComponentData;
+struct TimelineComponentDataBuilder;
+
 struct SerializedComponent;
 struct SerializedComponentBuilder;
 
@@ -111,11 +120,12 @@ enum ComponentPayload : uint8_t {
   ComponentPayload_UIImageComponentData = 17,
   ComponentPayload_CpuParticleComponentData = 18,
   ComponentPayload_UIPanelComponentData = 19,
+  ComponentPayload_TimelineComponentData = 20,
   ComponentPayload_MIN = ComponentPayload_NONE,
-  ComponentPayload_MAX = ComponentPayload_UIPanelComponentData
+  ComponentPayload_MAX = ComponentPayload_TimelineComponentData
 };
 
-inline const ComponentPayload (&EnumValuesComponentPayload())[20] {
+inline const ComponentPayload (&EnumValuesComponentPayload())[21] {
   static const ComponentPayload values[] = {
     ComponentPayload_NONE,
     ComponentPayload_TransformComponentData,
@@ -136,13 +146,14 @@ inline const ComponentPayload (&EnumValuesComponentPayload())[20] {
     ComponentPayload_UIButtonComponentData,
     ComponentPayload_UIImageComponentData,
     ComponentPayload_CpuParticleComponentData,
-    ComponentPayload_UIPanelComponentData
+    ComponentPayload_UIPanelComponentData,
+    ComponentPayload_TimelineComponentData
   };
   return values;
 }
 
 inline const char * const *EnumNamesComponentPayload() {
-  static const char * const names[21] = {
+  static const char * const names[22] = {
     "NONE",
     "TransformComponentData",
     "RectTransformComponentData",
@@ -163,13 +174,14 @@ inline const char * const *EnumNamesComponentPayload() {
     "UIImageComponentData",
     "CpuParticleComponentData",
     "UIPanelComponentData",
+    "TimelineComponentData",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameComponentPayload(ComponentPayload e) {
-  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_UIPanelComponentData)) return "";
+  if (::flatbuffers::IsOutRange(e, ComponentPayload_NONE, ComponentPayload_TimelineComponentData)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesComponentPayload()[index];
 }
@@ -252,6 +264,10 @@ template<> struct ComponentPayloadTraits<scene::CpuParticleComponentData> {
 
 template<> struct ComponentPayloadTraits<scene::UIPanelComponentData> {
   static const ComponentPayload enum_value = ComponentPayload_UIPanelComponentData;
+};
+
+template<> struct ComponentPayloadTraits<scene::TimelineComponentData> {
+  static const ComponentPayload enum_value = ComponentPayload_TimelineComponentData;
 };
 
 template <bool B = false>
@@ -2359,6 +2375,406 @@ inline ::flatbuffers::Offset<UIPanelComponentData> CreateUIPanelComponentData(
   return builder_.Finish();
 }
 
+struct TimelineClipData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef TimelineClipDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ENABLED = 4,
+    VT_ANIMATION_NAME = 6,
+    VT_START_TIME = 8,
+    VT_DURATION = 10,
+    VT_CLIP_IN_TIME = 12,
+    VT_SPEED = 14,
+    VT_LOOP = 16,
+    VT_TRACK = 18,
+    VT_WEIGHT = 20,
+    VT_BLEND_IN = 22,
+    VT_BLEND_OUT = 24,
+    VT_BLEND_IN_CURVE = 26,
+    VT_BLEND_OUT_CURVE = 28
+  };
+  bool enabled() const {
+    return GetField<uint8_t>(VT_ENABLED, 0) != 0;
+  }
+  const ::flatbuffers::String *animation_name() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_ANIMATION_NAME);
+  }
+  float start_time() const {
+    return GetField<float>(VT_START_TIME, 0.0f);
+  }
+  float duration() const {
+    return GetField<float>(VT_DURATION, 0.0f);
+  }
+  float clip_in_time() const {
+    return GetField<float>(VT_CLIP_IN_TIME, 0.0f);
+  }
+  float speed() const {
+    return GetField<float>(VT_SPEED, 0.0f);
+  }
+  bool loop() const {
+    return GetField<uint8_t>(VT_LOOP, 0) != 0;
+  }
+  int32_t track() const {
+    return GetField<int32_t>(VT_TRACK, 0);
+  }
+  float weight() const {
+    return GetField<float>(VT_WEIGHT, 0.0f);
+  }
+  float blend_in() const {
+    return GetField<float>(VT_BLEND_IN, 0.0f);
+  }
+  float blend_out() const {
+    return GetField<float>(VT_BLEND_OUT, 0.0f);
+  }
+  int32_t blend_in_curve() const {
+    return GetField<int32_t>(VT_BLEND_IN_CURVE, 0);
+  }
+  int32_t blend_out_curve() const {
+    return GetField<int32_t>(VT_BLEND_OUT_CURVE, 0);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLED, 1) &&
+           VerifyOffset(verifier, VT_ANIMATION_NAME) &&
+           verifier.VerifyString(animation_name()) &&
+           VerifyField<float>(verifier, VT_START_TIME, 4) &&
+           VerifyField<float>(verifier, VT_DURATION, 4) &&
+           VerifyField<float>(verifier, VT_CLIP_IN_TIME, 4) &&
+           VerifyField<float>(verifier, VT_SPEED, 4) &&
+           VerifyField<uint8_t>(verifier, VT_LOOP, 1) &&
+           VerifyField<int32_t>(verifier, VT_TRACK, 4) &&
+           VerifyField<float>(verifier, VT_WEIGHT, 4) &&
+           VerifyField<float>(verifier, VT_BLEND_IN, 4) &&
+           VerifyField<float>(verifier, VT_BLEND_OUT, 4) &&
+           VerifyField<int32_t>(verifier, VT_BLEND_IN_CURVE, 4) &&
+           VerifyField<int32_t>(verifier, VT_BLEND_OUT_CURVE, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct TimelineClipDataBuilder {
+  typedef TimelineClipData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_enabled(bool enabled) {
+    fbb_.AddElement<uint8_t>(TimelineClipData::VT_ENABLED, static_cast<uint8_t>(enabled), 0);
+  }
+  void add_animation_name(::flatbuffers::Offset<::flatbuffers::String> animation_name) {
+    fbb_.AddOffset(TimelineClipData::VT_ANIMATION_NAME, animation_name);
+  }
+  void add_start_time(float start_time) {
+    fbb_.AddElement<float>(TimelineClipData::VT_START_TIME, start_time, 0.0f);
+  }
+  void add_duration(float duration) {
+    fbb_.AddElement<float>(TimelineClipData::VT_DURATION, duration, 0.0f);
+  }
+  void add_clip_in_time(float clip_in_time) {
+    fbb_.AddElement<float>(TimelineClipData::VT_CLIP_IN_TIME, clip_in_time, 0.0f);
+  }
+  void add_speed(float speed) {
+    fbb_.AddElement<float>(TimelineClipData::VT_SPEED, speed, 0.0f);
+  }
+  void add_loop(bool loop) {
+    fbb_.AddElement<uint8_t>(TimelineClipData::VT_LOOP, static_cast<uint8_t>(loop), 0);
+  }
+  void add_track(int32_t track) {
+    fbb_.AddElement<int32_t>(TimelineClipData::VT_TRACK, track, 0);
+  }
+  void add_weight(float weight) {
+    fbb_.AddElement<float>(TimelineClipData::VT_WEIGHT, weight, 0.0f);
+  }
+  void add_blend_in(float blend_in) {
+    fbb_.AddElement<float>(TimelineClipData::VT_BLEND_IN, blend_in, 0.0f);
+  }
+  void add_blend_out(float blend_out) {
+    fbb_.AddElement<float>(TimelineClipData::VT_BLEND_OUT, blend_out, 0.0f);
+  }
+  void add_blend_in_curve(int32_t blend_in_curve) {
+    fbb_.AddElement<int32_t>(TimelineClipData::VT_BLEND_IN_CURVE, blend_in_curve, 0);
+  }
+  void add_blend_out_curve(int32_t blend_out_curve) {
+    fbb_.AddElement<int32_t>(TimelineClipData::VT_BLEND_OUT_CURVE, blend_out_curve, 0);
+  }
+  explicit TimelineClipDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<TimelineClipData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<TimelineClipData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<TimelineClipData> CreateTimelineClipData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    bool enabled = false,
+    ::flatbuffers::Offset<::flatbuffers::String> animation_name = 0,
+    float start_time = 0.0f,
+    float duration = 0.0f,
+    float clip_in_time = 0.0f,
+    float speed = 0.0f,
+    bool loop = false,
+    int32_t track = 0,
+    float weight = 0.0f,
+    float blend_in = 0.0f,
+    float blend_out = 0.0f,
+    int32_t blend_in_curve = 0,
+    int32_t blend_out_curve = 0) {
+  TimelineClipDataBuilder builder_(_fbb);
+  builder_.add_blend_out_curve(blend_out_curve);
+  builder_.add_blend_in_curve(blend_in_curve);
+  builder_.add_blend_out(blend_out);
+  builder_.add_blend_in(blend_in);
+  builder_.add_weight(weight);
+  builder_.add_track(track);
+  builder_.add_speed(speed);
+  builder_.add_clip_in_time(clip_in_time);
+  builder_.add_duration(duration);
+  builder_.add_start_time(start_time);
+  builder_.add_animation_name(animation_name);
+  builder_.add_loop(loop);
+  builder_.add_enabled(enabled);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<TimelineClipData> CreateTimelineClipDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    bool enabled = false,
+    const char *animation_name = nullptr,
+    float start_time = 0.0f,
+    float duration = 0.0f,
+    float clip_in_time = 0.0f,
+    float speed = 0.0f,
+    bool loop = false,
+    int32_t track = 0,
+    float weight = 0.0f,
+    float blend_in = 0.0f,
+    float blend_out = 0.0f,
+    int32_t blend_in_curve = 0,
+    int32_t blend_out_curve = 0) {
+  auto animation_name__ = animation_name ? _fbb.CreateString(animation_name) : 0;
+  return scene::CreateTimelineClipData(
+      _fbb,
+      enabled,
+      animation_name__,
+      start_time,
+      duration,
+      clip_in_time,
+      speed,
+      loop,
+      track,
+      weight,
+      blend_in,
+      blend_out,
+      blend_in_curve,
+      blend_out_curve);
+}
+
+struct TimelineSignalData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef TimelineSignalDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_ENABLED = 4,
+    VT_EVENT_NAME = 6,
+    VT_TIME = 8
+  };
+  bool enabled() const {
+    return GetField<uint8_t>(VT_ENABLED, 0) != 0;
+  }
+  const ::flatbuffers::String *event_name() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_EVENT_NAME);
+  }
+  float time() const {
+    return GetField<float>(VT_TIME, 0.0f);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_ENABLED, 1) &&
+           VerifyOffset(verifier, VT_EVENT_NAME) &&
+           verifier.VerifyString(event_name()) &&
+           VerifyField<float>(verifier, VT_TIME, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct TimelineSignalDataBuilder {
+  typedef TimelineSignalData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_enabled(bool enabled) {
+    fbb_.AddElement<uint8_t>(TimelineSignalData::VT_ENABLED, static_cast<uint8_t>(enabled), 0);
+  }
+  void add_event_name(::flatbuffers::Offset<::flatbuffers::String> event_name) {
+    fbb_.AddOffset(TimelineSignalData::VT_EVENT_NAME, event_name);
+  }
+  void add_time(float time) {
+    fbb_.AddElement<float>(TimelineSignalData::VT_TIME, time, 0.0f);
+  }
+  explicit TimelineSignalDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<TimelineSignalData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<TimelineSignalData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<TimelineSignalData> CreateTimelineSignalData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    bool enabled = false,
+    ::flatbuffers::Offset<::flatbuffers::String> event_name = 0,
+    float time = 0.0f) {
+  TimelineSignalDataBuilder builder_(_fbb);
+  builder_.add_time(time);
+  builder_.add_event_name(event_name);
+  builder_.add_enabled(enabled);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<TimelineSignalData> CreateTimelineSignalDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    bool enabled = false,
+    const char *event_name = nullptr,
+    float time = 0.0f) {
+  auto event_name__ = event_name ? _fbb.CreateString(event_name) : 0;
+  return scene::CreateTimelineSignalData(
+      _fbb,
+      enabled,
+      event_name__,
+      time);
+}
+
+struct TimelineComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef TimelineComponentDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_DURATION = 4,
+    VT_PLAYBACK_SPEED = 6,
+    VT_PLAY_ON_AWAKE = 8,
+    VT_LOOP = 10,
+    VT_EMIT_SIGNALS = 12,
+    VT_CLIPS = 14,
+    VT_SIGNALS = 16
+  };
+  float duration() const {
+    return GetField<float>(VT_DURATION, 0.0f);
+  }
+  float playback_speed() const {
+    return GetField<float>(VT_PLAYBACK_SPEED, 0.0f);
+  }
+  bool play_on_awake() const {
+    return GetField<uint8_t>(VT_PLAY_ON_AWAKE, 0) != 0;
+  }
+  bool loop() const {
+    return GetField<uint8_t>(VT_LOOP, 0) != 0;
+  }
+  bool emit_signals() const {
+    return GetField<uint8_t>(VT_EMIT_SIGNALS, 0) != 0;
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineClipData>> *clips() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineClipData>> *>(VT_CLIPS);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineSignalData>> *signals() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineSignalData>> *>(VT_SIGNALS);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<float>(verifier, VT_DURATION, 4) &&
+           VerifyField<float>(verifier, VT_PLAYBACK_SPEED, 4) &&
+           VerifyField<uint8_t>(verifier, VT_PLAY_ON_AWAKE, 1) &&
+           VerifyField<uint8_t>(verifier, VT_LOOP, 1) &&
+           VerifyField<uint8_t>(verifier, VT_EMIT_SIGNALS, 1) &&
+           VerifyOffset(verifier, VT_CLIPS) &&
+           verifier.VerifyVector(clips()) &&
+           verifier.VerifyVectorOfTables(clips()) &&
+           VerifyOffset(verifier, VT_SIGNALS) &&
+           verifier.VerifyVector(signals()) &&
+           verifier.VerifyVectorOfTables(signals()) &&
+           verifier.EndTable();
+  }
+};
+
+struct TimelineComponentDataBuilder {
+  typedef TimelineComponentData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_duration(float duration) {
+    fbb_.AddElement<float>(TimelineComponentData::VT_DURATION, duration, 0.0f);
+  }
+  void add_playback_speed(float playback_speed) {
+    fbb_.AddElement<float>(TimelineComponentData::VT_PLAYBACK_SPEED, playback_speed, 0.0f);
+  }
+  void add_play_on_awake(bool play_on_awake) {
+    fbb_.AddElement<uint8_t>(TimelineComponentData::VT_PLAY_ON_AWAKE, static_cast<uint8_t>(play_on_awake), 0);
+  }
+  void add_loop(bool loop) {
+    fbb_.AddElement<uint8_t>(TimelineComponentData::VT_LOOP, static_cast<uint8_t>(loop), 0);
+  }
+  void add_emit_signals(bool emit_signals) {
+    fbb_.AddElement<uint8_t>(TimelineComponentData::VT_EMIT_SIGNALS, static_cast<uint8_t>(emit_signals), 0);
+  }
+  void add_clips(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineClipData>>> clips) {
+    fbb_.AddOffset(TimelineComponentData::VT_CLIPS, clips);
+  }
+  void add_signals(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineSignalData>>> signals) {
+    fbb_.AddOffset(TimelineComponentData::VT_SIGNALS, signals);
+  }
+  explicit TimelineComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<TimelineComponentData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<TimelineComponentData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<TimelineComponentData> CreateTimelineComponentData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    float duration = 0.0f,
+    float playback_speed = 0.0f,
+    bool play_on_awake = false,
+    bool loop = false,
+    bool emit_signals = false,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineClipData>>> clips = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineSignalData>>> signals = 0) {
+  TimelineComponentDataBuilder builder_(_fbb);
+  builder_.add_signals(signals);
+  builder_.add_clips(clips);
+  builder_.add_playback_speed(playback_speed);
+  builder_.add_duration(duration);
+  builder_.add_emit_signals(emit_signals);
+  builder_.add_loop(loop);
+  builder_.add_play_on_awake(play_on_awake);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<TimelineComponentData> CreateTimelineComponentDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    float duration = 0.0f,
+    float playback_speed = 0.0f,
+    bool play_on_awake = false,
+    bool loop = false,
+    bool emit_signals = false,
+    const std::vector<::flatbuffers::Offset<scene::TimelineClipData>> *clips = nullptr,
+    const std::vector<::flatbuffers::Offset<scene::TimelineSignalData>> *signals = nullptr) {
+  auto clips__ = clips ? _fbb.CreateVector<::flatbuffers::Offset<scene::TimelineClipData>>(*clips) : 0;
+  auto signals__ = signals ? _fbb.CreateVector<::flatbuffers::Offset<scene::TimelineSignalData>>(*signals) : 0;
+  return scene::CreateTimelineComponentData(
+      _fbb,
+      duration,
+      playback_speed,
+      play_on_awake,
+      loop,
+      emit_signals,
+      clips__,
+      signals__);
+}
+
 struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef SerializedComponentBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -2436,6 +2852,9 @@ struct SerializedComponent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   }
   const scene::UIPanelComponentData *payload_as_UIPanelComponentData() const {
     return payload_type() == scene::ComponentPayload_UIPanelComponentData ? static_cast<const scene::UIPanelComponentData *>(payload()) : nullptr;
+  }
+  const scene::TimelineComponentData *payload_as_TimelineComponentData() const {
+    return payload_type() == scene::ComponentPayload_TimelineComponentData ? static_cast<const scene::TimelineComponentData *>(payload()) : nullptr;
   }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
@@ -2524,6 +2943,10 @@ template<> inline const scene::CpuParticleComponentData *SerializedComponent::pa
 
 template<> inline const scene::UIPanelComponentData *SerializedComponent::payload_as<scene::UIPanelComponentData>() const {
   return payload_as_UIPanelComponentData();
+}
+
+template<> inline const scene::TimelineComponentData *SerializedComponent::payload_as<scene::TimelineComponentData>() const {
+  return payload_as_TimelineComponentData();
 }
 
 struct SerializedComponentBuilder {
@@ -2858,6 +3281,10 @@ inline bool VerifyComponentPayload(::flatbuffers::VerifierTemplate<B> &verifier,
     }
     case ComponentPayload_UIPanelComponentData: {
       auto ptr = reinterpret_cast<const scene::UIPanelComponentData *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case ComponentPayload_TimelineComponentData: {
+      auto ptr = reinterpret_cast<const scene::TimelineComponentData *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;

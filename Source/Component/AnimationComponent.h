@@ -97,6 +97,25 @@ public:
     //! アニメーション名からインデックスを検索（見つからない場合 -1）
     int findAnimationIndex(const std::string& name) const;
 
+    //! 読み込まれているアニメーション数
+    int getAnimationCount() const;
+
+    //! インデックスからアニメーション名を取得（不正な場合は空文字列）
+    std::string getAnimationName(int animationIndex) const;
+
+    //! インデックスからアニメーション長（秒）を取得（不正な場合は 0）
+    float getAnimationLength(int animationIndex) const;
+
+    //! 指定時刻のポーズを即時サンプリングして適用する
+    //! Timeline などの外部制御向け API（内部再生状態は停止状態に揃える）
+    bool sampleAnimation(int animationIndex, float timeSeconds, bool applyRetarget = true);
+
+    //! 指定時刻のポーズを評価して outPose に書き込む（モデルへの適用はしない）
+    bool evaluateAnimationPose(int animationIndex, float timeSeconds, std::vector<Model::Bone>& outPose) const;
+
+    //! 外部で合成したポーズをモデルへ適用する
+    bool applyPose(const std::vector<Model::Bone>& pose, bool applyRetarget = true);
+
     //! Humanoid リターゲットの有効/無効
     void setRetargetEnabled(bool enabled) { m_retargetEnabled = enabled; }
     bool isRetargetEnabled() const { return m_retargetEnabled; }

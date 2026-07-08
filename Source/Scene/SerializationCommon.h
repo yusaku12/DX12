@@ -18,6 +18,7 @@
 #include "Component/RectTransformComponent.h"
 #include "Component/RigidbodyComponent.h"
 #include "Component/SkyboxComponent.h"
+#include "Component/TimelineComponent.h"
 #include "Component/TransformComponent.h"
 #include "Component/UIButtonComponent.h"
 #include "Component/UIImageComponent.h"
@@ -216,6 +217,7 @@ namespace SerializationCommon
             { "ColliderComponent", true, &createDefault<ColliderComponent> },
             { "PostEffectComponent", true, &createDefault<PostEffectComponent> },
             { "SkyboxComponent", true, &createDefault<SkyboxComponent> },
+            { "TimelineComponent", true, &createDefault<TimelineComponent> },
             { "GpuEffectComponent", true, &createDefault<GpuEffectComponent> },
             { "CpuParticleComponent", true, &createDefault<CpuParticleComponent> },
             { "UITextComponent", true, &createDefault<UITextComponent> },
@@ -270,6 +272,7 @@ namespace SerializationCommon
         if (typeName == "ColliderComponent") return gameObject->getComponent<ColliderComponent>() != nullptr;
         if (typeName == "PostEffectComponent") return gameObject->getComponent<PostEffectComponent>() != nullptr;
         if (typeName == "SkyboxComponent") return gameObject->getComponent<SkyboxComponent>() != nullptr;
+        if (typeName == "TimelineComponent") return gameObject->getComponent<TimelineComponent>() != nullptr;
         if (typeName == "GpuEffectComponent") return gameObject->getComponent<GpuEffectComponent>() != nullptr;
         if (typeName == "CpuParticleComponent") return gameObject->getComponent<CpuParticleComponent>() != nullptr;
         if (typeName == "UITextComponent") return gameObject->getComponent<UITextComponent>() != nullptr;
@@ -536,6 +539,61 @@ namespace SerializationCommon
                 payload.Union());
         }
 
+        if (auto* timeline = dynamic_cast<TimelineComponent*>(component))
+        {
+            std::vector<flatbuffers::Offset<scene::TimelineClipData>> clipEntries;
+            clipEntries.reserve(timeline->getClips().size());
+            for (const auto& clip : timeline->getClips())
+            {
+                clipEntries.push_back(scene::CreateTimelineClipDataDirect(
+                    builder,
+                    clip.enabled,
+                    clip.animationName.empty() ? nullptr : clip.animationName.c_str(),
+                    clip.startTime,
+                    clip.duration,
+                    clip.clipInTime,
+                    clip.speed,
+                    clip.loop,
+                    clip.track,
+                    clip.weight,
+                    clip.blendIn,
+                    clip.blendOut,
+                    static_cast<int32_t>(clip.blendInCurve),
+                    static_cast<int32_t>(clip.blendOutCurve)));
+            }
+
+            std::vector<flatbuffers::Offset<scene::TimelineSignalData>> signalEntries;
+            signalEntries.reserve(timeline->getSignals().size());
+            for (const auto& signal : timeline->getSignals())
+            {
+                signalEntries.push_back(scene::CreateTimelineSignalDataDirect(
+                    builder,
+                    signal.enabled,
+                    signal.eventName.empty() ? nullptr : signal.eventName.c_str(),
+                    signal.time));
+            }
+
+            const auto clipVector = builder.CreateVector(clipEntries);
+            const auto signalVector = builder.CreateVector(signalEntries);
+
+            const auto payload = scene::CreateTimelineComponentData(
+                builder,
+                timeline->getDuration(),
+                timeline->getPlaybackSpeed(),
+                timeline->getPlayOnAwake(),
+                timeline->getLoop(),
+                timeline->getEmitSignals(),
+                clipVector,
+                signalVector);
+
+            return scene::CreateSerializedComponentDirect(
+                builder,
+                "TimelineComponent",
+                component->isEnabled(),
+                scene::ComponentPayload_TimelineComponentData,
+                payload.Union());
+        }
+
         if (auto* gpuEffect = dynamic_cast<GpuEffectComponent*>(component))
         {
             const auto texturePath = builder.CreateString(wstringToString(gpuEffect->getTexturePath()));
@@ -797,6 +855,79 @@ namespace SerializationCommon
             camera->setDepth(payload->depth());
             camera->setRenderPath(static_cast<RenderPath>(payload->render_path()));
             camera->setRenderPassMask(static_cast<RenderPassFlags>(payload->render_pass_mask()));
+            return;
+        }
+        case scene::ComponentPayload_TimelineComponentData:
+        {
+            auto* timeline = dynamic_cast<TimelineComponent*>(component);
+            const auto* payload = serialized->payload_as_TimelineComponentData();
+            if (!timeline || !payload)
+            {
+                return;
+            }
+
+            timeline->setDuration(payload->duration());
+            timeline->setPlaybackSpeed(payload->playback_speed());
+            timeline->setPlayOnAwake(payload->play_on_awake());
+            timeline->setLoop(payload->loop());
+            timeline->setEmitSignals(payload->emit_signals());
+
+            auto& clips = timeline->getClips();
+            clips.clear();
+            if (const auto* clipVector = payload->clips())
+            {
+                clips.reserve(clipVector->size());
+                for (const auto* entry : *clipVector)
+                {
+                    if (!entry)
+                    {
+                        continue;
+                    }
+
+                    TimelineComponent::Clip clip;
+                    clip.enabled = entry->enabled();
+                    if (entry->animation_name())
+                    {
+                        clip.animationName = entry->animation_name()->str();
+                    }
+                    clip.startTime = entry->start_time();
+                    clip.duration = entry->duration();
+                    clip.clipInTime = entry->clip_in_time();
+                    clip.speed = entry->speed();
+                    clip.loop = entry->loop();
+                    clip.track = entry->track();
+                    clip.weight = entry->weight();
+                    clip.blendIn = entry->blend_in();
+                    clip.blendOut = entry->blend_out();
+                    clip.blendInCurve = static_cast<TimelineComponent::BlendCurve>(std::clamp(entry->blend_in_curve(), 0, 4));
+                    clip.blendOutCurve = static_cast<TimelineComponent::BlendCurve>(std::clamp(entry->blend_out_curve(), 0, 4));
+                    clips.push_back(std::move(clip));
+                }
+            }
+
+            auto& signals = timeline->getSignals();
+            signals.clear();
+            if (const auto* signalVector = payload->signals())
+            {
+                signals.reserve(signalVector->size());
+                for (const auto* entry : *signalVector)
+                {
+                    if (!entry)
+                    {
+                        continue;
+                    }
+
+                    TimelineComponent::Signal signal;
+                    signal.enabled = entry->enabled();
+                    if (entry->event_name())
+                    {
+                        signal.eventName = entry->event_name()->str();
+                    }
+                    signal.time = entry->time();
+                    signals.push_back(std::move(signal));
+                }
+            }
+
             return;
         }
         case scene::ComponentPayload_AnimationComponentData:

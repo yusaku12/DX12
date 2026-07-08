@@ -193,6 +193,38 @@ table UIPanelComponentData {
     graph_blend:float;
 }
 
+table TimelineClipData {
+    enabled:bool;
+    animation_name:string;
+    start_time:float;
+    duration:float;
+    clip_in_time:float;
+    speed:float;
+    loop:bool;
+    track:int;
+    weight:float;
+    blend_in:float;
+    blend_out:float;
+    blend_in_curve:int;
+    blend_out_curve:int;
+}
+
+table TimelineSignalData {
+    enabled:bool;
+    event_name:string;
+    time:float;
+}
+
+table TimelineComponentData {
+    duration:float;
+    playback_speed:float;
+    play_on_awake:bool;
+    loop:bool;
+    emit_signals:bool;
+    clips:[TimelineClipData];
+    signals:[TimelineSignalData];
+}
+
 union ComponentPayload {
     TransformComponentData,
     RectTransformComponentData,
@@ -212,7 +244,8 @@ union ComponentPayload {
     UIButtonComponentData,
     UIImageComponentData,
     CpuParticleComponentData,
-    UIPanelComponentData
+    UIPanelComponentData,
+    TimelineComponentData
 }
 
 table SerializedComponent {
