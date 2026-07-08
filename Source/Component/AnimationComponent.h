@@ -127,6 +127,9 @@ public:
     //! 現在のリターゲット先モデル
     Model* getRetargetTargetModel() const { return m_retargetModel; }
 
+    //! 自身が現在駆動しているモデル
+    Model* getModel() const { return m_model; }
+
     //! リターゲット先を再解決（成功時 true）
     bool resolveRetargetTarget();
 

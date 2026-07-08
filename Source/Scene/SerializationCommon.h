@@ -541,6 +541,19 @@ namespace SerializationCommon
 
         if (auto* timeline = dynamic_cast<TimelineComponent*>(component))
         {
+            std::vector<flatbuffers::Offset<scene::TimelineTrackData>> trackEntries;
+            trackEntries.reserve(timeline->getTracks().size());
+            for (const auto& track : timeline->getTracks())
+            {
+                trackEntries.push_back(scene::CreateTimelineTrackDataDirect(
+                    builder,
+                    track.name.empty() ? nullptr : track.name.c_str(),
+                    track.bindingObjectName.empty() ? nullptr : track.bindingObjectName.c_str(),
+                    track.muted,
+                    track.solo,
+                    track.weight));
+            }
+
             std::vector<flatbuffers::Offset<scene::TimelineClipData>> clipEntries;
             clipEntries.reserve(timeline->getClips().size());
             for (const auto& clip : timeline->getClips())
@@ -573,16 +586,22 @@ namespace SerializationCommon
                     signal.time));
             }
 
+            const auto trackVector = builder.CreateVector(trackEntries);
             const auto clipVector = builder.CreateVector(clipEntries);
             const auto signalVector = builder.CreateVector(signalEntries);
 
             const auto payload = scene::CreateTimelineComponentData(
                 builder,
+                timeline->getAssetPath().empty() ? 0 : builder.CreateString(timeline->getAssetPath()),
                 timeline->getDuration(),
                 timeline->getPlaybackSpeed(),
                 timeline->getPlayOnAwake(),
+                timeline->getInitialTime(),
+                static_cast<int32_t>(timeline->getUpdateMethod()),
+                static_cast<int32_t>(timeline->getWrapMode()),
                 timeline->getLoop(),
                 timeline->getEmitSignals(),
+                trackVector,
                 clipVector,
                 signalVector);
 
@@ -866,11 +885,50 @@ namespace SerializationCommon
                 return;
             }
 
+            if (payload->asset_path())
+            {
+                timeline->setAssetPath(payload->asset_path()->str());
+            }
             timeline->setDuration(payload->duration());
             timeline->setPlaybackSpeed(payload->playback_speed());
             timeline->setPlayOnAwake(payload->play_on_awake());
+            timeline->setInitialTime(payload->initial_time());
+            timeline->setUpdateMethod(static_cast<TimelineComponent::UpdateMethod>(std::clamp(payload->update_method(), 0, 2)));
+            timeline->setWrapMode(static_cast<TimelineComponent::WrapMode>(std::clamp(payload->wrap_mode(), 0, 2)));
             timeline->setLoop(payload->loop());
             timeline->setEmitSignals(payload->emit_signals());
+
+            auto& tracks = timeline->getTracks();
+            tracks.clear();
+            if (const auto* trackVector = payload->tracks())
+            {
+                tracks.reserve(trackVector->size());
+                for (const auto* entry : *trackVector)
+                {
+                    if (!entry)
+                    {
+                        continue;
+                    }
+
+                    TimelineComponent::Track track;
+                    if (entry->name())
+                    {
+                        track.name = entry->name()->str();
+                    }
+                    if (entry->binding_object_name())
+                    {
+                        track.bindingObjectName = entry->binding_object_name()->str();
+                    }
+                    track.muted = entry->muted();
+                    track.solo = entry->solo();
+                    track.weight = entry->weight();
+                    tracks.push_back(std::move(track));
+                }
+            }
+            if (tracks.empty())
+            {
+                tracks.push_back(TimelineComponent::Track{});
+            }
 
             auto& clips = timeline->getClips();
             clips.clear();

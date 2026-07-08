@@ -87,6 +87,9 @@ struct TimelineClipDataBuilder;
 struct TimelineSignalData;
 struct TimelineSignalDataBuilder;
 
+struct TimelineTrackData;
+struct TimelineTrackDataBuilder;
+
 struct TimelineComponentData;
 struct TimelineComponentDataBuilder;
 
@@ -2647,17 +2650,127 @@ inline ::flatbuffers::Offset<TimelineSignalData> CreateTimelineSignalDataDirect(
       time);
 }
 
+struct TimelineTrackData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef TimelineTrackDataBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_NAME = 4,
+    VT_BINDING_OBJECT_NAME = 6,
+    VT_MUTED = 8,
+    VT_SOLO = 10,
+    VT_WEIGHT = 12
+  };
+  const ::flatbuffers::String *name() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_NAME);
+  }
+  const ::flatbuffers::String *binding_object_name() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_BINDING_OBJECT_NAME);
+  }
+  bool muted() const {
+    return GetField<uint8_t>(VT_MUTED, 0) != 0;
+  }
+  bool solo() const {
+    return GetField<uint8_t>(VT_SOLO, 0) != 0;
+  }
+  float weight() const {
+    return GetField<float>(VT_WEIGHT, 0.0f);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_BINDING_OBJECT_NAME) &&
+           verifier.VerifyString(binding_object_name()) &&
+           VerifyField<uint8_t>(verifier, VT_MUTED, 1) &&
+           VerifyField<uint8_t>(verifier, VT_SOLO, 1) &&
+           VerifyField<float>(verifier, VT_WEIGHT, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct TimelineTrackDataBuilder {
+  typedef TimelineTrackData Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_name(::flatbuffers::Offset<::flatbuffers::String> name) {
+    fbb_.AddOffset(TimelineTrackData::VT_NAME, name);
+  }
+  void add_binding_object_name(::flatbuffers::Offset<::flatbuffers::String> binding_object_name) {
+    fbb_.AddOffset(TimelineTrackData::VT_BINDING_OBJECT_NAME, binding_object_name);
+  }
+  void add_muted(bool muted) {
+    fbb_.AddElement<uint8_t>(TimelineTrackData::VT_MUTED, static_cast<uint8_t>(muted), 0);
+  }
+  void add_solo(bool solo) {
+    fbb_.AddElement<uint8_t>(TimelineTrackData::VT_SOLO, static_cast<uint8_t>(solo), 0);
+  }
+  void add_weight(float weight) {
+    fbb_.AddElement<float>(TimelineTrackData::VT_WEIGHT, weight, 0.0f);
+  }
+  explicit TimelineTrackDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<TimelineTrackData> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<TimelineTrackData>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<TimelineTrackData> CreateTimelineTrackData(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> name = 0,
+    ::flatbuffers::Offset<::flatbuffers::String> binding_object_name = 0,
+    bool muted = false,
+    bool solo = false,
+    float weight = 0.0f) {
+  TimelineTrackDataBuilder builder_(_fbb);
+  builder_.add_weight(weight);
+  builder_.add_binding_object_name(binding_object_name);
+  builder_.add_name(name);
+  builder_.add_solo(solo);
+  builder_.add_muted(muted);
+  return builder_.Finish();
+}
+
+inline ::flatbuffers::Offset<TimelineTrackData> CreateTimelineTrackDataDirect(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
+    const char *binding_object_name = nullptr,
+    bool muted = false,
+    bool solo = false,
+    float weight = 0.0f) {
+  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto binding_object_name__ = binding_object_name ? _fbb.CreateString(binding_object_name) : 0;
+  return scene::CreateTimelineTrackData(
+      _fbb,
+      name__,
+      binding_object_name__,
+      muted,
+      solo,
+      weight);
+}
+
 struct TimelineComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef TimelineComponentDataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_DURATION = 4,
-    VT_PLAYBACK_SPEED = 6,
-    VT_PLAY_ON_AWAKE = 8,
-    VT_LOOP = 10,
-    VT_EMIT_SIGNALS = 12,
-    VT_CLIPS = 14,
-    VT_SIGNALS = 16
+    VT_ASSET_PATH = 4,
+    VT_DURATION = 6,
+    VT_PLAYBACK_SPEED = 8,
+    VT_PLAY_ON_AWAKE = 10,
+    VT_INITIAL_TIME = 12,
+    VT_UPDATE_METHOD = 14,
+    VT_WRAP_MODE = 16,
+    VT_LOOP = 18,
+    VT_EMIT_SIGNALS = 20,
+    VT_TRACKS = 22,
+    VT_CLIPS = 24,
+    VT_SIGNALS = 26
   };
+  const ::flatbuffers::String *asset_path() const {
+    return GetPointer<const ::flatbuffers::String *>(VT_ASSET_PATH);
+  }
   float duration() const {
     return GetField<float>(VT_DURATION, 0.0f);
   }
@@ -2667,11 +2780,23 @@ struct TimelineComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Ta
   bool play_on_awake() const {
     return GetField<uint8_t>(VT_PLAY_ON_AWAKE, 0) != 0;
   }
+  float initial_time() const {
+    return GetField<float>(VT_INITIAL_TIME, 0.0f);
+  }
+  int32_t update_method() const {
+    return GetField<int32_t>(VT_UPDATE_METHOD, 0);
+  }
+  int32_t wrap_mode() const {
+    return GetField<int32_t>(VT_WRAP_MODE, 0);
+  }
   bool loop() const {
     return GetField<uint8_t>(VT_LOOP, 0) != 0;
   }
   bool emit_signals() const {
     return GetField<uint8_t>(VT_EMIT_SIGNALS, 0) != 0;
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineTrackData>> *tracks() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineTrackData>> *>(VT_TRACKS);
   }
   const ::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineClipData>> *clips() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineClipData>> *>(VT_CLIPS);
@@ -2682,11 +2807,19 @@ struct TimelineComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Ta
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_ASSET_PATH) &&
+           verifier.VerifyString(asset_path()) &&
            VerifyField<float>(verifier, VT_DURATION, 4) &&
            VerifyField<float>(verifier, VT_PLAYBACK_SPEED, 4) &&
            VerifyField<uint8_t>(verifier, VT_PLAY_ON_AWAKE, 1) &&
+           VerifyField<float>(verifier, VT_INITIAL_TIME, 4) &&
+           VerifyField<int32_t>(verifier, VT_UPDATE_METHOD, 4) &&
+           VerifyField<int32_t>(verifier, VT_WRAP_MODE, 4) &&
            VerifyField<uint8_t>(verifier, VT_LOOP, 1) &&
            VerifyField<uint8_t>(verifier, VT_EMIT_SIGNALS, 1) &&
+           VerifyOffset(verifier, VT_TRACKS) &&
+           verifier.VerifyVector(tracks()) &&
+           verifier.VerifyVectorOfTables(tracks()) &&
            VerifyOffset(verifier, VT_CLIPS) &&
            verifier.VerifyVector(clips()) &&
            verifier.VerifyVectorOfTables(clips()) &&
@@ -2701,6 +2834,9 @@ struct TimelineComponentDataBuilder {
   typedef TimelineComponentData Table;
   ::flatbuffers::FlatBufferBuilder &fbb_;
   ::flatbuffers::uoffset_t start_;
+  void add_asset_path(::flatbuffers::Offset<::flatbuffers::String> asset_path) {
+    fbb_.AddOffset(TimelineComponentData::VT_ASSET_PATH, asset_path);
+  }
   void add_duration(float duration) {
     fbb_.AddElement<float>(TimelineComponentData::VT_DURATION, duration, 0.0f);
   }
@@ -2710,11 +2846,23 @@ struct TimelineComponentDataBuilder {
   void add_play_on_awake(bool play_on_awake) {
     fbb_.AddElement<uint8_t>(TimelineComponentData::VT_PLAY_ON_AWAKE, static_cast<uint8_t>(play_on_awake), 0);
   }
+  void add_initial_time(float initial_time) {
+    fbb_.AddElement<float>(TimelineComponentData::VT_INITIAL_TIME, initial_time, 0.0f);
+  }
+  void add_update_method(int32_t update_method) {
+    fbb_.AddElement<int32_t>(TimelineComponentData::VT_UPDATE_METHOD, update_method, 0);
+  }
+  void add_wrap_mode(int32_t wrap_mode) {
+    fbb_.AddElement<int32_t>(TimelineComponentData::VT_WRAP_MODE, wrap_mode, 0);
+  }
   void add_loop(bool loop) {
     fbb_.AddElement<uint8_t>(TimelineComponentData::VT_LOOP, static_cast<uint8_t>(loop), 0);
   }
   void add_emit_signals(bool emit_signals) {
     fbb_.AddElement<uint8_t>(TimelineComponentData::VT_EMIT_SIGNALS, static_cast<uint8_t>(emit_signals), 0);
+  }
+  void add_tracks(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineTrackData>>> tracks) {
+    fbb_.AddOffset(TimelineComponentData::VT_TRACKS, tracks);
   }
   void add_clips(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineClipData>>> clips) {
     fbb_.AddOffset(TimelineComponentData::VT_CLIPS, clips);
@@ -2735,18 +2883,28 @@ struct TimelineComponentDataBuilder {
 
 inline ::flatbuffers::Offset<TimelineComponentData> CreateTimelineComponentData(
     ::flatbuffers::FlatBufferBuilder &_fbb,
+    ::flatbuffers::Offset<::flatbuffers::String> asset_path = 0,
     float duration = 0.0f,
     float playback_speed = 0.0f,
     bool play_on_awake = false,
+    float initial_time = 0.0f,
+    int32_t update_method = 0,
+    int32_t wrap_mode = 0,
     bool loop = false,
     bool emit_signals = false,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineTrackData>>> tracks = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineClipData>>> clips = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<scene::TimelineSignalData>>> signals = 0) {
   TimelineComponentDataBuilder builder_(_fbb);
   builder_.add_signals(signals);
   builder_.add_clips(clips);
+  builder_.add_tracks(tracks);
+  builder_.add_wrap_mode(wrap_mode);
+  builder_.add_update_method(update_method);
+  builder_.add_initial_time(initial_time);
   builder_.add_playback_speed(playback_speed);
   builder_.add_duration(duration);
+  builder_.add_asset_path(asset_path);
   builder_.add_emit_signals(emit_signals);
   builder_.add_loop(loop);
   builder_.add_play_on_awake(play_on_awake);
@@ -2755,22 +2913,34 @@ inline ::flatbuffers::Offset<TimelineComponentData> CreateTimelineComponentData(
 
 inline ::flatbuffers::Offset<TimelineComponentData> CreateTimelineComponentDataDirect(
     ::flatbuffers::FlatBufferBuilder &_fbb,
+    const char *asset_path = nullptr,
     float duration = 0.0f,
     float playback_speed = 0.0f,
     bool play_on_awake = false,
+    float initial_time = 0.0f,
+    int32_t update_method = 0,
+    int32_t wrap_mode = 0,
     bool loop = false,
     bool emit_signals = false,
+    const std::vector<::flatbuffers::Offset<scene::TimelineTrackData>> *tracks = nullptr,
     const std::vector<::flatbuffers::Offset<scene::TimelineClipData>> *clips = nullptr,
     const std::vector<::flatbuffers::Offset<scene::TimelineSignalData>> *signals = nullptr) {
+  auto asset_path__ = asset_path ? _fbb.CreateString(asset_path) : 0;
+  auto tracks__ = tracks ? _fbb.CreateVector<::flatbuffers::Offset<scene::TimelineTrackData>>(*tracks) : 0;
   auto clips__ = clips ? _fbb.CreateVector<::flatbuffers::Offset<scene::TimelineClipData>>(*clips) : 0;
   auto signals__ = signals ? _fbb.CreateVector<::flatbuffers::Offset<scene::TimelineSignalData>>(*signals) : 0;
   return scene::CreateTimelineComponentData(
       _fbb,
+      asset_path__,
       duration,
       playback_speed,
       play_on_awake,
+      initial_time,
+      update_method,
+      wrap_mode,
       loop,
       emit_signals,
+      tracks__,
       clips__,
       signals__);
 }

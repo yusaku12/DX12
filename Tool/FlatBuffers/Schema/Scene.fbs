@@ -215,12 +215,25 @@ table TimelineSignalData {
     time:float;
 }
 
+table TimelineTrackData {
+    name:string;
+    binding_object_name:string;
+    muted:bool;
+    solo:bool;
+    weight:float;
+}
+
 table TimelineComponentData {
+    asset_path:string;
     duration:float;
     playback_speed:float;
     play_on_awake:bool;
+    initial_time:float;
+    update_method:int;
+    wrap_mode:int;
     loop:bool;
     emit_signals:bool;
+    tracks:[TimelineTrackData];
     clips:[TimelineClipData];
     signals:[TimelineSignalData];
 }
