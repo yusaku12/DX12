@@ -8,6 +8,8 @@ void RootSignatureManager::initialize()
     buildPostEffect();
     buildPostEffectDepth();
     buildPostEffectGBuffer();
+    buildPostEffectGBufferIBL();
+    buildPostEffectGBufferIBLRT();
     buildPostEffectVelocity();
     buildPostEffectTemporal();
     buildBloomComposite();
@@ -83,6 +85,71 @@ void RootSignatureManager::buildPostEffectGBuffer()
     params[3].InitAsDescriptorTable(1, &srvRange2);
 
     createRootSignature(params, _countof(params), RootSignatureType::PostEffectGBuffer);
+}
+
+void RootSignatureManager::buildPostEffectGBufferIBL()
+{
+    CD3DX12_ROOT_PARAMETER params[5] = {};
+
+    // エフェクトパラメータ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // シーンテクスチャ SRV (t0)
+    CD3DX12_DESCRIPTOR_RANGE srvRange0;
+    srvRange0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange0);
+
+    // 深度テクスチャ SRV (t1)
+    CD3DX12_DESCRIPTOR_RANGE srvRange1;
+    srvRange1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+    params[2].InitAsDescriptorTable(1, &srvRange1);
+
+    // GBuffer Normal/Roughness SRV (t2)
+    CD3DX12_DESCRIPTOR_RANGE srvRange2;
+    srvRange2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+    params[3].InitAsDescriptorTable(1, &srvRange2);
+
+    // IBL Cubemap SRV (t3-t4)
+    CD3DX12_DESCRIPTOR_RANGE srvRange3;
+    srvRange3.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 3);
+    params[4].InitAsDescriptorTable(1, &srvRange3);
+
+    createRootSignature(params, _countof(params), RootSignatureType::PostEffectGBufferIBL);
+}
+
+void RootSignatureManager::buildPostEffectGBufferIBLRT()
+{
+    CD3DX12_ROOT_PARAMETER params[6] = {};
+
+    // エフェクトパラメータ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // シーンテクスチャ SRV (t0)
+    CD3DX12_DESCRIPTOR_RANGE srvRange0;
+    srvRange0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange0);
+
+    // 深度テクスチャ SRV (t1)
+    CD3DX12_DESCRIPTOR_RANGE srvRange1;
+    srvRange1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+    params[2].InitAsDescriptorTable(1, &srvRange1);
+
+    // GBuffer Normal/Roughness SRV (t2)
+    CD3DX12_DESCRIPTOR_RANGE srvRange2;
+    srvRange2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+    params[3].InitAsDescriptorTable(1, &srvRange2);
+
+    // IBL Cubemap SRV (t3-t4)
+    CD3DX12_DESCRIPTOR_RANGE srvRange3;
+    srvRange3.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 3);
+    params[4].InitAsDescriptorTable(1, &srvRange3);
+
+    // RayTracing Result SRV (t5)
+    CD3DX12_DESCRIPTOR_RANGE srvRange4;
+    srvRange4.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
+    params[5].InitAsDescriptorTable(1, &srvRange4);
+
+    createRootSignature(params, _countof(params), RootSignatureType::PostEffectGBufferIBLRT);
 }
 
 void RootSignatureManager::buildPostEffectVelocity()

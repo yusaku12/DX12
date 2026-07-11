@@ -97,6 +97,10 @@ void CameraComponent::inspectGUI()
     if (ImGui::Checkbox("ShadowMap", &shadow))
         setRenderPassEnabled(RenderPassFlags::ShadowMap, shadow);
 
+    bool rayTracing = isRenderPassEnabled(RenderPassFlags::RayTracing);
+    if (ImGui::Checkbox("RayTracing", &rayTracing))
+        setRenderPassEnabled(RenderPassFlags::RayTracing, rayTracing);
+
     ImGui::Separator();
 
     Vector3 pos = getPosition();

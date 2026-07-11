@@ -7,6 +7,7 @@
 #include "Render/RenderPipeline.h"
 #include "Render/DeferredRenderer.h"
 #include "Render/GBufferRenderTargets.h"
+#include "Render/RayTracingRenderer.h"
 #include "Render/ShadowMapRenderer.h"
 #include "Input/InputManager.h"
 #include "GameObject/GameObjectRegistry.h"
@@ -58,6 +59,7 @@ void Window::initializeEngineSubsystems()
     IBLManager::Instance().initialize();
     PostEffectRenderTargets::Instance().initialize();
     DeferredRenderer::Instance().initialize();
+    RayTracingRenderer::Instance().initialize();
     ShadowMapRenderer::Instance().initialize();
     RenderPipeline::Instance().initialize();
 

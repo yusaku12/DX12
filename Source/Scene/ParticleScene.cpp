@@ -7,9 +7,11 @@
 #include "PostEffect\CasSharpenEffect.h"
 #include "PostEffect\ColorGradingEffect.h"
 #include "PostEffect\GTAOEffect.h"
+#include "PostEffect\HybridGIEffect.h"
 #include "PostEffect\MotionBlurEffect.h"
-#include "PostEffect\SSREffect.h"
+#include "PostEffect\ReflectionCompositeEffect.h"
 #include "PostEffect\TemporalAAEffect.h"
+#include "PostEffect\VolumetricFogEffect.h"
 #include "Component\GpuEffectComponent.h"
 #include "Component\CpuParticleComponent.h"
 #include "Component\SkyboxComponent.h"
@@ -31,8 +33,10 @@ void ParticleScene::onEnter()
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
     pe->addEffect<GTAOEffect>();
-    pe->addEffect<SSREffect>();
+    pe->addEffect<HybridGIEffect>();
+    pe->addEffect<ReflectionCompositeEffect>();
     pe->addEffect<BloomEffect>();
+    pe->addEffect<VolumetricFogEffect>();
     pe->addEffect<MotionBlurEffect>();
     pe->addEffect<TemporalAAEffect>();
     pe->addEffect<ColorGradingEffect>();

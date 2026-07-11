@@ -25,6 +25,7 @@ enum class RenderPassFlags : unsigned int
     PostEffect = 1 << 3,
     Debug = 1 << 4,
     ShadowMap = 1 << 5,
+    RayTracing = 1 << 6,
 };
 
 inline RenderPassFlags operator|(RenderPassFlags a, RenderPassFlags b)
@@ -173,7 +174,8 @@ private:
         | RenderPassFlags::Forward
         | RenderPassFlags::PostEffect
         | RenderPassFlags::Debug
-        | RenderPassFlags::ShadowMap;
+        | RenderPassFlags::ShadowMap
+        | RenderPassFlags::RayTracing;
 
     bool m_initialized = false; //!< awake 完了フラグ（onEnable の早期呼び出しを防ぐ）
     bool m_registered = false; //!< CameraManager 登録済みフラグ

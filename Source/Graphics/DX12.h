@@ -228,12 +228,17 @@ private:
     //! Scene/Depth/関連RTを現在のレンダー解像度で再構築
     void recreateRenderResources(DXGI_FORMAT sceneFormat);
 
+    //! 保留中のレンダースケール変更を安全なタイミングで適用
+    void applyPendingRenderScale();
+
     static DX12* m_instance;
     const HWND m_hwnd;
     int m_displayWidth = 1280;
     int m_displayHeight = 720;
     int m_width = 1280, m_height = 720;     //!< 画面の縦幅、横幅
     float m_renderScale = 1.0f;
+    bool m_hasPendingRenderScale = false;
+    float m_pendingRenderScale = 1.0f;
     static constexpr int BUFFER_COUNT = 3;  //!< バックバッファの数
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, BUFFER_COUNT> m_commandAllocators;

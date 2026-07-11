@@ -11,6 +11,8 @@ enum class RootSignatureType : int
     PostEffect,
     PostEffectDepth,
     PostEffectGBuffer,
+    PostEffectGBufferIBL,
+    PostEffectGBufferIBLRT,
     PostEffectVelocity,
     PostEffectTemporal,
     BloomComposite,
@@ -73,6 +75,12 @@ private:
 
     //! PostEffectGBufferをビルド
     void buildPostEffectGBuffer();
+
+    //! PostEffectGBufferIBLをビルド
+    void buildPostEffectGBufferIBL();
+
+    //! PostEffectGBufferIBLRTをビルド
+    void buildPostEffectGBufferIBLRT();
 
     //! PostEffectVelocityをビルド
     void buildPostEffectVelocity();

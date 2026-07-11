@@ -7,6 +7,7 @@
 #include "PostEffect/PostEffectManager.h"
 #include "System/TimeManager.h"
 #include "HiZPyramid.h"
+#include "RayTracingRenderer.h"
 #include "Graphics/GpuDebugMarker.h"
 #include "System/DebugPrimitive.h"
 
@@ -209,6 +210,27 @@ namespace
         }
     };
 
+    class RayTracingPass : public RenderPassBase
+    {
+    public:
+        RenderPassId getId() const override { return RenderPassId::RayTracing; }
+        const char* getName() const override { return "RayTracing"; }
+        int getPriority() const override { return 80; }
+        RenderPassStage getStage() const override { return RenderPassStage::BeforePostEffect; }
+
+        bool isEnabled(const RenderPassContext& context) const override
+        {
+            return context.renderPath == RenderPath::Deferred
+                && HasRenderPass(context.passMask, RenderPassFlags::RayTracing)
+                && RayTracingRenderer::Instance().isEnabled();
+        }
+
+        void execute(RenderPassContext& context) override
+        {
+            RayTracingRenderer::Instance().execute(context);
+        }
+    };
+
     class HiZPass : public RenderPassBase
     {
     public:
@@ -265,7 +287,8 @@ void RenderPipeline::initialize()
     registerPass(DXMem::makeUnique<LightingPass>(), { RenderPassId::GBuffer });
     registerPass(DXMem::makeUnique<ForwardPass>(), { RenderPassId::Lighting });
     registerPass(DXMem::makeUnique<HiZPass>(), { RenderPassId::Forward });
-    registerPass(DXMem::makeUnique<DebugPass>(), { RenderPassId::HiZPyramid });
+    registerPass(DXMem::makeUnique<RayTracingPass>(), { RenderPassId::HiZPyramid });
+    registerPass(DXMem::makeUnique<DebugPass>(), { RenderPassId::RayTracing });
     registerPass(DXMem::makeUnique<PostEffectPass>());
 }
 

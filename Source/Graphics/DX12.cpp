@@ -6,6 +6,7 @@
 #include "Render/RenderPassContextFactory.h"
 #include "Render/DeferredRenderer.h"
 #include "Render/GBufferRenderTargets.h"
+#include "Render/RayTracingRenderer.h"
 #include "Render/DynamicResolutionManager.h"
 #include "PostEffect/PostEffectRenderTargets.h"
 #include "GameObject\GameObject.h"
@@ -617,11 +618,13 @@ void DX12::screenClearCleanup()
     // DebugLayer の警告をフラッシュ
     flushDebugMessages();
 #endif
+    DynamicResolutionManager::Instance().update();
+
+    // フレーム終端の安全なタイミングで解像度変更を反映
+    applyPendingRenderScale();
 
     // コマンドリセット
     commandReset();
-
-    DynamicResolutionManager::Instance().update();
 }
 
 void DX12::screenResize(int width, int height)
@@ -697,11 +700,31 @@ void DX12::setRenderScale(float scale)
     const float clamped = std::clamp(scale, 0.5f, 1.0f);
     if (std::abs(clamped - m_renderScale) < 1e-4f)
     {
+        m_hasPendingRenderScale = false;
+        m_pendingRenderScale = clamped;
         return;
     }
 
+    // コマンド記録中に直接リソース再構築すると closed/reset エラーの原因になるため、
+    // フレーム終端まで遅延適用する。
+    m_hasPendingRenderScale = true;
+    m_pendingRenderScale = clamped;
+}
+
+void DX12::applyPendingRenderScale()
+{
+    if (!m_hasPendingRenderScale)
+    {
+        return;
+    }
+
+    const float clamped = std::clamp(m_pendingRenderScale, 0.5f, 1.0f);
     const int newRenderW = std::max(1, static_cast<int>(std::lround(static_cast<float>(m_displayWidth) * clamped)));
     const int newRenderH = std::max(1, static_cast<int>(std::lround(static_cast<float>(m_displayHeight) * clamped)));
+
+    m_hasPendingRenderScale = false;
+    m_pendingRenderScale = clamped;
+
     if (newRenderW == m_width && newRenderH == m_height)
     {
         m_renderScale = clamped;
@@ -715,7 +738,6 @@ void DX12::setRenderScale(float scale)
     m_height = newRenderH;
 
     recreateRenderResources(m_backBufferFormat);
-    commandReset();
 }
 
 void DX12::recreateRenderResources(DXGI_FORMAT sceneFormat)
@@ -837,6 +859,7 @@ void DX12::recreateRenderResources(DXGI_FORMAT sceneFormat)
     }
 
     DeferredRenderer::Instance().resize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
+    RayTracingRenderer::Instance().resize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
     PostEffectRenderTargets::Instance().resize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
 }
 

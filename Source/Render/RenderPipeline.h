@@ -49,7 +49,7 @@ private:
         bool executed = false;
     };
 
-    static constexpr int PassCount = 8;
+    static constexpr int PassCount = static_cast<int>(RenderPassId::Max);
     std::array<PassTiming, PassCount> m_passTimings{};
     bool m_profileFrameOpen = false;
 
