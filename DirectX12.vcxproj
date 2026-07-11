@@ -66,13 +66,13 @@
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;SPDLOG_NO_EXCEPTIONS;FMT_EXCEPTIONS=0;TRACY_ENABLE;TF_DISABLE_EXCEPTION_HANDLING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;SPDLOG_NO_EXCEPTIONS;FMT_EXCEPTIONS=0;TRACY_ENABLE;TF_DISABLE_EXCEPTION_HANDLING;FT2_BUILD_LIBRARY;FT_ERR_PREFIX=FT_Err_;MSDFGEN_PUBLIC=;MSDFGEN_EXT_PUBLIC=;MSDFGEN_USE_CPP11;MSDFGEN_DISABLE_SVG;MSDFGEN_DISABLE_PNG;MSDFGEN_EXTENSIONS;FT_CONFIG_MODULES_H=&quot;UI/FreeTypeModules.h&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External.\FBX SDK.\2020.3.9.\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External.\magic_enum;.\External\Physx;.\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -98,13 +98,13 @@
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;SPDLOG_NO_EXCEPTIONS;FMT_EXCEPTIONS=0;TF_DISABLE_EXCEPTION_HANDLING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CRT_SECURE_NO_WARNINGS;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;PX_PHYSX_STATIC_LIB;SPDLOG_NO_EXCEPTIONS;FMT_EXCEPTIONS=0;TF_DISABLE_EXCEPTION_HANDLING;FT2_BUILD_LIBRARY;FT_ERR_PREFIX=FT_Err_;MSDFGEN_PUBLIC=;MSDFGEN_EXT_PUBLIC=;MSDFGEN_USE_CPP11;MSDFGEN_DISABLE_SVG;MSDFGEN_DISABLE_PNG;MSDFGEN_EXTENSIONS;FT_CONFIG_MODULES_H=&quot;UI/FreeTypeModules.h&quot;;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External.\FBX SDK.\2020.3.9.\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External.\magic_enum;.\External\Physx;.\External\flatbuffers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -119,37 +119,155 @@
     </Link>
   </ItemDefinitionGroup>
 
+  <!-- ========== エンジン ソースファイル ========== -->
   <ItemGroup>
-    <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\Animation\*.cpp" />
+    <ClCompile Include="Source\Audio\*.cpp" />
+    <ClCompile Include="Source\Camera\*.cpp" />
+    <ClCompile Include="Source\Component\*.cpp" />
+    <ClCompile Include="Source\Editor\*.cpp" />
+    <ClCompile Include="Source\GameObject\*.cpp" />
+    <ClCompile Include="Source\Graphics\*.cpp" />
+    <ClCompile Include="Source\Input\*.cpp" />
+    <ClCompile Include="Source\Math\*.cpp" />
+    <ClCompile Include="Source\Model\*.cpp" />
+    <ClCompile Include="Source\Physics\*.cpp" />
+    <ClCompile Include="Source\PostEffect\*.cpp" />
+    <ClCompile Include="Source\Render\*.cpp" />
+    <ClCompile Include="Source\Scene\*.cpp" />
+    <ClCompile Include="Source\System\*.cpp" />
+    <ClCompile Include="Source\Test\*.cpp" />
+    <ClCompile Include="Source\UI\*.cpp" />
   </ItemGroup>
 
+  <!-- ========== サードパーティ: ImGui (PCH なし) ========== -->
+  <ItemGroup>
+    <ClCompile Include="External\imgui\ImCurveEdit.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\ImGuizmo.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_draw.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_impl_dx12.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_impl_win32.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_neo_internal.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_neo_sequencer.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_render.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_tables.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_widgets.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\imgui_widget_flamegraph.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+    <ClCompile Include="External\imgui\ImNodeFlow.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><DisableSpecificWarnings>4189;%(DisableSpecificWarnings)</DisableSpecificWarnings></ClCompile>
+  </ItemGroup>
+
+  <!-- ========== サードパーティ: Tracy (PCH なし) ========== -->
+  <ItemGroup>
+    <ClCompile Include="External\tracy\public\TracyClient.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/w %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemGroup>
+
+  <!-- ========== サードパーティ: Recast/Detour (PCH なし) ========== -->
+  <ItemGroup>
+    <ClCompile Include="External\recastnavigation\Detour\Source\DetourAlloc.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/wd4324 /wd4244 /wd4267 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="External\recastnavigation\Detour\Source\DetourAssert.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/wd4324 /wd4244 /wd4267 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="External\recastnavigation\Detour\Source\DetourCommon.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/wd4324 /wd4244 /wd4267 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="External\recastnavigation\Detour\Source\DetourNavMesh.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/wd4324 /wd4244 /wd4267 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="External\recastnavigation\Detour\Source\DetourNavMeshBuilder.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/wd4324 /wd4244 /wd4267 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="External\recastnavigation\Detour\Source\DetourNavMeshQuery.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/wd4324 /wd4244 /wd4267 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <ClCompile Include="External\recastnavigation\Detour\Source\DetourNode.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalOptions>/wd4324 /wd4244 /wd4267 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemGroup>
+
+  <!-- ========== サードパーティ: msdfgen + FreeType (PCH なし) ========== -->
+  <ItemGroup>
+    <ClCompile Include="External\msdfgen\core\*.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\msdfgen\ext\import-font.cpp"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftsystem.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftinit.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftdebug.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftbase.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftbbox.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftbitmap.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftglyph.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftstroke.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftmm.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftbdf.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftcid.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftfstype.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftgasp.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftgxval.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftotval.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftpatent.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftpfr.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftsynth.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\fttype1.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\base\ftwinfnt.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\autofit\autofit.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\bdf\bdf.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\cff\cff.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\cid\type1cid.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\pcf\pcf.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\pfr\pfr.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\psaux\psaux.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\pshinter\pshinter.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\psnames\psnames.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\raster\raster.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\sfnt\sfnt.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\smooth\smooth.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\truetype\truetype.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\type1\type1.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\type42\type42.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\winfonts\winfnt.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\gzip\ftgzip.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\freetype\src\lzw\ftlzw.c"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w /wd9025 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+  </ItemGroup>
+
+  <!-- ========== ヘッダーファイル ========== -->
   <ItemGroup>
     <ClInclude Include="Source\pch.h" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="Modules\DX12.Animation.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1001}</Project><Name>DX12.Animation</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Audio.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1002}</Project><Name>DX12.Audio</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Camera.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1003}</Project><Name>DX12.Camera</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Component.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1004}</Project><Name>DX12.Component</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Editor.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1005}</Project><Name>DX12.Editor</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.GameObject.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1006}</Project><Name>DX12.GameObject</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Graphics.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1007}</Project><Name>DX12.Graphics</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Input.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1008}</Project><Name>DX12.Input</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Math.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1009}</Project><Name>DX12.Math</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Model.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1010}</Project><Name>DX12.Model</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Physics.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1011}</Project><Name>DX12.Physics</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.PostEffect.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1012}</Project><Name>DX12.PostEffect</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Render.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1013}</Project><Name>DX12.Render</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Scene.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1014}</Project><Name>DX12.Scene</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.System.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1015}</Project><Name>DX12.System</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.Test.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1016}</Project><Name>DX12.Test</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.UI.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1017}</Project><Name>DX12.UI</Name></ProjectReference>
-    <ProjectReference Include="Modules\DX12.ThirdParty.ImGui.vcxproj"><Project>{1A4F8891-8C19-4C47-9B59-1A2F9D8C1018}</Project><Name>DX12.ThirdParty.ImGui</Name></ProjectReference>
+    <ClInclude Include="Source\Animation\*.h" />
+    <ClInclude Include="Source\Audio\*.h" />
+    <ClInclude Include="Source\Camera\*.h" />
+    <ClInclude Include="Source\Component\*.h" />
+    <ClInclude Include="Source\Editor\*.h" />
+    <ClInclude Include="Source\GameObject\*.h" />
+    <ClInclude Include="Source\Generated\*.h" />
+    <ClInclude Include="Source\Graphics\*.h" />
+    <ClInclude Include="Source\Input\*.h" />
+    <ClInclude Include="Source\Math\*.h" />
+    <ClInclude Include="Source\Model\*.h" />
+    <ClInclude Include="Source\Physics\*.h" />
+    <ClInclude Include="Source\PostEffect\*.h" />
+    <ClInclude Include="Source\Render\*.h" />
+    <ClInclude Include="Source\Scene\*.h" />
+    <ClInclude Include="Source\System\*.h" />
+    <ClInclude Include="Source\Test\*.h" />
+    <ClInclude Include="Source\UI\*.h" />
+    <ClInclude Include="External\imgui\*.h" />
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
