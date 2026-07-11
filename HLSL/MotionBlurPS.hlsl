@@ -1,6 +1,5 @@
 #include "PostEffect.hlsli"
 #include "Common.hlsli"
-#include "MaterialGraphGenerated.hlsli"
 
 //!=======================================================
 //! スクリーン空間モーションブラー
@@ -14,55 +13,75 @@ cbuffer CBuffer : register(b0)
     row_major float4x4 g_currentViewProj;
     row_major float4x4 g_prevViewProj;
     row_major float4x4 g_invViewProj;
-    float4 g_params0; //!< x=shutterSpeed y=maxBlurRadius z=deltaTime w=blendWeight
-    float4 g_params1; //!< x=texelSize.x y=texelSize.y
-    float4 g_graph;   //!< x=graphId y=metallic z=roughness w=ao
-    float4 g_graphBlend; //!< x=blend
+    float4 g_params0; //!< x=shutterScale y=maxBlurRadiusPx z=blendWeight w=velocityReject
+    float4 g_params1; //!< x=texelSize.x y=texelSize.y z=minSamples w=maxSamples
 };
+
+float2 decodeVelocityUv(float2 uv)
+{
+    return velocityTexture.SampleLevel(samplerStates[POINT_CLAMP], uv, 0).xy;
+}
 
 float4 PS(PostEffectVSOut input) : SV_Target
 {
-    float3 center = sceneTexture.Sample(samplerStates[LINEAR_CLAMP], input.uv).rgb;
-    const float kVelocityEncodeScale = 8.0f;
-    float2 velocityUv = velocityTexture.Sample(samplerStates[LINEAR_CLAMP], input.uv).xy;
-    velocityUv = (velocityUv - 0.5f) / kVelocityEncodeScale;
-    float2 velocity = velocityUv * (g_params0.x * g_params0.z);
+    float3 center = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], input.uv, 0).rgb;
+    float2 velocityUv = decodeVelocityUv(input.uv);
+    float2 velocity = velocityUv * g_params0.x;
 
     float2 texelSize = g_params1.xy;
     float maxLen = g_params0.y * max(texelSize.x, texelSize.y);
     float len = length(velocity);
 
-    if (len < 1e-5f || g_params0.w <= 0.0f)
+    if (len < 1e-5f || g_params0.z <= 0.0f)
         return float4(center, 1.0f);
 
     if (len > maxLen)
         velocity *= maxLen / len;
 
-    const int SampleCount = 3;
+    const int kKernelMax = 16;
+    int minSamples = clamp((int)round(g_params1.z), 2, kKernelMax);
+    int maxSamples = clamp((int)round(g_params1.w), minSamples, kKernelMax);
+    int sampleCount = (int)round(lerp((float)minSamples, (float)maxSamples, saturate(len / max(maxLen, 1e-6f))));
+
+    float2 dir = velocity / max(length(velocity), 1e-6f);
     float3 accum = center;
     float total = 1.0f;
 
-    [unroll]
-    for (int i = 1; i <= SampleCount; ++i)
+    [loop]
+    for (int i = 1; i <= kKernelMax; ++i)
     {
-        float t = i / (float)SampleCount;
+        if (i > sampleCount)
+            break;
+
+        float t = i / (float)sampleCount;
+        float w = 1.0f - t;
         float2 offset = velocity * t;
 
-        float3 c0 = sceneTexture.Sample(samplerStates[LINEAR_CLAMP], input.uv + offset).rgb;
-        float3 c1 = sceneTexture.Sample(samplerStates[LINEAR_CLAMP], input.uv - offset).rgb;
+        float2 uv0 = input.uv + offset;
+        float2 uv1 = input.uv - offset;
 
-        accum += (c0 + c1);
-        total += 2.0f;
+        float3 c0 = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], uv0, 0).rgb;
+        float3 c1 = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], uv1, 0).rgb;
+
+        float2 sv0 = decodeVelocityUv(uv0);
+        float2 sv1 = decodeVelocityUv(uv1);
+        float2 nsv0 = sv0 / max(length(sv0), 1e-6f);
+        float2 nsv1 = sv1 / max(length(sv1), 1e-6f);
+
+        float a0 = saturate(dot(dir, nsv0) * 0.5f + 0.5f);
+        float a1 = saturate(dot(-dir, nsv1) * 0.5f + 0.5f);
+        float velocityAgreement0 = lerp(1.0f, a0 * a0, saturate(g_params0.w));
+        float velocityAgreement1 = lerp(1.0f, a1 * a1, saturate(g_params0.w));
+        float w0 = w * velocityAgreement0;
+        float w1 = w * velocityAgreement1;
+
+        accum += c0 * w0;
+        accum += c1 * w1;
+        total += w0 + w1;
     }
 
     float3 blurred = accum / max(total, 1e-4f);
-    float blurAmount = saturate(len / maxLen) * g_params0.w;
-
+    float blurAmount = saturate(len / max(maxLen, 1e-6f)) * g_params0.z;
     float3 base = lerp(center, blurred, blurAmount);
-    float3 pbr = float3(g_graph.y, g_graph.z, g_graph.w);
-    MaterialGraphResult graph = EvaluatePostEffectGraphById((int)g_graph.x, input.uv, float4(base, 1.0f), pbr, sceneTexture, sceneTexture, samplerStates[LINEAR_CLAMP]);
-    float blend = saturate(g_graphBlend.x);
-    float3 outColor = lerp(base, graph.baseColor.rgb, blend);
-    float outAlpha = lerp(1.0f, graph.alpha, blend);
-    return float4(outColor, outAlpha);
+    return float4(base, 1.0f);
 }

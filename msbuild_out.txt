@@ -1,5 +1,0 @@
-
-  UIFontManager.cpp
-C:\Users\2210359\Desktop\DirectX12\Source\UI\UIFontManager.cpp(5,1): error C1083: include ファイルを開けません。'msdfgen.h':No such file or directory [C:\Users\2210359\Desktop\DirectX12\DirectX12.vcxproj]
-  (ソース ファイル '/Source/UI/UIFontManager.cpp' をコンパイルしています)
-  

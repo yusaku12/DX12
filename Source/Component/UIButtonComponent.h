@@ -46,21 +46,6 @@ public:
     float getCornerRounding() const { return m_cornerRounding; }
     void setCornerRounding(float value) { m_cornerRounding = std::max(0.0f, value); }
 
-    float getGraphId() const { return m_graphId; }
-    void setGraphId(float value) { m_graphId = std::max(0.0f, value); }
-
-    float getGraphMetallic() const { return m_graphMetallic; }
-    void setGraphMetallic(float value) { m_graphMetallic = std::clamp(value, 0.0f, 1.0f); }
-
-    float getGraphRoughness() const { return m_graphRoughness; }
-    void setGraphRoughness(float value) { m_graphRoughness = std::clamp(value, 0.0f, 1.0f); }
-
-    float getGraphAo() const { return m_graphAo; }
-    void setGraphAo(float value) { m_graphAo = std::clamp(value, 0.0f, 1.0f); }
-
-    float getGraphBlend() const { return m_graphBlend; }
-    void setGraphBlend(float value) { m_graphBlend = std::clamp(value, 0.0f, 1.0f); }
-
     bool invokeClick() const;
 
 private:
@@ -73,11 +58,6 @@ private:
     Vector4 m_textColor = Vector4(0.98f, 0.98f, 0.99f, 1.0f);
     float m_fontScale = 1.0f;
     float m_cornerRounding = 14.0f;
-    float m_graphId = 0.0f;
-    float m_graphMetallic = 0.0f;
-    float m_graphRoughness = 1.0f;
-    float m_graphAo = 1.0f;
-    float m_graphBlend = 0.0f;
     bool m_interactable = true;
     bool m_blockMouseInput = true;
 };

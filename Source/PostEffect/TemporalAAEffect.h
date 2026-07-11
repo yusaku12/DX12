@@ -40,8 +40,6 @@ private:
     void transitionHistoryToSRV(ID3D12GraphicsCommandList* cmd, int index);
     void transitionHistoryToCopyDest(ID3D12GraphicsCommandList* cmd, int index);
 
-    Vector2 nextHaltonJitter();
-
     std::unique_ptr<ConstantBuffer<CBuffer>> m_cb;
 
     Microsoft::WRL::ComPtr<ID3D12Resource> m_history[2];
@@ -63,9 +61,6 @@ private:
     int m_historyReadIndex = 0;
     int m_historyWriteIndex = 1;
     bool m_hasHistory = false;
-
-    uint32_t m_haltonIndex = 0;
-    Vector2 m_prevJitter = Vector2::Zero;
 
     float m_stationaryBlend = 0.92f;
     float m_motionBlend = 0.12f;

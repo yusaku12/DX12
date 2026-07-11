@@ -8,6 +8,7 @@
 #include "Component\TransformComponent.h"
 #include "Graphics/GpuDebugMarker.h"
 #include "HiZPyramid.h"
+#include "DynamicResolutionManager.h"
 
 namespace
 {
@@ -929,6 +930,8 @@ void RenderManager::renderDebugContents()
     ImGui::Text("Occlusion Queries: %zu", m_lastOcclusionQueryCount);
     ImGui::Text("HLOD Skipped: %zu", m_lastHlodMergedCount);
     ImGui::Text("LOD Adjusted: %zu", m_lastLodAdjustedCount);
+
+    DynamicResolutionManager::Instance().renderDebugContents();
 
     std::vector<ThreadTimingInfo> timings;
     float totalMs = 0.0f;

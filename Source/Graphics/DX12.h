@@ -103,6 +103,12 @@ public:
     //! 画面をリサイズ
     void screenResize(int width, int height);
 
+    //! 内部レンダー解像度スケールを設定
+    void setRenderScale(float scale);
+
+    //! 内部レンダー解像度スケールを取得
+    float getRenderScale() const { return m_renderScale; }
+
     //! バックバッファをimgui用に準備
     void prepareBackBufferForImGui();
 
@@ -182,6 +188,10 @@ public:
     const int& getScreenWidth() const { return m_width; }
     const int& getScreenHeight() const { return m_height; }
 
+    //! 表示解像度（SwapChain）取得
+    int getDisplayWidth() const { return m_displayWidth; }
+    int getDisplayHeight() const { return m_displayHeight; }
+
     //! Scene ウィンドウ内の描画矩形（スクリーン座標）
     ImVec2 getSceneWindowPos() const { return m_sceneWindowPos; }
     ImVec2 getSceneWindowSize() const { return m_sceneWindowSize; }
@@ -215,9 +225,15 @@ private:
     //! 指定フレームのコマンドアロケータ再利用待ち
     void waitForFrameResources(UINT frameIndex);
 
+    //! Scene/Depth/関連RTを現在のレンダー解像度で再構築
+    void recreateRenderResources(DXGI_FORMAT sceneFormat);
+
     static DX12* m_instance;
     const HWND m_hwnd;
+    int m_displayWidth = 1280;
+    int m_displayHeight = 720;
     int m_width = 1280, m_height = 720;     //!< 画面の縦幅、横幅
+    float m_renderScale = 1.0f;
     static constexpr int BUFFER_COUNT = 3;  //!< バックバッファの数
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
     std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, BUFFER_COUNT> m_commandAllocators;

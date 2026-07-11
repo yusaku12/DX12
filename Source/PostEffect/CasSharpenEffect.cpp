@@ -28,7 +28,7 @@ void CasSharpenEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
 
 void CasSharpenEffect::inspectGUI()
 {
-    ImGui::SeparatorText("CAS Sharpen");
+    ImGui::SeparatorText("FSR RCAS");
     ImGui::SliderFloat("Strength", &m_strength, 0.0f, 1.0f);
     ImGui::SliderFloat("Clamp", &m_clampAmount, 0.0f, 1.0f);
 }

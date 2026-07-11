@@ -80,7 +80,6 @@ private:
     {
         Vector4 diffuse = {};
         Vector3 pbr = { 1.0f, 1.0f, 1.0f };
-        float graphId = 0.0f;
     };
 
     //! モデルアセットを読み込む
@@ -146,9 +145,6 @@ private:
     //! マテリアル CBV を再更新（色変更時）
     void updateMaterialCBV();
 
-    //! マテリアル名ベースのグラフIDプリセットを適用
-    void applyMaterialGraphBindings();
-
     struct LodEntry
     {
         std::unique_ptr<Model> model;
@@ -185,7 +181,6 @@ private:
     bool m_enableRuntimeLodGeneration = true;
     bool m_enableRuntimeLodMerge = true;
     std::vector<float> m_generatedLodRatios = { 0.50f, 0.25f, 0.12f };
-    std::vector<int> m_materialGraphIds;
     Vector3 m_prevPosition = Vector3::Zero;
     Vector3 m_frameMotion = Vector3::Zero;
     bool m_hasPrevPosition = false;

@@ -2,7 +2,6 @@
 //!< テクスチャモード（カラー / RGBA / フォント alpha-only）に対応
 
 #include "Common.hlsli"
-#include "MaterialGraphGenerated.hlsli"
 
 cbuffer UIConstantsCB : register(b0)
 {
@@ -11,11 +10,6 @@ cbuffer UIConstantsCB : register(b0)
     float4             g_tintColor;
     uint               g_textureMode;
     float              g_globalAlpha;
-    float              g_graphId;
-    float              g_graphMetallic;
-    float              g_graphRoughness;
-    float              g_graphAo;
-    float              g_graphBlend;
     float2             g_pad;
 };
 
@@ -64,10 +58,5 @@ float4 PS(PSInput input) : SV_TARGET
         baseColor = texColor * input.color;
     }
 
-    float3 pbr = float3(g_graphMetallic, g_graphRoughness, g_graphAo);
-    MaterialGraphResult graph = EvaluateParticleGraphById((int)g_graphId, input.texcoord, baseColor, pbr, g_uiTexture, g_uiTexture, samplerStates[LINEAR_CLAMP]);
-    float blend = saturate(g_graphBlend);
-    float3 outColor = lerp(baseColor.rgb, graph.baseColor.rgb, blend);
-    float outAlpha = lerp(baseColor.a, graph.alpha, blend);
-    return float4(outColor, outAlpha);
+    return baseColor;
 }

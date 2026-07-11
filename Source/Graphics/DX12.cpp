@@ -6,6 +6,7 @@
 #include "Render/RenderPassContextFactory.h"
 #include "Render/DeferredRenderer.h"
 #include "Render/GBufferRenderTargets.h"
+#include "Render/DynamicResolutionManager.h"
 #include "PostEffect/PostEffectRenderTargets.h"
 #include "GameObject\GameObject.h"
 #include "Component\PostEffectComponent.h"
@@ -27,8 +28,10 @@ DX12::DX12(HWND hwnd)
     UINT screenWidth = rc.right - rc.left;
     UINT screenHeight = rc.bottom - rc.top;
 
-    this->m_width = screenWidth;
-    this->m_height = screenHeight;
+    m_displayWidth = static_cast<int>(screenWidth);
+    m_displayHeight = static_cast<int>(screenHeight);
+    this->m_width = static_cast<int>(screenWidth);
+    this->m_height = static_cast<int>(screenHeight);
 
 #ifdef _DEBUG
     // DX12で使用するデバッグ機能
@@ -153,8 +156,8 @@ DX12::DX12(HWND hwnd)
 
     // スワップチェイン作成
     DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
-    swapchainDesc.Width = screenWidth;
-    swapchainDesc.Height = screenHeight;
+    swapchainDesc.Width = static_cast<UINT>(m_displayWidth);
+    swapchainDesc.Height = static_cast<UINT>(m_displayHeight);
     swapchainDesc.Format = m_backBufferFormat;
     swapchainDesc.Stereo = false;
     swapchainDesc.SampleDesc.Count = 1;
@@ -617,6 +620,8 @@ void DX12::screenClearCleanup()
 
     // コマンドリセット
     commandReset();
+
+    DynamicResolutionManager::Instance().update();
 }
 
 void DX12::screenResize(int width, int height)
@@ -654,8 +659,10 @@ void DX12::screenResize(int width, int height)
     LOG_HR(hr, "ResizeBuffers failed");
 
     // サイズ更新
-    m_width = width;
-    m_height = height;
+    m_displayWidth = width;
+    m_displayHeight = height;
+    m_width = std::max(1, static_cast<int>(std::lround(static_cast<float>(m_displayWidth) * m_renderScale)));
+    m_height = std::max(1, static_cast<int>(std::lround(static_cast<float>(m_displayHeight) * m_renderScale)));
 
     // BackBuffer 再取得 + RTV再生成
     D3D12_CPU_DESCRIPTOR_HANDLE handle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
@@ -679,21 +686,64 @@ void DX12::screenResize(int width, int height)
         handle.ptr += rtvSize;
     }
 
-    // SceneRenderTarget 再生成
+    recreateRenderResources(desc.BufferDesc.Format);
+
+    // コマンドリストを再オープン
+    commandReset();
+}
+
+void DX12::setRenderScale(float scale)
+{
+    const float clamped = std::clamp(scale, 0.5f, 1.0f);
+    if (std::abs(clamped - m_renderScale) < 1e-4f)
+    {
+        return;
+    }
+
+    const int newRenderW = std::max(1, static_cast<int>(std::lround(static_cast<float>(m_displayWidth) * clamped)));
+    const int newRenderH = std::max(1, static_cast<int>(std::lround(static_cast<float>(m_displayHeight) * clamped)));
+    if (newRenderW == m_width && newRenderH == m_height)
+    {
+        m_renderScale = clamped;
+        return;
+    }
+
+    safeGPUWait();
+
+    m_renderScale = clamped;
+    m_width = newRenderW;
+    m_height = newRenderH;
+
+    recreateRenderResources(m_backBufferFormat);
+    commandReset();
+}
+
+void DX12::recreateRenderResources(DXGI_FORMAT sceneFormat)
+{
+    if (!m_device)
+    {
+        return;
+    }
+
+    m_sceneRenderTarget.Reset();
+    m_depthStencil.Reset();
+
+    HRESULT hr = S_OK;
+
     {
         D3D12_RESOURCE_DESC rtDesc = {};
         rtDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        rtDesc.Width = m_width;
-        rtDesc.Height = m_height;
+        rtDesc.Width = static_cast<UINT>(m_width);
+        rtDesc.Height = static_cast<UINT>(m_height);
         rtDesc.DepthOrArraySize = 1;
         rtDesc.MipLevels = 1;
-        rtDesc.Format = desc.BufferDesc.Format;
+        rtDesc.Format = sceneFormat;
         rtDesc.SampleDesc.Count = 1;
         rtDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         rtDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
         D3D12_CLEAR_VALUE clearValue = {};
-        clearValue.Format = desc.BufferDesc.Format;
+        clearValue.Format = sceneFormat;
         clearValue.Color[0] = 0.0f;
         clearValue.Color[1] = 0.2f;
         clearValue.Color[2] = 0.4f;
@@ -707,25 +757,22 @@ void DX12::screenResize(int width, int height)
             &rtDesc,
             D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
             &clearValue,
-            IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf())
-        );
+            IID_PPV_ARGS(m_sceneRenderTarget.GetAddressOf()));
         LOG_HR(hr, "SceneRenderTarget recreate failed");
+        m_sceneState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     }
 
-    // 深度バッファ再生成
     {
-        m_depthStencil.Reset();
-
-        D3D12_RESOURCE_DESC Ddesc = {};
-        Ddesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        Ddesc.Width = m_width;
-        Ddesc.Height = m_height;
-        Ddesc.DepthOrArraySize = 1;
-        Ddesc.MipLevels = 1;
-        Ddesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-        Ddesc.SampleDesc.Count = 1;
-        Ddesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-        Ddesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        D3D12_RESOURCE_DESC depthDesc = {};
+        depthDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        depthDesc.Width = static_cast<UINT>(m_width);
+        depthDesc.Height = static_cast<UINT>(m_height);
+        depthDesc.DepthOrArraySize = 1;
+        depthDesc.MipLevels = 1;
+        depthDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+        depthDesc.SampleDesc.Count = 1;
+        depthDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
         D3D12_CLEAR_VALUE clearValue = {};
         clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -737,72 +784,60 @@ void DX12::screenResize(int width, int height)
         hr = m_device->CreateCommittedResource(
             &heapProps,
             D3D12_HEAP_FLAG_NONE,
-            &Ddesc,
+            &depthDesc,
             D3D12_RESOURCE_STATE_DEPTH_WRITE,
             &clearValue,
-            IID_PPV_ARGS(m_depthStencil.GetAddressOf())
-        );
+            IID_PPV_ARGS(m_depthStencil.GetAddressOf()));
         LOG_HR(hr, "Depth recreate failed");
 
         D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
         dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
         dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
         dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-
-        m_device->CreateDepthStencilView(
-            m_depthStencil.Get(),
-            &dsvDesc,
-            m_dsvHandle
-        );
+        m_device->CreateDepthStencilView(m_depthStencil.Get(), &dsvDesc, m_dsvHandle);
 
         if (m_depthSrvIndex == UINT_MAX)
+        {
             m_depthSrvIndex = DescriptorHeapManager::Instance().allocateRange();
+        }
 
-        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MipLevels = 1;
-        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        D3D12_SHADER_RESOURCE_VIEW_DESC depthSrvDesc = {};
+        depthSrvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        depthSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        depthSrvDesc.Texture2D.MipLevels = 1;
+        depthSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-        auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_depthSrvIndex);
-        m_device->CreateShaderResourceView(m_depthStencil.Get(), &srvDesc, cpuHandle);
+        auto depthCpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_depthSrvIndex);
+        m_device->CreateShaderResourceView(m_depthStencil.Get(), &depthSrvDesc, depthCpuHandle);
         DescriptorHeapManager::Instance().syncToVisible(m_depthSrvIndex);
 
         m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     }
 
-    // Scene RTV 再作成
-    m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
-    m_sceneRTVHandle.ptr += BUFFER_COUNT * rtvSize;
-
-    m_device->CreateRenderTargetView(
-        m_sceneRenderTarget.Get(),
-        nullptr,
-        m_sceneRTVHandle
-    );
-
-    // Scene SRV 再作成（リサイズ後に必須）
     {
+        const UINT rtvSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        m_sceneRTVHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+        m_sceneRTVHandle.ptr += BUFFER_COUNT * rtvSize;
+        m_device->CreateRenderTargetView(m_sceneRenderTarget.Get(), nullptr, m_sceneRTVHandle);
+
         if (m_sceneSrvIndex == 0 || m_sceneSrvIndex == UINT_MAX)
+        {
             m_sceneSrvIndex = DescriptorHeapManager::Instance().allocateRange();
+        }
 
-        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.Format = desc.BufferDesc.Format;
-        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MipLevels = 1;
-        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        D3D12_SHADER_RESOURCE_VIEW_DESC sceneSrvDesc = {};
+        sceneSrvDesc.Format = sceneFormat;
+        sceneSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        sceneSrvDesc.Texture2D.MipLevels = 1;
+        sceneSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-        auto cpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
-        m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &srvDesc, cpuHandle);
+        auto sceneCpuHandle = DescriptorHeapManager::Instance().getCPUHandle(m_sceneSrvIndex);
+        m_device->CreateShaderResourceView(m_sceneRenderTarget.Get(), &sceneSrvDesc, sceneCpuHandle);
         DescriptorHeapManager::Instance().syncToVisible(m_sceneSrvIndex);
     }
 
-    // GBuffer / PostEffect リサイズ
-    DeferredRenderer::Instance().resize(m_width, m_height);
-    PostEffectRenderTargets::Instance().resize(m_width, m_height);
-
-    // コマンドリストを再オープン
-    commandReset();
+    DeferredRenderer::Instance().resize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
+    PostEffectRenderTargets::Instance().resize(static_cast<UINT>(m_width), static_cast<UINT>(m_height));
 }
 
 void DX12::enableDebugLayer()

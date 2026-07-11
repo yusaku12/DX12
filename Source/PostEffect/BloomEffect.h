@@ -31,7 +31,7 @@ public:
 private:
 
     //! ミップレベル数（1/2 〜 1/2^MIP_COUNT）
-    static constexpr int MIP_COUNT = 3;
+    static constexpr int MIP_COUNT = 5;
 
     //! Prefilter 用定数バッファ
     struct PrefilterCBuffer
@@ -53,11 +53,6 @@ private:
     struct CompositeCBuffer
     {
         float   intensity = 1.0f;
-        float   graphId = 0.0f;
-        float   graphMetallic = 0.0f;
-        float   graphRoughness = 1.0f;
-        float   graphAo = 1.0f;
-        float   graphBlend = 0.0f;
         Vector3 padding{};
     };
 
@@ -68,11 +63,6 @@ private:
         float knee = 0.5f;
         float intensity = 1.2f;
         float scatter = 0.65f;
-        float graphId = 0.0f;
-        float graphMetallic = 0.0f;
-        float graphRoughness = 1.0f;
-        float graphAo = 1.0f;
-        float graphBlend = 0.0f;
     };
 
     Params m_params;

@@ -28,7 +28,9 @@
 #include "PostEffect/CasSharpenEffect.h"
 #include "PostEffect/ColorGradingEffect.h"
 #include "PostEffect/DepthOfFieldEffect.h"
+#include "PostEffect/GTAOEffect.h"
 #include "PostEffect/MotionBlurEffect.h"
+#include "PostEffect/SSREffect.h"
 #include "PostEffect/TemporalAAEffect.h"
 
 namespace SerializationCommon
@@ -61,8 +63,10 @@ namespace SerializationCommon
         if (dynamic_cast<const CasSharpenEffect*>(effect)) return "CasSharpenEffect";
         if (dynamic_cast<const ColorGradingEffect*>(effect)) return "ColorGradingEffect";
         if (dynamic_cast<const DepthOfFieldEffect*>(effect)) return "DepthOfFieldEffect";
+        if (dynamic_cast<const GTAOEffect*>(effect)) return "GTAOEffect";
         if (dynamic_cast<const TemporalAAEffect*>(effect)) return "TemporalAAEffect";
         if (dynamic_cast<const MotionBlurEffect*>(effect)) return "MotionBlurEffect";
+        if (dynamic_cast<const SSREffect*>(effect)) return "SSREffect";
         return nullptr;
     }
 
@@ -72,8 +76,10 @@ namespace SerializationCommon
         if (typeName == "CasSharpenEffect") return component->addEffect<CasSharpenEffect>();
         if (typeName == "ColorGradingEffect") return component->addEffect<ColorGradingEffect>();
         if (typeName == "DepthOfFieldEffect") return component->addEffect<DepthOfFieldEffect>();
+        if (typeName == "GTAOEffect") return component->addEffect<GTAOEffect>();
         if (typeName == "TemporalAAEffect") return component->addEffect<TemporalAAEffect>();
         if (typeName == "MotionBlurEffect") return component->addEffect<MotionBlurEffect>();
+        if (typeName == "SSREffect") return component->addEffect<SSREffect>();
         return nullptr;
     }
 
@@ -196,11 +202,6 @@ namespace SerializationCommon
 
             component->setBorderWidth(payload->border_width());
             component->setAlpha(payload->alpha());
-            component->setGraphId(payload->graph_id());
-            component->setGraphMetallic(payload->graph_metallic());
-            component->setGraphRoughness(payload->graph_roughness());
-            component->setGraphAo(payload->graph_ao());
-            component->setGraphBlend(payload->graph_blend());
         }
 
         return component;
@@ -668,12 +669,7 @@ namespace SerializationCommon
                 text->getText().c_str(),
                 &color,
                 text->getFontScale(),
-                static_cast<int32_t>(text->getAlignment()),
-                text->getGraphId(),
-                text->getGraphMetallic(),
-                text->getGraphRoughness(),
-                text->getGraphAo(),
-                text->getGraphBlend());
+                static_cast<int32_t>(text->getAlignment()));
 
             return scene::CreateSerializedComponentDirect(
                 builder,
@@ -700,12 +696,7 @@ namespace SerializationCommon
                 button->getFontScale(),
                 button->getCornerRounding(),
                 button->isInteractable(),
-                button->blocksMouseInput(),
-                button->getGraphId(),
-                button->getGraphMetallic(),
-                button->getGraphRoughness(),
-                button->getGraphAo(),
-                button->getGraphBlend());
+                button->blocksMouseInput());
 
             return scene::CreateSerializedComponentDirect(
                 builder,
@@ -731,12 +722,7 @@ namespace SerializationCommon
                 builder,
                 texturePathOffset,
                 &tintColor,
-                image->getAlpha(),
-                image->getGraphId(),
-                image->getGraphMetallic(),
-                image->getGraphRoughness(),
-                image->getGraphAo(),
-                image->getGraphBlend());
+                image->getAlpha());
 
             return scene::CreateSerializedComponentDirect(
                 builder,
@@ -755,12 +741,7 @@ namespace SerializationCommon
                 &bg,
                 &border,
                 panel->getBorderWidth(),
-                panel->getAlpha(),
-                panel->getGraphId(),
-                panel->getGraphMetallic(),
-                panel->getGraphRoughness(),
-                panel->getGraphAo(),
-                panel->getGraphBlend());
+                panel->getAlpha());
 
             return scene::CreateSerializedComponentDirect(
                 builder,
@@ -1247,11 +1228,6 @@ namespace SerializationCommon
 
             text->setFontScale(payload->font_scale());
             text->setAlignment(static_cast<UITextAlignment>(payload->alignment()));
-            text->setGraphId(payload->graph_id());
-            text->setGraphMetallic(payload->graph_metallic());
-            text->setGraphRoughness(payload->graph_roughness());
-            text->setGraphAo(payload->graph_ao());
-            text->setGraphBlend(payload->graph_blend());
             return;
         }
         case scene::ComponentPayload_UIButtonComponentData:
@@ -1297,11 +1273,6 @@ namespace SerializationCommon
             button->setCornerRounding(payload->corner_rounding());
             button->setInteractable(payload->interactable());
             button->setBlockMouseInput(payload->block_mouse_input());
-            button->setGraphId(payload->graph_id());
-            button->setGraphMetallic(payload->graph_metallic());
-            button->setGraphRoughness(payload->graph_roughness());
-            button->setGraphAo(payload->graph_ao());
-            button->setGraphBlend(payload->graph_blend());
             return;
         }
         case scene::ComponentPayload_UIImageComponentData:
@@ -1338,11 +1309,6 @@ namespace SerializationCommon
                 image->setAlpha(1.0f);
             }
 
-            image->setGraphId(payload->graph_id());
-            image->setGraphMetallic(payload->graph_metallic());
-            image->setGraphRoughness(payload->graph_roughness());
-            image->setGraphAo(payload->graph_ao());
-            image->setGraphBlend(payload->graph_blend());
             return;
         }
         case scene::ComponentPayload_UIPanelComponentData:
@@ -1366,11 +1332,6 @@ namespace SerializationCommon
 
             panel->setBorderWidth(payload->border_width());
             panel->setAlpha(payload->alpha());
-            panel->setGraphId(payload->graph_id());
-            panel->setGraphMetallic(payload->graph_metallic());
-            panel->setGraphRoughness(payload->graph_roughness());
-            panel->setGraphAo(payload->graph_ao());
-            panel->setGraphBlend(payload->graph_blend());
             return;
         }
         default:

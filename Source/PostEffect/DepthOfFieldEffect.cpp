@@ -22,11 +22,6 @@ void DepthOfFieldEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvInd
     }
 
     m_params.blendWeight = m_blendWeight;
-    m_params.graphId = std::max(0.0f, m_params.graphId);
-    m_params.graphMetallic = std::clamp(m_params.graphMetallic, 0.0f, 1.0f);
-    m_params.graphRoughness = std::clamp(m_params.graphRoughness, 0.0f, 1.0f);
-    m_params.graphAo = std::clamp(m_params.graphAo, 0.0f, 1.0f);
-    m_params.graphBlend = std::clamp(m_params.graphBlend, 0.0f, 1.0f);
 
     m_cb->update(m_params);
 
@@ -54,12 +49,4 @@ void DepthOfFieldEffect::inspectGUI()
     ImGui::SeparatorText("Bokeh");
     ImGui::DragFloat("Aperture", &m_params.aperture, 0.01f, 0.0f, 2.0f);
     ImGui::DragFloat("Max Blur Radius", &m_params.maxBlurRadius, 0.1f, 0.0f, 32.0f);
-
-    ImGui::SeparatorText("Shader Graph");
-    ImGui::InputFloat("Graph ID", &m_params.graphId, 1.0f, 10.0f, "%.0f");
-    if (m_params.graphId < 0.0f) m_params.graphId = 0.0f;
-    ImGui::SliderFloat("Graph Metallic", &m_params.graphMetallic, 0.0f, 1.0f);
-    ImGui::SliderFloat("Graph Roughness", &m_params.graphRoughness, 0.0f, 1.0f);
-    ImGui::SliderFloat("Graph AO", &m_params.graphAo, 0.0f, 1.0f);
-    ImGui::SliderFloat("Graph Blend", &m_params.graphBlend, 0.0f, 1.0f);
 }

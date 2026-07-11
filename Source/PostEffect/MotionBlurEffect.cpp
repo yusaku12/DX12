@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Camera/CameraManager.h"
 #include "Render/GBufferRenderTargets.h"
-#include "System/TimeManager.h"
 #include "MotionBlurEffect.h"
 #include "Camera/CameraComponent.h"
 
@@ -38,21 +37,14 @@ void MotionBlurEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
     params.params0 = Vector4(
         m_shutterSpeed,
         m_maxBlurRadius,
-        TimeManager::Instance().getDeltaTime(),
-        m_blendWeight);
+        m_blendWeight,
+        std::clamp(m_velocityReject, 0.0f, 1.0f));
 
     params.params1 = Vector4(
         1.0f / width,
         1.0f / height,
-        0.0f,
-        0.0f);
-
-    params.graph = Vector4(
-        std::max(0.0f, m_graphId),
-        std::clamp(m_graphMetallic, 0.0f, 1.0f),
-        std::clamp(m_graphRoughness, 0.0f, 1.0f),
-        std::clamp(m_graphAo, 0.0f, 1.0f));
-    params.graphBlend = Vector4(std::clamp(m_graphBlend, 0.0f, 1.0f), 0.0f, 0.0f, 0.0f);
+        static_cast<float>(std::clamp(m_minSamples, 2, 16)),
+        static_cast<float>(std::clamp(m_maxSamples, std::max(m_minSamples, 2), 16)));
 
     m_cb->update(params);
 
@@ -76,14 +68,13 @@ void MotionBlurEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
 void MotionBlurEffect::inspectGUI()
 {
     ImGui::SeparatorText("Motion Blur");
-    ImGui::DragFloat("Shutter Speed", &m_shutterSpeed, 0.01f, 0.0f, 2.0f);
-    ImGui::DragFloat("Max Blur Radius", &m_maxBlurRadius, 0.1f, 0.0f, 32.0f);
-
-    ImGui::SeparatorText("Shader Graph");
-    ImGui::InputFloat("Graph ID", &m_graphId, 1.0f, 10.0f, "%.0f");
-    if (m_graphId < 0.0f) m_graphId = 0.0f;
-    ImGui::SliderFloat("Graph Metallic", &m_graphMetallic, 0.0f, 1.0f);
-    ImGui::SliderFloat("Graph Roughness", &m_graphRoughness, 0.0f, 1.0f);
-    ImGui::SliderFloat("Graph AO", &m_graphAo, 0.0f, 1.0f);
-    ImGui::SliderFloat("Graph Blend", &m_graphBlend, 0.0f, 1.0f);
+    ImGui::DragFloat("Shutter Scale", &m_shutterSpeed, 0.01f, 0.0f, 2.5f);
+    ImGui::DragFloat("Max Blur Radius (px)", &m_maxBlurRadius, 0.1f, 0.0f, 48.0f);
+    ImGui::SliderFloat("Velocity Reject", &m_velocityReject, 0.0f, 1.0f);
+    ImGui::SliderInt("Min Samples", &m_minSamples, 2, 12);
+    ImGui::SliderInt("Max Samples", &m_maxSamples, 4, 16);
+    if (m_maxSamples < m_minSamples)
+    {
+        m_maxSamples = m_minSamples;
+    }
 }

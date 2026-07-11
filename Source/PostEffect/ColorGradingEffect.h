@@ -62,20 +62,15 @@ private:
         float   pad1 = 0.0f;
 
         // カラーホイール
-        Vector3 shadows = { 0.5f, 0.5f, 0.5f };
-        float   shadowsBalance = 2.0f;
-        Vector3 midtones = { 0.5f, 0.5f, 0.5f };
-        float   midtonesBalance = 2.0f;
-        Vector3 highlights = { 0.5f, 0.5f, 0.5f };
-        float   highlightsBalance = 2.0f;
+        Vector3 shadows = { 0.0f, 0.0f, 0.0f };
+        float   shadowsBalance = 0.5f;
+        Vector3 midtones = { 0.0f, 0.0f, 0.0f };
+        float   midtonesBalance = 0.5f;
+        Vector3 highlights = { 0.0f, 0.0f, 0.0f };
+        float   highlightsBalance = 0.5f;
 
         // トーンマップ
         int     tonemapMode = static_cast<int>(ToneMapMode::ACES);
-        float   graphId = 0.0f;
-        float   graphMetallic = 0.0f;
-        float   graphRoughness = 1.0f;
-        float   graphAo = 1.0f;
-        float   graphBlend = 1.0f;
         Vector3 pad2 = {};
     };
 

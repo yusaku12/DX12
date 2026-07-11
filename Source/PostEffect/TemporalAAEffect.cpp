@@ -6,31 +6,10 @@
 #include "Render/GBufferRenderTargets.h"
 #include "TemporalAAEffect.h"
 
-namespace
-{
-    float halton(uint32_t index, uint32_t base)
-    {
-        float f = 1.0f;
-        float r = 0.0f;
-        uint32_t i = index;
-
-        while (i > 0)
-        {
-            f /= static_cast<float>(base);
-            r += f * static_cast<float>(i % base);
-            i /= base;
-        }
-
-        return r;
-    }
-}
-
 void TemporalAAEffect::initialize()
 {
     m_psoKey = registerPSO(ShaderID::TemporalAAPS, RootSignatureType::PostEffectTemporal);
     m_cb = DXMem::makeUnique<ConstantBuffer<CBuffer>>();
-    m_haltonIndex = 1;
-    m_prevJitter = Vector2::Zero;
 }
 
 void TemporalAAEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)
@@ -65,10 +44,6 @@ void TemporalAAEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
         cameraCut = (posDelta > m_cameraCutPositionThreshold) || (angleDeg > m_cameraCutAngleThresholdDeg);
     }
 
-    const Vector2 currJitter = nextHaltonJitter();
-    const float jitterX = currJitter.x / static_cast<float>(width);
-    const float jitterY = currJitter.y / static_cast<float>(height);
-
     CBuffer params{};
     params.currentViewProj = currentViewProj;
     params.prevViewProj = m_prevViewProj;
@@ -84,14 +59,10 @@ void TemporalAAEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
     params.texelParams = Vector4(
         1.0f / static_cast<float>(width),
         1.0f / static_cast<float>(height),
-        jitterX,
-        jitterY);
-
-    params.prevJitter = Vector4(
-        m_prevJitter.x / static_cast<float>(width),
-        m_prevJitter.y / static_cast<float>(height),
         0.0f,
         0.0f);
+
+    params.prevJitter = Vector4::Zero;
 
     m_cb->update(params);
 
@@ -118,7 +89,6 @@ void TemporalAAEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
     m_prevViewProj = currentViewProj;
     m_prevCamPos = camPos;
     m_prevCamForward = camForward;
-    m_prevJitter = currJitter;
 }
 
 void TemporalAAEffect::inspectGUI()
@@ -205,7 +175,6 @@ void TemporalAAEffect::ensureHistoryResources(UINT width, UINT height)
     m_historyWriteIndex = 1;
     m_hasHistory = false;
     m_hasPrevViewProj = false;
-    m_prevJitter = Vector2::Zero;
 }
 
 void TemporalAAEffect::releaseHistoryResources()
@@ -256,14 +225,3 @@ void TemporalAAEffect::transitionHistoryToCopyDest(ID3D12GraphicsCommandList* cm
     m_historyState[index] = D3D12_RESOURCE_STATE_COPY_DEST;
 }
 
-Vector2 TemporalAAEffect::nextHaltonJitter()
-{
-    constexpr uint32_t kSequenceLength = 16;
-    const uint32_t idx = (m_haltonIndex % kSequenceLength) + 1;
-    ++m_haltonIndex;
-
-    const float hx = halton(idx, 2);
-    const float hy = halton(idx, 3);
-
-    return Vector2(hx - 0.5f, hy - 0.5f);
-}

@@ -449,25 +449,19 @@ void RuntimeUIManager::drawNativeRecursive(GameObject* object,
     if (auto* panel = object->getComponent<UIPanelComponent>())
     {
         const float a = panel->getAlpha();
-		UIGraphicsParams graph{};
-		graph.graphId = panel->getGraphId();
-		graph.graphMetallic = panel->getGraphMetallic();
-		graph.graphRoughness = panel->getGraphRoughness();
-		graph.graphAo = panel->getGraphAo();
-		graph.graphBlend = panel->getGraphBlend();
         // 背景
         UIRenderer::Instance().drawRect(cx, cy, cw, ch,
-			panel->getBackgroundColor(), nullptr, a, &graph);
+			panel->getBackgroundColor(), nullptr, a);
         // ボーダー
         if (panel->getBorderWidth() > 0.f)
         {
             const float bw = panel->getBorderWidth();
             const Vector4 bc = panel->getBorderColor();
             // 4 辺をボーダー矩形として描画
-			UIRenderer::Instance().drawRect(cx,              cy,              cw, bw,        bc, nullptr, a, &graph);
-			UIRenderer::Instance().drawRect(cx,              cy + ch - bw,    cw, bw,        bc, nullptr, a, &graph);
-			UIRenderer::Instance().drawRect(cx,              cy,              bw, ch,         bc, nullptr, a, &graph);
-			UIRenderer::Instance().drawRect(cx + cw - bw,   cy,              bw, ch,         bc, nullptr, a, &graph);
+			UIRenderer::Instance().drawRect(cx,              cy,              cw, bw,        bc, nullptr, a);
+			UIRenderer::Instance().drawRect(cx,              cy + ch - bw,    cw, bw,        bc, nullptr, a);
+			UIRenderer::Instance().drawRect(cx,              cy,              bw, ch,         bc, nullptr, a);
+			UIRenderer::Instance().drawRect(cx + cw - bw,   cy,              bw, ch,         bc, nullptr, a);
         }
     }
 
@@ -475,23 +469,17 @@ void RuntimeUIManager::drawNativeRecursive(GameObject* object,
     if (auto* img = object->getComponent<UIImageComponent>())
     {
         const UINT srv = img->getSrvIndex();
-		UIGraphicsParams graph{};
-		graph.graphId = img->getGraphId();
-		graph.graphMetallic = img->getGraphMetallic();
-		graph.graphRoughness = img->getGraphRoughness();
-		graph.graphAo = img->getGraphAo();
-		graph.graphBlend = img->getGraphBlend();
 
         if (srv != UINT_MAX)
         {
             UIRenderer::Instance().drawTexturedRect(cx, cy, cw, ch,
-				srv, img->getTintColor(), nullptr, img->getAlpha(), &graph);
+				srv, img->getTintColor(), nullptr, img->getAlpha());
         }
         else
         {
             // テクスチャ未設定 → ホワイト矩形
             UIRenderer::Instance().drawRect(cx, cy, cw, ch,
-				img->getTintColor(), nullptr, img->getAlpha(), &graph);
+				img->getTintColor(), nullptr, img->getAlpha());
         }
     }
 
@@ -505,13 +493,7 @@ void RuntimeUIManager::drawNativeRecursive(GameObject* object,
         const Vector4& fill = pressed  ? button->getPressedColor()
                             : hovered ? button->getHoverColor()
                                        : button->getNormalColor();
-		UIGraphicsParams graph{};
-		graph.graphId = button->getGraphId();
-		graph.graphMetallic = button->getGraphMetallic();
-		graph.graphRoughness = button->getGraphRoughness();
-		graph.graphAo = button->getGraphAo();
-		graph.graphBlend = button->getGraphBlend();
-		UIRenderer::Instance().drawRect(cx, cy, cw, ch, fill, nullptr, 1.0f, &graph);
+		UIRenderer::Instance().drawRect(cx, cy, cw, ch, fill, nullptr, 1.0f);
 
         const std::string& label = button->getLabel();
         if (!label.empty())
@@ -521,7 +503,7 @@ void RuntimeUIManager::drawNativeRecursive(GameObject* object,
             UIRenderer::Instance().drawText(
                 cx + (cw - ts.x) * 0.5f,
                 cy + (ch + ts.y) * 0.5f,
-				label, button->getTextColor(), scale, nullptr, 1.0f, &graph);
+				label, button->getTextColor(), scale, nullptr, 1.0f);
         }
     }
 
@@ -534,12 +516,6 @@ void RuntimeUIManager::drawNativeRecursive(GameObject* object,
             const float scale  = text->getFontScale();
             const Vector2 ts   = UIRenderer::Instance().measureText(content, scale);
             const Vector4& col = text->getColor();
-			UIGraphicsParams graph{};
-			graph.graphId = text->getGraphId();
-			graph.graphMetallic = text->getGraphMetallic();
-			graph.graphRoughness = text->getGraphRoughness();
-			graph.graphAo = text->getGraphAo();
-			graph.graphBlend = text->getGraphBlend();
 
             float tx = cx, ty = cy;
             switch (text->getAlignment())
@@ -555,7 +531,7 @@ void RuntimeUIManager::drawNativeRecursive(GameObject* object,
             case UITextAlignment::BottomRight: tx = cx + cw - ts.x - 4.f; ty = cy + ch - 4.f;        break;
             }
 
-			UIRenderer::Instance().drawText(tx, ty, content, col, scale, nullptr, 1.0f, &graph);
+			UIRenderer::Instance().drawText(tx, ty, content, col, scale, nullptr, 1.0f);
         }
     }
 

@@ -30,21 +30,17 @@ private:
         Matrix  currentViewProj{};
         Matrix  prevViewProj{};
         Matrix  invViewProj{};
-        Vector4 params0{}; //!< x=shutterSpeed y=maxBlurRadius z=deltaTime w=blendWeight
-        Vector4 params1{}; //!< x=texelSize.x y=texelSize.y
-        Vector4 graph{};   //!< x=graphId y=metallic z=roughness w=ao
-        Vector4 graphBlend{}; //!< x=blend
+        Vector4 params0{}; //!< x=shutterScale y=maxBlurRadiusPx z=blendWeight w=velocityReject
+        Vector4 params1{}; //!< x=texelSize.x y=texelSize.y z=minSamples w=maxSamples
     };
 
     std::unique_ptr<ConstantBuffer<CBuffer>> m_cb;
     Matrix m_prevViewProj = Matrix::Identity;
     bool m_hasPrev = false;
 
-    float m_shutterSpeed = 0.5f;
-    float m_maxBlurRadius = 8.0f;
-    float m_graphId = 0.0f;
-    float m_graphMetallic = 0.0f;
-    float m_graphRoughness = 1.0f;
-    float m_graphAo = 1.0f;
-    float m_graphBlend = 0.0f;
+    float m_shutterSpeed = 1.0f;
+    float m_maxBlurRadius = 20.0f;
+    float m_velocityReject = 0.75f;
+    int m_minSamples = 4;
+    int m_maxSamples = 12;
 };

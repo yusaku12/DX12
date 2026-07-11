@@ -98,10 +98,6 @@ private:
         UINT flipbookRows = 1;
         UINT flipbookCols = 1;
         float flipbookFps = 0.0f;
-        float graphId = 0.0f;
-        float metallic = 0.0f;
-        float roughness = 1.0f;
-        float ao = 1.0f;
     };
 
     //! GPUシミュレーション定数バッファ
@@ -190,10 +186,6 @@ private:
         UINT flipbookRows = 1;
         UINT flipbookCols = 1;
         float flipbookFps = 0.0f;
-        int graphId = 0;
-        float metallic = 0.0f;
-        float roughness = 1.0f;
-        float ao = 1.0f;
     };
 
     //! 初期化

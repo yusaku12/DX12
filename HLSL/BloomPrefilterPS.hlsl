@@ -54,6 +54,11 @@ float3 quadraticThreshold(float3 c, float threshold, float knee)
 float4 PS(PostEffectVSOut input) : SV_TARGET
 {
     float3 color = sceneTexture.Sample(samplerStates[LINEAR_CLAMP], input.uv).rgb;
+    // 発光ノイズ（firefly）抑制
+    float lum = luminance(color);
+    float safeLum = min(lum, g_threshold * 16.0f + 1.0f);
+    color *= safeLum / max(lum, 1e-5f);
+
     float3 bloom = quadraticThreshold(color, g_threshold, g_knee);
     return float4(bloom, 1.0);
 }

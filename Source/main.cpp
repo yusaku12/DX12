@@ -83,9 +83,12 @@ INT WINAPI wWinMain(
 
     ShowWindow(hwnd, cmdShow);
 
-    Window window(hwnd);
-    SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&window));
-    int result = window.run();
+    int result = 0;
+    {
+        Window window(hwnd);
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&window));
+        result = window.run();
+    }
 
     MemorySystem::Instance().shutdown();
     CrashReporter::Instance().shutdown();

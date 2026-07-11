@@ -48,9 +48,6 @@ private:
     //! コンパイル済みシェーダーファイルのパス取得
     std::wstring getCsoPath(const ShaderDesc& desc) const;
 
-    //! MaterialGraph include 変更を監視して依存シェーダを再読込
-    void refreshMaterialGraphDependentShaders();
-
     //! シェーダーのランタイムデータ
     struct ShaderRuntimeData
     {
@@ -61,6 +58,4 @@ private:
     };
 
     std::array<ShaderRuntimeData, static_cast<size_t>(ShaderID::MAX)> m_shaders;
-    std::filesystem::file_time_type m_materialGraphIncludeWriteTime{};
-    bool m_hasMaterialGraphIncludeTime = false;
 };

@@ -9,7 +9,9 @@
 #include "PostEffect\CasSharpenEffect.h"
 #include "PostEffect\ColorGradingEffect.h"
 #include "PostEffect\DepthOfFieldEffect.h"
+#include "PostEffect\GTAOEffect.h"
 #include "PostEffect\MotionBlurEffect.h"
+#include "PostEffect\SSREffect.h"
 #include "PostEffect\TemporalAAEffect.h"
 #include "Component\SkyboxComponent.h"
 #include "Component\GpuEffectComponent.h"
@@ -34,6 +36,8 @@ void ModelEditorScene::onEnter()
     postEffectObj->addComponent<TransformComponent>();
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
+    pe->addEffect<GTAOEffect>();
+    pe->addEffect<SSREffect>();
     pe->addEffect<BloomEffect>();
     //pe->addEffect<DepthOfFieldEffect>();
     pe->addEffect<MotionBlurEffect>();

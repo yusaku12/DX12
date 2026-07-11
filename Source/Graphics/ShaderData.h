@@ -19,6 +19,8 @@ enum class ShaderID : int
     BloomUpsamplePS,
     BloomCompositePS,
     DepthOfFieldPS,
+    GTAOPS,
+    SSRPS,
     TemporalAAPS,
     MotionBlurPS,
     CasSharpenPS,
@@ -63,6 +65,8 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/BloomUpsamplePS.hlsl",    "PS", "ps_5_0" },  //!< BloomUpsamplePS
     ShaderDesc{ L"Shader/BloomCompositePS.hlsl",   "PS", "ps_5_0" },  //!< BloomCompositePS
     ShaderDesc{ L"Shader/DepthOfFieldPS.hlsl",     "PS", "ps_5_0" },  //!< DepthOfFieldPS
+    ShaderDesc{ L"Shader/GTAOPS.hlsl",             "PS", "ps_5_0" },  //!< GTAOPS
+    ShaderDesc{ L"Shader/SSRPS.hlsl",              "PS", "ps_5_0" },  //!< SSRPS
     ShaderDesc{ L"Shader/TemporalAAPS.hlsl",       "PS", "ps_5_0" },  //!< TemporalAAPS
     ShaderDesc{ L"Shader/MotionBlurPS.hlsl",       "PS", "ps_5_0" },  //!< MotionBlurPS
     ShaderDesc{ L"Shader/CasSharpenPS.hlsl",       "PS", "ps_5_0" },  //!< CasSharpenPS

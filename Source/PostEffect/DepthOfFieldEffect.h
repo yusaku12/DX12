@@ -37,11 +37,6 @@ private:
         float   nearZ = 0.1f;          //!< 近クリップ
         float   farZ = 1000.0f;        //!< 遠クリップ
         float   blendWeight = 1.0f;    //!< ボリュームブレンド
-        float   graphId = 0.0f;
-        float   graphMetallic = 0.0f;
-        float   graphRoughness = 1.0f;
-        float   graphAo = 1.0f;
-        float   graphBlend = 0.0f;
         Vector3 padding{};             //!< パディング
     };
 

@@ -16,7 +16,7 @@ public:
     void render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex) override;
     void inspectGUI() override;
 
-    const char* getName() const override { return "CAS Sharpen"; }
+    const char* getName() const override { return "FSR RCAS"; }
     ShaderID getPixelShaderID() const override { return ShaderID::CasSharpenPS; }
 
 private:
