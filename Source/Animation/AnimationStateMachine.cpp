@@ -276,7 +276,7 @@ bool AnimationStateMachine::removeState(const std::string& name)
 {
     auto it = std::find_if(m_states.begin(), m_states.end(), [&](const std::unique_ptr<AnimationState>& s) {
         return s && s->getName() == name;
-    });
+        });
     if (it == m_states.end())
     {
         return false;
@@ -1075,4 +1075,3 @@ const AnimationParameter* AnimationStateMachine::findParam(const std::string& na
     auto it = m_parameters.find(name);
     return (it != m_parameters.end()) ? &it->second : nullptr;
 }
-

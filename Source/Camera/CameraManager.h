@@ -58,6 +58,7 @@ private:
         Matrix view;            //!< ビュー行列
         Matrix projection;      //!< プロジェクション行列
         Matrix viewProjection;  //!< ビュー×プロジェクション行列
+        Matrix prevViewProjection; //!< 前フレームのビュー×プロジェクション行列
         Matrix viewInverse;     //!< ビュー行列の逆行列
         Vector3 cameraPos;      //!< カメラ座標
         float padding;          //!< パディング
@@ -66,4 +67,6 @@ private:
     //! 登録済み CameraComponent 一覧
     std::vector<CameraComponent*> m_cameras;
     std::unique_ptr<ConstantBuffer<GPUCameraBuffer>> m_cameraCB;  //!< GPU 定数バッファ
+    Matrix m_prevViewProjection = Matrix::Identity;
+    bool m_hasPrevViewProjection = false;
 };

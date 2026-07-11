@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Camera/CameraManager.h"
 #include "FbxRenderComponent.h"
 #include "TransformComponent.h"
@@ -141,6 +141,18 @@ void FbxRenderComponent::update()
     // Transform が取得できていなければスキップ
     if (!m_transform) return;
     if (!m_model) return;
+
+    const Vector3 currentPos = m_transform->getPosition();
+    if (m_hasPrevPosition)
+    {
+        m_frameMotion = currentPos - m_prevPosition;
+    }
+    else
+    {
+        m_frameMotion = Vector3::Zero;
+        m_hasPrevPosition = true;
+    }
+    m_prevPosition = currentPos;
 
     // ベースモデル行列更新
     m_model->updateTransform(m_transform->getWorldMatrix());
@@ -662,8 +674,8 @@ void FbxRenderComponent::generateAutoLodAssets()
 void FbxRenderComponent::buildGPUResources()
 {
     auto buildFor = [&](Model* model,
-                        std::unique_ptr<ConstantBuffer<ModelCB>>& outModelCB,
-                        std::unique_ptr<ConstantBuffer<MaterialCB>>& outMaterialCB)
+        std::unique_ptr<ConstantBuffer<ModelCB>>& outModelCB,
+        std::unique_ptr<ConstantBuffer<MaterialCB>>& outMaterialCB)
         {
             if (!model) return;
 
@@ -928,6 +940,7 @@ size_t FbxRenderComponent::createGBufferPSO()
     psoData.rtvFormats[0] = GBufferRenderTargets::BaseColorFormat;
     psoData.rtvFormats[1] = GBufferRenderTargets::NormalRoughnessFormat;
     psoData.rtvFormats[2] = GBufferRenderTargets::WorldPosAoFormat;
+    psoData.rtvFormats[3] = GBufferRenderTargets::VelocityFormat;
     return PSOCreator::Instance().registerPSO(psoData);
 }
 
@@ -1067,6 +1080,8 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
         {
             modelCBData.boneTransforms[0] = activeModel->getBone().at(mesh.nodeIndex).worldTransform;
         }
+
+        modelCBData.objectMotion = Vector4(m_frameMotion.x, m_frameMotion.y, m_frameMotion.z, 0.0f);
 
         // CBV 更新 & ルートにセット
         activeModelCB->update(modelCBData, static_cast<UINT>(meshIdx));

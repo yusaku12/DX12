@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "PostEffect/PostEffectManager.h"
 #include "PostEffect/PostEffectRenderTargets.h"
 #include "PostEffectComponent.h"
@@ -171,7 +171,6 @@ bool PostEffectComponent::executeChain(float volumeWeight)
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
 
     bool executed = false;
-
     for (size_t i = 0; i < m_effects.size(); ++i)
     {
         auto& effect = m_effects[i];

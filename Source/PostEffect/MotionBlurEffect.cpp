@@ -1,12 +1,13 @@
 #include "pch.h"
 #include "Camera/CameraManager.h"
+#include "Render/GBufferRenderTargets.h"
 #include "System/TimeManager.h"
 #include "MotionBlurEffect.h"
 #include "Camera/CameraComponent.h"
 
 void MotionBlurEffect::initialize()
 {
-    m_psoKey = registerPSO(ShaderID::MotionBlurPS, RootSignatureType::PostEffectDepth);
+    m_psoKey = registerPSO(ShaderID::MotionBlurPS, RootSignatureType::PostEffectVelocity);
     m_cb = DXMem::makeUnique<ConstantBuffer<CBuffer>>();
 }
 
@@ -41,10 +42,10 @@ void MotionBlurEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
         m_blendWeight);
 
     params.params1 = Vector4(
-        camera->getNear(),
-        camera->getFar(),
         1.0f / width,
-        1.0f / height);
+        1.0f / height,
+        0.0f,
+        0.0f);
 
     params.graph = Vector4(
         std::max(0.0f, m_graphId),
@@ -64,7 +65,7 @@ void MotionBlurEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
     );
     cmd->SetGraphicsRootDescriptorTable(
         2,
-        DescriptorHeapManager::Instance().getGPUHandle(DX12::Instance().getDepthSrvIndex())
+        DescriptorHeapManager::Instance().getGPUHandle(GBufferRenderTargets::Instance().getSrvIndex(3))
     );
 
     drawFullscreenTriangle(cmd);

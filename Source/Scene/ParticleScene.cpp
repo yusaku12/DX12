@@ -4,7 +4,10 @@
 #include "Camera\FreeCameraComponent.h"
 #include "Component\PostEffectComponent.h"
 #include "PostEffect\BloomEffect.h"
+#include "PostEffect\CasSharpenEffect.h"
 #include "PostEffect\ColorGradingEffect.h"
+#include "PostEffect\MotionBlurEffect.h"
+#include "PostEffect\TemporalAAEffect.h"
 #include "Component\GpuEffectComponent.h"
 #include "Component\CpuParticleComponent.h"
 #include "Component\SkyboxComponent.h"
@@ -26,7 +29,10 @@ void ParticleScene::onEnter()
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
     pe->addEffect<BloomEffect>();
+    pe->addEffect<MotionBlurEffect>();
+    pe->addEffect<TemporalAAEffect>();
     pe->addEffect<ColorGradingEffect>();
+    pe->addEffect<CasSharpenEffect>();
 
     GameObject* skyboxObj = DX_NEW(GameObject, "Skybox");
     auto* skybox = skyboxObj->addComponent<SkyboxComponent>();

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "UIPanelComponent.h"
 #include "UI\UIAnimator.h"
 
@@ -15,7 +15,7 @@ void UIPanelComponent::inspectGUI()
         m_borderColor = Vector4(bc[0], bc[1], bc[2], bc[3]);
 
     ImGui::DragFloat("Border Width", &m_borderWidth, 0.5f, 0.f, 32.f, "%.1f");
-    ImGui::DragFloat("Alpha",        &m_alpha,       0.01f, 0.f, 1.f,  "%.2f");
+    ImGui::DragFloat("Alpha", &m_alpha, 0.01f, 0.f, 1.f, "%.2f");
 
     ImGui::SeparatorText("Shader Graph");
     ImGui::InputFloat("Graph ID", &m_graphId, 1.0f, 10.0f, "%.0f");
@@ -32,8 +32,8 @@ void UIPanelComponent::fadeIn(float duration, UIEaseType ease)
 }
 
 void UIPanelComponent::fadeOut(float duration, UIEaseType ease,
-                               std::function<void()> onComplete)
+    std::function<void()> onComplete)
 {
     UIAnimator::Instance().animateFloat(&m_alpha, 0.f, duration, ease,
-                                        0.f, std::move(onComplete));
+        0.f, std::move(onComplete));
 }

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "UITextComponent.h"
 #include "GameObject/GameObject.h"
 #include "RectTransformComponent.h"

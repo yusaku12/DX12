@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Component.h"
 #include "UI/UIAnimator.h"
@@ -43,16 +43,16 @@ public:
     void setGraphBlend(float value) { m_graphBlend = std::clamp(value, 0.0f, 1.0f); }
 
     //! UIAnimator を使ってフェードイン/フェードアウト
-    void fadeIn (float duration = 0.3f, UIEaseType ease = UIEaseType::EaseOutQuad);
+    void fadeIn(float duration = 0.3f, UIEaseType ease = UIEaseType::EaseOutQuad);
     void fadeOut(float duration = 0.3f, UIEaseType ease = UIEaseType::EaseOutQuad,
-                 std::function<void()> onComplete = nullptr);
+        std::function<void()> onComplete = nullptr);
 
 private:
 
     Vector4 m_backgroundColor = Vector4(0.05f, 0.05f, 0.08f, 0.88f);
-    Vector4 m_borderColor     = Vector4(0.35f, 0.35f, 0.45f, 0.70f);
-    float   m_borderWidth     = 1.0f;
-    float   m_alpha           = 1.0f;
+    Vector4 m_borderColor = Vector4(0.35f, 0.35f, 0.45f, 0.70f);
+    float   m_borderWidth = 1.0f;
+    float   m_alpha = 1.0f;
     float   m_graphId = 0.0f;
     float   m_graphMetallic = 0.0f;
     float   m_graphRoughness = 1.0f;

@@ -7,10 +7,11 @@ class GBufferRenderTargets
 {
 public:
 
-    static constexpr UINT RenderTargetCount = 3;
+    static constexpr UINT RenderTargetCount = 4;
     static constexpr DXGI_FORMAT BaseColorFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
     static constexpr DXGI_FORMAT NormalRoughnessFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
     static constexpr DXGI_FORMAT WorldPosAoFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    static constexpr DXGI_FORMAT VelocityFormat = DXGI_FORMAT_R16G16_FLOAT;
 
     static GBufferRenderTargets& Instance()
     {
@@ -70,6 +71,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Resource> m_renderTargets[RenderTargetCount];
     D3D12_CPU_DESCRIPTOR_HANDLE m_rtvHandles[RenderTargetCount]{};
     D3D12_RESOURCE_STATES m_states[RenderTargetCount]{
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE

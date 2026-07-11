@@ -7,13 +7,15 @@ namespace
     {
         GBufferRenderTargets::BaseColorFormat,
         GBufferRenderTargets::NormalRoughnessFormat,
-        GBufferRenderTargets::WorldPosAoFormat
+        GBufferRenderTargets::WorldPosAoFormat,
+        GBufferRenderTargets::VelocityFormat
     };
 
     constexpr FLOAT kGBufferClearColors[GBufferRenderTargets::RenderTargetCount][4] =
     {
         { 0.0f, 0.0f, 0.0f, 0.0f },
         { 0.5f, 0.5f, 1.0f, 1.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f },
         { 0.0f, 0.0f, 0.0f, 1.0f }
     };
 }
@@ -222,7 +224,8 @@ void GBufferRenderTargets::renderDebugContents()
     {
         "BaseColor",
         "NormalRoughness",
-        "WorldPosAo"
+        "WorldPosAo",
+        "Velocity"
     };
 
     static constexpr float previewWidth = 256.0f;

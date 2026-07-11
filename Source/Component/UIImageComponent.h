@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Component.h"
 #include "UI/UIAnimator.h"
@@ -42,9 +42,9 @@ public:
     void setGraphBlend(float value) { m_graphBlend = std::clamp(value, 0.0f, 1.0f); }
 
     //! UIAnimator を使ってフェードイン/フェードアウト
-    void fadeIn (float duration = 0.3f, UIEaseType ease = UIEaseType::EaseOutQuad);
+    void fadeIn(float duration = 0.3f, UIEaseType ease = UIEaseType::EaseOutQuad);
     void fadeOut(float duration = 0.3f, UIEaseType ease = UIEaseType::EaseOutQuad,
-                 std::function<void()> onComplete = nullptr);
+        std::function<void()> onComplete = nullptr);
 
     //! 現在ロード済みのテクスチャ SRV インデックス（UINT_MAX = 未ロード）
     UINT getSrvIndex() const;
@@ -53,7 +53,7 @@ private:
 
     std::wstring m_texturePath;
     Vector4      m_tintColor = Vector4(1, 1, 1, 1);
-    float        m_alpha     = 1.0f;
+    float        m_alpha = 1.0f;
     float        m_graphId = 0.0f;
     float        m_graphMetallic = 0.0f;
     float        m_graphRoughness = 1.0f;

@@ -7,6 +7,8 @@ void RootSignatureManager::initialize()
     buildDebugPrimitive();
     buildPostEffect();
     buildPostEffectDepth();
+    buildPostEffectVelocity();
+    buildPostEffectTemporal();
     buildBloomComposite();
     buildSkybox();
     buildDeferredLighting();
@@ -55,6 +57,51 @@ void RootSignatureManager::buildPostEffect()
 void RootSignatureManager::buildPostEffectDepth()
 {
     buildPostEffectCommon(true);
+}
+
+void RootSignatureManager::buildPostEffectVelocity()
+{
+    CD3DX12_ROOT_PARAMETER params[3] = {};
+
+    // エフェクトパラメータ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // シーンテクスチャ用 SRV テーブル (t0)
+    CD3DX12_DESCRIPTOR_RANGE srvRange0;
+    srvRange0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange0);
+
+    // 速度テクスチャ用 SRV テーブル (t1)
+    CD3DX12_DESCRIPTOR_RANGE srvRange1;
+    srvRange1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+    params[2].InitAsDescriptorTable(1, &srvRange1);
+
+    createRootSignature(params, _countof(params), RootSignatureType::PostEffectVelocity);
+}
+
+void RootSignatureManager::buildPostEffectTemporal()
+{
+    CD3DX12_ROOT_PARAMETER params[4] = {};
+
+    // エフェクトパラメータ用 CBV (b0)
+    params[0].InitAsConstantBufferView(0);
+
+    // シーンテクスチャ用 SRV テーブル (t0)
+    CD3DX12_DESCRIPTOR_RANGE srvRange0;
+    srvRange0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    params[1].InitAsDescriptorTable(1, &srvRange0);
+
+    // 履歴テクスチャ用 SRV テーブル (t1)
+    CD3DX12_DESCRIPTOR_RANGE srvRange1;
+    srvRange1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+    params[2].InitAsDescriptorTable(1, &srvRange1);
+
+    // 速度テクスチャ用 SRV テーブル (t2)
+    CD3DX12_DESCRIPTOR_RANGE srvRange2;
+    srvRange2.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+    params[3].InitAsDescriptorTable(1, &srvRange2);
+
+    createRootSignature(params, _countof(params), RootSignatureType::PostEffectTemporal);
 }
 
 void RootSignatureManager::buildBloomComposite()

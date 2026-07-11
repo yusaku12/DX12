@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "UIImageComponent.h"
 #include "UI\UIAnimator.h"
 
@@ -63,8 +63,8 @@ void UIImageComponent::fadeIn(float duration, UIEaseType ease)
 }
 
 void UIImageComponent::fadeOut(float duration, UIEaseType ease,
-                               std::function<void()> onComplete)
+    std::function<void()> onComplete)
 {
     UIAnimator::Instance().animateFloat(&m_alpha, 0.f, duration, ease,
-                                        0.f, std::move(onComplete));
+        0.f, std::move(onComplete));
 }

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Component/IRenderComponent.h"
 #include "Graphics/ConstantBuffer.h"

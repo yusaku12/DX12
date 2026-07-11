@@ -72,6 +72,7 @@ private:
     struct ModelCB
     {
         Matrix boneTransforms[MAX_BONES] = {};
+        Vector4 objectMotion = Vector4::Zero;
     };
 
     //! マテリアル CBV 構造体
@@ -168,10 +169,10 @@ private:
 
     std::unique_ptr<ConstantBuffer<ModelCB>> m_modelCB;
     std::unique_ptr<ConstantBuffer<MaterialCB>> m_materialCB;
-    size_t m_solidPSOKey      = 0;
-    size_t m_wireframePSOKey  = 0;
-    size_t m_gbufferPSOKey    = 0;
-    size_t m_shadowPSOKey     = 0;
+    size_t m_solidPSOKey = 0;
+    size_t m_wireframePSOKey = 0;
+    size_t m_gbufferPSOKey = 0;
+    size_t m_shadowPSOKey = 0;
     DebugMode m_debugMode = DebugMode::None;
     TransformComponent* m_transform = nullptr;
     std::unique_ptr<Model> m_model;
@@ -185,4 +186,7 @@ private:
     bool m_enableRuntimeLodMerge = true;
     std::vector<float> m_generatedLodRatios = { 0.50f, 0.25f, 0.12f };
     std::vector<int> m_materialGraphIds;
+    Vector3 m_prevPosition = Vector3::Zero;
+    Vector3 m_frameMotion = Vector3::Zero;
+    bool m_hasPrevPosition = false;
 };

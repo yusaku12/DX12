@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Component.h"
 
@@ -41,8 +41,8 @@ public:
 
 private:
 
-    int              m_sortOrder    = 0;
+    int              m_sortOrder = 0;
     bool             m_receivesInput = true;
-    CanvasRenderMode m_renderMode   = CanvasRenderMode::ScreenOverlay;
-    Vector2          m_worldSize    = Vector2(800.f, 600.f); //!< WorldSpace 時のローカルサイズ
+    CanvasRenderMode m_renderMode = CanvasRenderMode::ScreenOverlay;
+    Vector2          m_worldSize = Vector2(800.f, 600.f); //!< WorldSpace 時のローカルサイズ
 };

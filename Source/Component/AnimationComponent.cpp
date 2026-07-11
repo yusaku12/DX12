@@ -2599,7 +2599,7 @@ void AnimationComponent::drawAnimatorWindow()
             if (!m_stateMachine.findState(candidate)) return candidate;
         }
         return std::format("{}_{}", base, reinterpret_cast<uintptr_t>(this));
-    };
+        };
 
     auto duplicateStateByName = [&](const std::string& sourceName) -> bool {
         AnimationState* src = m_stateMachine.findState(sourceName);
@@ -2627,7 +2627,7 @@ void AnimationComponent::drawAnimatorWindow()
 
         m_selectedStateName = dstName;
         return true;
-    };
+        };
 
     auto removeStateByName = [&](const std::string& name) -> bool {
         if (name.empty()) return false;
@@ -2654,7 +2654,7 @@ void AnimationComponent::drawAnimatorWindow()
         }
 
         return true;
-    };
+        };
 
     ImGui::SeparatorText("Selected Graph");
     if (selectedState)
@@ -2700,7 +2700,7 @@ void AnimationComponent::drawAnimatorWindow()
         float dx = a.x - b.x;
         float dy = a.y - b.y;
         return dx * dx + dy * dy;
-    };
+        };
     auto distToSegmentSq = [&](const ImVec2& p, const ImVec2& a, const ImVec2& b) {
         float vx = b.x - a.x;
         float vy = b.y - a.y;
@@ -2710,7 +2710,7 @@ void AnimationComponent::drawAnimatorWindow()
         float t = (vv > 0.0f) ? std::clamp((wx * vx + wy * vy) / vv, 0.0f, 1.0f) : 0.0f;
         ImVec2 proj = ImVec2(a.x + vx * t, a.y + vy * t);
         return distSq(p, proj);
-    };
+        };
     auto bezierAt = [](const ImVec2& p0, const ImVec2& c0, const ImVec2& c1, const ImVec2& p1, float t) {
         float u = 1.0f - t;
         float w0 = u * u * u;
@@ -2721,7 +2721,7 @@ void AnimationComponent::drawAnimatorWindow()
             p0.x * w0 + c0.x * w1 + c1.x * w2 + p1.x * w3,
             p0.y * w0 + c0.y * w1 + c1.y * w2 + p1.y * w3
         );
-    };
+        };
     auto bezierDistanceSq = [&](const ImVec2& p0, const ImVec2& c0, const ImVec2& c1, const ImVec2& p1, const ImVec2& p) {
         const int segments = 24;
         float best = FLT_MAX;
@@ -2734,7 +2734,7 @@ void AnimationComponent::drawAnimatorWindow()
             prev = cur;
         }
         return best;
-    };
+        };
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     drawList->AddRectFilled(canvasPos, addV2(canvasPos, canvasSize), IM_COL32(26, 30, 35, 255), 4.0f);
@@ -2938,7 +2938,7 @@ void AnimationComponent::drawAnimatorWindow()
             }
         }
         return picked;
-    };
+        };
 
     if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !m_dragCreatingTransition)
     {

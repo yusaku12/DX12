@@ -1,8 +1,6 @@
 ﻿#include "pch.h"
 #include "AudioEngine.h"
-
 #include <xapofx.h>
-
 
 bool AudioEngine::initialize()
 {

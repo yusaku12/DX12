@@ -25,9 +25,11 @@
 #include "Component/UIPanelComponent.h"
 #include "Component/UITextComponent.h"
 #include "PostEffect/BloomEffect.h"
+#include "PostEffect/CasSharpenEffect.h"
 #include "PostEffect/ColorGradingEffect.h"
 #include "PostEffect/DepthOfFieldEffect.h"
 #include "PostEffect/MotionBlurEffect.h"
+#include "PostEffect/TemporalAAEffect.h"
 
 namespace SerializationCommon
 {
@@ -56,8 +58,10 @@ namespace SerializationCommon
     inline const char* getPostEffectTypeName(const PostEffectBase* effect)
     {
         if (dynamic_cast<const BloomEffect*>(effect)) return "BloomEffect";
+        if (dynamic_cast<const CasSharpenEffect*>(effect)) return "CasSharpenEffect";
         if (dynamic_cast<const ColorGradingEffect*>(effect)) return "ColorGradingEffect";
         if (dynamic_cast<const DepthOfFieldEffect*>(effect)) return "DepthOfFieldEffect";
+        if (dynamic_cast<const TemporalAAEffect*>(effect)) return "TemporalAAEffect";
         if (dynamic_cast<const MotionBlurEffect*>(effect)) return "MotionBlurEffect";
         return nullptr;
     }
@@ -65,8 +69,10 @@ namespace SerializationCommon
     inline PostEffectBase* addPostEffectByType(PostEffectComponent* component, std::string_view typeName)
     {
         if (typeName == "BloomEffect") return component->addEffect<BloomEffect>();
+        if (typeName == "CasSharpenEffect") return component->addEffect<CasSharpenEffect>();
         if (typeName == "ColorGradingEffect") return component->addEffect<ColorGradingEffect>();
         if (typeName == "DepthOfFieldEffect") return component->addEffect<DepthOfFieldEffect>();
+        if (typeName == "TemporalAAEffect") return component->addEffect<TemporalAAEffect>();
         if (typeName == "MotionBlurEffect") return component->addEffect<MotionBlurEffect>();
         return nullptr;
     }

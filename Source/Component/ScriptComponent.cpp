@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "ScriptComponent.h"
 #include "GameObject/GameObject.h"
 

@@ -129,6 +129,19 @@ void PostEffectRenderTargets::transitionWriteToSRV(ID3D12GraphicsCommandList* cm
     }
 }
 
+void PostEffectRenderTargets::transitionWriteToCopySource(ID3D12GraphicsCommandList* cmd)
+{
+    if (m_states[m_writeIndex] != D3D12_RESOURCE_STATE_COPY_SOURCE)
+    {
+        auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            m_renderTargets[m_writeIndex].Get(),
+            m_states[m_writeIndex],
+            D3D12_RESOURCE_STATE_COPY_SOURCE);
+        cmd->ResourceBarrier(1, &barrier);
+        m_states[m_writeIndex] = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    }
+}
+
 void PostEffectRenderTargets::swap()
 {
     m_inputSrvIndex = m_srvIndices[m_writeIndex];

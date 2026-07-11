@@ -22,6 +22,7 @@ struct VS_IN
 cbuffer Transform : register(b1)
 {
     row_major float4x4 boneTransforms[MAX_BONES];
+    float4 objectMotion; //!< xyz = 前フレームからのワールド移動量
 };
 
 cbuffer Material : register(b2)

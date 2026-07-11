@@ -10,6 +10,8 @@ enum class RootSignatureType : int
     DebugPrimitive,
     PostEffect,
     PostEffectDepth,
+    PostEffectVelocity,
+    PostEffectTemporal,
     BloomComposite,
     Skybox,
     DeferredLighting,
@@ -67,6 +69,12 @@ private:
 
     //! PostEffectDepthをビルド
     void buildPostEffectDepth();
+
+    //! PostEffectVelocityをビルド
+    void buildPostEffectVelocity();
+
+    //! PostEffectTemporalをビルド
+    void buildPostEffectTemporal();
 
     //! BloomCompositeをビルド
     void buildBloomComposite();

@@ -6,9 +6,11 @@
 #include "Component\AnimationComponent.h"
 #include "Component\PostEffectComponent.h"
 #include "PostEffect\BloomEffect.h"
+#include "PostEffect\CasSharpenEffect.h"
 #include "PostEffect\ColorGradingEffect.h"
 #include "PostEffect\DepthOfFieldEffect.h"
 #include "PostEffect\MotionBlurEffect.h"
+#include "PostEffect\TemporalAAEffect.h"
 #include "Component\SkyboxComponent.h"
 #include "Component\GpuEffectComponent.h"
 #include "UISetupTemplate.h"
@@ -33,9 +35,11 @@ void ModelEditorScene::onEnter()
     postEffectObj->addTag(Tag::PostEffect);
     auto* pe = postEffectObj->addComponent<PostEffectComponent>();
     pe->addEffect<BloomEffect>();
-    pe->addEffect<ColorGradingEffect>();
     //pe->addEffect<DepthOfFieldEffect>();
     pe->addEffect<MotionBlurEffect>();
+    pe->addEffect<TemporalAAEffect>();
+    pe->addEffect<ColorGradingEffect>();
+    pe->addEffect<CasSharpenEffect>();
 }
 
 void ModelEditorScene::update()

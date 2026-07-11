@@ -31,7 +31,7 @@ public:
 private:
 
     //! ミップレベル数（1/2 〜 1/2^MIP_COUNT）
-    static constexpr int MIP_COUNT = 4;
+    static constexpr int MIP_COUNT = 3;
 
     //! Prefilter 用定数バッファ
     struct PrefilterCBuffer

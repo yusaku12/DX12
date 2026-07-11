@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "AnimationCommon.h"
 #include "Math\SimpleMath.h"

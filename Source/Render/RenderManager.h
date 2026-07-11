@@ -196,7 +196,7 @@ private:
     bool m_enableFrustumCulling = true;
     bool m_enableAutoLod = true;
     bool m_enableAutoHlod = true;
-    bool m_enableGpuOcclusion = true;
+    bool m_enableGpuOcclusion = false;
     float m_hlodSwitchDistance = 60.0f;
     bool m_occlusionFramePrepared = false;
 

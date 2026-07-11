@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Camera/CameraManager.h"
 #include "CameraComponent.h"
 
@@ -50,6 +50,8 @@ void CameraManager::initialize()
     m_cameraCB = DXMem::makeUnique<ConstantBuffer<GPUCameraBuffer>>();
 
     // カメラ定数バッファをGPUにアップロード
+    m_prevViewProjection = Matrix::Identity;
+    m_hasPrevViewProjection = false;
     uploadCameraBufferToGPU();
 }
 
@@ -79,8 +81,12 @@ void CameraManager::uploadCameraBufferToGPU()
     camera.view = view;
     camera.projection = proj;
     camera.viewProjection = (view * proj);
+    camera.prevViewProjection = m_hasPrevViewProjection ? m_prevViewProjection : camera.viewProjection;
     camera.viewInverse = view.Invert();
     camera.cameraPos = mainCam->getPosition();
 
     m_cameraCB->update(camera);
+
+    m_prevViewProjection = camera.viewProjection;
+    m_hasPrevViewProjection = true;
 }

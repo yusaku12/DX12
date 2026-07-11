@@ -19,12 +19,12 @@ enum class RenderPath : int
 enum class RenderPassFlags : unsigned int
 {
     None = 0,
-    GBuffer    = 1 << 0,
-    Lighting   = 1 << 1,
-    Forward    = 1 << 2,
+    GBuffer = 1 << 0,
+    Lighting = 1 << 1,
+    Forward = 1 << 2,
     PostEffect = 1 << 3,
-    Debug      = 1 << 4,
-    ShadowMap  = 1 << 5,
+    Debug = 1 << 4,
+    ShadowMap = 1 << 5,
 };
 
 inline RenderPassFlags operator|(RenderPassFlags a, RenderPassFlags b)

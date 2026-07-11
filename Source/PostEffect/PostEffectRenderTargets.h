@@ -31,6 +31,9 @@ public:
     //! 書き込み先を SRV に遷移
     void transitionWriteToSRV(ID3D12GraphicsCommandList* cmd);
 
+    //! 書き込み先を COPY_SOURCE に遷移
+    void transitionWriteToCopySource(ID3D12GraphicsCommandList* cmd);
+
     //! ピンポンをスワップ（書き込み先 → 次の入力）
     void swap();
 
@@ -51,6 +54,9 @@ public:
 
     //! 書き込み先インデックス取得
     int getWriteIndex() const { return m_writeIndex; }
+
+    //! 現在の書き込み先リソース
+    ID3D12Resource* getCurrentWriteResource() const { return m_renderTargets[m_writeIndex].Get(); }
 
     //! 初期化済み判定
     bool isInitialized() const { return m_initialized; }

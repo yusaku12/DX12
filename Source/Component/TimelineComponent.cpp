@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "TimelineComponent.h"
 
 #include "AnimationComponent.h"
@@ -701,25 +701,25 @@ void TimelineComponent::cachePrePlayState()
     m_prePlayPoses.clear();
 
     auto snapshotAnimation = [this](AnimationComponent* anim)
-    {
-        if (!anim || !anim->gameObject())
         {
-            return;
-        }
+            if (!anim || !anim->gameObject())
+            {
+                return;
+            }
 
-        const uint64_t objectId = anim->gameObject()->getInstanceId();
-        if (m_prevStateMachineStates.contains(objectId))
-        {
-            return;
-        }
+            const uint64_t objectId = anim->gameObject()->getInstanceId();
+            if (m_prevStateMachineStates.contains(objectId))
+            {
+                return;
+            }
 
-        m_prevStateMachineStates[objectId] = anim->isStateMachineEnabled();
-        if (Model* model = anim->getModel())
-        {
-            m_prePlayPoses[objectId] = model->getBone();
-        }
-        anim->setStateMachineEnabled(false);
-    };
+            m_prevStateMachineStates[objectId] = anim->isStateMachineEnabled();
+            if (Model* model = anim->getModel())
+            {
+                m_prePlayPoses[objectId] = model->getBone();
+            }
+            anim->setStateMachineEnabled(false);
+        };
 
     if (m_animation)
     {
