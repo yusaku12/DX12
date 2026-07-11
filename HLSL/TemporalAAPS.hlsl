@@ -87,6 +87,9 @@ float4 PS(PostEffectVSOut input) : SV_Target
     const float reactive = saturate(lumaDelta * 2.5f);
     historyWeight *= (1.0f - reactive);
 
-    const float3 outColor = lerp(current, history, saturate(min(historyWeight, 0.97f)));
+    const float taaWeight = saturate(min(historyWeight, 0.97f));
+    const float3 taaColor = lerp(current, history, taaWeight);
+    const float effectWeight = saturate(g_texelParams.z);
+    const float3 outColor = lerp(current, taaColor, effectWeight);
     return float4(outColor, 1.0f);
 }

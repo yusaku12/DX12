@@ -24,9 +24,12 @@ private:
     struct CBuffer
     {
         Vector4 params0{}; //!< x=strength y=clampAmount z=texelX w=texelY
+        Vector4 params1{}; //!< x=blendWeight
     };
 
     std::unique_ptr<ConstantBuffer<CBuffer>> m_cb;
     float m_strength = 0.35f;
     float m_clampAmount = 0.20f;
+    int m_debugMode = 0;
+    float m_debugScale = 4.0f;
 };

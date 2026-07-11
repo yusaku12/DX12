@@ -59,6 +59,27 @@ void PSOCreator::setPSO(size_t key, ID3D12GraphicsCommandList* cmd)
 
 void PSOCreator::refreshDirtyPSOs()
 {
+    bool hasDirtyPSO = false;
+    for (const auto& [key, entry] : m_cache)
+    {
+        if (ShaderManager::Instance().isDirty(entry.data.vsShaderId)
+            || ShaderManager::Instance().isDirty(entry.data.psShaderId))
+        {
+            hasDirtyPSO = true;
+            break;
+        }
+    }
+
+    if (!hasDirtyPSO)
+    {
+        return;
+    }
+
+    // Hot reload で既存 PSO を差し替える前に GPU 完了を待つ。
+    // これを行わないと、in-flight のコマンドが参照中の PSO を release して
+    // OBJECT_DELETED_WHILE_STILL_IN_USE が発生する。
+    DX12::Instance().safeGPUWait();
+
     for (auto& [key, entry] : m_cache)
     {
         bool vsDirty = ShaderManager::Instance().isDirty(entry.data.vsShaderId);

@@ -16,7 +16,8 @@ cbuffer CBuffer : register(b0)
     float4 g_params0;       //!< x=maxDistance y=thickness z=stride w=intensity
     float4 g_params1;       //!< x=maxSteps y=fresnelBias z=fresnelPower w=roughnessCutoff
     float4 g_params2;       //!< x=edgeFade y=probeStrength z=ssrStrength w=blendWeight
-    float4 g_params3;       //!< x=rtStrength y=probeMinMix z=ssrConfidencePower w=reserved
+    float4 g_params3;       //!< x=rtStrength y=probeMinMix z=ssrConfidencePower w=debugMode
+    float4 g_params4;       //!< x=hasProbe y=hasRt
 };
 
 float LinearizeDepth(float depth)
@@ -62,23 +63,22 @@ float edgeAttenuation(float2 uv, float edgeFade)
 float4 PS(PostEffectVSOut input) : SV_Target
 {
     float3 scene = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], input.uv, 0).rgb;
+    int debugMode = (int)round(g_params3.w);
 
-    if (g_params2.w <= 0.0f)
+    if (g_params2.w <= 0.0f && debugMode == 0)
     {
         return float4(scene, 1.0f);
     }
 
     float depth = depthTexture.SampleLevel(samplerStates[LINEAR_CLAMP], input.uv, 0).r;
-    if (depth >= 0.99999f)
+    bool depthValid = (depth < 0.99999f);
+    if (!depthValid)
     {
-        return float4(scene, 1.0f);
+        return (debugMode != 0) ? float4(0.0f, 0.0f, 0.0f, 1.0f) : float4(scene, 1.0f);
     }
 
     float roughness = DecodeRoughness(input.uv);
-    if (roughness > g_params1.w)
-    {
-        return float4(scene, 1.0f);
-    }
+    bool roughnessEligible = (roughness <= g_params1.w);
 
     float3 normalW = DecodeNormal(input.uv);
     float3 normalV = normalize(mul(float4(normalW, 0.0f), g_view).xyz);
@@ -105,7 +105,8 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
         float t = (i / (float)maxSteps) * maxDistance;
         float3 sampleViewPos = viewPos + reflDirV * t * stride;
-        if (sampleViewPos.z <= 0.0f)
+        float sampleViewDepth = -sampleViewPos.z;
+        if (sampleViewDepth <= 0.0f)
         {
             continue;
         }
@@ -123,7 +124,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
         }
 
         float sceneDepth = LinearizeDepth(sampleDepth);
-        float depthDiff = sampleViewPos.z - sceneDepth;
+        float depthDiff = sampleViewDepth - sceneDepth;
 
         if (abs(depthDiff) <= g_params0.y)
         {
@@ -134,9 +135,9 @@ float4 PS(PostEffectVSOut input) : SV_Target
         }
     }
 
-    float3 reflColorSSR = scene;
+    float3 reflColorSSR = 0.0f;
     float ssrConfidence = 0.0f;
-    if (hit)
+    if (hit && roughnessEligible)
     {
         reflColorSSR = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], hitUv, 0).rgb;
         ssrConfidence = edgeAttenuation(hitUv, g_params2.x) * (1.0f - hitStep);
@@ -149,7 +150,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float3 reflectDirW = normalize(reflect(-viewDirW, normalW));
 
     float3 reflColorProbe = 0.0f;
-    if (g_params2.y > 0.0001f)
+    if (g_params2.y > 0.0001f && g_params4.x > 0.5f)
     {
         uint mipLevels = 1;
         uint cubeSize = 1;
@@ -174,14 +175,44 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float3 composite =
         (reflColorProbe * weightedProbe + reflColorSSR * weightedSSR) / totalWeight;
 
-    if (g_params3.x > 0.0001f)
+    float3 rtReflection = 0.0f;
+    if (g_params4.y > 0.5f)
     {
-        float3 rtReflection = rtReflectionTexture.SampleLevel(samplerStates[LINEAR_CLAMP], input.uv, 0).rgb;
+        rtReflection = rtReflectionTexture.SampleLevel(samplerStates[LINEAR_CLAMP], input.uv, 0).rgb;
+    }
+
+    if (g_params3.x > 0.0001f && g_params4.y > 0.5f)
+    {
         composite = lerp(composite, rtReflection, saturate(g_params3.x));
     }
 
     float roughAtten = 1.0f - roughness;
-    float reflectWeight = saturate(g_params0.w) * saturate(g_params2.w) * fresnel * roughAtten;
+    float reflectWeight = saturate(g_params0.w) * saturate(g_params2.w) * fresnel * roughAtten * (roughnessEligible ? 1.0f : 0.0f);
+
+    if (debugMode == 1)
+    {
+        return float4(reflColorSSR, 1.0f);
+    }
+    if (debugMode == 2)
+    {
+        return float4(reflColorProbe, 1.0f);
+    }
+    if (debugMode == 3)
+    {
+        return float4(rtReflection, 1.0f);
+    }
+    if (debugMode == 4)
+    {
+        return float4(composite, 1.0f);
+    }
+    if (debugMode == 5)
+    {
+        return float4(reflectWeight.xxx, 1.0f);
+    }
+    if (debugMode == 6)
+    {
+        return float4(ssrConfidence.xxx, 1.0f);
+    }
 
     float3 outColor = lerp(scene, composite, reflectWeight);
     return float4(outColor, 1.0f);

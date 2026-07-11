@@ -12,7 +12,8 @@ class TemporalAAEffect : public PostEffectBase
 {
 public:
 
-    TemporalAAEffect() { m_priority = 95; }
+    TemporalAAEffect() { m_priority = 85; }
+    ~TemporalAAEffect() override;
 
     void initialize() override;
     void render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex) override;

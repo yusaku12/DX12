@@ -17,7 +17,7 @@ cbuffer CBuffer : register(b0)
     float  g_minEV;                 //!< 自動露出 下限 EV
     float  g_maxEV;                 //!< 自動露出 上限 EV
     float  g_autoExposureStrength;  //!< 自動露出強度
-    float  g_padAuto;
+    float  g_effectBlend;
 
     float  g_temperature;           //!< 色温度シフト  -1..1 (寒→暖)
     float  g_tint;                  //!< ティント      -1..1 (緑→マゼンタ)
@@ -131,37 +131,62 @@ float3 ApplyColorWheels(float3 c)
     return max(c * shadows * midtones * highlights, 0.0f);
 }
 
-float ComputeApproxSceneLuma(float2 uv)
+float ComputeApproxSceneLuma()
 {
-    // 3x3 の広域サンプリングでフレームの代表輝度を近似
-    static const float2 kOffsets[9] =
+    // 画素依存の露出ムラを避けるため、固定プローブでフレーム代表輝度を推定する。
+    // 極端な明暗に引きずられないよう log 輝度の sigma clamp をかける。
+    static const int kProbeCount = 25;
+    static const float2 kProbeUv[kProbeCount] =
     {
-        float2(-0.6f, -0.6f), float2(0.0f, -0.6f), float2(0.6f, -0.6f),
-        float2(-0.6f,  0.0f), float2(0.0f,  0.0f), float2(0.6f,  0.0f),
-        float2(-0.6f,  0.6f), float2(0.0f,  0.6f), float2(0.6f,  0.6f)
+        float2(0.10f, 0.10f), float2(0.30f, 0.10f), float2(0.50f, 0.10f), float2(0.70f, 0.10f), float2(0.90f, 0.10f),
+        float2(0.10f, 0.30f), float2(0.30f, 0.30f), float2(0.50f, 0.30f), float2(0.70f, 0.30f), float2(0.90f, 0.30f),
+        float2(0.10f, 0.50f), float2(0.30f, 0.50f), float2(0.50f, 0.50f), float2(0.70f, 0.50f), float2(0.90f, 0.50f),
+        float2(0.10f, 0.70f), float2(0.30f, 0.70f), float2(0.50f, 0.70f), float2(0.70f, 0.70f), float2(0.90f, 0.70f),
+        float2(0.10f, 0.90f), float2(0.30f, 0.90f), float2(0.50f, 0.90f), float2(0.70f, 0.90f), float2(0.90f, 0.90f)
     };
 
-    float lumaSum = 0.0f;
+    float logLuma[kProbeCount];
+    float logMean = 0.0f;
     [unroll]
-    for (int i = 0; i < 9; ++i)
+    for (int i = 0; i < kProbeCount; ++i)
     {
-        float2 suv = saturate(uv + kOffsets[i]);
-        float3 s = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], suv, 0).rgb;
+        float3 s = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], kProbeUv[i], 0).rgb;
         float l = max(dot(s, float3(0.2126f, 0.7152f, 0.0722f)), 1.0e-5f);
-        lumaSum += log2(l);
+        logLuma[i] = log2(l);
+        logMean += logLuma[i];
     }
 
-    return exp2(lumaSum / 9.0f);
+    logMean /= kProbeCount;
+
+    float variance = 0.0f;
+    [unroll]
+    for (int i = 0; i < kProbeCount; ++i)
+    {
+        float delta = logLuma[i] - logMean;
+        variance += delta * delta;
+    }
+    variance /= kProbeCount;
+
+    float sigma = sqrt(max(variance, 1.0e-6f));
+    float clampedMean = 0.0f;
+    [unroll]
+    for (int i = 0; i < kProbeCount; ++i)
+    {
+        clampedMean += clamp(logLuma[i], logMean - sigma * 1.5f, logMean + sigma * 1.5f);
+    }
+    clampedMean /= kProbeCount;
+
+    return exp2(clampedMean);
 }
 
-float ComputeExposureEV(float2 uv)
+float ComputeExposureEV()
 {
     if (g_autoExposureEnabled < 0.5f)
     {
         return g_exposure;
     }
 
-    float avgLuma = ComputeApproxSceneLuma(uv);
+    float avgLuma = ComputeApproxSceneLuma();
     float targetGray = max(g_middleGray, 1.0e-4f);
     float autoEV = log2(targetGray / max(avgLuma, 1.0e-5f));
     autoEV = clamp(autoEV, g_minEV, g_maxEV);
@@ -176,7 +201,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float3 col = src.rgb;
 
     // 露出補正（Linear 空間）
-    float exposureEV = ComputeExposureEV(input.uv);
+    float exposureEV = ComputeExposureEV();
     col *= exp2(exposureEV);
 
     // ホワイトバランス
@@ -213,5 +238,6 @@ float4 PS(PostEffectVSOut input) : SV_Target
     // 最終出力は sRGB ガンマへ
     col = pow(max(col, 1.0e-6f), 1.0f / 2.2f);
 
+    col = lerp(src.rgb, col, saturate(g_effectBlend));
     return float4(col, src.a);
 }

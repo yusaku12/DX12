@@ -18,6 +18,11 @@ void CasSharpenEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
         std::clamp(m_clampAmount, 0.0f, 1.0f),
         width > 0.0f ? 1.0f / width : 0.0f,
         height > 0.0f ? 1.0f / height : 0.0f);
+    cb.params1 = Vector4(
+        std::clamp(m_blendWeight, 0.0f, 1.0f),
+        static_cast<float>(std::clamp(m_debugMode, 0, 2)),
+        std::clamp(m_debugScale, 0.25f, 16.0f),
+        0.0f);
     m_cb->update(cb);
 
     applyPSO(cmd);
@@ -31,4 +36,16 @@ void CasSharpenEffect::inspectGUI()
     ImGui::SeparatorText("FSR RCAS");
     ImGui::SliderFloat("Strength", &m_strength, 0.0f, 1.0f);
     ImGui::SliderFloat("Clamp", &m_clampAmount, 0.0f, 1.0f);
+
+    static const char* debugModes[] =
+    {
+        "Off",
+        "Sharpen Delta",
+        "Sharpened Color"
+    };
+    ImGui::Combo("Debug View", &m_debugMode, debugModes, IM_ARRAYSIZE(debugModes));
+    if (m_debugMode != 0)
+    {
+        ImGui::SliderFloat("Debug Scale", &m_debugScale, 0.25f, 16.0f);
+    }
 }

@@ -16,6 +16,7 @@ class BloomEffect : public PostEffectBase
 public:
 
     BloomEffect() { m_priority = 50; }
+    ~BloomEffect() override;
 
     void initialize() override;
     void render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex) override;
@@ -76,18 +77,22 @@ private:
     //! 中間 RT（各ミップレベル）
     Microsoft::WRL::ComPtr<ID3D12Resource>       m_mipRT[MIP_COUNT];
     D3D12_CPU_DESCRIPTOR_HANDLE                  m_mipRTV[MIP_COUNT]{};
-    UINT                                         m_mipSRV[MIP_COUNT]{};
+    UINT                                         m_mipSRV[MIP_COUNT]{ UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX };
     D3D12_RESOURCE_STATES                        m_mipState[MIP_COUNT]{};
     UINT                                         m_mipWidth[MIP_COUNT]{};
     UINT                                         m_mipHeight[MIP_COUNT]{};
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
+    UINT                                         m_resourceWidth = 0;
+    UINT                                         m_resourceHeight = 0;
 
     //! 定数バッファ
     std::unique_ptr<ConstantBuffer<PrefilterCBuffer>>  m_cbPrefilter;
     std::unique_ptr<ConstantBuffer<BloomCBuffer>>      m_cbBloom;
     std::unique_ptr<ConstantBuffer<CompositeCBuffer>>  m_cbComposite;
 
+    void ensureMipRenderTargets(UINT width, UINT height);
     void createMipRenderTargets(UINT width, UINT height);
+    void releaseMipRenderTargets();
     void transitionToRT(ID3D12GraphicsCommandList* cmd, int idx);
     void transitionToSRV(ID3D12GraphicsCommandList* cmd, int idx);
 

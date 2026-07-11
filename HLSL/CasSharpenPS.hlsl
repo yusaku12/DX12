@@ -4,6 +4,7 @@
 cbuffer CBuffer : register(b0)
 {
     float4 g_params0; //!< x=strength y=clampAmount z=texelX w=texelY
+    float4 g_params1; //!< x=blendWeight y=debugMode z=debugScale
 };
 
 float luminance(float3 c)
@@ -33,7 +34,20 @@ float4 PS(PostEffectVSOut input) : SV_Target
     // 低コントラスト部の過剰強調を抑える
     const float contrast = abs(luminance(mx) - luminance(mn));
     const float atten = saturate(contrast * 6.0f);
-    const float3 outColor = lerp(c, sharpened, atten);
+    const float sharpenWeight = atten * saturate(g_params1.x);
+    const float3 outColor = lerp(c, sharpened, sharpenWeight);
+
+    int debugMode = (int)round(g_params1.y);
+    float debugScale = max(g_params1.z, 0.25f);
+    if (debugMode == 1)
+    {
+        float3 delta = abs(sharpened - c) * debugScale;
+        return float4(saturate(delta), 1.0f);
+    }
+    if (debugMode == 2)
+    {
+        return float4(sharpened, 1.0f);
+    }
 
     return float4(outColor, 1.0f);
 }

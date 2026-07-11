@@ -56,7 +56,7 @@ private:
         float   minEV = -6.0f;
         float   maxEV = 6.0f;
         float   autoExposureStrength = 1.0f;
-        float   padAuto = 0.0f;
+        float   effectBlend = 1.0f;
 
         float   temperature = 0.0f;
         float   tint = 0.0f;

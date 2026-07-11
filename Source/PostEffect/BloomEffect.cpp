@@ -2,6 +2,20 @@
 #include "BloomEffect.h"
 #include "PostEffect/PostEffectRenderTargets.h"
 
+BloomEffect::~BloomEffect()
+{
+    releaseMipRenderTargets();
+
+    for (UINT& srv : m_mipSRV)
+    {
+        if (srv != UINT_MAX)
+        {
+            DescriptorHeapManager::Instance().free(srv);
+            srv = UINT_MAX;
+        }
+    }
+}
+
 void BloomEffect::initialize()
 {
     // PSO 登録
@@ -18,7 +32,7 @@ void BloomEffect::initialize()
     // 中間 RT 作成
     UINT w = DX12::Instance().getScreenWidth();
     UINT h = DX12::Instance().getScreenHeight();
-    createMipRenderTargets(w, h);
+    ensureMipRenderTargets(w, h);
 
     LOG_INFO("BloomEffect initialized (pyramid mode, {} levels)", MIP_COUNT);
 }
@@ -26,6 +40,15 @@ void BloomEffect::initialize()
 void BloomEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)
 {
     if (!cmd || inputSrvIndex == UINT_MAX)
+    {
+        return;
+    }
+
+    const UINT w = DX12::Instance().getScreenWidth();
+    const UINT h = DX12::Instance().getScreenHeight();
+    ensureMipRenderTargets(w, h);
+
+    if (!m_mipRT[0])
     {
         return;
     }
@@ -57,8 +80,27 @@ void BloomEffect::inspectGUI()
     ImGui::SliderFloat("Scatter", &m_params.scatter, 0.0f, 1.0f);
 }
 
+void BloomEffect::ensureMipRenderTargets(UINT width, UINT height)
+{
+    if (width == 0 || height == 0)
+    {
+        return;
+    }
+
+    if (m_resourceWidth == width && m_resourceHeight == height && m_mipRT[0])
+    {
+        return;
+    }
+
+    releaseMipRenderTargets();
+    createMipRenderTargets(width, height);
+}
+
 void BloomEffect::createMipRenderTargets(UINT width, UINT height)
 {
+    m_resourceWidth = width;
+    m_resourceHeight = height;
+
     auto* device = DX12::Instance().getDevice();
     DXGI_FORMAT fmt = DX12::Instance().getBackBufferFormat();
 
@@ -110,7 +152,10 @@ void BloomEffect::createMipRenderTargets(UINT width, UINT height)
         srvDesc.Texture2D.MipLevels = 1;
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-        m_mipSRV[i] = DescriptorHeapManager::Instance().allocateRange();
+        if (m_mipSRV[i] == UINT_MAX)
+        {
+            m_mipSRV[i] = DescriptorHeapManager::Instance().allocateRange();
+        }
         device->CreateShaderResourceView(
             m_mipRT[i].Get(), &srvDesc,
             DescriptorHeapManager::Instance().getCPUHandle(m_mipSRV[i]));
@@ -118,6 +163,22 @@ void BloomEffect::createMipRenderTargets(UINT width, UINT height)
 
         m_mipState[i] = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     }
+}
+
+void BloomEffect::releaseMipRenderTargets()
+{
+    for (int i = 0; i < MIP_COUNT; ++i)
+    {
+        m_mipRT[i].Reset();
+        m_mipRTV[i] = {};
+        m_mipWidth[i] = 0;
+        m_mipHeight[i] = 0;
+        m_mipState[i] = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    }
+
+    m_rtvHeap.Reset();
+    m_resourceWidth = 0;
+    m_resourceHeight = 0;
 }
 
 void BloomEffect::transitionToRT(ID3D12GraphicsCommandList* cmd, int idx)
@@ -226,7 +287,7 @@ void BloomEffect::passComposite(ID3D12GraphicsCommandList* cmd,
     setViewport(cmd, w, h);
 
     CompositeCBuffer cb{};
-    cb.intensity = m_params.intensity;
+    cb.intensity = m_params.intensity * std::clamp(m_blendWeight, 0.0f, 1.0f);
     m_cbComposite->update(cb);
 
     applyPSO(m_psoComposite, cmd);

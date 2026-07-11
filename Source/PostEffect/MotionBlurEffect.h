@@ -10,7 +10,7 @@ class MotionBlurEffect : public PostEffectBase
 {
 public:
 
-    MotionBlurEffect() { m_priority = 80; }
+    MotionBlurEffect() { m_priority = 96; }
 
     void initialize() override;
     void render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex) override;

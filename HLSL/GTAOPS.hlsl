@@ -39,6 +39,12 @@ float noise2D(float2 uv)
     return frac(sin(n) * 43758.5453f);
 }
 
+float3 BuildTangent(float3 n)
+{
+    float3 up = abs(n.y) < 0.999f ? float3(0.0f, 1.0f, 0.0f) : float3(1.0f, 0.0f, 0.0f);
+    return normalize(cross(up, n));
+}
+
 float4 PS(PostEffectVSOut input) : SV_Target
 {
     float3 scene = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], input.uv, 0).rgb;
@@ -50,14 +56,19 @@ float4 PS(PostEffectVSOut input) : SV_Target
     }
 
     float3 normal = DecodeNormal(input.uv);
+    float3 tangent = BuildTangent(normal);
+    float3 bitangent = normalize(cross(normal, tangent));
     float centerLinearDepth = LinearizeDepth(centerDepth);
-    float radius = g_params0.x / max(centerLinearDepth, 1e-4f);
+    float3 centerViewPos = ReconstructViewPosition(input.uv, centerDepth);
+    float radiusWorld = g_params0.x;
+    float radiusUv = radiusWorld / max(centerLinearDepth, 1e-4f);
+    float radiusUvMax = max(g_params1.x, g_params1.y) * 96.0f;
+    radiusUv = min(radiusUv, radiusUvMax);
     float thickness = g_params0.y;
+    float selfBias = max(0.01f, thickness * 0.25f);
 
     int stepCount = clamp((int)round(g_params2.x), 2, 12);
     int dirCount = clamp((int)round(g_params2.y), 4, 16);
-
-    float randPhase = noise2D(input.uv * 2048.0f) * 6.2831853f;
 
     float occlusion = 0.0f;
     float weightSum = 0.0f;
@@ -70,8 +81,9 @@ float4 PS(PostEffectVSOut input) : SV_Target
             break;
         }
 
-        float angle = (6.2831853f * (d + 0.5f) / dirCount) + randPhase;
-        float2 dir = float2(cos(angle), sin(angle));
+        float angle = 6.2831853f * (d + 0.5f) / dirCount;
+        float2 dir2 = float2(cos(angle), sin(angle));
+        float3 sampleHemisphereDir = normalize(tangent * dir2.x + bitangent * dir2.y + normal * 0.35f);
 
         [loop]
         for (int s = 1; s <= 12; ++s)
@@ -82,25 +94,43 @@ float4 PS(PostEffectVSOut input) : SV_Target
             }
 
             float t = s / (float)stepCount;
-            float2 uv = input.uv + dir * radius * t;
+            float2 uv = input.uv + dir2 * radiusUv * t;
             if (any(uv <= 0.0f) || any(uv >= 1.0f))
             {
                 continue;
             }
 
             float sampleDepth = depthTexture.SampleLevel(samplerStates[LINEAR_CLAMP], uv, 0).r;
-            float sampleLinear = LinearizeDepth(sampleDepth);
-            float depthDelta = sampleLinear - centerLinearDepth;
+            if (sampleDepth >= 0.99999f)
+            {
+                continue;
+            }
 
-            float sampleOcclusion = saturate((thickness - depthDelta) / max(thickness, 1e-5f));
-            float rangeWeight = 1.0f - t;
+            float sampleLinear = LinearizeDepth(sampleDepth);
+            float3 sampleViewPos = ReconstructViewPosition(uv, sampleDepth);
+            float3 sampleVec = sampleViewPos - centerViewPos;
+            float dist = length(sampleVec);
+            if (dist <= 1.0e-4f || dist > radiusWorld)
+            {
+                continue;
+            }
+
+            float3 sampleDir = sampleVec / dist;
+            float horizon = saturate(dot(sampleHemisphereDir, sampleDir) - selfBias);
+            float rangeWeight = 1.0f - saturate(dist / radiusWorld);
+            float depthWeight = saturate(1.0f - abs(sampleLinear - centerLinearDepth) / max(thickness, 1.0e-4f));
+
+            if (horizon <= 0.0f || depthWeight <= 0.0f)
+            {
+                continue;
+            }
 
             float3 sampleNormal = DecodeNormal(uv);
             float normalTerm = saturate(dot(normal, sampleNormal));
             float normalWeight = lerp(1.0f, normalTerm, saturate(g_params2.w));
 
-            float w = rangeWeight * normalWeight;
-            occlusion += sampleOcclusion * w;
+            float w = rangeWeight * depthWeight * normalWeight;
+            occlusion += horizon * w;
             weightSum += w;
         }
     }

@@ -28,6 +28,7 @@ private:
         Vector4 params0{}; //!< x=intensity y=maxDistance z=thickness w=stepScale
         Vector4 params1{}; //!< x=near y=far z=maxSteps w=samples
         Vector4 params2{}; //!< x=blendWeight y=normalWeight z=saturation w=maxRadiance
+        Vector4 params3{}; //!< x=debugMode y=debugScale
     };
 
     std::unique_ptr<ConstantBuffer<CBuffer>> m_cb;
@@ -41,4 +42,6 @@ private:
     float m_normalWeight = 0.6f;
     float m_saturation = 0.95f;
     float m_maxRadiance = 1.25f;
+    int m_debugMode = 0;
+    float m_debugScale = 2.0f;
 };

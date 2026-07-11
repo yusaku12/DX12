@@ -97,7 +97,8 @@ float4 PS(PostEffectVSOut input) : SV_Target
         float t = (i / (float)maxSteps) * maxDistance;
         float3 sampleViewPos = viewPos + reflDir * t * stride;
 
-        if (sampleViewPos.z <= 0.0f)
+        float sampleViewDepth = -sampleViewPos.z;
+        if (sampleViewDepth <= 0.0f)
         {
             continue;
         }
@@ -115,7 +116,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
         }
 
         float sceneDepth = LinearizeDepth(sampleDepth);
-        float depthDiff = sampleViewPos.z - sceneDepth;
+        float depthDiff = sampleViewDepth - sceneDepth;
 
         if (abs(depthDiff) <= g_params0.y)
         {

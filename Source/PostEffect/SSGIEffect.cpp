@@ -36,6 +36,11 @@ void SSGIEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)
         std::clamp(m_normalWeight, 0.0f, 1.0f),
         std::clamp(m_saturation, 0.0f, 2.0f),
         std::clamp(m_maxRadiance, 0.1f, 4.0f));
+    cb.params3 = Vector4(
+        static_cast<float>(std::clamp(m_debugMode, 0, 3)),
+        std::clamp(m_debugScale, 0.1f, 8.0f),
+        0.0f,
+        0.0f);
 
     m_cb->update(cb);
 
@@ -60,4 +65,17 @@ void SSGIEffect::inspectGUI()
     ImGui::SliderFloat("Normal Weight", &m_normalWeight, 0.0f, 1.0f);
     ImGui::SliderFloat("Saturation", &m_saturation, 0.0f, 2.0f);
     ImGui::SliderFloat("Max Radiance", &m_maxRadiance, 0.1f, 4.0f);
+
+    static const char* debugModes[] =
+    {
+        "Off",
+        "Indirect Only",
+        "Contribution Heat",
+        "Final GI Mix"
+    };
+    ImGui::Combo("Debug View", &m_debugMode, debugModes, IM_ARRAYSIZE(debugModes));
+    if (m_debugMode != 0)
+    {
+        ImGui::SliderFloat("Debug Scale", &m_debugScale, 0.1f, 8.0f);
+    }
 }

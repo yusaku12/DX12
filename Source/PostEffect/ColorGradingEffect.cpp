@@ -9,6 +9,7 @@ void ColorGradingEffect::initialize()
 
 void ColorGradingEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)
 {
+    m_params.effectBlend = std::clamp(m_blendWeight, 0.0f, 1.0f);
     m_cb->update(m_params);
 
     applyPSO(cmd);

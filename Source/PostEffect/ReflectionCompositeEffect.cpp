@@ -49,9 +49,10 @@ void ReflectionCompositeEffect::render(ID3D12GraphicsCommandList* cmd, UINT inpu
         std::clamp(m_rtStrength, 0.0f, 2.0f),
         std::clamp(m_probeMinMix, 0.0f, 1.0f),
         std::clamp(m_ssrConfidencePower, 0.5f, 4.0f),
-        0.0f);
+        static_cast<float>(std::clamp(m_debugMode, 0, 6)));
 
     auto iblHandle = IBLManager::Instance().getDescriptorHandle();
+    const bool hasProbe = (iblHandle.ptr != 0);
     if (iblHandle.ptr == 0)
     {
         cb.params2.y = 0.0f;
@@ -63,6 +64,7 @@ void ReflectionCompositeEffect::render(ID3D12GraphicsCommandList* cmd, UINT inpu
     {
         cb.params3.x = 0.0f;
     }
+    cb.params4 = Vector4(hasProbe ? 1.0f : 0.0f, hasRtReflection ? 1.0f : 0.0f, 0.0f, 0.0f);
 
     m_cb->update(cb);
 
@@ -99,4 +101,16 @@ void ReflectionCompositeEffect::inspectGUI()
     ImGui::SliderFloat("RT Strength", &m_rtStrength, 0.0f, 2.0f);
     ImGui::SliderFloat("Probe Min Mix", &m_probeMinMix, 0.0f, 1.0f);
     ImGui::SliderFloat("SSR Confidence Pow", &m_ssrConfidencePower, 0.5f, 4.0f);
+
+    static const char* debugModes[] =
+    {
+        "Off",
+        "SSR Raw",
+        "Probe Raw",
+        "RT Raw",
+        "Composite Raw",
+        "Reflection Weight",
+        "Hit Confidence"
+    };
+    ImGui::Combo("Debug View", &m_debugMode, debugModes, IM_ARRAYSIZE(debugModes));
 }

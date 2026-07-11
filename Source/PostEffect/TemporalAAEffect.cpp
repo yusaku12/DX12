@@ -6,6 +6,20 @@
 #include "Render/GBufferRenderTargets.h"
 #include "TemporalAAEffect.h"
 
+TemporalAAEffect::~TemporalAAEffect()
+{
+    releaseHistoryResources();
+
+    for (UINT& srv : m_historySrv)
+    {
+        if (srv != UINT_MAX)
+        {
+            DescriptorHeapManager::Instance().free(srv);
+            srv = UINT_MAX;
+        }
+    }
+}
+
 void TemporalAAEffect::initialize()
 {
     m_psoKey = registerPSO(ShaderID::TemporalAAPS, RootSignatureType::PostEffectTemporal);
@@ -59,7 +73,7 @@ void TemporalAAEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex
     params.texelParams = Vector4(
         1.0f / static_cast<float>(width),
         1.0f / static_cast<float>(height),
-        0.0f,
+        std::clamp(m_blendWeight, 0.0f, 1.0f),
         0.0f);
 
     params.prevJitter = Vector4::Zero;

@@ -11,6 +11,7 @@ cbuffer CBuffer : register(b0)
     float4 g_params0; //!< x=intensity y=maxDistance z=thickness w=stepScale
     float4 g_params1; //!< x=near y=far z=maxSteps w=samples
     float4 g_params2; //!< x=blendWeight y=normalWeight z=saturation w=maxRadiance
+    float4 g_params3; //!< x=debugMode y=debugScale
 };
 
 float LinearizeDepth(float depth)
@@ -44,13 +45,6 @@ float2 ProjectViewToUv(float3 viewPos)
     float4 clip = mul(float4(viewPos, 1.0f), g_projection);
     float2 ndc = clip.xy / max(clip.w, 1e-6f);
     return float2(ndc.x * 0.5f + 0.5f, -ndc.y * 0.5f + 0.5f);
-}
-
-float Hash12(float2 p)
-{
-    float3 p3 = frac(float3(p.xyx) * 0.1031f);
-    p3 += dot(p3, p3.yzx + 33.33f);
-    return frac((p3.x + p3.y) * p3.z);
 }
 
 float3 BuildTangent(float3 n)
@@ -104,16 +98,16 @@ float4 PS(PostEffectVSOut input) : SV_Target
             break;
         }
 
-        float noise = Hash12(input.uv * 4096.0f + float2(s * 19.7f, s * 7.9f));
-        float phi = 6.2831853f * noise;
-        float cosTheta = sqrt(1.0f - ((s + 0.5f) / sampleCount));
+        float sampleT = (s + 0.5f) / sampleCount;
+        float phi = 6.2831853f * frac((s + 0.5f) * 0.61803398875f);
+        float cosTheta = sqrt(1.0f - sampleT);
         float sinTheta = sqrt(saturate(1.0f - cosTheta * cosTheta));
         float3 rayDir = normalize(
             tangent * (cos(phi) * sinTheta) +
             bitangent * (sin(phi) * sinTheta) +
             normal * cosTheta);
 
-        float3 rayOrigin = viewPos + normal * 0.03f;
+        float3 rayOrigin = viewPos + normal * max(0.03f, thickness * 0.5f);
 
         [loop]
         for (int i = 1; i <= 48; ++i)
@@ -126,7 +120,8 @@ float4 PS(PostEffectVSOut input) : SV_Target
             float t = (i / (float)maxSteps) * maxDistance * stepScale;
             float3 samplePos = rayOrigin + rayDir * t;
 
-            if (samplePos.z <= 0.0f)
+            float sampleViewDepth = -samplePos.z;
+            if (sampleViewDepth <= 0.0f)
             {
                 continue;
             }
@@ -144,7 +139,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
             }
 
             float sampleDepthLin = LinearizeDepth(sampleDepthRaw);
-            float dz = samplePos.z - sampleDepthLin;
+            float dz = sampleViewDepth - sampleDepthLin;
             if (abs(dz) > thickness)
             {
                 continue;
@@ -171,6 +166,24 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
     indirect = min(indirect * g_params0.x, g_params2.w.xxx);
 
+    int debugMode = (int)round(g_params3.x);
+    float debugScale = max(g_params3.y, 0.1f);
+    if (debugMode == 1)
+    {
+        return float4(indirect * debugScale, 1.0f);
+    }
+    if (debugMode == 2)
+    {
+        float heat = saturate(length(indirect) * debugScale);
+        float3 heatColor = lerp(float3(0.0f, 0.2f, 1.0f), float3(1.0f, 0.2f, 0.0f), heat);
+        return float4(heatColor, 1.0f);
+    }
+
     float3 outColor = scene + indirect * saturate(g_params2.x);
+    if (debugMode == 3)
+    {
+        return float4(outColor, 1.0f);
+    }
+
     return float4(outColor, 1.0f);
 }

@@ -46,13 +46,6 @@ float3 DecodeNormal(float2 uv)
     return normalize(n);
 }
 
-float hash12(float2 p)
-{
-    float3 p3 = frac(float3(p.xyx) * 0.1031f);
-    p3 += dot(p3, p3.yzx + 33.33f);
-    return frac((p3.x + p3.y) * p3.z);
-}
-
 float3 buildTangent(float3 n)
 {
     float3 up = abs(n.y) < 0.999f ? float3(0.0f, 1.0f, 0.0f) : float3(1.0f, 0.0f, 0.0f);
@@ -99,13 +92,12 @@ float4 PS(PostEffectVSOut input) : SV_Target
             break;
         }
 
-        float j = hash12(input.uv * 4096.0f + float2(s * 13.1f, s * 7.3f));
-        float phi = (6.2831853f * (s + j * g_params2.y)) / max((float)hemiSamples, 1.0f);
+        float phi = 6.2831853f * frac((s + 0.5f) * 0.61803398875f + g_params2.y * 0.25f);
         float cosTheta = sqrt(saturate(1.0f - ((s + 0.5f) / max((float)hemiSamples, 1.0f))));
         float sinTheta = sqrt(saturate(1.0f - cosTheta * cosTheta));
 
         float3 hemi = normalize(tangent * cos(phi) * sinTheta + bitangent * sin(phi) * sinTheta + normalV * cosTheta);
-        float3 rayOrigin = viewPos + normalV * normalBias;
+        float3 rayOrigin = viewPos + normalV * max(normalBias, thickness * 0.5f);
 
         [loop]
         for (int i = 1; i <= 64; ++i)
@@ -117,7 +109,8 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
             float t = (i / (float)maxSteps) * maxDistance;
             float3 sampleView = rayOrigin + hemi * t * stepStride;
-            if (sampleView.z <= 0.0f)
+            float sampleViewDepth = -sampleView.z;
+            if (sampleViewDepth <= 0.0f)
             {
                 continue;
             }
@@ -135,7 +128,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
             }
 
             float sceneDepth = LinearizeDepth(sampleDepth);
-            float diff = sampleView.z - sceneDepth;
+            float diff = sampleViewDepth - sceneDepth;
 
             if (abs(diff) <= thickness)
             {
