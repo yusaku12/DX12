@@ -86,20 +86,61 @@ DX12::DX12(HWND hwnd)
     setupInfoQueue();
 #endif
 
-    // コマンドアロケーターを作成
-    hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocator.GetAddressOf()));
-    LOG_HR(hr, "Failed to CreateCommandAllocator");
+    for (UINT i = 0; i < BUFFER_COUNT; ++i)
+    {
+        hr = m_device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            IID_PPV_ARGS(m_commandAllocators[i].GetAddressOf()));
+        LOG_HR(hr, "Failed to CreateCommandAllocator");
 
-    // post-pass 用コマンドアロケーターを作成
-    hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_postCommandAllocator.GetAddressOf()));
-    LOG_HR(hr, "Failed to CreateCommandAllocator (post)");
+        hr = m_device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            IID_PPV_ARGS(m_postCommandAllocators[i].GetAddressOf()));
+        LOG_HR(hr, "Failed to CreateCommandAllocator (post)");
 
-    hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_postCommandAllocator2.GetAddressOf()));
-    LOG_HR(hr, "Failed to CreateCommandAllocator (post2)");
+        hr = m_device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            IID_PPV_ARGS(m_postCommandAllocator2s[i].GetAddressOf()));
+        LOG_HR(hr, "Failed to CreateCommandAllocator (post2)");
+    }
 
-    // コマンドリスト作成
-    hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), nullptr, IID_PPV_ARGS(m_graphicsCommandList.GetAddressOf()));
-    LOG_HR(hr, "Failed to CreateCommandList");
+    for (UINT i = 0; i < BUFFER_COUNT; ++i)
+    {
+        hr = m_device->CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            m_commandAllocators[i].Get(),
+            nullptr,
+            IID_PPV_ARGS(m_sceneCommandLists[i].GetAddressOf()));
+        LOG_HR(hr, "Failed to CreateCommandList");
+
+        hr = m_sceneCommandLists[i]->Close();
+        LOG_HR(hr, "Failed to Close scene command list");
+
+        hr = m_device->CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            m_postCommandAllocators[i].Get(),
+            nullptr,
+            IID_PPV_ARGS(m_postCommandLists[i].GetAddressOf()));
+        LOG_HR(hr, "Failed to Create post command list");
+
+        hr = m_postCommandLists[i]->Close();
+        LOG_HR(hr, "Failed to Close post command list");
+
+        hr = m_device->CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            m_postCommandAllocator2s[i].Get(),
+            nullptr,
+            IID_PPV_ARGS(m_postCommandList2s[i].GetAddressOf()));
+        LOG_HR(hr, "Failed to Create post2 command list");
+
+        hr = m_postCommandList2s[i]->Close();
+        LOG_HR(hr, "Failed to Close post2 command list");
+    }
+
+    m_activeGraphicsCommandList = m_sceneCommandLists[0].Get();
 
     // コマンドキュー作成
     D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
@@ -302,6 +343,8 @@ void DX12::initialize()
     // フェンスを作成(GPU側の処理が完了したか知るための仕組み)
     hr = m_device->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.GetAddressOf()));
     LOG_HR(hr, "Failed to CreateFence");
+
+    commandReset();
 }
 
 void DX12::screenClear(RenderPath renderPath)
@@ -311,7 +354,7 @@ void DX12::screenClear(RenderPath renderPath)
     // DescriptorHeap
     DescriptorHeapManager::Instance().setDescriptorHeap();
 
-    auto* cmd = m_graphicsCommandList.Get();
+    auto* cmd = m_activeGraphicsCommandList;
 
     transitionDepthToWrite();
 
@@ -344,7 +387,7 @@ void DX12::screenClear(RenderPath renderPath)
     gbuffer.setRenderTargets(cmd, m_dsvHandle);
 
     // 深度ステンシルクリア
-    m_graphicsCommandList->ClearDepthStencilView(
+    m_activeGraphicsCommandList->ClearDepthStencilView(
         m_dsvHandle,
         D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
         1.0f,
@@ -354,7 +397,7 @@ void DX12::screenClear(RenderPath renderPath)
     );
 
     // ビューポートとシザー矩形をセット
-    applyViewportAndScissor(m_graphicsCommandList.Get());
+    applyViewportAndScissor(m_activeGraphicsCommandList);
 }
 
 void DX12::transitionDepthToSRV()
@@ -369,7 +412,7 @@ void DX12::transitionDepthToSRV()
         m_depthState,
         kDepthSrvState);
 
-    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+    m_activeGraphicsCommandList->ResourceBarrier(1, &barrier);
     m_depthState = kDepthSrvState;
 }
 
@@ -383,7 +426,7 @@ void DX12::transitionDepthToWrite()
         m_depthState,
         D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
-    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+    m_activeGraphicsCommandList->ResourceBarrier(1, &barrier);
     m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 }
 
@@ -523,7 +566,7 @@ void DX12::sceneImguiRender()
 
 void DX12::transitionSceneToSRV()
 {
-    transitionSceneToSRV(m_graphicsCommandList.Get());
+    transitionSceneToSRV(m_activeGraphicsCommandList);
 }
 
 void DX12::transitionSceneToSRV(ID3D12GraphicsCommandList* cmd)
@@ -550,7 +593,7 @@ void DX12::screenClearCleanup()
         D3D12_RESOURCE_STATE_RENDER_TARGET,
         D3D12_RESOURCE_STATE_PRESENT);
 
-    m_graphicsCommandList->ResourceBarrier(1, &backBarrier);
+    m_activeGraphicsCommandList->ResourceBarrier(1, &backBarrier);
 
     // コマンドリストを閉じて実行
     executeCommandList();
@@ -558,8 +601,14 @@ void DX12::screenClearCleanup()
     // フリップ処理
     m_dxgiSwapChain4->Present(1, 0);
 
-    // GPU待機
-    safeGPUWait();
+    // 提出済みフレームだけをシグナルし、次に再利用するフレーム資源だけ必要時に待つ
+    const UINT submittedFrameIndex = m_frameIndex;
+    const UINT64 submittedFenceValue = ++m_fenceValue;
+    m_commandQueue->Signal(m_fence.Get(), submittedFenceValue);
+    m_frameFenceValues[submittedFrameIndex] = submittedFenceValue;
+
+    m_frameIndex = m_dxgiSwapChain4->GetCurrentBackBufferIndex();
+    waitForFrameResources(m_frameIndex);
 
 #ifdef _DEBUG
     // DebugLayer の警告をフラッシュ
@@ -582,7 +631,7 @@ void DX12::screenResize(int width, int height)
     safeGPUWait();
 
     // コマンドリストを閉じる
-    m_graphicsCommandList->Close();
+    m_activeGraphicsCommandList->Close();
 
     // 既存バックバッファ解放
     for (UINT i = 0; i < BUFFER_COUNT; ++i)
@@ -763,11 +812,19 @@ void DX12::enableDebugLayer()
     {
         debugLayer->EnableDebugLayer();
 
-        // GPU-Based Validation を有効化（重いがバグ発見に非常に有効）
-        Microsoft::WRL::ComPtr<ID3D12Debug3> debug3;
-        if (SUCCEEDED(debugLayer.As(&debug3)))
+        // GPU-Based Validation は非常に重いため、必要時のみ環境変数で明示有効化する。
+        char gpuValidationValue[8] = {};
+        const DWORD valueLength = GetEnvironmentVariableA(
+            "DX12_ENABLE_GPU_VALIDATION",
+            gpuValidationValue,
+            static_cast<DWORD>(std::size(gpuValidationValue)));
+        if (valueLength > 0 && gpuValidationValue[0] == '1')
         {
-            debug3->SetEnableGPUBasedValidation(TRUE);
+            Microsoft::WRL::ComPtr<ID3D12Debug3> debug3;
+            if (SUCCEEDED(debugLayer.As(&debug3)))
+            {
+                debug3->SetEnableGPUBasedValidation(TRUE);
+            }
         }
     }
 }
@@ -852,6 +909,11 @@ void DX12::safeGPUWait()
         WaitForSingleObject(event, INFINITE);
         CloseHandle(event);
     }
+
+    for (UINT64& frameFenceValue : m_frameFenceValues)
+    {
+        frameFenceValue = 0;
+    }
 }
 
 void DX12::prepareBackBufferForImGui()
@@ -873,9 +935,10 @@ void DX12::prepareBackBufferForImGui()
     }
     CommandListPool::Instance().resetCompleted();
 
-    // post-pass 用のアロケータでリセット（pre-pass アロケータは GPU 使用中のため触らない）
-    m_postCommandAllocator->Reset();
-    m_graphicsCommandList->Reset(m_postCommandAllocator.Get(), nullptr);
+    // post-pass 用のコマンドリストへ切替（scene command list は実行済みのため再利用しない）
+    m_postCommandAllocators[m_frameIndex]->Reset();
+    m_postCommandLists[m_frameIndex]->Reset(m_postCommandAllocators[m_frameIndex].Get(), nullptr);
+    m_activeGraphicsCommandList = m_postCommandLists[m_frameIndex].Get();
 
     RenderPassContext context = BuildRenderPassContext(
         SceneManager::Instance().isCurrentSceneMultiThreadedRenderingEnabled(),
@@ -900,8 +963,9 @@ void DX12::prepareBackBufferForImGui()
         }
         CommandListPool::Instance().resetCompleted();
 
-        m_postCommandAllocator2->Reset();
-        m_graphicsCommandList->Reset(m_postCommandAllocator2.Get(), nullptr);
+        m_postCommandAllocator2s[m_frameIndex]->Reset();
+        m_postCommandList2s[m_frameIndex]->Reset(m_postCommandAllocator2s[m_frameIndex].Get(), nullptr);
+        m_activeGraphicsCommandList = m_postCommandList2s[m_frameIndex].Get();
     }
 
     // Scene RT を SRV に遷移（ImGui 描画前に呼ぶ）
@@ -919,7 +983,7 @@ void DX12::prepareBackBufferForImGui()
         D3D12_RESOURCE_STATE_PRESENT,
         D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-    m_graphicsCommandList->ResourceBarrier(1, &barrier);
+    m_activeGraphicsCommandList->ResourceBarrier(1, &barrier);
 
     // RTV取得
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_rtvHeaps->GetCPUDescriptorHandleForHeapStart();
@@ -927,21 +991,21 @@ void DX12::prepareBackBufferForImGui()
     rtvHandle.ptr += bbIdx * rtvSize;
 
     FLOAT clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
-    m_graphicsCommandList->ClearRenderTargetView(
+    m_activeGraphicsCommandList->ClearRenderTargetView(
         rtvHandle,
         clearColor,
         0,
         nullptr
     );
 
-    m_graphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
+    m_activeGraphicsCommandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &m_dsvHandle);
 }
 
 void DX12::executeCommandList()
 {
     // コマンドリストを閉じて実行
-    m_graphicsCommandList->Close();
-    ID3D12CommandList* lists[] = { m_graphicsCommandList.Get() };
+    m_activeGraphicsCommandList->Close();
+    ID3D12CommandList* lists[] = { m_activeGraphicsCommandList };
     m_commandQueue->ExecuteCommandLists(_countof(lists), lists);
 }
 
@@ -972,10 +1036,25 @@ void DX12::applySceneRenderTargets(ID3D12GraphicsCommandList* cmd) const
 void DX12::commandReset()
 {
     // 領域をクリア、次フレーム用に命令を積める状態にする
-    m_commandAllocator->Reset();
-    m_postCommandAllocator->Reset();
-    m_postCommandAllocator2->Reset();
-    m_graphicsCommandList->Reset(m_commandAllocator.Get(), nullptr);
+    m_commandAllocators[m_frameIndex]->Reset();
+    m_sceneCommandLists[m_frameIndex]->Reset(m_commandAllocators[m_frameIndex].Get(), nullptr);
+    m_activeGraphicsCommandList = m_sceneCommandLists[m_frameIndex].Get();
+}
+
+void DX12::waitForFrameResources(UINT frameIndex)
+{
+    const UINT64 fenceValueToWait = m_frameFenceValues[frameIndex];
+    if (fenceValueToWait == 0 || m_fence->GetCompletedValue() >= fenceValueToWait)
+    {
+        return;
+    }
+
+    HANDLE event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    if (event == nullptr) LOG_ASSERT_NO_JUDGE("CreateEvent failed in waitForFrameResources");
+
+    m_fence->SetEventOnCompletion(fenceValueToWait, event);
+    WaitForSingleObject(event, INFINITE);
+    CloseHandle(event);
 }
 
 void DX12::captureScreenshot()
@@ -1014,7 +1093,7 @@ void DX12::captureScreenshot()
 
 void DX12::transitionSceneToRenderTarget()
 {
-    transitionSceneToRenderTarget(m_graphicsCommandList.Get());
+    transitionSceneToRenderTarget(m_activeGraphicsCommandList);
 }
 
 void DX12::transitionSceneToRenderTarget(ID3D12GraphicsCommandList* cmd)

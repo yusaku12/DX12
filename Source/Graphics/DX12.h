@@ -3,6 +3,8 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
+#include <array>
+
 enum class RenderPath : int;
 
 //=====================================================
@@ -150,7 +152,7 @@ public:
     ID3D12DescriptorHeap* getRTVDescriptorHeap() const { return m_rtvHeaps.Get(); }
 
     //! コマンドリスト取得
-    ID3D12GraphicsCommandList* getGraphicsCommandList() const { return m_graphicsCommandList.Get(); }
+    ID3D12GraphicsCommandList* getGraphicsCommandList() const { return m_activeGraphicsCommandList; }
 
     //! バックバッファ取得
     DXGI_FORMAT getBackBufferFormat() const { return m_backBufferFormat; }
@@ -210,15 +212,20 @@ private:
     //! Debug Layer の警告を出力ウィンドウにフラッシュ
     void flushDebugMessages();
 
+    //! 指定フレームのコマンドアロケータ再利用待ち
+    void waitForFrameResources(UINT frameIndex);
+
     static DX12* m_instance;
     const HWND m_hwnd;
     int m_width = 1280, m_height = 720;     //!< 画面の縦幅、横幅
     static constexpr int BUFFER_COUNT = 3;  //!< バックバッファの数
     Microsoft::WRL::ComPtr<ID3D12Device> m_device;
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_commandAllocator;
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_postCommandAllocator;
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_postCommandAllocator2;
-    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_graphicsCommandList;
+    std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, BUFFER_COUNT> m_commandAllocators;
+    std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, BUFFER_COUNT> m_postCommandAllocators;
+    std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, BUFFER_COUNT> m_postCommandAllocator2s;
+    std::array<Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>, BUFFER_COUNT> m_sceneCommandLists;
+    std::array<Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>, BUFFER_COUNT> m_postCommandLists;
+    std::array<Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>, BUFFER_COUNT> m_postCommandList2s;
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
     Microsoft::WRL::ComPtr<IDXGISwapChain4> m_dxgiSwapChain4;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeaps;
@@ -229,6 +236,8 @@ private:
     ExampleDescriptorHeapAllocator m_exampleDescriptorHeapAllocator;
     D3D12_RESOURCE_BARRIER m_barrierDesc = {};
     UINT64 m_fenceValue = 0;
+    std::array<UINT64, BUFFER_COUNT> m_frameFenceValues = {};
+    UINT m_frameIndex = 0;
     DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_sceneRenderTarget;
     D3D12_CPU_DESCRIPTOR_HANDLE m_sceneRTVHandle{};
@@ -238,6 +247,7 @@ private:
     D3D12_RESOURCE_STATES m_depthState = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     D3D12_RESOURCE_STATES m_sceneState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     UINT m_finalPostEffectSrv = 0;
+    ID3D12GraphicsCommandList* m_activeGraphicsCommandList = nullptr;
     bool m_isSceneActive = false;
     ImVec2 m_sceneWindowPos = ImVec2(0, 0);
     ImVec2 m_sceneWindowSize = ImVec2(0, 0);

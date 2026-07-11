@@ -120,7 +120,7 @@ std::vector<ID3D12CommandList*> CommandListPool::getClosedCommandLists() const
     std::vector<ID3D12CommandList*> result;
     for (const auto& entry : m_pool)
     {
-        if (entry.inUse && entry.closed)
+        if (entry.inUse && entry.closed && entry.fenceValue == 0)
         {
             result.push_back(entry.commandList.Get());
         }
