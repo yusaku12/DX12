@@ -49,6 +49,18 @@ public:
     //! 各カスケードの OBB (Light Space 境界をワールド空間へ変換したもの) を取得
     const DirectX::BoundingOrientedBox& getCascadeOBB(int cascade) const { return m_cascadeOBBs[cascade]; }
 
+    //! 各カスケードの光源 VP 行列を取得
+    const Matrix& getCascadeLightViewProj(int cascade) const { return m_shadowParams.lightViewProj[cascade]; }
+
+    //! カスケード分割距離を取得
+    const Vector4& getCascadeSplits() const { return m_shadowParams.cascadeSplits; }
+
+    //! シャドウ深度バイアス取得
+    float getShadowBias() const { return m_shadowParams.shadowBias; }
+
+    //! シャドウ強度取得
+    float getShadowStrength() const { return m_shadowParams.shadowStrength; }
+
     //! 光源方向の設定
     void setLightDirection(const Vector3& dir) { m_lightDir = dir; }
 
@@ -85,7 +97,21 @@ private:
         Vector4 cascadeSplits;                //!< ビュー空間カスケード分割距離（正値）
         float   shadowBias = 0.002f;
         float   shadowStrength = 1.0f;
-        float   shadowPadding[2] = {};
+        float   shadowMapSize = static_cast<float>(ShadowMapSize);
+        float   pcssLightRadius = 0.08f;
+
+        float   pcssMinFilterRadius = 0.75f;      //!< 最小フィルタ半径（texel 単位）
+        float   pcssMaxFilterRadius = 5.0f;       //!< 最大フィルタ半径（texel 単位）
+        float   pcssBlockerSearchRadius = 2.0f;   //!< ブロッカー探索半径（texel 単位）
+        float   pcssCascadeScale = 0.35f;         //!< 遠方カスケードほど半径を増やす係数
+
+        float   contactShadowLength = 0.45f;      //!< レシーバーからの探索長（ワールド距離）
+        float   contactShadowStrength = 0.35f;    //!< 接触影の強度 [0,1]
+        float   contactShadowDepthBias = 0.00035f;//!< 接触影専用バイアス
+        float   contactShadowNormalBias = 0.015f; //!< 法線方向オフセット
+
+        float   contactShadowStepCount = 5.0f;    //!< 接触影ステップ数
+        float   shadowPadding[3] = {};
     };
 
     //=====================================================

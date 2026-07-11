@@ -50,16 +50,6 @@ float3 FresnelSchlick(float cosTheta, float3 f0)
     return f0 + (1.0f - f0) * pow(1.0f - cosTheta, 5.0f);
 }
 
-float3 ToneMapACES(float3 color)
-{
-    const float a = 2.51f;
-    const float b = 0.03f;
-    const float c = 2.43f;
-    const float d = 0.59f;
-    const float e = 0.14f;
-    return saturate((color * (a * color + b)) / (color * (c * color + d) + e));
-}
-
 float3 EnvBRDFApprox(float3 f0, float roughness, float NdotV)
 {
     float4 c0 = float4(-1.0f, -0.0275f, -0.572f, 0.022f);
@@ -109,7 +99,7 @@ float4 PS(PostEffectVSOut input) : SV_TARGET
     // シャドウ係数（ダイレクトライティングのみに適用、IBL アンビエントは除外）
     float3 viewPos  = mul(float4(worldPos, 1.0f), view).xyz;
     float  viewDepth = viewPos.z;  //!< LH 系: view 空間 Z は正なので反転不要
-    float  shadowFactor = computeShadow(worldPos, viewDepth);
+    float  shadowFactor = computeShadow(worldPos, viewDepth, normal, lightDir);
     direct *= shadowFactor;
 
     // IBL
@@ -128,11 +118,7 @@ float4 PS(PostEffectVSOut input) : SV_TARGET
 
     float3 ambient = (kD * diffuseIBL + specularIBL) * ao;
 
+    // HDR のまま後段の ColorGrading（ACES + Auto Exposure）へ渡す
     float3 color = ambient + direct;
-
-    // トーンマップ + ガンマ
-    color = ToneMapACES(color);
-    color = pow(color, 1.0f / 2.2f);
-
-    return float4(color, 1.0f);
+    return float4(max(color, 0.0f), 1.0f);
 }

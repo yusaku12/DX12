@@ -24,8 +24,26 @@ void ColorGradingEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvInd
 
 void ColorGradingEffect::inspectGUI()
 {
-    ImGui::SeparatorText("Exposure / WhiteBalance");
-    ImGui::SliderFloat("Exposure (EV)", &m_params.exposure, -5.0f, 5.0f);
+    ImGui::SeparatorText("ACES + Auto Exposure");
+    bool autoExposure = m_params.autoExposureEnabled > 0.5f;
+    if (ImGui::Checkbox("Auto Exposure", &autoExposure))
+    {
+        m_params.autoExposureEnabled = autoExposure ? 1.0f : 0.0f;
+    }
+
+    ImGui::SliderFloat("Manual Exposure (EV)", &m_params.exposure, -8.0f, 8.0f);
+    ImGui::SliderFloat("Exposure Compensation (EV)", &m_params.exposureCompensation, -5.0f, 5.0f);
+    ImGui::SliderFloat("Middle Gray", &m_params.middleGray, 0.08f, 0.36f);
+    ImGui::SliderFloat("Auto EV Min", &m_params.minEV, -12.0f, 0.0f);
+    ImGui::SliderFloat("Auto EV Max", &m_params.maxEV, 0.0f, 12.0f);
+    ImGui::SliderFloat("Auto Exposure Strength", &m_params.autoExposureStrength, 0.0f, 2.0f);
+
+    if (m_params.minEV > m_params.maxEV)
+    {
+        std::swap(m_params.minEV, m_params.maxEV);
+    }
+
+    ImGui::SeparatorText("WhiteBalance");
     ImGui::SliderFloat("Temperature", &m_params.temperature, -1.0f, 1.0f);
     ImGui::SliderFloat("Tint", &m_params.tint, -1.0f, 1.0f);
 
@@ -40,6 +58,5 @@ void ColorGradingEffect::inspectGUI()
     ImGui::ColorEdit3("Highlights", reinterpret_cast<float*>(&m_params.highlights));
 
     ImGui::SeparatorText("Tone Mapping");
-    const char* modes[] = { "Linear", "ACES", "Filmic (Hable)" };
-    ImGui::Combo("Mode", &m_params.tonemapMode, modes, 3);
+    ImGui::TextUnformatted("Unified ACES is always applied in this effect.");
 }

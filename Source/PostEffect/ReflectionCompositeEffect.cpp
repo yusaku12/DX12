@@ -45,11 +45,23 @@ void ReflectionCompositeEffect::render(ID3D12GraphicsCommandList* cmd, UINT inpu
         std::clamp(m_probeStrength, 0.0f, 2.0f),
         std::clamp(m_ssrStrength, 0.0f, 2.0f),
         std::clamp(m_blendWeight, 0.0f, 1.0f));
+    cb.params3 = Vector4(
+        std::clamp(m_rtStrength, 0.0f, 2.0f),
+        std::clamp(m_probeMinMix, 0.0f, 1.0f),
+        std::clamp(m_ssrConfidencePower, 0.5f, 4.0f),
+        0.0f);
 
     auto iblHandle = IBLManager::Instance().getDescriptorHandle();
     if (iblHandle.ptr == 0)
     {
         cb.params2.y = 0.0f;
+    }
+
+    const UINT rtSrv = RayTracingRenderer::Instance().getOutputSrvIndex();
+    const bool hasRtReflection = (rtSrv != UINT_MAX);
+    if (!hasRtReflection)
+    {
+        cb.params3.x = 0.0f;
     }
 
     m_cb->update(cb);
@@ -64,7 +76,6 @@ void ReflectionCompositeEffect::render(ID3D12GraphicsCommandList* cmd, UINT inpu
         cmd->SetGraphicsRootDescriptorTable(4, iblHandle);
     }
 
-    const UINT rtSrv = RayTracingRenderer::Instance().getOutputSrvIndex();
     const UINT rtInput = (rtSrv != UINT_MAX) ? rtSrv : inputSrvIndex;
     cmd->SetGraphicsRootDescriptorTable(5, DescriptorHeapManager::Instance().getGPUHandle(rtInput));
 
@@ -85,4 +96,7 @@ void ReflectionCompositeEffect::inspectGUI()
     ImGui::SliderFloat("Edge Fade", &m_edgeFade, 0.0f, 0.45f);
     ImGui::SliderFloat("Probe Strength", &m_probeStrength, 0.0f, 2.0f);
     ImGui::SliderFloat("SSR Strength", &m_ssrStrength, 0.0f, 2.0f);
+    ImGui::SliderFloat("RT Strength", &m_rtStrength, 0.0f, 2.0f);
+    ImGui::SliderFloat("Probe Min Mix", &m_probeMinMix, 0.0f, 1.0f);
+    ImGui::SliderFloat("SSR Confidence Pow", &m_ssrConfidencePower, 0.5f, 4.0f);
 }

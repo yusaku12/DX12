@@ -31,6 +31,7 @@ private:
         Vector4 params0{};            //!< x=maxDistance y=thickness z=stride w=intensity
         Vector4 params1{};            //!< x=maxSteps y=fresnelBias z=fresnelPower w=roughnessCutoff
         Vector4 params2{};            //!< x=edgeFade y=probeStrength z=ssrStrength w=blendWeight
+        Vector4 params3{};            //!< x=rtStrength y=probeMinMix z=ssrConfidencePower w=reserved
     };
 
     std::unique_ptr<ConstantBuffer<CBuffer>> m_cb;
@@ -46,4 +47,7 @@ private:
     float m_edgeFade = 0.2f;
     float m_probeStrength = 0.7f;
     float m_ssrStrength = 1.0f;
+    float m_rtStrength = 0.35f;
+    float m_probeMinMix = 0.08f;
+    float m_ssrConfidencePower = 1.35f;
 };

@@ -23,16 +23,22 @@ private:
 
     struct CBuffer
     {
+        Matrix view{};
         Matrix projection{};
         Matrix invProjection{};
         Matrix invView{};
         Vector4 cameraPos{};          //!< xyz=cameraPos
         Vector4 cameraNearFar{};      //!< x=near y=far
         Vector4 lightDir{};           //!< xyz=main light dir (world)
+        Vector4 lightColorIntensity{};//!< rgb=lightColor a=intensity
         Vector4 fogColor{};           //!< rgb=fog tint
         Vector4 params0{};            //!< x=density y=heightFalloff z=maxDistance w=stepCount
-        Vector4 params1{};            //!< x=anisotropy y=inscatter y=ambient z=atmoStrength w=blendWeight
+        Vector4 params1{};            //!< x=anisotropy y=inscatter z=ambient w=atmoStrength
         Vector4 params2{};            //!< x=groundHeight y=horizonBoost z=depthFogBias w=reserved
+        Vector4 shadowParams{};       //!< x=shadowBias y=shadowStrength z=shadowMapSize w=time
+        Vector4 qualityParams{};      //!< x=shadowSoftness y=shadowDistanceFade z=multiScatter w=noiseAmount
+        Vector4 cascadeSplits{};      //!< shadow cascade split distances
+        Matrix shadowLightViewProj[4];//!< 各カスケードのライト VP
     };
 
     std::unique_ptr<ConstantBuffer<CBuffer>> m_cb;
@@ -49,4 +55,9 @@ private:
     float m_groundHeight = 0.0f;
     float m_horizonBoost = 0.8f;
     float m_depthFogBias = 0.1f;
+
+    float m_shadowSoftness = 1.0f;
+    float m_shadowDistanceFade = 0.35f;
+    float m_multiScatter = 0.25f;
+    float m_noiseAmount = 0.65f;
 };

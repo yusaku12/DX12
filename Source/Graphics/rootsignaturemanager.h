@@ -10,6 +10,7 @@ enum class RootSignatureType : int
     DebugPrimitive,
     PostEffect,
     PostEffectDepth,
+    PostEffectDepthShadow,
     PostEffectGBuffer,
     PostEffectGBufferIBL,
     PostEffectGBufferIBLRT,
@@ -72,6 +73,9 @@ private:
 
     //! PostEffectDepthをビルド
     void buildPostEffectDepth();
+
+    //! PostEffectDepthShadowをビルド
+    void buildPostEffectDepthShadow();
 
     //! PostEffectGBufferをビルド
     void buildPostEffectGBuffer();

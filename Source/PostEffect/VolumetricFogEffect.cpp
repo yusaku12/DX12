@@ -2,11 +2,13 @@
 #include "Camera/CameraComponent.h"
 #include "Camera/CameraManager.h"
 #include "Render/DeferredRenderer.h"
+#include "Render/ShadowMapRenderer.h"
+#include "System/TimeManager.h"
 #include "VolumetricFogEffect.h"
 
 void VolumetricFogEffect::initialize()
 {
-    m_psoKey = registerPSO(ShaderID::VolumetricFogPS, RootSignatureType::PostEffectDepth);
+    m_psoKey = registerPSO(ShaderID::VolumetricFogPS, RootSignatureType::PostEffectDepthShadow);
     m_cb = DXMem::makeUnique<ConstantBuffer<CBuffer>>();
 }
 
@@ -19,6 +21,7 @@ void VolumetricFogEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIn
     }
 
     CBuffer cb{};
+    cb.view = camera->getView();
     cb.projection = camera->getProjection();
     cb.invProjection = cb.projection.Invert();
     cb.invView = camera->getView().Invert();
@@ -33,6 +36,12 @@ void VolumetricFogEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIn
 
     const Vector3 lightDir = DeferredRenderer::Instance().getLightDirection();
     cb.lightDir = Vector4(lightDir.x, lightDir.y, lightDir.z, 0.0f);
+    const Vector3 lightColor = DeferredRenderer::Instance().getLightColor();
+    cb.lightColorIntensity = Vector4(
+        lightColor.x,
+        lightColor.y,
+        lightColor.z,
+        std::max(0.0f, DeferredRenderer::Instance().getLightIntensity()));
 
     cb.fogColor = Vector4(m_fogColor.x, m_fogColor.y, m_fogColor.z, 0.0f);
     cb.params0 = Vector4(
@@ -51,12 +60,30 @@ void VolumetricFogEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIn
         std::clamp(m_depthFogBias, 0.0f, 1.0f),
         std::clamp(m_blendWeight, 0.0f, 1.0f));
 
+    auto& shadow = ShadowMapRenderer::Instance();
+    cb.shadowParams = Vector4(
+        std::max(0.0f, shadow.getShadowBias()),
+        std::clamp(shadow.getShadowStrength(), 0.0f, 1.0f),
+        static_cast<float>(ShadowMapRenderer::ShadowMapSize),
+        TimeManager::Instance().getUnscaledTime());
+    cb.qualityParams = Vector4(
+        std::clamp(m_shadowSoftness, 0.0f, 4.0f),
+        std::clamp(m_shadowDistanceFade, 0.0f, 1.0f),
+        std::clamp(m_multiScatter, 0.0f, 2.0f),
+        std::clamp(m_noiseAmount, 0.0f, 2.0f));
+    cb.cascadeSplits = shadow.getCascadeSplits();
+    for (int i = 0; i < ShadowMapRenderer::CascadeCount; ++i)
+    {
+        cb.shadowLightViewProj[i] = shadow.getCascadeLightViewProj(i);
+    }
+
     m_cb->update(cb);
 
     applyPSO(cmd);
     cmd->SetGraphicsRootConstantBufferView(0, m_cb->getGPUAddress());
     cmd->SetGraphicsRootDescriptorTable(1, DescriptorHeapManager::Instance().getGPUHandle(inputSrvIndex));
     cmd->SetGraphicsRootDescriptorTable(2, DescriptorHeapManager::Instance().getGPUHandle(DX12::Instance().getDepthSrvIndex()));
+    cmd->SetGraphicsRootDescriptorTable(3, ShadowMapRenderer::Instance().getShadowMapSRVHandle());
 
     drawFullscreenTriangle(cmd);
 }
@@ -76,4 +103,9 @@ void VolumetricFogEffect::inspectGUI()
     ImGui::DragFloat("Ground Height", &m_groundHeight, 0.1f, -200.0f, 200.0f);
     ImGui::SliderFloat("Horizon Boost", &m_horizonBoost, 0.0f, 3.0f);
     ImGui::SliderFloat("Depth Fog Bias", &m_depthFogBias, 0.0f, 1.0f);
+    ImGui::SeparatorText("Volumetric Lighting");
+    ImGui::SliderFloat("Shadow Softness", &m_shadowSoftness, 0.0f, 4.0f);
+    ImGui::SliderFloat("Shadow Distance Fade", &m_shadowDistanceFade, 0.0f, 1.0f);
+    ImGui::SliderFloat("Multi Scatter", &m_multiScatter, 0.0f, 2.0f);
+    ImGui::SliderFloat("Dither Noise", &m_noiseAmount, 0.0f, 2.0f);
 }

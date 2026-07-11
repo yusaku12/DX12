@@ -6,22 +6,15 @@
 //! カラーグレーディングエフェクト
 //! 機能:
 //!   - 露出補正 (EV)
+//!   - 自動露出（ログ平均輝度ベース）
 //!   - ホワイトバランス（色温度・ティント）
 //!   - コントラスト / 彩度 / 色相シフト
 //!   - Shadows / Midtones / Highlights カラーホイール
-//!   - トーンマッピング（Linear / ACES / Filmic）
+//!   - トーンマッピング（ACES 統一）
 //!=======================================================
 class ColorGradingEffect : public PostEffectBase
 {
 public:
-
-    //! トーンマッピングモード
-    enum class ToneMapMode : int
-    {
-        Linear = 0,
-        ACES = 1,
-        Filmic = 2,
-    };
 
     ColorGradingEffect() { m_priority = 100; }
 
@@ -34,6 +27,12 @@ public:
 
     // パラメータセッター
     void setExposure(float ev) { m_params.exposure = ev; }
+    void setAutoExposure(bool value) { m_params.autoExposureEnabled = value ? 1.0f : 0.0f; }
+    void setExposureCompensation(float ev) { m_params.exposureCompensation = ev; }
+    void setMiddleGray(float value) { m_params.middleGray = value; }
+    void setAutoExposureMinEV(float value) { m_params.minEV = value; }
+    void setAutoExposureMaxEV(float value) { m_params.maxEV = value; }
+    void setAutoExposureStrength(float value) { m_params.autoExposureStrength = value; }
     void setTemperature(float v) { m_params.temperature = v; }
     void setTint(float v) { m_params.tint = v; }
     void setContrast(float v) { m_params.contrast = v; }
@@ -42,7 +41,6 @@ public:
     void setShadows(const Vector3& col) { m_params.shadows = col; }
     void setMidtones(const Vector3& col) { m_params.midtones = col; }
     void setHighlights(const Vector3& col) { m_params.highlights = col; }
-    void setToneMapMode(ToneMapMode mode) { m_params.tonemapMode = static_cast<int>(mode); }
 
 private:
 
@@ -51,9 +49,18 @@ private:
     {
         // 露出 / ホワイトバランス
         float   exposure = 0.0f;
+        float   autoExposureEnabled = 1.0f;
+        float   exposureCompensation = 0.0f;
+        float   middleGray = 0.18f;
+
+        float   minEV = -6.0f;
+        float   maxEV = 6.0f;
+        float   autoExposureStrength = 1.0f;
+        float   padAuto = 0.0f;
+
         float   temperature = 0.0f;
         float   tint = 0.0f;
-        float   pad0 = 0.0f;
+        float   pad0[2] = {};
 
         // カラー補正
         float   contrast = 1.0f;
@@ -68,10 +75,6 @@ private:
         float   midtonesBalance = 0.5f;
         Vector3 highlights = { 0.0f, 0.0f, 0.0f };
         float   highlightsBalance = 0.5f;
-
-        // トーンマップ
-        int     tonemapMode = static_cast<int>(ToneMapMode::ACES);
-        Vector3 pad2 = {};
     };
 
     CBuffer m_params;

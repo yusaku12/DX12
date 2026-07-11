@@ -65,6 +65,9 @@ public:
     //! 経過時間取得 (スケール無し)
     float getUnscaledDeltaTime() const { return m_unscaledDeltaTime; }
 
+    //! 経過時間取得 (スケール無し)
+    float getUnscaledTime() const { return m_unscaledTime; }
+
     //! FPS取得
     int getFPS() const { return m_fps; }
 

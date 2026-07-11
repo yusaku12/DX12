@@ -32,6 +32,7 @@
 #include "PostEffect/HybridGIEffect.h"
 #include "PostEffect/MotionBlurEffect.h"
 #include "PostEffect/ReflectionCompositeEffect.h"
+#include "PostEffect/SSGIEffect.h"
 #include "PostEffect/SSREffect.h"
 #include "PostEffect/TemporalAAEffect.h"
 #include "PostEffect/VolumetricFogEffect.h"
@@ -71,6 +72,7 @@ namespace SerializationCommon
         if (dynamic_cast<const TemporalAAEffect*>(effect)) return "TemporalAAEffect";
         if (dynamic_cast<const MotionBlurEffect*>(effect)) return "MotionBlurEffect";
         if (dynamic_cast<const ReflectionCompositeEffect*>(effect)) return "ReflectionCompositeEffect";
+        if (dynamic_cast<const SSGIEffect*>(effect)) return "SSGIEffect";
         if (dynamic_cast<const SSREffect*>(effect)) return "SSREffect";
         if (dynamic_cast<const VolumetricFogEffect*>(effect)) return "VolumetricFogEffect";
         return nullptr;
@@ -87,6 +89,7 @@ namespace SerializationCommon
         if (typeName == "TemporalAAEffect") return component->addEffect<TemporalAAEffect>();
         if (typeName == "MotionBlurEffect") return component->addEffect<MotionBlurEffect>();
         if (typeName == "ReflectionCompositeEffect") return component->addEffect<ReflectionCompositeEffect>();
+        if (typeName == "SSGIEffect") return component->addEffect<SSGIEffect>();
         if (typeName == "SSREffect") return component->addEffect<SSREffect>();
         if (typeName == "VolumetricFogEffect") return component->addEffect<VolumetricFogEffect>();
         return nullptr;

@@ -20,6 +20,7 @@ enum class ShaderID : int
     BloomCompositePS,
     DepthOfFieldPS,
     GTAOPS,
+    SSGIPS,
     SSRPS,
     HybridGIPS,
     ReflectionCompositePS,
@@ -69,6 +70,7 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/BloomCompositePS.hlsl",   "PS", "ps_5_0" },  //!< BloomCompositePS
     ShaderDesc{ L"Shader/DepthOfFieldPS.hlsl",     "PS", "ps_5_0" },  //!< DepthOfFieldPS
     ShaderDesc{ L"Shader/GTAOPS.hlsl",             "PS", "ps_5_0" },  //!< GTAOPS
+    ShaderDesc{ L"Shader/SSGIPS.hlsl",             "PS", "ps_5_0" },  //!< SSGIPS
     ShaderDesc{ L"Shader/SSRPS.hlsl",              "PS", "ps_5_0" },  //!< SSRPS
     ShaderDesc{ L"Shader/HybridGIPS.hlsl",         "PS", "ps_5_0" },  //!< HybridGIPS
     ShaderDesc{ L"Shader/ReflectionCompositePS.hlsl", "PS", "ps_5_0" }, //!< ReflectionCompositePS

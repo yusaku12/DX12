@@ -26,6 +26,8 @@ public:
 
     //! 光源方向の取得（ShadowMapRenderer が参照）
     const Vector3& getLightDirection() const { return m_lightParams.direction; }
+    float getLightIntensity() const { return m_lightParams.intensity; }
+    const Vector3& getLightColor() const { return m_lightParams.color; }
 
 private:
 

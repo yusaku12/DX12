@@ -340,6 +340,29 @@ void ShadowMapRenderer::debugImGui()
     ImGui::SliderFloat("Shadow Strength", &m_shadowParams.shadowStrength, 0.0f, 1.0f);
     ImGui::DragFloat3("Light Direction", &m_lightDir.x, 0.01f);
 
+    m_shadowParams.shadowMapSize = static_cast<float>(ShadowMapSize);
+
+    ImGui::SeparatorText("PCSS");
+    ImGui::SliderFloat("Light Radius", &m_shadowParams.pcssLightRadius, 0.0f, 0.5f);
+    ImGui::SliderFloat("Filter Radius Min", &m_shadowParams.pcssMinFilterRadius, 0.25f, 3.0f);
+    ImGui::SliderFloat("Filter Radius Max", &m_shadowParams.pcssMaxFilterRadius, 1.0f, 12.0f);
+    ImGui::SliderFloat("Blocker Search Radius", &m_shadowParams.pcssBlockerSearchRadius, 0.5f, 6.0f);
+    ImGui::SliderFloat("Cascade Radius Scale", &m_shadowParams.pcssCascadeScale, 0.0f, 1.0f);
+
+    // min/max が逆転しないよう補正
+    m_shadowParams.pcssMaxFilterRadius = std::max(m_shadowParams.pcssMaxFilterRadius, m_shadowParams.pcssMinFilterRadius + 0.01f);
+
+    ImGui::SeparatorText("Contact Shadow");
+    ImGui::SliderFloat("Contact Length", &m_shadowParams.contactShadowLength, 0.0f, 2.5f);
+    ImGui::SliderFloat("Contact Strength", &m_shadowParams.contactShadowStrength, 0.0f, 1.0f);
+    ImGui::SliderFloat("Contact Depth Bias", &m_shadowParams.contactShadowDepthBias, 0.0f, 0.003f, "%.6f");
+    ImGui::SliderFloat("Contact Normal Bias", &m_shadowParams.contactShadowNormalBias, 0.0f, 0.05f, "%.4f");
+    int contactSteps = static_cast<int>(std::round(m_shadowParams.contactShadowStepCount));
+    if (ImGui::SliderInt("Contact Steps", &contactSteps, 2, 10))
+    {
+        m_shadowParams.contactShadowStepCount = static_cast<float>(contactSteps);
+    }
+
     ImGui::Text("Cascade Splits:");
     const float* splits = reinterpret_cast<const float*>(&m_shadowParams.cascadeSplits);
     for (int i = 0; i < CascadeCount; ++i)

@@ -9,10 +9,19 @@
 cbuffer CBuffer : register(b0)
 {
     // 露出 / ホワイトバランス
-    float  g_exposure;          //!< 露出補正 (EV)  デフォルト 0.0
-    float  g_temperature;       //!< 色温度シフト  -1..1 (寒→暖)
-    float  g_tint;              //!< ティント      -1..1 (緑→マゼンタ)
-    float  g_pad0;
+    float  g_exposure;              //!< 手動露出 (EV)
+    float  g_autoExposureEnabled;   //!< 0:手動 1:自動露出
+    float  g_exposureCompensation;  //!< 自動露出補正 (EV)
+    float  g_middleGray;            //!< 目標中間輝度
+
+    float  g_minEV;                 //!< 自動露出 下限 EV
+    float  g_maxEV;                 //!< 自動露出 上限 EV
+    float  g_autoExposureStrength;  //!< 自動露出強度
+    float  g_padAuto;
+
+    float  g_temperature;           //!< 色温度シフト  -1..1 (寒→暖)
+    float  g_tint;                  //!< ティント      -1..1 (緑→マゼンタ)
+    float2 g_pad0;
 
     // カラー補正
     float  g_contrast;          //!< コントラスト  デフォルト 1.0
@@ -28,9 +37,6 @@ cbuffer CBuffer : register(b0)
     float3 g_highlights;        //!< ハイライト色
     float  g_highlightsBalance;
 
-    // トーンマッピング
-    int    g_tonemapMode;       //!< 0=Linear 1=ACES 2=Filmic
-    float3 g_pad2;
 };
 
 //-------------------------------------------------------
@@ -44,24 +50,6 @@ float3 ACESFilm(float3 x)
     const float d = 0.59f;
     const float e = 0.14f;
     return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
-}
-
-//-------------------------------------------------------
-// Hable Filmic（Uncharted 2 方式）
-//-------------------------------------------------------
-float3 Uncharted2Tonemap(float3 x)
-{
-    const float A = 0.15f, B = 0.50f, C = 0.10f;
-    const float D = 0.20f, E = 0.02f, F = 0.30f;
-    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
-}
-
-float3 FilmicTonemap(float3 col)
-{
-    const float W = 11.2f;
-    float3 curr = Uncharted2Tonemap(col * 2.0f);
-    float3 whiteScale = 1.0f / Uncharted2Tonemap(float3(W, W, W));
-    return curr * whiteScale;
 }
 
 //-------------------------------------------------------
@@ -143,49 +131,87 @@ float3 ApplyColorWheels(float3 c)
     return max(c * shadows * midtones * highlights, 0.0f);
 }
 
+float ComputeApproxSceneLuma(float2 uv)
+{
+    // 3x3 の広域サンプリングでフレームの代表輝度を近似
+    static const float2 kOffsets[9] =
+    {
+        float2(-0.6f, -0.6f), float2(0.0f, -0.6f), float2(0.6f, -0.6f),
+        float2(-0.6f,  0.0f), float2(0.0f,  0.0f), float2(0.6f,  0.0f),
+        float2(-0.6f,  0.6f), float2(0.0f,  0.6f), float2(0.6f,  0.6f)
+    };
+
+    float lumaSum = 0.0f;
+    [unroll]
+    for (int i = 0; i < 9; ++i)
+    {
+        float2 suv = saturate(uv + kOffsets[i]);
+        float3 s = sceneTexture.SampleLevel(samplerStates[LINEAR_CLAMP], suv, 0).rgb;
+        float l = max(dot(s, float3(0.2126f, 0.7152f, 0.0722f)), 1.0e-5f);
+        lumaSum += log2(l);
+    }
+
+    return exp2(lumaSum / 9.0f);
+}
+
+float ComputeExposureEV(float2 uv)
+{
+    if (g_autoExposureEnabled < 0.5f)
+    {
+        return g_exposure;
+    }
+
+    float avgLuma = ComputeApproxSceneLuma(uv);
+    float targetGray = max(g_middleGray, 1.0e-4f);
+    float autoEV = log2(targetGray / max(avgLuma, 1.0e-5f));
+    autoEV = clamp(autoEV, g_minEV, g_maxEV);
+
+    float blendedEV = lerp(g_exposure, autoEV, saturate(g_autoExposureStrength));
+    return blendedEV + g_exposureCompensation;
+}
+
 float4 PS(PostEffectVSOut input) : SV_Target
 {
     float4 src = sceneTexture.Sample(samplerStates[LINEAR_CLAMP], input.uv);
     float3 col = src.rgb;
 
-// 露出補正（Linear 空間）
-col *= pow(2.0f, g_exposure);
+    // 露出補正（Linear 空間）
+    float exposureEV = ComputeExposureEV(input.uv);
+    col *= exp2(exposureEV);
 
-// ホワイトバランス
-col = ApplyWhiteBalance(col, g_temperature, g_tint);
+    // ホワイトバランス
+    col = ApplyWhiteBalance(col, g_temperature, g_tint);
 
-// コントラスト（Log 空間で適用 ≒ ACEScct）
-{
-    const float midGray = 0.18f;
-    col = pow(max(col, 1e-6f), 1.0f / 2.2f);   // Linear → Gamma
-    col = (col - midGray) * g_contrast + midGray;
-    col = pow(max(col, 1e-6f), 2.2f);           // Gamma → Linear
-}
+    // コントラスト（簡易 ACEScct 近似）
+    {
+        const float midGray = 0.18f;
+        col = pow(max(col, 1.0e-6f), 1.0f / 2.2f);
+        col = (col - midGray) * g_contrast + midGray;
+        col = pow(max(col, 1.0e-6f), 2.2f);
+    }
 
-// 彩度
-{
-    float lum = dot(col, float3(0.2126f, 0.7152f, 0.0722f));
-    col = lerp(float3(lum, lum, lum), col, g_saturation);
-}
+    // 彩度
+    {
+        float lum = dot(col, float3(0.2126f, 0.7152f, 0.0722f));
+        col = lerp(float3(lum, lum, lum), col, g_saturation);
+    }
 
-// 色相シフト
-if (abs(g_hueShift) > 0.001f)
-{
-    float3 hsv = RGBtoHSV(max(col, 0.0f));
-    hsv.x = frac(hsv.x + g_hueShift / 360.0f);
-    col = HSVtoRGB(hsv);
-}
+    // 色相シフト
+    if (abs(g_hueShift) > 0.001f)
+    {
+        float3 hsv = RGBtoHSV(max(col, 0.0f));
+        hsv.x = frac(hsv.x + g_hueShift / 360.0f);
+        col = HSVtoRGB(hsv);
+    }
 
-// Shadows / Midtones / Highlights
-col = ApplyColorWheels(col);
+    // Shadows / Midtones / Highlights
+    col = ApplyColorWheels(col);
 
-    // トーンマッピング
-    if (g_tonemapMode == 1)
-        col = ACESFilm(col);
-    else if (g_tonemapMode == 2)
-        col = FilmicTonemap(col);
-    else
-        col = saturate(col); // Linear クランプ
+    // 統一トーンマップ: ACES
+    col = ACESFilm(max(col, 0.0f));
+
+    // 最終出力は sRGB ガンマへ
+    col = pow(max(col, 1.0e-6f), 1.0f / 2.2f);
 
     return float4(col, src.a);
 }

@@ -16,6 +16,7 @@ cbuffer CBuffer : register(b0)
     float4 g_params0;       //!< x=maxDistance y=thickness z=stride w=intensity
     float4 g_params1;       //!< x=maxSteps y=fresnelBias z=fresnelPower w=roughnessCutoff
     float4 g_params2;       //!< x=edgeFade y=probeStrength z=ssrStrength w=blendWeight
+    float4 g_params3;       //!< x=rtStrength y=probeMinMix z=ssrConfidencePower w=reserved
 };
 
 float LinearizeDepth(float depth)
@@ -160,13 +161,24 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float ndotv = saturate(dot(normalW, viewDirW));
     float fresnel = g_params1.y + (1.0f - g_params1.y) * pow(1.0f - ndotv, max(g_params1.z, 0.5f));
 
-    float3 composite = lerp(
-        reflColorProbe * g_params2.y,
-        reflColorSSR * g_params2.z,
-        saturate(ssrConfidence));
+    float roughness01 = roughness / max(g_params1.w, 1e-4f);
+    float roughnessFactor = saturate(roughness01);
+    float confidence = pow(saturate(ssrConfidence), max(g_params3.z, 0.5f));
+    float ssrMix = confidence * (1.0f - roughnessFactor);
+    float probeMix = max(saturate(g_params3.y), 1.0f - ssrMix);
 
-    float3 rtReflection = rtReflectionTexture.SampleLevel(samplerStates[LINEAR_CLAMP], input.uv, 0).rgb;
-    composite = lerp(composite, rtReflection, 0.35f * saturate(g_params2.z));
+    float weightedProbe = probeMix * saturate(g_params2.y);
+    float weightedSSR = ssrMix * saturate(g_params2.z);
+    float totalWeight = max(weightedProbe + weightedSSR, 1e-4f);
+
+    float3 composite =
+        (reflColorProbe * weightedProbe + reflColorSSR * weightedSSR) / totalWeight;
+
+    if (g_params3.x > 0.0001f)
+    {
+        float3 rtReflection = rtReflectionTexture.SampleLevel(samplerStates[LINEAR_CLAMP], input.uv, 0).rgb;
+        composite = lerp(composite, rtReflection, saturate(g_params3.x));
+    }
 
     float roughAtten = 1.0f - roughness;
     float reflectWeight = saturate(g_params0.w) * saturate(g_params2.w) * fresnel * roughAtten;
