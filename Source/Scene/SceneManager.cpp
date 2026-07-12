@@ -156,6 +156,7 @@ void SceneManager::changeSceneInternal()
 {
     if (m_currentScene)
     {
+        DX12::Instance().safeGPUWait();
         m_currentScene->onExit();
     }
 

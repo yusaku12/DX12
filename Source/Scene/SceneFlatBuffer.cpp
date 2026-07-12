@@ -255,6 +255,7 @@ namespace SceneFlatBuffer
             LOG_WARN("[SceneFlatBuffer] SceneId mismatch. file=%d current=%d", static_cast<int>(loadedSceneId), static_cast<int>(currentSceneId));
         }
 
+        DX12::Instance().safeGPUWait();
         GameObjectRegistry::Instance().shutdown();
 
         const auto* serializedObjects = root->objects();
