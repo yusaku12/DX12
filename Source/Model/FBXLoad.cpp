@@ -177,10 +177,6 @@ bool FbxLoad::load(const char* filename)
         {
             LOG_WARN("[FbxLoad] Failed to export cache: %s", cachePath.string().c_str());
         }
-        else if (!loadFlatBuffer(cachePath.string().c_str()))
-        {
-            LOG_WARN("[FbxLoad] Exported cache but failed to reload: %s", cachePath.string().c_str());
-        }
 
         return true;
     }
