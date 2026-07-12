@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 class PostEffectComponent;
+class ColorGradingEffect;
 
 //=====================================================
 //! ポストエフェクト Volume 管理
@@ -22,14 +23,18 @@ public:
     void unregisterComponent(PostEffectComponent* comp);
 
     //! 全 Volume を実行
-    UINT execute(UINT sceneSrvIndex);
+    UINT execute(UINT sceneSrvIndex, bool enableOptionalEffects = true);
 
 private:
 
-    PostEffectManager() = default;
+    PostEffectManager();
+    ~PostEffectManager();
+
+    void executeDisplayTransform();
 
     std::vector<PostEffectComponent*> m_components;
     std::vector<PostEffectComponent*> m_sortedComponents;
     std::mutex m_mutex;
+    std::unique_ptr<ColorGradingEffect> m_displayTransform;
     bool m_dirty = false;
 };

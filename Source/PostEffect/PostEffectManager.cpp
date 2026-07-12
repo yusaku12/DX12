@@ -1,9 +1,13 @@
 #include "pch.h"
 #include "PostEffect/PostEffectManager.h"
 #include "Camera/CameraManager.h"
+#include "PostEffect/ColorGradingEffect.h"
 #include "PostEffect/PostEffectRenderTargets.h"
 #include "Component\PostEffectComponent.h"
 #include "Camera\CameraComponent.h"
+
+PostEffectManager::PostEffectManager() = default;
+PostEffectManager::~PostEffectManager() = default;
 
 void PostEffectManager::registerComponent(PostEffectComponent* comp)
 {
@@ -27,7 +31,7 @@ void PostEffectManager::unregisterComponent(PostEffectComponent* comp)
         m_dirty = true;
 }
 
-UINT PostEffectManager::execute(UINT sceneSrvIndex)
+UINT PostEffectManager::execute(UINT sceneSrvIndex, bool enableOptionalEffects)
 {
     std::vector<PostEffectComponent*> comps;
     {
@@ -47,18 +51,16 @@ UINT PostEffectManager::execute(UINT sceneSrvIndex)
         comps = m_sortedComponents;
     }
 
-    if (comps.empty())
-    {
-        return sceneSrvIndex;
-    }
-
     bool needDepth = false;
-    for (auto* comp : comps)
+    if (enableOptionalEffects)
     {
-        if (comp && comp->requiresDepth())
+        for (auto* comp : comps)
         {
-            needDepth = true;
-            break;
+            if (comp && comp->requiresDepth())
+            {
+                needDepth = true;
+                break;
+            }
         }
     }
 
@@ -72,22 +74,65 @@ UINT PostEffectManager::execute(UINT sceneSrvIndex)
     rt.reset(sceneSrvIndex);
 
     bool any = false;
+    bool displayTransformApplied = false;
 
-    for (auto* comp : comps)
+    if (enableOptionalEffects)
     {
-        if (!comp) continue;
-
-        float weight = comp->computeBlendWeight(cameraPos);
-        if (weight <= 0.0f) continue;
-
-        if (comp->executeChain(weight))
+        for (auto* comp : comps)
         {
-            any = true;
+            if (!comp) continue;
+
+            float weight = comp->computeBlendWeight(cameraPos);
+            if (weight <= 0.0f) continue;
+
+            if (comp->executeChain(weight))
+            {
+                any = true;
+                if (auto* colorGrading = comp->getEffect<ColorGradingEffect>())
+                {
+                    displayTransformApplied |= colorGrading->isEnabled();
+                }
+            }
         }
     }
 
     if (needDepth)
         DX12::Instance().transitionDepthToWrite();
 
+    if (!displayTransformApplied)
+    {
+        executeDisplayTransform();
+        any = true;
+    }
+
     return any ? rt.getFinalOutputSrvIndex() : sceneSrvIndex;
+}
+
+void PostEffectManager::executeDisplayTransform()
+{
+    if (!m_displayTransform)
+    {
+        m_displayTransform = DXMem::makeUnique<ColorGradingEffect>();
+        m_displayTransform->initialize();
+        m_displayTransform->setAutoExposure(false);
+        m_displayTransform->setBlendWeight(0.0f);
+    }
+
+    auto* cmd = DX12::Instance().getGraphicsCommandList();
+    if (!cmd)
+    {
+        return;
+    }
+
+    auto& rt = PostEffectRenderTargets::Instance();
+    DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
+    rt.transitionWriteToRenderTarget(cmd);
+    DX12::Instance().applyViewportAndScissor(cmd);
+    auto rtvHandle = rt.getCurrentRTV();
+    cmd->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
+    m_displayTransform->render(cmd, rt.getCurrentInputSrvIndex());
+
+    rt.transitionWriteToSRV(cmd);
+    rt.swap();
 }

@@ -8,6 +8,7 @@ cbuffer CBuffer : register(b0)
 {
     row_major float4x4 g_projection;
     row_major float4x4 g_invProjection;
+    row_major float4x4 g_view;
     float4 g_params0; //!< x=maxDistance y=thickness z=stride w=intensity
     float4 g_params1; //!< x=near y=far z=maxSteps w=blendWeight
     float4 g_params2; //!< x=fresnelBias y=fresnelPow z=roughnessCutoff w=edgeFade
@@ -20,10 +21,10 @@ float LinearizeDepth(float depth)
     return (nearZ * farZ) / max(farZ - depth * (farZ - nearZ), 1e-6f);
 }
 
-float3 DecodeNormal(float2 uv)
+float3 DecodeViewNormal(float2 uv)
 {
     float3 n = normalTexture.SampleLevel(samplerStates[LINEAR_CLAMP], uv, 0).xyz * 2.0f - 1.0f;
-    return normalize(n);
+    return normalize(mul(float4(n, 0.0f), g_view).xyz);
 }
 
 float DecodeRoughness(float2 uv)
@@ -75,7 +76,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
     }
 
     float3 viewPos = ReconstructViewPosition(input.uv, depth);
-    float3 normal = DecodeNormal(input.uv);
+    float3 normal = DecodeViewNormal(input.uv);
     float3 viewDir = normalize(-viewPos);
     float3 reflDir = normalize(reflect(-viewDir, normal));
 
@@ -97,7 +98,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
         float t = (i / (float)maxSteps) * maxDistance;
         float3 sampleViewPos = viewPos + reflDir * t * stride;
 
-        float sampleViewDepth = -sampleViewPos.z;
+        float sampleViewDepth = sampleViewPos.z;
         if (sampleViewDepth <= 0.0f)
         {
             continue;

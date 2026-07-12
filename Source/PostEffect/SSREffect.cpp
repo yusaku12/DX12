@@ -21,6 +21,7 @@ void SSREffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)
     CBuffer cb{};
     cb.projection = camera->getProjection();
     cb.invProjection = cb.projection.Invert();
+    cb.view = camera->getView();
     cb.params0 = Vector4(
         std::max(1.0f, m_maxDistance),
         std::max(0.01f, m_thickness),

@@ -8,6 +8,7 @@ cbuffer CBuffer : register(b0)
 {
     row_major float4x4 g_projection;
     row_major float4x4 g_invProjection;
+    row_major float4x4 g_view;
     float4 g_params0; //!< x=intensity y=maxDistance z=thickness w=stepScale
     float4 g_params1; //!< x=near y=far z=maxSteps w=samples
     float4 g_params2; //!< x=blendWeight y=normalWeight z=saturation w=maxRadiance
@@ -21,10 +22,10 @@ float LinearizeDepth(float depth)
     return (nearZ * farZ) / max(farZ - depth * (farZ - nearZ), 1e-6f);
 }
 
-float3 DecodeNormal(float2 uv)
+float3 DecodeViewNormal(float2 uv)
 {
     float3 n = normalTexture.SampleLevel(samplerStates[LINEAR_CLAMP], uv, 0).xyz * 2.0f - 1.0f;
-    return normalize(n);
+    return normalize(mul(float4(n, 0.0f), g_view).xyz);
 }
 
 float DecodeRoughness(float2 uv)
@@ -74,7 +75,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
         return float4(scene, 1.0f);
     }
 
-    float3 normal = DecodeNormal(input.uv);
+    float3 normal = DecodeViewNormal(input.uv);
     float roughness = DecodeRoughness(input.uv);
     float3 viewPos = ReconstructViewPosition(input.uv, depth);
 
@@ -89,6 +90,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
     float3 indirectAccum = 0.0f;
     float weightAccum = 0.0f;
+    float hitCount = 0.0f;
 
     [loop]
     for (int s = 0; s < 16; ++s)
@@ -120,7 +122,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
             float t = (i / (float)maxSteps) * maxDistance * stepScale;
             float3 samplePos = rayOrigin + rayDir * t;
 
-            float sampleViewDepth = -samplePos.z;
+            float sampleViewDepth = samplePos.z;
             if (sampleViewDepth <= 0.0f)
             {
                 continue;
@@ -140,12 +142,14 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
             float sampleDepthLin = LinearizeDepth(sampleDepthRaw);
             float dz = sampleViewDepth - sampleDepthLin;
-            if (abs(dz) > thickness)
+            float stepLength = maxDistance * stepScale / max((float)maxSteps, 1.0f);
+            float hitThickness = max(thickness, stepLength * 1.25f);
+            if (dz < 0.0f || dz > hitThickness)
             {
                 continue;
             }
 
-            float3 sampleNormal = DecodeNormal(sampleUv);
+            float3 sampleNormal = DecodeViewNormal(sampleUv);
             float nWeight = lerp(1.0f, saturate(dot(normal, sampleNormal)), saturate(g_params2.y));
             float dWeight = 1.0f - saturate(t / maxDistance);
 
@@ -153,6 +157,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
             float3 radiance = bounced * nWeight * dWeight;
             indirectAccum += radiance;
             weightAccum += nWeight * dWeight;
+            hitCount += 1.0f;
             break;
         }
     }
@@ -160,8 +165,8 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float3 indirect = (weightAccum > 0.0f) ? (indirectAccum / weightAccum) : 0.0f;
     indirect = ApplySaturation(indirect, g_params2.z);
 
-    // 鏡面寄りの面はスクリーンスペース GI の寄与を弱める
-    float roughWeight = saturate(1.0f - roughness * 0.75f);
+    // 拡散 GI なので滑らかな面の寄与を抑え、粗い面ほど強くする
+    float roughWeight = lerp(0.2f, 1.0f, roughness);
     indirect *= roughWeight;
 
     indirect = min(indirect * g_params0.x, g_params2.w.xxx);
@@ -170,12 +175,17 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float debugScale = max(g_params3.y, 0.1f);
     if (debugMode == 1)
     {
-        return float4(indirect * debugScale, 1.0f);
+        float peak = max(max(indirect.r, indirect.g), max(indirect.b, 1.0e-4f));
+        float magnitude = 1.0f - exp2(-dot(indirect, float3(0.2126f, 0.7152f, 0.0722f)) * debugScale);
+        return float4((indirect / peak) * magnitude, 1.0f);
     }
     if (debugMode == 2)
     {
-        float heat = saturate(length(indirect) * debugScale);
-        float3 heatColor = lerp(float3(0.0f, 0.2f, 1.0f), float3(1.0f, 0.2f, 0.0f), heat);
+        float hitRatio = saturate(hitCount / max((float)sampleCount, 1.0f));
+        float heat = saturate(hitRatio * debugScale);
+        float3 heatColor = (heat < 0.5f)
+            ? lerp(float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.35f, 1.0f), heat * 2.0f)
+            : lerp(float3(0.0f, 0.35f, 1.0f), float3(1.0f, 0.15f, 0.0f), (heat - 0.5f) * 2.0f);
         return float4(heatColor, 1.0f);
     }
 

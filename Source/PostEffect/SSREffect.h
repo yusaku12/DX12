@@ -25,6 +25,7 @@ private:
     {
         Matrix projection{};
         Matrix invProjection{};
+        Matrix view{};
         Vector4 params0{}; //!< x=maxDistance y=thickness z=stride w=intensity
         Vector4 params1{}; //!< x=near y=far z=maxSteps w=blendWeight
         Vector4 params2{}; //!< x=fresnelBias y=fresnelPow z=roughnessCutoff w=edgeFade

@@ -232,12 +232,14 @@ float4 PS(PostEffectVSOut input) : SV_Target
     // Shadows / Midtones / Highlights
     col = ApplyColorWheels(col);
 
+    // Volume ウェイトは色調補正にだけ適用し、表示変換自体は常に通す
+    col = lerp(src.rgb, col, saturate(g_effectBlend));
+
     // 統一トーンマップ: ACES
     col = ACESFilm(max(col, 0.0f));
 
     // 最終出力は sRGB ガンマへ
     col = pow(max(col, 1.0e-6f), 1.0f / 2.2f);
 
-    col = lerp(src.rgb, col, saturate(g_effectBlend));
     return float4(col, src.a);
 }

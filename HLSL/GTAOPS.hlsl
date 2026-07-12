@@ -7,6 +7,7 @@ Texture2D normalTexture : register(t2);
 cbuffer CBuffer : register(b0)
 {
     row_major float4x4 g_invProjection;
+    row_major float4x4 g_view;
     float4 g_params0; //!< x=radius y=thickness z=intensity w=power
     float4 g_params1; //!< x=texelX y=texelY z=near w=far
     float4 g_params2; //!< x=stepCount y=dirCount z=blendWeight w=normalWeight
@@ -19,10 +20,10 @@ float LinearizeDepth(float depth)
     return (nearZ * farZ) / max(farZ - depth * (farZ - nearZ), 1e-6f);
 }
 
-float3 DecodeNormal(float2 uv)
+float3 DecodeViewNormal(float2 uv)
 {
     float3 n = normalTexture.SampleLevel(samplerStates[LINEAR_CLAMP], uv, 0).xyz * 2.0f - 1.0f;
-    return normalize(n);
+    return normalize(mul(float4(n, 0.0f), g_view).xyz);
 }
 
 float3 ReconstructViewPosition(float2 uv, float depth)
@@ -55,9 +56,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
         return float4(scene, 1.0f);
     }
 
-    float3 normal = DecodeNormal(input.uv);
-    float3 tangent = BuildTangent(normal);
-    float3 bitangent = normalize(cross(normal, tangent));
+    float3 normal = DecodeViewNormal(input.uv);
     float centerLinearDepth = LinearizeDepth(centerDepth);
     float3 centerViewPos = ReconstructViewPosition(input.uv, centerDepth);
     float radiusWorld = g_params0.x;
@@ -83,7 +82,6 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
         float angle = 6.2831853f * (d + 0.5f) / dirCount;
         float2 dir2 = float2(cos(angle), sin(angle));
-        float3 sampleHemisphereDir = normalize(tangent * dir2.x + bitangent * dir2.y + normal * 0.35f);
 
         [loop]
         for (int s = 1; s <= 12; ++s)
@@ -116,7 +114,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
             }
 
             float3 sampleDir = sampleVec / dist;
-            float horizon = saturate(dot(sampleHemisphereDir, sampleDir) - selfBias);
+            float horizon = saturate(dot(normal, sampleDir) - selfBias);
             float rangeWeight = 1.0f - saturate(dist / radiusWorld);
             float depthWeight = saturate(1.0f - abs(sampleLinear - centerLinearDepth) / max(thickness, 1.0e-4f));
 
@@ -125,7 +123,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
                 continue;
             }
 
-            float3 sampleNormal = DecodeNormal(uv);
+            float3 sampleNormal = DecodeViewNormal(uv);
             float normalTerm = saturate(dot(normal, sampleNormal));
             float normalWeight = lerp(1.0f, normalTerm, saturate(g_params2.w));
 

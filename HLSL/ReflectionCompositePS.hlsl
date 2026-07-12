@@ -105,7 +105,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
         float t = (i / (float)maxSteps) * maxDistance;
         float3 sampleViewPos = viewPos + reflDirV * t * stride;
-        float sampleViewDepth = -sampleViewPos.z;
+        float sampleViewDepth = sampleViewPos.z;
         if (sampleViewDepth <= 0.0f)
         {
             continue;

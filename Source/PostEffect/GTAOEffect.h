@@ -24,6 +24,7 @@ private:
     struct CBuffer
     {
         Matrix invProjection{};
+        Matrix view{};
         Vector4 params0{}; //!< x=radius y=thickness z=intensity w=power
         Vector4 params1{}; //!< x=texelX y=texelY z=near w=far
         Vector4 params2{}; //!< x=stepCount y=dirCount z=blendWeight w=normalWeight

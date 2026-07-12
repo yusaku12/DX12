@@ -21,6 +21,7 @@ void SSGIEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)
     CBuffer cb{};
     cb.projection = camera->getProjection();
     cb.invProjection = cb.projection.Invert();
+    cb.view = camera->getView();
     cb.params0 = Vector4(
         std::clamp(m_intensity, 0.0f, 3.0f),
         std::max(0.5f, m_maxDistance),
@@ -69,8 +70,8 @@ void SSGIEffect::inspectGUI()
     static const char* debugModes[] =
     {
         "Off",
-        "Indirect Only",
-        "Contribution Heat",
+        "Indirect Color / Magnitude",
+        "Ray Hit Ratio",
         "Final GI Mix"
     };
     ImGui::Combo("Debug View", &m_debugMode, debugModes, IM_ARRAYSIZE(debugModes));

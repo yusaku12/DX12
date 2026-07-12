@@ -25,6 +25,7 @@ private:
     {
         Matrix projection{};
         Matrix invProjection{};
+        Matrix view{};
         Vector4 params0{}; //!< x=intensity y=maxDistance z=thickness w=stepScale
         Vector4 params1{}; //!< x=near y=far z=maxSteps w=samples
         Vector4 params2{}; //!< x=blendWeight y=normalWeight z=saturation w=maxRadiance

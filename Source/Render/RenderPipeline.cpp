@@ -269,12 +269,16 @@ namespace
 
         bool isEnabled(const RenderPassContext& context) const override
         {
-            return HasRenderPass(context.passMask, RenderPassFlags::PostEffect);
+            (void)context;
+            return true;
         }
 
         void execute(RenderPassContext& context) override
         {
-            context.finalSrvIndex = PostEffectManager::Instance().execute(context.finalSrvIndex);
+            const bool enableOptionalEffects = HasRenderPass(context.passMask, RenderPassFlags::PostEffect);
+            context.finalSrvIndex = PostEffectManager::Instance().execute(
+                context.finalSrvIndex,
+                enableOptionalEffects);
         }
     };
 }

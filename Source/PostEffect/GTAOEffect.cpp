@@ -23,6 +23,7 @@ void GTAOEffect::render(ID3D12GraphicsCommandList* cmd, UINT inputSrvIndex)
 
     CBuffer cb{};
     cb.invProjection = camera->getProjection().Invert();
+    cb.view = camera->getView();
     cb.params0 = Vector4(
         std::max(0.05f, m_radius),
         std::max(0.01f, m_thickness),
