@@ -90,7 +90,6 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
     float3 indirectAccum = 0.0f;
     float weightAccum = 0.0f;
-    float hitCount = 0.0f;
 
     [loop]
     for (int s = 0; s < 16; ++s)
@@ -142,9 +141,7 @@ float4 PS(PostEffectVSOut input) : SV_Target
 
             float sampleDepthLin = LinearizeDepth(sampleDepthRaw);
             float dz = sampleViewDepth - sampleDepthLin;
-            float stepLength = maxDistance * stepScale / max((float)maxSteps, 1.0f);
-            float hitThickness = max(thickness, stepLength * 1.25f);
-            if (dz < 0.0f || dz > hitThickness)
+            if (abs(dz) > thickness)
             {
                 continue;
             }
@@ -157,7 +154,6 @@ float4 PS(PostEffectVSOut input) : SV_Target
             float3 radiance = bounced * nWeight * dWeight;
             indirectAccum += radiance;
             weightAccum += nWeight * dWeight;
-            hitCount += 1.0f;
             break;
         }
     }
@@ -175,17 +171,12 @@ float4 PS(PostEffectVSOut input) : SV_Target
     float debugScale = max(g_params3.y, 0.1f);
     if (debugMode == 1)
     {
-        float peak = max(max(indirect.r, indirect.g), max(indirect.b, 1.0e-4f));
-        float magnitude = 1.0f - exp2(-dot(indirect, float3(0.2126f, 0.7152f, 0.0722f)) * debugScale);
-        return float4((indirect / peak) * magnitude, 1.0f);
+        return float4(indirect * debugScale, 1.0f);
     }
     if (debugMode == 2)
     {
-        float hitRatio = saturate(hitCount / max((float)sampleCount, 1.0f));
-        float heat = saturate(hitRatio * debugScale);
-        float3 heatColor = (heat < 0.5f)
-            ? lerp(float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.35f, 1.0f), heat * 2.0f)
-            : lerp(float3(0.0f, 0.35f, 1.0f), float3(1.0f, 0.15f, 0.0f), (heat - 0.5f) * 2.0f);
+        float heat = saturate(length(indirect) * debugScale);
+        float3 heatColor = lerp(float3(0.0f, 0.2f, 1.0f), float3(1.0f, 0.2f, 0.0f), heat);
         return float4(heatColor, 1.0f);
     }
 

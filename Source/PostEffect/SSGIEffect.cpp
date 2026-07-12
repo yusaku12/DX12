@@ -70,8 +70,8 @@ void SSGIEffect::inspectGUI()
     static const char* debugModes[] =
     {
         "Off",
-        "Indirect Color / Magnitude",
-        "Ray Hit Ratio",
+        "Indirect Only",
+        "Contribution Heat",
         "Final GI Mix"
     };
     ImGui::Combo("Debug View", &m_debugMode, debugModes, IM_ARRAYSIZE(debugModes));
