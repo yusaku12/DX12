@@ -377,7 +377,7 @@ void RootSignatureManager::buildHiZPyramidCompute()
 void RootSignatureManager::buildSkinningCompute()
 {
     CD3DX12_ROOT_PARAMETER params[5] = {};
-    params[0].InitAsConstants(2, 0);
+    params[0].InitAsConstants(3, 0);
     params[1].InitAsShaderResourceView(0);
     params[2].InitAsShaderResourceView(1);
     params[3].InitAsShaderResourceView(2);

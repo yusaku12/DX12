@@ -26,6 +26,7 @@ cbuffer SkinningParams : register(b0)
 {
     uint vertexCount;
     uint hasPreviousOutput;
+    uint boneCount;
 };
 
 StructuredBuffer<BindPoseVertex> bindPoseVertices : register(t0);
@@ -43,6 +44,10 @@ void CS(uint3 dispatchThreadId : SV_DispatchThreadID)
     }
 
     BindPoseVertex input = bindPoseVertices[vertexIndex];
+    const float weightSum = dot(input.boneWeights, 1.0f);
+    const float4 normalizedWeights = weightSum > 1.0e-8f
+        ? input.boneWeights / weightSum
+        : float4(1.0f, 0.0f, 0.0f, 0.0f);
     float3 position = 0.0f;
     float3 normal = 0.0f;
     float3 tangent = 0.0f;
@@ -50,8 +55,9 @@ void CS(uint3 dispatchThreadId : SV_DispatchThreadID)
     [unroll]
     for (uint influence = 0; influence < 4; ++influence)
     {
-        const float weight = input.boneWeights[influence];
-        const row_major float4x4 transform = boneTransforms[input.boneIndices[influence]].value;
+        const float weight = normalizedWeights[influence];
+        const uint boneIndex = min(input.boneIndices[influence], boneCount - 1);
+        const row_major float4x4 transform = boneTransforms[boneIndex].value;
         position += weight * mul(float4(input.position, 1.0f), transform).xyz;
         normal += weight * mul(float4(input.normal, 0.0f), transform).xyz;
         tangent += weight * mul(float4(input.tangent, 0.0f), transform).xyz;

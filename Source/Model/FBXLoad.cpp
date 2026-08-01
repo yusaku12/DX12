@@ -3,6 +3,34 @@
 #include "ModelFlatBuffer.h"
 #include "Animation\HumanoidRig.h"
 
+namespace
+{
+    constexpr int kFbxCacheVersion = 2;
+
+    std::filesystem::path getCacheVersionPath(const std::filesystem::path& cachePath)
+    {
+        std::filesystem::path versionPath = cachePath;
+        versionPath += ".version";
+        return versionPath;
+    }
+
+    bool isCurrentCacheVersion(const std::filesystem::path& cachePath)
+    {
+        std::ifstream stream(getCacheVersionPath(cachePath));
+        int version = 0;
+        return stream.good() && (stream >> version) && version == kFbxCacheVersion;
+    }
+
+    void writeCacheVersion(const std::filesystem::path& cachePath)
+    {
+        std::ofstream stream(getCacheVersionPath(cachePath), std::ios::trunc);
+        if (stream.good())
+        {
+            stream << kFbxCacheVersion;
+        }
+    }
+}
+
 //! FbxDouble2 → XMFLOAT2
 inline Vector2 FbxDouble2ToFloat2(const FbxDouble2& fbxValue)
 {
@@ -103,7 +131,8 @@ bool FbxLoad::load(const char* filename)
         std::error_code ec;
         const bool cacheExists = std::filesystem::exists(cachePath, ec);
         const bool sourceExists = std::filesystem::exists(sourcePath, ec);
-        if (cacheExists && (!sourceExists || std::filesystem::last_write_time(cachePath, ec) >= std::filesystem::last_write_time(sourcePath, ec)))
+        if (cacheExists && isCurrentCacheVersion(cachePath) &&
+            (!sourceExists || std::filesystem::last_write_time(cachePath, ec) >= std::filesystem::last_write_time(sourcePath, ec)))
         {
             if (!ec && loadFlatBuffer(cachePath.string().c_str()))
             {
@@ -176,6 +205,10 @@ bool FbxLoad::load(const char* filename)
         if (!saveFlatBuffer(cachePath))
         {
             LOG_WARN("[FbxLoad] Failed to export cache: %s", cachePath.string().c_str());
+        }
+        else
+        {
+            writeCacheVersion(cachePath);
         }
 
         return true;
@@ -375,11 +408,53 @@ void FbxLoad::loadMesh(FbxNode* fbxNode, FbxMesh* fbxMesh)
 
         void Add(int index, float weight)
         {
-            if (useCount < 4)
+            if (weight <= 0.0f)
             {
-                indices[useCount] = index;
-                weights[useCount] = weight;
-                useCount++;
+                return;
+            }
+
+            if (useCount == 4 && weight <= weights[3])
+            {
+                return;
+            }
+
+            const int insertCount = std::min(useCount, 3);
+            int insertIndex = insertCount;
+            while (insertIndex > 0 && weight > weights[insertIndex - 1])
+            {
+                if (insertIndex < 4)
+                {
+                    indices[insertIndex] = indices[insertIndex - 1];
+                    weights[insertIndex] = weights[insertIndex - 1];
+                }
+                --insertIndex;
+            }
+
+            if (insertIndex < 4)
+            {
+                indices[insertIndex] = index;
+                weights[insertIndex] = weight;
+            }
+            useCount = std::min(useCount + 1, 4);
+        }
+
+        void Normalize()
+        {
+            const float sum = weights[0] + weights[1] + weights[2] + weights[3];
+            if (sum <= 1.0e-8f)
+            {
+                indices[0] = 0;
+                weights[0] = 1.0f;
+                weights[1] = 0.0f;
+                weights[2] = 0.0f;
+                weights[3] = 0.0f;
+                return;
+            }
+
+            const float inverseSum = 1.0f / sum;
+            for (float& value : weights)
+            {
+                value *= inverseSum;
             }
         }
     };
@@ -486,6 +561,7 @@ void FbxLoad::loadMesh(FbxNode* fbxNode, FbxMesh* fbxMesh)
             // Weight
             {
                 BoneInfluence& boneInfluence = boneInfluences.at(fbxControlPointIndex);
+                boneInfluence.Normalize();
                 vertex.boneIndices.x = boneInfluence.indices[0];
                 vertex.boneIndices.y = boneInfluence.indices[1];
                 vertex.boneIndices.z = boneInfluence.indices[2];

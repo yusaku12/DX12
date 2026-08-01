@@ -20,11 +20,16 @@ struct VS_OUT_DEPTH
 VS_OUT_DEPTH VS(VS_IN input)
 {
     float3 p = 0;
+    const float weightSum = dot(input.boneWeights, 1.0f);
+    const float4 normalizedWeights = weightSum > 1.0e-8f
+        ? input.boneWeights / weightSum
+        : float4(1.0f, 0.0f, 0.0f, 0.0f);
 
     [unroll]
     for (int i = 0; i < 4; i++)
     {
-        p += input.boneWeights[i] * mul(input.pos, boneTransforms[input.boneIndices[i]]).xyz;
+        const uint boneIndex = min(input.boneIndices[i], MAX_BONES - 1);
+        p += normalizedWeights[i] * mul(input.pos, boneTransforms[boneIndex]).xyz;
     }
 
     VS_OUT_DEPTH vout;

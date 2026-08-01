@@ -834,8 +834,8 @@ void FbxRenderComponent::prepareRenderResources(ID3D12GraphicsCommandList* cmd)
             resources.outputStates[outputIndex] = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         }
 
-        const UINT constants[2] = { resources.vertexCount, resources.hasOutput ? 1u : 0u };
-        cmd->SetComputeRoot32BitConstants(0, 2, constants, 0);
+        const UINT constants[3] = { resources.vertexCount, resources.hasOutput ? 1u : 0u, resources.boneCount };
+        cmd->SetComputeRoot32BitConstants(0, 3, constants, 0);
         cmd->SetComputeRootShaderResourceView(1, resources.bindPoseBuffer->getResource()->GetGPUVirtualAddress());
         cmd->SetComputeRootShaderResourceView(2, boneBuffer->getResource()->GetGPUVirtualAddress());
         cmd->SetComputeRootShaderResourceView(3, resources.outputs[previousIndex]->GetGPUVirtualAddress());

@@ -6,11 +6,15 @@ VS_OUT VS(VS_IN input)
     float3 p = 0;
     float3 n = 0;
     float3 t = 0;
+    const float weightSum = dot(input.boneWeights, 1.0f);
+    const float4 normalizedWeights = weightSum > 1.0e-8f
+        ? input.boneWeights / weightSum
+        : float4(1.0f, 0.0f, 0.0f, 0.0f);
 
     for (int i = 0; i < 4; i++)
     {
-        float w = input.boneWeights[i];
-        uint idx = input.boneIndices[i];
+        float w = normalizedWeights[i];
+        uint idx = min(input.boneIndices[i], MAX_BONES - 1);
 
         float4x4 m = boneTransforms[idx];
 
