@@ -11,6 +11,17 @@ namespace
     {
         return std::max(minV, std::min(v, maxV));
     }
+
+    std::vector<D3D12_INPUT_ELEMENT_DESC> getSkinnedInputLayout()
+    {
+        return {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "PREVIOUS_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        };
+    }
 }
 
 FbxRenderComponent::FbxRenderComponent(const std::string& fbxPath)
@@ -64,6 +75,7 @@ void FbxRenderComponent::update()
         m_hasPrevPosition = true;
     }
     m_prevPosition = currentPos;
+    m_skinningDirty = true;
 
     // ベースモデル行列更新
     m_model->updateTransform(m_transform->getWorldMatrix());
@@ -103,13 +115,16 @@ void FbxRenderComponent::render(ID3D12GraphicsCommandList* cmd)
         psoKey = m_wireframePSOKey;
     }
 
-    renderInternal(cmd, psoKey);
+    const size_t skinnedPsoKey = (m_debugMode == DebugMode::Wireframe)
+        ? m_skinnedWireframePSOKey
+        : m_skinnedSolidPSOKey;
+    renderInternal(cmd, psoKey, skinnedPsoKey);
 }
 
 void FbxRenderComponent::renderGBuffer(ID3D12GraphicsCommandList* cmd)
 {
     if (!cmd || !m_model) return;
-    renderInternal(cmd, m_gbufferPSOKey);
+    renderInternal(cmd, m_gbufferPSOKey, m_skinnedGBufferPSOKey);
 }
 
 void FbxRenderComponent::inspectGUI()
@@ -634,9 +649,11 @@ void FbxRenderComponent::buildGPUResources()
         };
 
     buildFor(m_model.get(), m_modelCB, m_materialCB);
+    buildSkinningResources(m_model.get());
     for (auto& lod : m_lods)
     {
         buildFor(lod.model.get(), lod.modelCB, lod.materialCB);
+        buildSkinningResources(lod.model.get());
     }
 
     // PSO（ソリッド + ワイヤーフレーム + GBuffer + シャドウ深度）
@@ -644,6 +661,201 @@ void FbxRenderComponent::buildGPUResources()
     m_wireframePSOKey = createPSO(RasterizerState::WIRE_FRAME);
     m_gbufferPSOKey = createGBufferPSO();
     m_shadowPSOKey = createShadowDepthPSO();
+    m_skinnedSolidPSOKey = createPSO(RasterizerState::CULL_CLOCKWISE, true);
+    m_skinnedWireframePSOKey = createPSO(RasterizerState::WIRE_FRAME, true);
+    m_skinnedGBufferPSOKey = createGBufferPSO(true);
+    m_skinnedShadowPSOKey = createShadowDepthPSO(true);
+
+    D3D12_COMPUTE_PIPELINE_STATE_DESC computeDesc{};
+    computeDesc.pRootSignature = RootSignatureManager::Instance().getRootSignature(RootSignatureType::SkinningCompute);
+    if (ID3DBlob* cs = ShaderManager::Instance().getShaderBlob(ShaderID::SkinningCS))
+    {
+        computeDesc.CS.pShaderBytecode = cs->GetBufferPointer();
+        computeDesc.CS.BytecodeLength = cs->GetBufferSize();
+    }
+    HRESULT hr = DX12::Instance().getDevice()->CreateComputePipelineState(
+        &computeDesc,
+        IID_PPV_ARGS(m_skinningComputePSO.ReleaseAndGetAddressOf()));
+    LOG_HR(hr, "FbxRender: create skinning compute PSO failed");
+}
+
+void FbxRenderComponent::buildSkinningResources(Model* model)
+{
+    static_assert(sizeof(ModelResource::Vertex) == 76, "SkinningCS BindPoseVertex stride mismatch");
+    static_assert(sizeof(SkinnedVertex) == 56, "Skinned vertex stride mismatch");
+
+    if (!model) return;
+
+    SkinningModelResources modelResources{};
+    modelResources.model = model;
+
+    const auto& meshes = model->getResource()->getModelData().meshes;
+    modelResources.meshes.resize(meshes.size());
+    ID3D12Device* device = DX12::Instance().getDevice();
+
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
+    {
+        const auto& mesh = meshes[meshIndex];
+        auto& resources = modelResources.meshes[meshIndex];
+        resources.vertexCount = static_cast<UINT>(mesh.vertices.size());
+        resources.boneCount = static_cast<UINT>(mesh.nodeIndices.size());
+        resources.eligible = resources.vertexCount > 0 && resources.boneCount > 0;
+        if (!resources.eligible) continue;
+
+        const UINT64 bindPoseSize = static_cast<UINT64>(sizeof(ModelResource::Vertex)) * resources.vertexCount;
+        resources.bindPoseBuffer = DXMem::makeUnique<UploadBuffer>(bindPoseSize);
+        void* mapped = nullptr;
+        HRESULT hr = resources.bindPoseBuffer->getResource()->Map(0, nullptr, &mapped);
+        if (FAILED(hr) || !mapped)
+        {
+            LOG_HR(hr, "FbxRender: map bind-pose buffer failed");
+            resources.eligible = false;
+            continue;
+        }
+        memcpy(mapped, mesh.vertices.data(), static_cast<size_t>(bindPoseSize));
+        resources.bindPoseBuffer->getResource()->Unmap(0, nullptr);
+
+        for (auto& boneBuffer : resources.boneBuffers)
+        {
+            boneBuffer = DXMem::makeUnique<UploadBuffer>(static_cast<UINT64>(sizeof(Matrix)) * resources.boneCount);
+        }
+        const UINT64 outputSize = static_cast<UINT64>(sizeof(SkinnedVertex)) * resources.vertexCount;
+        for (UINT outputIndex = 0; outputIndex < SkinningMeshResources::FrameCount; ++outputIndex)
+        {
+            const auto desc = CD3DX12_RESOURCE_DESC::Buffer(outputSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+            const CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+            hr = device->CreateCommittedResource(
+                &heapProps,
+                D3D12_HEAP_FLAG_NONE,
+                &desc,
+                D3D12_RESOURCE_STATE_COMMON,
+                nullptr,
+                IID_PPV_ARGS(resources.outputs[outputIndex].GetAddressOf()));
+            if (FAILED(hr))
+            {
+                LOG_HR(hr, "FbxRender: create skinned vertex buffer failed");
+                resources.eligible = false;
+                break;
+            }
+
+            resources.vertexViews[outputIndex].BufferLocation = resources.outputs[outputIndex]->GetGPUVirtualAddress();
+            resources.vertexViews[outputIndex].SizeInBytes = static_cast<UINT>(outputSize);
+            resources.vertexViews[outputIndex].StrideInBytes = sizeof(SkinnedVertex);
+        }
+    }
+
+    m_skinningResources.push_back(std::move(modelResources));
+}
+
+FbxRenderComponent::SkinningModelResources* FbxRenderComponent::findSkinningResources(Model* model)
+{
+    auto it = std::find_if(m_skinningResources.begin(), m_skinningResources.end(),
+        [model](const SkinningModelResources& resources) { return resources.model == model; });
+    return it != m_skinningResources.end() ? &(*it) : nullptr;
+}
+
+bool FbxRenderComponent::bindSkinnedMesh(ID3D12GraphicsCommandList* cmd, Model* model, size_t meshIndex)
+{
+    SkinningModelResources* modelResources = findSkinningResources(model);
+    if (!cmd || !modelResources || meshIndex >= modelResources->meshes.size()) return false;
+
+    auto& resources = modelResources->meshes[meshIndex];
+    if (!m_enableComputeSkinning || m_skinningDirty || resources.vertexCount < m_computeSkinningVertexThreshold ||
+        !resources.hasOutput || !resources.outputs[resources.currentOutput]) return false;
+
+    cmd->IASetVertexBuffers(0, 1, &resources.vertexViews[resources.currentOutput]);
+    return true;
+}
+
+void FbxRenderComponent::prepareRenderResources(ID3D12GraphicsCommandList* cmd)
+{
+    if (!cmd || !m_enableComputeSkinning || !m_skinningDirty || !m_skinningComputePSO) return;
+
+    Model* activeModel = m_model.get();
+    if (const LodEntry* lod = getActiveLodEntry())
+    {
+        if (lod->model) activeModel = lod->model.get();
+    }
+
+    SkinningModelResources* modelResources = findSkinningResources(activeModel);
+    if (!activeModel || !modelResources) return;
+
+    const auto& meshes = activeModel->getResource()->getModelData().meshes;
+    cmd->SetComputeRootSignature(RootSignatureManager::Instance().getRootSignature(RootSignatureType::SkinningCompute));
+    cmd->SetPipelineState(m_skinningComputePSO.Get());
+
+    for (size_t meshIndex = 0; meshIndex < meshes.size(); ++meshIndex)
+    {
+        const auto& mesh = meshes[meshIndex];
+        auto& resources = modelResources->meshes[meshIndex];
+        if (!mesh.visible || !resources.eligible || resources.vertexCount < m_computeSkinningVertexThreshold) continue;
+
+        std::vector<Matrix> boneTransforms(resources.boneCount);
+        for (UINT boneIndex = 0; boneIndex < resources.boneCount; ++boneIndex)
+        {
+            const Matrix worldTransform = activeModel->getBone().at(mesh.nodeIndices[boneIndex]).worldTransform;
+            boneTransforms[boneIndex] = mesh.offsetTransforms[boneIndex] * worldTransform;
+        }
+
+        const UINT frameIndex = DX12::Instance().getFrameIndex() % SkinningMeshResources::FrameCount;
+        UploadBuffer* boneBuffer = resources.boneBuffers[frameIndex].get();
+        void* mapped = nullptr;
+        HRESULT hr = boneBuffer->getResource()->Map(0, nullptr, &mapped);
+        if (FAILED(hr) || !mapped)
+        {
+            LOG_HR(hr, "FbxRender: map bone SRV failed");
+            continue;
+        }
+        memcpy(mapped, boneTransforms.data(), sizeof(Matrix) * boneTransforms.size());
+        boneBuffer->getResource()->Unmap(0, nullptr);
+
+        const UINT outputIndex = frameIndex;
+        const UINT previousIndex = resources.hasOutput
+            ? resources.currentOutput
+            : (outputIndex + 1u) % SkinningMeshResources::FrameCount;
+
+        if (resources.outputStates[previousIndex] != D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+        {
+            const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                resources.outputs[previousIndex].Get(),
+                resources.outputStates[previousIndex],
+                D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            cmd->ResourceBarrier(1, &barrier);
+            resources.outputStates[previousIndex] = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+        }
+
+        if (resources.outputStates[outputIndex] != D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+        {
+            const auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                resources.outputs[outputIndex].Get(),
+                resources.outputStates[outputIndex],
+                D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            cmd->ResourceBarrier(1, &barrier);
+            resources.outputStates[outputIndex] = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        }
+
+        const UINT constants[2] = { resources.vertexCount, resources.hasOutput ? 1u : 0u };
+        cmd->SetComputeRoot32BitConstants(0, 2, constants, 0);
+        cmd->SetComputeRootShaderResourceView(1, resources.bindPoseBuffer->getResource()->GetGPUVirtualAddress());
+        cmd->SetComputeRootShaderResourceView(2, boneBuffer->getResource()->GetGPUVirtualAddress());
+        cmd->SetComputeRootShaderResourceView(3, resources.outputs[previousIndex]->GetGPUVirtualAddress());
+        cmd->SetComputeRootUnorderedAccessView(4, resources.outputs[outputIndex]->GetGPUVirtualAddress());
+        cmd->Dispatch((resources.vertexCount + 255u) / 256u, 1, 1);
+
+        const auto uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(resources.outputs[outputIndex].Get());
+        cmd->ResourceBarrier(1, &uavBarrier);
+
+        const auto vertexBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+            resources.outputs[outputIndex].Get(),
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+        cmd->ResourceBarrier(1, &vertexBarrier);
+        resources.outputStates[outputIndex] = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        resources.currentOutput = outputIndex;
+        resources.hasOutput = true;
+    }
+
+    m_skinningDirty = false;
 }
 
 FbxRenderComponent::LodEntry* FbxRenderComponent::getActiveLodEntry()
@@ -714,7 +926,12 @@ int FbxRenderComponent::evaluateAutoLodLevel(const Vector3& cameraPosition) cons
 
 void FbxRenderComponent::setRuntimeLodLevel(int lodLevel)
 {
-    m_runtimeLod = clampValue(lodLevel, 0, getLodLevelCount() - 1);
+    const int nextLod = clampValue(lodLevel, 0, getLodLevelCount() - 1);
+    if (nextLod != m_runtimeLod)
+    {
+        m_runtimeLod = nextLod;
+        m_skinningDirty = true;
+    }
 }
 
 int FbxRenderComponent::getLodLevelCount() const
@@ -779,31 +996,31 @@ std::vector<D3D12_INPUT_ELEMENT_DESC> FbxRenderComponent::getInputLayout()
     };
 }
 
-size_t FbxRenderComponent::createPSO(RasterizerState rasterizer)
+size_t FbxRenderComponent::createPSO(RasterizerState rasterizer, bool preSkinned)
 {
     PSOCreator::PSOData psoData{};
     psoData.rootSignatureType = RootSignatureType::FBXStandard;
-    psoData.vsShaderId = ShaderID::FBXVS;
+    psoData.vsShaderId = preSkinned ? ShaderID::SkinnedFBXVS : ShaderID::FBXVS;
     psoData.psShaderId = ShaderID::FBXPS;
     psoData.rasterizerState = rasterizer;
     psoData.blendState = BlendState::ALPHA;
     psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
     psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    psoData.inputLayout = getInputLayout();
+    psoData.inputLayout = preSkinned ? getSkinnedInputLayout() : getInputLayout();
     return PSOCreator::Instance().registerPSO(psoData);
 }
 
-size_t FbxRenderComponent::createGBufferPSO()
+size_t FbxRenderComponent::createGBufferPSO(bool preSkinned)
 {
     PSOCreator::PSOData psoData{};
     psoData.rootSignatureType = RootSignatureType::GBuffer;
-    psoData.vsShaderId = ShaderID::FBXVS;
+    psoData.vsShaderId = preSkinned ? ShaderID::SkinnedFBXVS : ShaderID::FBXVS;
     psoData.psShaderId = ShaderID::GBufferPS;
     psoData.rasterizerState = RasterizerState::CULL_CLOCKWISE;
     psoData.blendState = BlendState::OPAQUE;
     psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
     psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    psoData.inputLayout = getInputLayout();
+    psoData.inputLayout = preSkinned ? getSkinnedInputLayout() : getInputLayout();
     psoData.numRenderTargets = GBufferRenderTargets::RenderTargetCount;
     psoData.rtvFormats[0] = GBufferRenderTargets::BaseColorFormat;
     psoData.rtvFormats[1] = GBufferRenderTargets::NormalRoughnessFormat;
@@ -812,17 +1029,17 @@ size_t FbxRenderComponent::createGBufferPSO()
     return PSOCreator::Instance().registerPSO(psoData);
 }
 
-size_t FbxRenderComponent::createShadowDepthPSO()
+size_t FbxRenderComponent::createShadowDepthPSO(bool preSkinned)
 {
     PSOCreator::PSOData psoData{};
     psoData.rootSignatureType = RootSignatureType::ShadowDepth;
-    psoData.vsShaderId = ShaderID::ShadowDepthVS;
+    psoData.vsShaderId = preSkinned ? ShaderID::SkinnedShadowDepthVS : ShaderID::ShadowDepthVS;
     psoData.psShaderId = ShaderID::ShadowDepthPS;
     psoData.rasterizerState = RasterizerState::CULL_CLOCKWISE;
     psoData.blendState = BlendState::OPAQUE;
     psoData.depthStencilState = DepthStencilState::DEPTH_DEFALT;
     psoData.topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    psoData.inputLayout = getInputLayout();
+    psoData.inputLayout = preSkinned ? getSkinnedInputLayout() : getInputLayout();
     psoData.depthOnly = true;
     psoData.dsvFormat = DXGI_FORMAT_D32_FLOAT;
     return PSOCreator::Instance().registerPSO(psoData);
@@ -845,7 +1062,6 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
 
     if (!activeModel || !activeModelCB) return;
 
-    PSOCreator::Instance().setPSO(m_shadowPSOKey, cmd);
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     const auto& modelData = activeModel->getResource()->getModelData();
@@ -854,6 +1070,9 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
     {
         const auto& mesh = modelData.meshes[meshIdx];
         if (!mesh.visible) continue;
+
+        const bool useComputed = bindSkinnedMesh(cmd, activeModel, meshIdx);
+        PSOCreator::Instance().setPSO(useComputed ? m_skinnedShadowPSOKey : m_shadowPSOKey, cmd);
 
         // ボーントランスフォームを組み立て
         ModelCB modelCBData{};
@@ -879,6 +1098,10 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
 
         // メッシュバッファをセット（現在処理中のメッシュのみ）
         activeModel->getResource()->bindGpuMesh(cmd, meshIdx);
+        if (useComputed)
+        {
+            bindSkinnedMesh(cmd, activeModel, meshIdx);
+        }
 
         for (const auto& subset : mesh.subMeshes)
         {
@@ -890,7 +1113,7 @@ void FbxRenderComponent::renderShadowDepth(ID3D12GraphicsCommandList* cmd)
     }
 }
 
-void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey)
+void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey, size_t skinnedPsoKey)
 {
     if (!cmd || !m_model || !m_modelCB || !m_materialCB)
     {
@@ -917,9 +1140,7 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
 
     // PSO とルートシグネチャをセット
     DescriptorHeapManager::Instance().setDescriptorHeap(cmd);
-    PSOCreator::Instance().setPSO(psoKey, cmd);
     cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
 
     const auto& modelData = activeModel->getResource()->getModelData();
 
@@ -929,6 +1150,10 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
 
         // メッシュ単位の表示制御
         if (!mesh.visible) continue;
+
+        const bool useComputed = bindSkinnedMesh(cmd, activeModel, meshIdx);
+        PSOCreator::Instance().setPSO(useComputed ? skinnedPsoKey : psoKey, cmd);
+        cmd->SetGraphicsRootConstantBufferView(static_cast<int>(CBVType::Camera), CameraManager::Instance().getGPUAddress());
 
         // ModelCB を組み立てる
         ModelCB modelCBData{};
@@ -957,6 +1182,10 @@ void FbxRenderComponent::renderInternal(ID3D12GraphicsCommandList* cmd, size_t p
 
         // メッシュバッファをセット（現在処理中のメッシュのみ）
         activeModel->getResource()->bindGpuMesh(cmd, meshIdx);
+        if (useComputed)
+        {
+            bindSkinnedMesh(cmd, activeModel, meshIdx);
+        }
 
         for (const auto& subset : mesh.subMeshes)
         {
@@ -1345,6 +1574,17 @@ void FbxRenderComponent::imguiDebugPanel()
     }
 
     ImGui::Separator();
+    if (ImGui::Checkbox("Compute Skinning", &m_enableComputeSkinning))
+    {
+        m_skinningDirty = true;
+    }
+    int computeThreshold = static_cast<int>(m_computeSkinningVertexThreshold);
+    if (ImGui::DragInt("Compute Vertex Threshold", &computeThreshold, 128.0f, 1, 1000000))
+    {
+        m_computeSkinningVertexThreshold = static_cast<UINT>(std::max(1, computeThreshold));
+        m_skinningDirty = true;
+    }
+
     ImGui::Checkbox("Auto LOD", &m_enableAutoLod);
     ImGui::Checkbox("Runtime LOD Merge", &m_enableRuntimeLodMerge);
 

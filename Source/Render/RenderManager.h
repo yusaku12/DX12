@@ -57,6 +57,9 @@ public:
     //! シャドウ深度描画（シングルスレッド・カスケード境界カリング対応）
     void renderShadowCasters(const DirectX::BoundingOrientedBox& cascadeOBB);
 
+    //! 可視判定・HLOD・LOD確定後のGPU描画リソースを準備
+    void prepareVisibleRenderResources();
+
     //! マルチスレッド使用フラグ設定
     void setMultiThreadedEnabled(bool enabled) { m_useMultiThreaded = enabled; }
 

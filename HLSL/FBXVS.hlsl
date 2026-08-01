@@ -24,6 +24,7 @@ VS_OUT VS(VS_IN input)
     VS_OUT vout;
     vout.svpos = mul(worldPos, viewProjection);
     vout.worldPos = worldPos.xyz;
+    vout.previousWorldPos = worldPos.xyz - objectMotion.xyz;
     vout.normal = normalize(n);
     vout.tangent = normalize(t);
     vout.binormal = normalize(cross(vout.normal, vout.tangent));

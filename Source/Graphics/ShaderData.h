@@ -35,6 +35,9 @@ enum class ShaderID : int
     GpuEffectPS,
     GpuEffectCS,
     HiZDownsampleCS,
+    SkinningCS,
+    SkinnedFBXVS,
+    SkinnedShadowDepthVS,
     ShadowDepthVS,
     ShadowDepthPS,
     UIVS,   //!< UI 頂点シェーダー
@@ -85,6 +88,9 @@ static const std::array<ShaderDesc, static_cast<size_t>(ShaderID::MAX)> shaderTa
     ShaderDesc{ L"Shader/GpuEffectPS.hlsl",        "PS", "ps_5_0" },  //!< GpuEffectPS
     ShaderDesc{ L"Shader/GpuEffectCS.hlsl",        "CS", "cs_5_0" },  //!< GpuEffectCS
     ShaderDesc{ L"Shader/HiZDownsampleCS.hlsl",    "CS", "cs_5_0" },  //!< HiZDownsampleCS
+    ShaderDesc{ L"Shader/SkinningCS.hlsl",         "CS", "cs_5_0" },  //!< SkinningCS
+    ShaderDesc{ L"Shader/SkinnedFBXVS.hlsl",       "VS", "vs_5_0" },  //!< SkinnedFBXVS
+    ShaderDesc{ L"Shader/SkinnedShadowDepthVS.hlsl", "VS", "vs_5_0" }, //!< SkinnedShadowDepthVS
     ShaderDesc{ L"Shader/ShadowDepthVS.hlsl",      "VS", "vs_5_0" },  //!< ShadowDepthVS
     ShaderDesc{ L"Shader/ShadowDepthPS.hlsl",      "PS", "ps_5_0" },  //!< ShadowDepthPS
     ShaderDesc{ L"Shader/UIVS.hlsl",               "VS", "vs_5_0" },  //!< UIVS

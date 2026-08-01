@@ -3,10 +3,10 @@
 
 namespace
 {
-    constexpr size_t kLinearAllocatorSize = 16ull * 1024ull * 1024ull;
-    constexpr size_t kStackAllocatorSize = 8ull * 1024ull * 1024ull;
-    constexpr size_t kPoolBlockSize = 256ull;
-    constexpr size_t kPoolBlockCount = 4096ull;
+    static constexpr size_t kLinearAllocatorSize = 16ull * 1024ull * 1024ull;
+    static constexpr size_t kStackAllocatorSize = 8ull * 1024ull * 1024ull;
+    static constexpr size_t kPoolBlockSize = 256ull;
+    static constexpr size_t kPoolBlockCount = 4096ull;
 
     size_t alignUp(size_t value, size_t alignment)
     {

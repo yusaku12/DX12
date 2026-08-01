@@ -1,9 +1,15 @@
 ﻿#pragma once
 
+//=====================================================
+// メモリシステム
+//=====================================================
 class MemorySystem
 {
 public:
 
+    //=====================================================
+    // メモリリーク統計
+    //=====================================================
     struct LeakStats
     {
         uint64_t activeAllocations = 0;
@@ -13,6 +19,9 @@ public:
         uint64_t totalFrees = 0;
     };
 
+    //=====================================================
+    // アロケータ統計
+    //=====================================================
     struct LinearAllocatorStats
     {
         size_t capacityBytes = 0;
@@ -20,6 +29,9 @@ public:
         size_t peakBytes = 0;
     };
 
+    //=====================================================
+    // スタックアロケータ統計
+    //=====================================================
     struct StackAllocatorStats
     {
         size_t capacityBytes = 0;
@@ -27,6 +39,9 @@ public:
         size_t peakBytes = 0;
     };
 
+    //=====================================================
+    // プールアロケータ統計
+    //=====================================================
     struct PoolAllocatorStats
     {
         size_t blockSizeBytes = 0;
@@ -41,28 +56,58 @@ public:
         return instance;
     }
 
+    // 初期化
     void initialize();
+
+    // 終了処理
     void shutdown();
 
+    // フレーム開始時に呼び出す
     void beginFrame();
+
+    // デバイスをバインドする（GPU メモリ統計の取得に使用）
     void bindDevice(ID3D12Device* device);
 
+    // アロケーション関数
     void* linearAllocate(size_t size, size_t alignment = alignof(std::max_align_t));
+
+    // アロケーション関数（スタックアロケータ）
     void* stackAllocate(size_t size, size_t alignment = alignof(std::max_align_t));
+
+    // アロケーション関数（プールアロケータ）
     void stackDeallocate(void* ptr);
+
+    // アロケーション関数（プールアロケータ）
     void* poolAllocate();
+
+    // アロケーション関数（プールアロケータ）
     void poolDeallocate(void* ptr);
 
+    //
     LeakStats getLeakStats() const;
+
+    //
     LinearAllocatorStats getLinearAllocatorStats() const;
+
+    //
     StackAllocatorStats getStackAllocatorStats() const;
+
+    //
     PoolAllocatorStats getPoolAllocatorStats() const;
 
+    //
     float getGpuLocalUsageMB() const { return m_gpuLocalUsageMB; }
+
+    //
     float getGpuLocalBudgetMB() const { return m_gpuLocalBudgetMB; }
+
+    //
     float getGpuLocalUsageRatio() const { return m_gpuLocalUsageRatio; }
+
+    //
     float getGpuLocalPeakMB() const { return m_gpuLocalPeakMB; }
 
+    //
     template<typename T, typename... Args>
     T* newTracked(const char* file, int line, const char* tag, Args&&... args)
     {
@@ -77,6 +122,7 @@ public:
         return new (mem) T(std::forward<Args>(args)...);
     }
 
+    //
     template<typename T>
     void deleteTracked(T* ptr)
     {
@@ -90,6 +136,7 @@ public:
         ::operator delete(ptr);
     }
 
+    //
     template<typename T, typename... Args>
     std::shared_ptr<T> makeSharedTracked(const char* file, int line, const char* tag, Args&&... args)
     {
@@ -118,13 +165,24 @@ private:
     class LinearAllocator
     {
     public:
+
+        //
         bool initialize(size_t capacityBytes);
+
+        //
         void shutdown();
+
+        //
         void* allocate(size_t sizeBytes, size_t alignment);
+
+        //
         void reset();
+
+        //
         LinearAllocatorStats getStats() const;
 
     private:
+
         std::vector<std::byte> m_buffer;
         size_t m_offset = 0;
         size_t m_peak = 0;
@@ -134,14 +192,27 @@ private:
     class StackAllocator
     {
     public:
+
+        //
         bool initialize(size_t capacityBytes);
+
+        //
         void shutdown();
+
+        //
         void* allocate(size_t sizeBytes, size_t alignment);
+
+        //
         void deallocate(void* ptr);
+
+        //
         void reset();
+
+        //
         StackAllocatorStats getStats() const;
 
     private:
+
         struct Header
         {
             size_t previousOffset = 0;
@@ -156,13 +227,19 @@ private:
     class PoolAllocator
     {
     public:
+
         bool initialize(size_t blockSizeBytes, size_t blockCount);
+
         void shutdown();
+
         void* allocate();
+
         void deallocate(void* ptr);
+
         PoolAllocatorStats getStats() const;
 
     private:
+
         bool owns(const void* ptr) const;
 
         std::vector<std::byte> m_buffer;
@@ -203,6 +280,7 @@ private:
 #define DX_NEW(Type, ...) MemorySystem::Instance().newTracked<Type>(__FILE__, __LINE__, #Type, ##__VA_ARGS__)
 #define DX_DELETE(ptr) MemorySystem::Instance().deleteTracked(ptr)
 #define DX_MAKE_SHARED(Type, ...) MemorySystem::Instance().makeSharedTracked<Type>(__FILE__, __LINE__, #Type, ##__VA_ARGS__)
+#define DX_UNIQUE_PTR(Type, ...) DXMem::makeUnique<Type>(__VA_ARGS__)
 
 namespace DXMem
 {

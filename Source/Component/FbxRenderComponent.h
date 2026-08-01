@@ -3,6 +3,7 @@
 #include "Model\FBXLoad.h"
 #include "IRenderComponent.h"
 #include "Graphics\ConstantBuffer.h"
+#include "Graphics\UploadBuffer.h"
 
 #include <filesystem>
 
@@ -37,6 +38,9 @@ public:
 
     //! シャドウ深度描画
     void renderShadowDepth(ID3D12GraphicsCommandList* cmd) override;
+
+    //! 可視判定・LOD確定後にCompute Skinningを実行
+    void prepareRenderResources(ID3D12GraphicsCommandList* cmd) override;
 
     //! インスペクタ表示
     void inspectGUI() override;
@@ -107,16 +111,55 @@ private:
     static std::vector<D3D12_INPUT_ELEMENT_DESC> getInputLayout();
 
     //! PSO を構築（RasterizerState を指定）
-    size_t createPSO(RasterizerState rasterizer);
+    size_t createPSO(RasterizerState rasterizer, bool preSkinned = false);
 
     //! GBuffer PSO を構築
-    size_t createGBufferPSO();
+    size_t createGBufferPSO(bool preSkinned = false);
 
     //! シャドウ深度 PSO を構築
-    size_t createShadowDepthPSO();
+    size_t createShadowDepthPSO(bool preSkinned = false);
 
     //! 描画コア処理（PSO 別）
-    void renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey);
+    void renderInternal(ID3D12GraphicsCommandList* cmd, size_t psoKey, size_t skinnedPsoKey);
+
+    struct SkinnedVertex
+    {
+        Vector3 position = {};
+        Vector3 normal = {};
+        Vector3 tangent = {};
+        Vector2 uv = {};
+        Vector3 previousPosition = {};
+    };
+
+    struct SkinningMeshResources
+    {
+        static constexpr UINT FrameCount = 3;
+
+        std::unique_ptr<UploadBuffer> bindPoseBuffer;
+        std::unique_ptr<UploadBuffer> boneBuffers[FrameCount];
+        Microsoft::WRL::ComPtr<ID3D12Resource> outputs[FrameCount];
+        D3D12_RESOURCE_STATES outputStates[FrameCount] = {
+            D3D12_RESOURCE_STATE_COMMON,
+            D3D12_RESOURCE_STATE_COMMON,
+            D3D12_RESOURCE_STATE_COMMON
+        };
+        D3D12_VERTEX_BUFFER_VIEW vertexViews[FrameCount] = {};
+        UINT currentOutput = 0;
+        UINT vertexCount = 0;
+        UINT boneCount = 0;
+        bool eligible = false;
+        bool hasOutput = false;
+    };
+
+    struct SkinningModelResources
+    {
+        Model* model = nullptr;
+        std::vector<SkinningMeshResources> meshes;
+    };
+
+    void buildSkinningResources(Model* model);
+    SkinningModelResources* findSkinningResources(Model* model);
+    bool bindSkinnedMesh(ID3D12GraphicsCommandList* cmd, Model* model, size_t meshIndex);
 
     //! AABB 描画
     void renderAABB();
@@ -169,6 +212,15 @@ private:
     size_t m_wireframePSOKey = 0;
     size_t m_gbufferPSOKey = 0;
     size_t m_shadowPSOKey = 0;
+    size_t m_skinnedSolidPSOKey = 0;
+    size_t m_skinnedWireframePSOKey = 0;
+    size_t m_skinnedGBufferPSOKey = 0;
+    size_t m_skinnedShadowPSOKey = 0;
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_skinningComputePSO;
+    std::vector<SkinningModelResources> m_skinningResources;
+    UINT m_computeSkinningVertexThreshold = 2048;
+    bool m_enableComputeSkinning = true;
+    bool m_skinningDirty = true;
     DebugMode m_debugMode = DebugMode::None;
     TransformComponent* m_transform = nullptr;
     std::unique_ptr<Model> m_model;

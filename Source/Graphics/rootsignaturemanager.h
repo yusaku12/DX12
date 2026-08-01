@@ -22,6 +22,7 @@ enum class RootSignatureType : int
     GpuEffectRender,
     GpuEffectCompute,
     HiZPyramidCompute,
+    SkinningCompute,
     ShadowDepth,
     UI,     //!< ネイティブ UI レンダラー用
     Max
@@ -109,6 +110,9 @@ private:
 
     //! HiZPyramidComputeをビルド
     void buildHiZPyramidCompute();
+
+    //! SkinningComputeをビルド
+    void buildSkinningCompute();
 
     //! ShadowDepthをビルド（シャドウ深度パス用）
     void buildShadowDepth();

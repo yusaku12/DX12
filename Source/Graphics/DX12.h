@@ -188,6 +188,9 @@ public:
     const int& getScreenWidth() const { return m_width; }
     const int& getScreenHeight() const { return m_height; }
 
+    //! 現在記録中のフレームリソースインデックス取得
+    UINT getFrameIndex() const { return m_frameIndex; }
+
     //! 表示解像度（SwapChain）取得
     int getDisplayWidth() const { return m_displayWidth; }
     int getDisplayHeight() const { return m_displayHeight; }

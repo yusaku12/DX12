@@ -6,6 +6,7 @@ struct VS_OUT
     float3 binormal : BINORMAL;
     float2 uv : TEXCOORD;
     float3 worldPos : WORLD_POSITION;
+    float3 previousWorldPos : PREVIOUS_WORLD_POSITION;
 };
 
 struct VS_IN

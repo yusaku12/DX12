@@ -552,6 +552,11 @@ void RenderManager::renderSingleThreadedInternal(RenderPassKind kind)
     auto* cmd = DX12::Instance().getGraphicsCommandList();
     if (!cmd) return;
 
+    for (IRenderComponent* comp : comps)
+    {
+        if (comp) comp->prepareRenderResources(cmd);
+    }
+
     if (kind == RenderPassKind::Default)
     {
         for (auto* comp : comps)
@@ -589,6 +594,13 @@ void RenderManager::renderMultiThreadedInternal(RenderPassKind kind)
     if (comps.empty()) return;
 
     applyAutoLod(comps);
+
+    auto* preparationCmd = DX12::Instance().getGraphicsCommandList();
+    if (!preparationCmd) return;
+    for (IRenderComponent* comp : comps)
+    {
+        if (comp) comp->prepareRenderResources(preparationCmd);
+    }
 
     std::vector<IRenderComponent*> activeComps;
     activeComps.reserve(comps.size());
@@ -886,6 +898,30 @@ void RenderManager::renderShadowCasters(const DirectX::BoundingOrientedBox& casc
             }
         }
         comp->renderShadowDepth(cmd);
+    }
+}
+
+void RenderManager::prepareVisibleRenderResources()
+{
+    if (!m_occlusionFramePrepared)
+    {
+        beginOcclusionFrame();
+    }
+
+    auto comps = collectVisibleComponents(copyComponents());
+    if (comps.empty()) return;
+
+    comps = applyAutoHlod(comps);
+    if (comps.empty()) return;
+
+    applyAutoLod(comps);
+
+    ID3D12GraphicsCommandList* cmd = DX12::Instance().getGraphicsCommandList();
+    if (!cmd) return;
+
+    for (IRenderComponent* comp : comps)
+    {
+        if (comp) comp->prepareRenderResources(cmd);
     }
 }
 

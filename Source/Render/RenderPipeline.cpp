@@ -64,6 +64,9 @@ namespace
             // 光源方向を DeferredRenderer から同期
             shadow.update(DeferredRenderer::Instance().getLightDirection());
 
+            // カメラ可視判定とLOD確定後、全カスケードで共有する頂点を一度だけ生成
+            RenderManager::Instance().prepareVisibleRenderResources();
+
             // カスケード描画
             for (int cascade = 0; cascade < ShadowMapRenderer::CascadeCount; ++cascade)
             {
@@ -74,7 +77,7 @@ namespace
                     RootSignatureManager::Instance().getRootSignature(RootSignatureType::ShadowDepth));
                 cmd->SetGraphicsRootConstantBufferView(0, shadow.getLightVPCBAddress(cascade));
 
-                //RenderManager::Instance().renderShadowCasters(shadow.getCascadeOBB(cascade));
+                RenderManager::Instance().renderShadowCasters(shadow.getCascadeOBB(cascade));
             }
 
             // DeferredLighting で使用できるよう SRV へ遷移

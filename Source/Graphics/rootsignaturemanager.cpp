@@ -19,6 +19,7 @@ void RootSignatureManager::initialize()
     buildGpuEffectRender();
     buildGpuEffectCompute();
     buildHiZPyramidCompute();
+    buildSkinningCompute();
     buildShadowDepth();
     buildUI();
 }
@@ -371,6 +372,18 @@ void RootSignatureManager::buildHiZPyramidCompute()
     params[2].InitAsDescriptorTable(1, &uavRange);
 
     createRootSignature(params, _countof(params), RootSignatureType::HiZPyramidCompute);
+}
+
+void RootSignatureManager::buildSkinningCompute()
+{
+    CD3DX12_ROOT_PARAMETER params[5] = {};
+    params[0].InitAsConstants(2, 0);
+    params[1].InitAsShaderResourceView(0);
+    params[2].InitAsShaderResourceView(1);
+    params[3].InitAsShaderResourceView(2);
+    params[4].InitAsUnorderedAccessView(0);
+
+    createRootSignature(params, _countof(params), RootSignatureType::SkinningCompute);
 }
 
 void RootSignatureManager::buildModelMaterialSRV(UINT srvCount, RootSignatureType type)

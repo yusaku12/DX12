@@ -39,8 +39,7 @@ GBufferOutput PS(VS_OUT input)
 
     // 前フレーム再投影でスクリーン速度を生成（UV差分）。
     float4 currClip = mul(float4(input.worldPos, 1.0f), viewProjection);
-    float3 prevWorld = input.worldPos - objectMotion.xyz;
-    float4 prevClip = mul(float4(prevWorld, 1.0f), prevViewProjection);
+    float4 prevClip = mul(float4(input.previousWorldPos, 1.0f), prevViewProjection);
 
     float2 currNdc = currClip.xy / max(currClip.w, 1.0e-6f);
     float2 prevNdc = prevClip.xy / max(prevClip.w, 1.0e-6f);
