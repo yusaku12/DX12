@@ -13,6 +13,18 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     return w ? w->processMessage(hwnd, msg, wparam, lparam) : DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
+void initializeConsole()
+{
+    if (!AllocConsole())
+        return;
+
+    FILE* stream = nullptr;
+    freopen_s(&stream, "CONOUT$", "w", stdout);
+    freopen_s(&stream, "CONOUT$", "w", stderr);
+    freopen_s(&stream, "CONIN$", "r", stdin);
+    SetConsoleTitleW(L"DX12 Console");
+}
+
 //=====================================================
 // エントリーポイント
 //=====================================================
@@ -22,6 +34,8 @@ INT WINAPI wWinMain(
     [[maybe_unused]] LPWSTR cmdLine,
     INT cmdShow)
 {
+    initializeConsole();
+
     Logger::Instance().initialize();
     CrashReporter::Instance().initialize();
     MemorySystem::Instance().initialize();
