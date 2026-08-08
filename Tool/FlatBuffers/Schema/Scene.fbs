@@ -124,6 +124,13 @@ table CpuParticleComponentData {
 table AnimationComponentData {
     state_machine_enabled:bool;
     speed:float;
+    look_at_enabled:bool = false;
+    look_at_target:vec3;
+    look_at_weight:float = 1.0;
+    look_at_follow_sharpness:float = 10.0;
+    look_at_max_correction_degrees:float = 70.0;
+    debug_mouse_look_at_enabled:bool = false;
+    debug_mouse_look_at_distance:float = 6.0;
 }
 
 table NavAgentComponentData {

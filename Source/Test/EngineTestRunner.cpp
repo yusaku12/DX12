@@ -5,6 +5,7 @@
 #include "System/TimeManager.h"
 
 #include "Animation/AnimationStateMachine.h"
+#include "Animation/OzzAnimationRuntime.h"
 #include "Component/BehaviorTreeComponent.h"
 #include "Component/CanvasComponent.h"
 #include "Component/ColliderComponent.h"
@@ -278,6 +279,27 @@ namespace
         return resource;
     }
 
+    std::shared_ptr<ModelResource> createAimIKResource()
+    {
+        auto resource = DX_MAKE_SHARED(ModelResource);
+        auto& modelData = resource->getModelData();
+
+        ModelResource::Bone root{};
+        root.name = "Chest";
+        root.parentIndex = -1;
+        root.scale = Vector3::One;
+        root.rotate = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+        root.translate = Vector3::Zero;
+        modelData.bones.push_back(root);
+
+        ModelResource::Bone head = root;
+        head.name = "Head";
+        head.parentIndex = 0;
+        head.translate = Vector3(0.0f, 1.0f, 0.0f);
+        modelData.bones.push_back(head);
+        return resource;
+    }
+
     struct ScriptEventProbe
     {
         int receiveCount = 0;
@@ -465,6 +487,61 @@ namespace
                 sm.update(0.016f);
                 ctx.expect(sm.getCurrentStateName() == "Run", "Expected Run state after trigger");
                 ctx.expect(sm.isFading(), "Expected fading after transition");
+            }
+        });
+
+        tests.push_back({
+            "Unit.OzzAnimation.LookAtAimIK",
+            TestCategory::Unit,
+            [](TestContext& ctx)
+            {
+                auto resource = createAimIKResource();
+                Model model(resource);
+                model.updateTransform(Matrix::Identity);
+
+                OzzAnimationRuntime runtime;
+                ctx.expect(runtime.initialize(resource->getModelData()), "Failed to initialize ozz aim runtime");
+
+                auto& inputBones = model.getMutableBone();
+                inputBones[0].rotate = { 0.0f, 0.0f, 0.0f, 2.0f };
+                inputBones[1].rotate = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+                const Vector3 target(4.0f, 1.0f, -4.0f);
+                Vector3 initialDirection = target - model.getBone()[1].worldTransform.Translation();
+                initialDirection.Normalize();
+                const float initialDot = Vector3::Forward.Dot(initialDirection);
+
+                bool reached = false;
+                const bool solved = runtime.solveAimIK(model,
+                    { 0, 1 },
+                    { Vector3::Forward, Vector3::Forward },
+                    { Vector3::Up, Vector3::Up },
+                    { 0.25f, 1.0f },
+                    target,
+                    Vector3::Up,
+                    Matrix::Identity,
+                    1.0f,
+                    XMConvertToRadians(35.0f),
+                    &reached);
+                ctx.expect(solved, "ozz Aim IK solve failed");
+                ctx.expect(!reached, "ozz Aim IK did not report the angular constraint");
+
+                model.updateTransform(Matrix::Identity);
+                Vector3 aimedForward = Vector3::TransformNormal(Vector3::Forward, model.getBone()[1].worldTransform);
+                aimedForward.Normalize();
+                ctx.expect(aimedForward.Dot(initialDirection) > initialDot + 0.1f,
+                    "ozz Aim IK did not improve head alignment");
+
+                const Quaternion headRotation = model.getBone()[1].rotate;
+                ctx.expectNear(headRotation.LengthSquared(), 1.0f, 0.001f,
+                    "ozz Aim IK did not repair an invalid input quaternion");
+                const float correctionAngle = 2.0f * std::acos(std::clamp(std::abs(headRotation.w), 0.0f, 1.0f));
+                ctx.expect(correctionAngle <= XMConvertToRadians(35.5f),
+                    "ozz Aim IK exceeded the correction angle limit");
+
+                ctx.expect(!runtime.solveAimIK(model,
+                    { 1 }, {}, {}, {}, target, Vector3::Up, Matrix::Identity, 1.0f, 1.0f),
+                    "ozz Aim IK accepted mismatched chain inputs");
             }
         });
 

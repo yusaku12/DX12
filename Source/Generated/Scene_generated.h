@@ -1526,7 +1526,14 @@ struct AnimationComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::T
   typedef AnimationComponentDataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_STATE_MACHINE_ENABLED = 4,
-    VT_SPEED = 6
+    VT_SPEED = 6,
+    VT_LOOK_AT_ENABLED = 8,
+    VT_LOOK_AT_TARGET = 10,
+    VT_LOOK_AT_WEIGHT = 12,
+    VT_LOOK_AT_FOLLOW_SHARPNESS = 14,
+    VT_LOOK_AT_MAX_CORRECTION_DEGREES = 16,
+    VT_DEBUG_MOUSE_LOOK_AT_ENABLED = 18,
+    VT_DEBUG_MOUSE_LOOK_AT_DISTANCE = 20
   };
   bool state_machine_enabled() const {
     return GetField<uint8_t>(VT_STATE_MACHINE_ENABLED, 0) != 0;
@@ -1534,11 +1541,39 @@ struct AnimationComponentData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::T
   float speed() const {
     return GetField<float>(VT_SPEED, 0.0f);
   }
+  bool look_at_enabled() const {
+    return GetField<uint8_t>(VT_LOOK_AT_ENABLED, 0) != 0;
+  }
+  const scene::vec3 *look_at_target() const {
+    return GetStruct<const scene::vec3 *>(VT_LOOK_AT_TARGET);
+  }
+  float look_at_weight() const {
+    return GetField<float>(VT_LOOK_AT_WEIGHT, 1.0f);
+  }
+  float look_at_follow_sharpness() const {
+    return GetField<float>(VT_LOOK_AT_FOLLOW_SHARPNESS, 10.0f);
+  }
+  float look_at_max_correction_degrees() const {
+    return GetField<float>(VT_LOOK_AT_MAX_CORRECTION_DEGREES, 70.0f);
+  }
+  bool debug_mouse_look_at_enabled() const {
+    return GetField<uint8_t>(VT_DEBUG_MOUSE_LOOK_AT_ENABLED, 0) != 0;
+  }
+  float debug_mouse_look_at_distance() const {
+    return GetField<float>(VT_DEBUG_MOUSE_LOOK_AT_DISTANCE, 6.0f);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_STATE_MACHINE_ENABLED, 1) &&
            VerifyField<float>(verifier, VT_SPEED, 4) &&
+           VerifyField<uint8_t>(verifier, VT_LOOK_AT_ENABLED, 1) &&
+           VerifyField<scene::vec3>(verifier, VT_LOOK_AT_TARGET, 4) &&
+           VerifyField<float>(verifier, VT_LOOK_AT_WEIGHT, 4) &&
+           VerifyField<float>(verifier, VT_LOOK_AT_FOLLOW_SHARPNESS, 4) &&
+           VerifyField<float>(verifier, VT_LOOK_AT_MAX_CORRECTION_DEGREES, 4) &&
+           VerifyField<uint8_t>(verifier, VT_DEBUG_MOUSE_LOOK_AT_ENABLED, 1) &&
+           VerifyField<float>(verifier, VT_DEBUG_MOUSE_LOOK_AT_DISTANCE, 4) &&
            verifier.EndTable();
   }
 };
@@ -1552,6 +1587,27 @@ struct AnimationComponentDataBuilder {
   }
   void add_speed(float speed) {
     fbb_.AddElement<float>(AnimationComponentData::VT_SPEED, speed, 0.0f);
+  }
+  void add_look_at_enabled(bool look_at_enabled) {
+    fbb_.AddElement<uint8_t>(AnimationComponentData::VT_LOOK_AT_ENABLED, static_cast<uint8_t>(look_at_enabled), 0);
+  }
+  void add_look_at_target(const scene::vec3 *look_at_target) {
+    fbb_.AddStruct(AnimationComponentData::VT_LOOK_AT_TARGET, look_at_target);
+  }
+  void add_look_at_weight(float look_at_weight) {
+    fbb_.AddElement<float>(AnimationComponentData::VT_LOOK_AT_WEIGHT, look_at_weight, 1.0f);
+  }
+  void add_look_at_follow_sharpness(float look_at_follow_sharpness) {
+    fbb_.AddElement<float>(AnimationComponentData::VT_LOOK_AT_FOLLOW_SHARPNESS, look_at_follow_sharpness, 10.0f);
+  }
+  void add_look_at_max_correction_degrees(float look_at_max_correction_degrees) {
+    fbb_.AddElement<float>(AnimationComponentData::VT_LOOK_AT_MAX_CORRECTION_DEGREES, look_at_max_correction_degrees, 70.0f);
+  }
+  void add_debug_mouse_look_at_enabled(bool debug_mouse_look_at_enabled) {
+    fbb_.AddElement<uint8_t>(AnimationComponentData::VT_DEBUG_MOUSE_LOOK_AT_ENABLED, static_cast<uint8_t>(debug_mouse_look_at_enabled), 0);
+  }
+  void add_debug_mouse_look_at_distance(float debug_mouse_look_at_distance) {
+    fbb_.AddElement<float>(AnimationComponentData::VT_DEBUG_MOUSE_LOOK_AT_DISTANCE, debug_mouse_look_at_distance, 6.0f);
   }
   explicit AnimationComponentDataBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -1567,9 +1623,23 @@ struct AnimationComponentDataBuilder {
 inline ::flatbuffers::Offset<AnimationComponentData> CreateAnimationComponentData(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     bool state_machine_enabled = false,
-    float speed = 0.0f) {
+    float speed = 0.0f,
+    bool look_at_enabled = false,
+    const scene::vec3 *look_at_target = nullptr,
+    float look_at_weight = 1.0f,
+    float look_at_follow_sharpness = 10.0f,
+    float look_at_max_correction_degrees = 70.0f,
+    bool debug_mouse_look_at_enabled = false,
+    float debug_mouse_look_at_distance = 6.0f) {
   AnimationComponentDataBuilder builder_(_fbb);
+  builder_.add_debug_mouse_look_at_distance(debug_mouse_look_at_distance);
+  builder_.add_look_at_max_correction_degrees(look_at_max_correction_degrees);
+  builder_.add_look_at_follow_sharpness(look_at_follow_sharpness);
+  builder_.add_look_at_weight(look_at_weight);
+  builder_.add_look_at_target(look_at_target);
   builder_.add_speed(speed);
+  builder_.add_debug_mouse_look_at_enabled(debug_mouse_look_at_enabled);
+  builder_.add_look_at_enabled(look_at_enabled);
   builder_.add_state_machine_enabled(state_machine_enabled);
   return builder_.Finish();
 }

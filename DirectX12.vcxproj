@@ -72,7 +72,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;.\External\ozz-animation\include;.\External\ozz-animation\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -104,7 +104,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;.\External\ozz-animation\include;.\External\ozz-animation\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -143,6 +143,13 @@
     <ClCompile Include="Source\System\*.cpp" />
     <ClCompile Include="Source\Test\*.cpp" />
     <ClCompile Include="Source\UI\*.cpp" />
+  </ItemGroup>
+
+  <!-- ========== サードパーティ: ozz-animation (PCH なし) ========== -->
+  <ItemGroup>
+    <ClCompile Include="External\ozz-animation\src\base\**\*.cc"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\ozz-animation\src\animation\runtime\*.cc"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <ClCompile Include="External\ozz-animation\src\animation\offline\*.cc"><PrecompiledHeader>NotUsing</PrecompiledHeader><AdditionalOptions>/w %(AdditionalOptions)</AdditionalOptions></ClCompile>
   </ItemGroup>
 
   <!-- ========== サードパーティ: ImGui (PCH なし) ========== -->

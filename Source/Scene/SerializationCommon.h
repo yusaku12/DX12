@@ -404,10 +404,18 @@ namespace SerializationCommon
 
         if (auto* animation = dynamic_cast<AnimationComponent*>(component))
         {
+            const scene::vec3 lookAtTarget = toFlatVec3(animation->getLookAtTarget());
             const auto payload = scene::CreateAnimationComponentData(
                 builder,
                 animation->isStateMachineEnabled(),
-                animation->getSpeed());
+                animation->getSpeed(),
+                animation->isLookAtEnabled(),
+                &lookAtTarget,
+                animation->getLookAtWeight(),
+                animation->getLookAtFollowSharpness(),
+                animation->getLookAtMaxCorrectionDegrees(),
+                animation->isDebugMouseLookAtEnabled(),
+                animation->getDebugMouseLookAtDistance());
 
             return scene::CreateSerializedComponentDirect(
                 builder,
@@ -998,6 +1006,20 @@ namespace SerializationCommon
 
             animation->setStateMachineEnabled(payload->state_machine_enabled());
             animation->setSpeed(payload->speed());
+            animation->setLookAtEnabled(payload->look_at_enabled());
+            if (const auto* target = payload->look_at_target())
+            {
+                animation->setLookAtTarget(Vector3(target->x(), target->y(), target->z()), payload->look_at_weight());
+                animation->setLookAtEnabled(payload->look_at_enabled());
+            }
+            else
+            {
+                animation->setLookAtWeight(payload->look_at_weight());
+            }
+            animation->setLookAtFollowSharpness(payload->look_at_follow_sharpness());
+            animation->setLookAtMaxCorrectionDegrees(payload->look_at_max_correction_degrees());
+            animation->setDebugMouseLookAtDistance(payload->debug_mouse_look_at_distance());
+            animation->setDebugMouseLookAtEnabled(payload->debug_mouse_look_at_enabled());
             return;
         }
         case scene::ComponentPayload_NavAgentComponentData:

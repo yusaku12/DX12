@@ -53,6 +53,9 @@
 // 自作の機能
 #include "Math\SimpleMath.h"
 
+// ozz の SIMD 演算子は DirectX 名前空間の公開前に解析する。
+#include <ozz/base/maths/soa_transform.h>
+
 //! 省略系
 using namespace DirectX;
 using namespace SimpleMath;

@@ -3,6 +3,7 @@
 #include "AnimationState.h"
 #include "AnimationParameter.h"
 #include "AnimationLayer.h"
+#include "OzzAnimationRuntime.h"
 #include "Model\Model.h"
 
 //=====================================================
@@ -129,10 +130,10 @@ private:
         std::vector<Model::Bone>& bones) const;
 
     //! ボーン配列同士をブレンド: out = lerp(a, b, t)
-    static void blendBones(const std::vector<Model::Bone>& a,
+    void blendBones(const std::vector<Model::Bone>& a,
         const std::vector<Model::Bone>& b,
         float t,
-        std::vector<Model::Bone>& out);
+        std::vector<Model::Bone>& out) const;
 
     //! ボーン配列同士をマスク付きブレンド
     void blendBonesWithMask(const std::vector<Model::Bone>& src,
@@ -161,6 +162,7 @@ private:
     const AnimationParameter* findParam(const std::string& name) const;
 
     Model* m_model = nullptr;
+    OzzAnimationRuntime m_ozzRuntime;
 
     //! ステート一覧
     std::vector<std::unique_ptr<AnimationState>> m_states;

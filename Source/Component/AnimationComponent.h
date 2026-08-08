@@ -4,6 +4,7 @@
 #include "Model\Model.h"
 #include "Animation\AnimationStateMachine.h"
 #include "Animation\HumanoidRig.h"
+#include "Animation\OzzAnimationRuntime.h"
 #include <array>
 
 class GameObject;
@@ -37,6 +38,9 @@ public:
 
     //! 毎フレーム更新
     void update() override;
+
+    //! アニメーションと外部 Pose 適用後に LookAt を解決
+    void lateUpdate() override;
 
     //! 破棄時クリーンアップ
     void onDestroy() override;
@@ -147,6 +151,29 @@ public:
     void setArmIKEnabled(bool left, bool enabled);
     void setArmIKTarget(bool left, const Vector3& worldTarget, float weight = 1.0f);
 
+    //! Head / Neck / Chest の LookAt
+    void setLookAtEnabled(bool enabled);
+    bool isLookAtEnabled() const { return m_lookAt.enabled; }
+    void setLookAtTarget(const Vector3& worldTarget, float weight = 1.0f);
+    const Vector3& getLookAtTarget() const { return m_lookAt.targetWorld; }
+    float getLookAtWeight() const { return m_lookAt.weight; }
+    void setLookAtWeight(float weight) { m_lookAt.weight = std::clamp(weight, 0.0f, 1.0f); }
+    float getLookAtFollowSharpness() const { return m_lookAt.followSharpness; }
+    void setLookAtFollowSharpness(float sharpness) { m_lookAt.followSharpness = std::max(sharpness, 0.0f); }
+    float getLookAtMaxCorrectionDegrees() const { return m_lookAt.maxCorrectionDegrees; }
+    void setLookAtMaxCorrectionDegrees(float degrees) { m_lookAt.maxCorrectionDegrees = std::clamp(degrees, 0.0f, 180.0f); }
+    float getDebugMouseLookAtDistance() const { return m_lookAt.debugTargetDistance; }
+    void setDebugMouseLookAtDistance(float distance) { m_lookAt.debugTargetDistance = std::max(distance, 0.5f); }
+
+    //! デバッグ時に Scene ビューのマウス位置を注視する
+    void setDebugMouseLookAtEnabled(bool enabled)
+    {
+        m_lookAt.debugMouseTarget = enabled;
+        m_lookAt.hasSmoothedTarget = false;
+        if (enabled) m_lookAt.enabled = true;
+    }
+    bool isDebugMouseLookAtEnabled() const { return m_lookAt.debugMouseTarget; }
+
     //! 他コンポーネントから外部ポーズを書き込まれる間は自前更新を停止
     void setExternalRetargetOverride(bool enabled) { m_externalRetargetOverride = enabled; }
     bool isExternalRetargetOverridden() const { return m_externalRetargetOverride; }
@@ -164,10 +191,10 @@ private:
         std::vector<Model::Bone>& bones) const;
 
     //! ボーン配列同士をブレンド: out = lerp(a, b, t)
-    static void blendBones(const std::vector<Model::Bone>& a,
+    void blendBones(const std::vector<Model::Bone>& a,
         const std::vector<Model::Bone>& b,
         float t,
-        std::vector<Model::Bone>& out);
+        std::vector<Model::Bone>& out) const;
 
     //! 指定アニメーションのサンプリング間隔を取得
     float getSamplingTime(int animIndex) const;
@@ -187,18 +214,24 @@ private:
     //! 上半身/下半身のボーンマスクを収集する
     std::vector<int> collectHumanoidBoneMask(bool upperBody) const;
 
+    //! LookAt チェーンと各ボーンのローカル軸を構築
+    void rebuildLookAtChain();
+
+    //! Scene ビューのマウス位置から安定したワールドターゲットを取得
+    bool resolveDebugMouseLookAtTarget(Vector3& outTarget) const;
+
+    //! ozz Aim IK を適用
+    void applyLookAt();
+
     //! IK 解決を適用する
     void applyIK();
 
-    //! 2 ボーン IK（CCD）を適用
-    void solveTwoBoneIKCCD(int upperIndex, int lowerIndex, int endIndex,
+    //! ozz 2 ボーン IK を適用
+    void solveTwoBoneIK(int upperIndex, int lowerIndex, int endIndex,
         const Vector3& targetWorld,
         float weight,
         int iterationCount,
         float maxStepDegrees);
-
-    //! ボーンのワールド回転を指定してローカル回転へ反映
-    void applyWorldRotationToBone(int boneIndex, const Quaternion& worldRotation);
 
     //! モデルの基準ワールド行列を取得
     Matrix getModelWorldMatrix() const;
@@ -211,6 +244,8 @@ private:
     void drawSelectedTransitionInspector();
 
     Model* m_model = nullptr;
+    OzzAnimationRuntime m_ozzRuntime;
+    OzzAnimationRuntime m_retargetOzzRuntime;
 
     //! ステートマシン
     AnimationStateMachine m_stateMachine;
@@ -273,6 +308,31 @@ private:
     //! 自身の humanoid マップ
     std::array<int, HumanoidRig::BoneCount> m_selfHumanToBone{};
     bool m_selfHumanoidMapDirty = true;
+
+    struct LookAtGoal
+    {
+        bool enabled = false;
+        bool debugMouseTarget = false;
+        bool hasTarget = false;
+        bool hasSmoothedTarget = false;
+        bool reached = false;
+        float weight = 1.0f;
+        float followSharpness = 10.0f;
+        float maxCorrectionDegrees = 70.0f;
+        float debugTargetDistance = 6.0f;
+        Vector3 targetWorld = Vector3::Zero;
+        Vector3 smoothedTargetWorld = Vector3::Zero;
+    };
+
+    LookAtGoal m_lookAt;
+    std::vector<int> m_lookAtChain;
+    std::vector<Vector3> m_lookAtLocalForwards;
+    std::vector<Vector3> m_lookAtLocalUps;
+    std::vector<float> m_lookAtJointWeights;
+    std::vector<Vector4> m_lookAtBaseRotations;
+    std::vector<Vector4> m_lookAtAppliedRotations;
+    bool m_hasLookAtAppliedPose = false;
+    bool m_lookAtChainDirty = true;
 
     struct IKGoal
     {

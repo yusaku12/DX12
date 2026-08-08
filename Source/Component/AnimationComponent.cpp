@@ -1,8 +1,12 @@
 ﻿#include "pch.h"
 #include "AnimationComponent.h"
 #include "Animation\AnimatorControllerAsset.h"
+#include "Camera\CameraComponent.h"
+#include "Camera\CameraManager.h"
 #include "FbxRenderComponent.h"
+#include "Input\InputManager.h"
 #include "Model\FBXLoad.h"
+#include "Physics\Raycast.h"
 #include "GameObject\GameObject.h"
 #include "GameObject\GameObjectRegistry.h"
 #include "TransformComponent.h"
@@ -253,6 +257,19 @@ namespace
         }
         return Quaternion::CreateFromRotationMatrix(m);
     }
+
+    bool equivalentRotation(const Vector4& first, const Vector4& second)
+    {
+        const float firstLengthSquared = first.Dot(first);
+        const float secondLengthSquared = second.Dot(second);
+        if (firstLengthSquared <= kAxisEpsilon || secondLengthSquared <= kAxisEpsilon)
+        {
+            return false;
+        }
+
+        const float inverseLength = 1.0f / std::sqrt(firstLengthSquared * secondLengthSquared);
+        return std::abs(first.Dot(second) * inverseLength) >= 0.9999f;
+    }
 }
 
 AnimationComponent::AnimationComponent()
@@ -271,6 +288,10 @@ void AnimationComponent::awake()
     // ステートマシンにモデルを渡す
     if (m_model)
     {
+        if (!m_ozzRuntime.initialize(m_model->getResource()->getModelData()))
+        {
+            LOG_ERROR("[AnimationComponent] Failed to initialize ozz-animation runtime.");
+        }
         m_stateMachine.initialize(m_model);
         m_selfHumanoidMapDirty = true;
         if (!m_controllerAssetPath.empty())
@@ -378,6 +399,75 @@ void AnimationComponent::update()
         m_onFinished = nullptr;
         callback();
     }
+
+    if (m_retargetEnabled)
+    {
+        applyRetargetFromCurrentPose();
+    }
+}
+
+void AnimationComponent::lateUpdate()
+{
+    if (!m_model) return;
+    if (m_lookAtChainDirty) rebuildLookAtChain();
+
+    auto& bones = m_model->getMutableBone();
+    const bool hasCachedPose = m_hasLookAtAppliedPose &&
+        m_lookAtBaseRotations.size() == m_lookAtChain.size() &&
+        m_lookAtAppliedRotations.size() == m_lookAtChain.size();
+
+    if (hasCachedPose)
+    {
+        bool poseStillContainsLookAt = true;
+        for (size_t chainIndex = 0; chainIndex < m_lookAtChain.size(); ++chainIndex)
+        {
+            const int boneIndex = m_lookAtChain[chainIndex];
+            if (boneIndex < 0 || boneIndex >= static_cast<int>(bones.size()) ||
+                !equivalentRotation(bones[boneIndex].rotate, m_lookAtAppliedRotations[chainIndex]))
+            {
+                poseStillContainsLookAt = false;
+                break;
+            }
+        }
+
+        if (poseStillContainsLookAt)
+        {
+            for (size_t chainIndex = 0; chainIndex < m_lookAtChain.size(); ++chainIndex)
+            {
+                const int boneIndex = m_lookAtChain[chainIndex];
+                if (boneIndex >= 0 && boneIndex < static_cast<int>(bones.size()))
+                {
+                    bones[boneIndex].rotate = m_lookAtBaseRotations[chainIndex];
+                }
+            }
+        }
+    }
+
+    m_hasLookAtAppliedPose = false;
+    if (!m_lookAt.enabled || m_lookAtChain.empty()) return;
+
+    m_lookAtBaseRotations.clear();
+    m_lookAtBaseRotations.reserve(m_lookAtChain.size());
+    for (int boneIndex : m_lookAtChain)
+    {
+        m_lookAtBaseRotations.push_back(
+            boneIndex >= 0 && boneIndex < static_cast<int>(bones.size())
+            ? bones[boneIndex].rotate
+            : Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+    }
+
+    applyLookAt();
+
+    m_lookAtAppliedRotations.clear();
+    m_lookAtAppliedRotations.reserve(m_lookAtChain.size());
+    for (int boneIndex : m_lookAtChain)
+    {
+        m_lookAtAppliedRotations.push_back(
+            boneIndex >= 0 && boneIndex < static_cast<int>(bones.size())
+            ? bones[boneIndex].rotate
+            : Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+    }
+    m_hasLookAtAppliedPose = true;
 
     if (m_retargetEnabled)
     {
@@ -521,6 +611,24 @@ void AnimationComponent::setArmIKTarget(bool left, const Vector3& worldTarget, f
     goal.enabled = true;
 }
 
+void AnimationComponent::setLookAtEnabled(bool enabled)
+{
+    m_lookAt.enabled = enabled;
+    if (!enabled)
+    {
+        m_lookAt.hasSmoothedTarget = false;
+        m_lookAt.reached = false;
+    }
+}
+
+void AnimationComponent::setLookAtTarget(const Vector3& worldTarget, float weight)
+{
+    m_lookAt.targetWorld = worldTarget;
+    m_lookAt.weight = std::clamp(weight, 0.0f, 1.0f);
+    m_lookAt.hasTarget = true;
+    m_lookAt.enabled = true;
+}
+
 Matrix AnimationComponent::getModelWorldMatrix() const
 {
     if (const auto* tf = gameObject() ? gameObject()->getComponent<TransformComponent>() : nullptr)
@@ -619,6 +727,205 @@ void AnimationComponent::rebuildSelfHumanoidMap()
     setIfMissingFromParent(HumanBodyBone::RightFoot, HumanBodyBone::RightToes);
 
     m_selfHumanoidMapDirty = false;
+    m_lookAtChainDirty = true;
+}
+
+void AnimationComponent::rebuildLookAtChain()
+{
+    m_hasLookAtAppliedPose = false;
+    m_lookAtBaseRotations.clear();
+    m_lookAtAppliedRotations.clear();
+    m_lookAtChain.clear();
+    m_lookAtLocalForwards.clear();
+    m_lookAtLocalUps.clear();
+    m_lookAtJointWeights.clear();
+
+    if (!m_model)
+    {
+        m_lookAtChainDirty = false;
+        return;
+    }
+    if (m_selfHumanoidMapDirty) rebuildSelfHumanoidMap();
+
+    const auto& resourceBones = m_model->getResource()->getModelData().bones;
+    std::vector<Matrix> bindModels(resourceBones.size(), Matrix::Identity);
+    for (size_t index = 0; index < resourceBones.size(); ++index)
+    {
+        const auto& bone = resourceBones[index];
+        const Matrix local = Matrix::CreateScale(bone.scale)
+            * Matrix::CreateFromQuaternion(Quaternion(bone.rotate))
+            * Matrix::CreateTranslation(bone.translate);
+        bindModels[index] = bone.parentIndex >= 0 && bone.parentIndex < static_cast<int>(bindModels.size())
+            ? local * bindModels[bone.parentIndex]
+            : local;
+    }
+
+    const std::array<std::pair<HumanBodyBone, float>, 4> candidates =
+    {
+        std::pair{ HumanBodyBone::Chest, 0.18f },
+        std::pair{ HumanBodyBone::UpperChest, 0.24f },
+        std::pair{ HumanBodyBone::Neck, 0.40f },
+        std::pair{ HumanBodyBone::Head, 1.00f }
+    };
+
+    std::unordered_set<int> added;
+    for (const auto& [humanBone, jointWeight] : candidates)
+    {
+        const int index = m_selfHumanToBone[static_cast<size_t>(humanBone)];
+        if (index < 0 || index >= static_cast<int>(bindModels.size()) || !added.insert(index).second) continue;
+
+        const Matrix inverseBind = bindModels[index].Invert();
+        Vector3 forward = Vector3::TransformNormal(Vector3::Backward, inverseBind);
+        Vector3 up = Vector3::TransformNormal(Vector3::Up, inverseBind);
+        forward = safeNormalize(forward, Vector3::Backward);
+        up -= forward * up.Dot(forward);
+        up = safeNormalize(up, orthogonalFallback(forward));
+
+        m_lookAtChain.push_back(index);
+        m_lookAtLocalForwards.push_back(forward);
+        m_lookAtLocalUps.push_back(up);
+        m_lookAtJointWeights.push_back(jointWeight);
+    }
+    m_lookAtChainDirty = false;
+}
+
+bool AnimationComponent::resolveDebugMouseLookAtTarget(Vector3& outTarget) const
+{
+    if (!m_model) return false;
+    CameraComponent* camera = CameraManager::Instance().getMainCamera();
+    if (!camera) return false;
+
+    POINT cursor = InputManager::Instance().getMousePosition();
+    ScreenToClient(DX12::Instance().getHwnd(), &cursor);
+
+    float viewportX = 0.0f;
+    float viewportY = 0.0f;
+    float viewportWidth = static_cast<float>(DX12::Instance().getScreenWidth());
+    float viewportHeight = static_cast<float>(DX12::Instance().getScreenHeight());
+    float mouseX = static_cast<float>(cursor.x);
+    float mouseY = static_cast<float>(cursor.y);
+
+    const ImVec2 scenePosition = DX12::Instance().getSceneWindowPos();
+    const ImVec2 sceneSize = DX12::Instance().getSceneWindowSize();
+    if (sceneSize.x > 1.0f && sceneSize.y > 1.0f)
+    {
+        if (mouseX < scenePosition.x || mouseX > scenePosition.x + sceneSize.x ||
+            mouseY < scenePosition.y || mouseY > scenePosition.y + sceneSize.y)
+        {
+            return false;
+        }
+        mouseX -= scenePosition.x;
+        mouseY -= scenePosition.y;
+        viewportWidth = sceneSize.x;
+        viewportHeight = sceneSize.y;
+    }
+
+    const float aspect = viewportWidth / std::max(viewportHeight, 1.0f);
+    const Matrix projection = Matrix::CreatePerspectiveFieldOfView(
+        camera->getFov(), aspect, camera->getNear(), camera->getFar());
+    const Ray ray = Physics::ScreenPointToRay(mouseX, mouseY,
+        viewportX, viewportY, viewportWidth, viewportHeight,
+        camera->getView(), projection);
+
+    Vector3 anchor = getModelWorldMatrix().Translation();
+    if (!m_lookAtChain.empty())
+    {
+        m_model->updateTransform(getModelWorldMatrix());
+        const int headIndex = m_lookAtChain.back();
+        if (headIndex >= 0 && headIndex < static_cast<int>(m_model->getBone().size()))
+        {
+            anchor = matrixTranslation(m_model->getBone()[headIndex].worldTransform);
+        }
+    }
+
+    const Vector3 planeNormal = safeNormalize(camera->getForward(), Vector3::Forward);
+    const Vector3 planePoint = anchor + planeNormal * std::max(m_lookAt.debugTargetDistance, 0.5f);
+    const float denominator = ray.direction.Dot(planeNormal);
+    if (std::abs(denominator) <= kAxisEpsilon) return false;
+    const float distance = (planePoint - ray.position).Dot(planeNormal) / denominator;
+    if (distance <= 0.0f) return false;
+
+    outTarget = ray.position + ray.direction * distance;
+    return true;
+}
+
+void AnimationComponent::applyLookAt()
+{
+    if (!m_lookAt.enabled || !m_model || m_lookAt.weight <= 0.0f) return;
+    if (m_lookAtChainDirty) rebuildLookAtChain();
+    if (m_lookAtChain.empty()) return;
+
+    Vector3 target = m_lookAt.targetWorld;
+    if (m_lookAt.debugMouseTarget)
+    {
+        if (!resolveDebugMouseLookAtTarget(target)) return;
+        m_lookAt.targetWorld = target;
+        m_lookAt.hasTarget = true;
+    }
+    if (!m_lookAt.hasTarget) return;
+
+    if (!m_lookAt.hasSmoothedTarget)
+    {
+        m_lookAt.smoothedTargetWorld = target;
+        m_lookAt.hasSmoothedTarget = true;
+    }
+    const float dt = std::max(TimeManager::Instance().getDeltaTime(), 0.0f);
+    const float alpha = 1.0f - std::exp(-std::max(m_lookAt.followSharpness, 0.0f) * dt);
+    m_lookAt.smoothedTargetWorld += (target - m_lookAt.smoothedTargetWorld) * alpha;
+
+    const Matrix modelWorld = getModelWorldMatrix();
+    m_model->updateTransform(modelWorld);
+
+    const int headIndex = m_lookAtChain.back();
+    if (headIndex < 0 || headIndex >= static_cast<int>(m_model->getBone().size())) return;
+    const Vector3 headPosition = matrixTranslation(m_model->getBone()[headIndex].worldTransform);
+    Vector3 targetDirection = m_lookAt.smoothedTargetWorld - headPosition;
+    const float targetDistance = targetDirection.Length();
+    if (targetDistance <= kAxisEpsilon) return;
+    targetDirection /= targetDistance;
+
+    const Vector3 modelForward = safeNormalize(
+        Vector3::TransformNormal(Vector3::Backward, modelWorld), Vector3::Backward);
+    const float maxLookAngle = XMConvertToRadians(std::clamp(m_lookAt.maxCorrectionDegrees, 0.0f, 180.0f));
+    const float targetAngle = std::acos(std::clamp(modelForward.Dot(targetDirection), -1.0f, 1.0f));
+    bool targetConstrained = false;
+    if (targetAngle > maxLookAngle && maxLookAngle < XM_PI)
+    {
+        const XMVECTOR correction = quaternionFromTo(modelForward, targetDirection);
+        const XMVECTOR limited = XMQuaternionSlerp(
+            XMQuaternionIdentity(), correction, maxLookAngle / targetAngle);
+        XMStoreFloat3(&targetDirection, XMVector3Rotate(XMLoadFloat3(&modelForward), limited));
+        targetDirection = safeNormalize(targetDirection, modelForward);
+        targetConstrained = true;
+    }
+    const Vector3 constrainedTarget = headPosition + targetDirection * targetDistance;
+
+    Vector3 pole = Vector3::TransformNormal(Vector3::Up, modelWorld);
+    pole = safeNormalize(pole, Vector3::Up);
+    bool reached = false;
+    const bool solved = m_ozzRuntime.solveAimIK(*m_model,
+        m_lookAtChain,
+        m_lookAtLocalForwards,
+        m_lookAtLocalUps,
+        m_lookAtJointWeights,
+        constrainedTarget,
+        pole,
+        modelWorld,
+        m_lookAt.weight,
+        maxLookAngle,
+        &reached);
+    m_lookAt.reached = solved && reached && !targetConstrained;
+    if (solved)
+    {
+        m_model->updateTransform(modelWorld);
+    }
+
+    if (m_lookAt.debugMouseTarget)
+    {
+        DebugPrimitive::Instance().drawSphere(
+            Matrix::CreateTranslation(m_lookAt.smoothedTargetWorld), 0.08f,
+            m_lookAt.reached ? Vector4(0.2f, 1.0f, 0.3f, 1.0f) : Vector4(1.0f, 0.3f, 0.2f, 1.0f));
+    }
 }
 
 std::vector<int> AnimationComponent::collectHumanoidBoneMask(bool upperBody) const
@@ -678,106 +985,34 @@ std::vector<int> AnimationComponent::collectHumanoidBoneMask(bool upperBody) con
     return mask;
 }
 
-void AnimationComponent::applyWorldRotationToBone(int boneIndex, const Quaternion& worldRotation)
-{
-    auto& bones = m_model->getMutableBone();
-    if (boneIndex < 0 || boneIndex >= static_cast<int>(bones.size()))
-    {
-        return;
-    }
-
-    const Model::Bone& bone = bones[boneIndex];
-    XMVECTOR qParentWorld = XMQuaternionIdentity();
-    if (bone.parent)
-    {
-        Quaternion parentWorld = matrixRotation(bone.parent->worldTransform);
-        qParentWorld = XMVectorSet(parentWorld.x, parentWorld.y, parentWorld.z, parentWorld.w);
-    }
-
-    XMVECTOR qWorld = XMVectorSet(worldRotation.x, worldRotation.y, worldRotation.z, worldRotation.w);
-    XMVECTOR qLocal = XMQuaternionMultiply(XMQuaternionInverse(qParentWorld), qWorld);
-    qLocal = XMQuaternionNormalize(qLocal);
-    XMStoreFloat4(&bones[boneIndex].rotate, qLocal);
-}
-
-void AnimationComponent::solveTwoBoneIKCCD(int upperIndex, int lowerIndex, int endIndex,
+void AnimationComponent::solveTwoBoneIK(int upperIndex, int lowerIndex, int endIndex,
     const Vector3& targetWorld,
     float weight,
     int iterationCount,
     float maxStepDegrees)
 {
+    (void)iterationCount;
+    (void)maxStepDegrees;
     if (!m_model || weight <= 0.0f) return;
 
-    auto& bones = m_model->getMutableBone();
-    if (upperIndex < 0 || lowerIndex < 0 || endIndex < 0) return;
-    if (upperIndex >= static_cast<int>(bones.size()) ||
-        lowerIndex >= static_cast<int>(bones.size()) ||
-        endIndex >= static_cast<int>(bones.size()))
+    m_model->updateTransform(getModelWorldMatrix());
+    const auto& bones = m_model->getBone();
+    if (upperIndex < 0 || lowerIndex < 0 || endIndex < 0 ||
+        endIndex >= static_cast<int>(bones.size())) return;
+
+    Vector3 pole = Vector3::Forward;
+    if (lowerIndex < static_cast<int>(bones.size()))
     {
-        return;
+        const Vector3 upper = matrixTranslation(bones[upperIndex].worldTransform);
+        const Vector3 lower = matrixTranslation(bones[lowerIndex].worldTransform);
+        const Vector3 end = matrixTranslation(bones[endIndex].worldTransform);
+        pole = (lower - upper).Cross(end - lower);
+        if (pole.LengthSquared() <= kAxisEpsilon) pole = Vector3::Forward;
+        pole.Normalize();
     }
 
-    const Matrix worldBase = getModelWorldMatrix();
-    m_model->updateTransform(worldBase);
-
-    const int safeIterations = std::max(1, iterationCount);
-    const float clampedWeight = std::clamp(weight, 0.0f, 1.0f);
-    const float stepWeight = 1.0f - std::pow(1.0f - clampedWeight, 1.0f / static_cast<float>(safeIterations));
-    const float maxStepRadians = std::max(0.1f, DirectX::XMConvertToRadians(maxStepDegrees));
-
-    auto solveJoint = [&](int jointIndex)
-        {
-            m_model->updateTransform(worldBase);
-
-            const Vector3 jointPos = matrixTranslation(bones[jointIndex].worldTransform);
-            const Vector3 endPos = matrixTranslation(bones[endIndex].worldTransform);
-
-            Vector3 toEnd = endPos - jointPos;
-            Vector3 toTarget = targetWorld - jointPos;
-            if (toEnd.LengthSquared() <= kAxisEpsilon || toTarget.LengthSquared() <= kAxisEpsilon)
-            {
-                return;
-            }
-
-            toEnd.Normalize();
-            toTarget.Normalize();
-
-            XMVECTOR qDelta = quaternionFromTo(toEnd, toTarget);
-            XMVECTOR axis = XMVectorSet(0, 1, 0, 0);
-            float angle = 0.0f;
-            XMQuaternionToAxisAngle(&axis, &angle, qDelta);
-            if (std::isfinite(angle) && angle > maxStepRadians)
-            {
-                qDelta = XMQuaternionRotationAxis(axis, maxStepRadians);
-            }
-            Quaternion delta;
-            XMStoreFloat4(&delta, qDelta);
-            delta.Normalize();
-
-            Quaternion jointWorld = matrixRotation(bones[jointIndex].worldTransform);
-            XMVECTOR qJoint = XMVectorSet(jointWorld.x, jointWorld.y, jointWorld.z, jointWorld.w);
-            XMVECTOR qTarget = XMQuaternionMultiply(qDelta, qJoint);
-            XMVECTOR qNew = XMQuaternionSlerp(qJoint, qTarget, stepWeight);
-            qNew = XMQuaternionNormalize(qNew);
-
-            Quaternion newWorld;
-            XMStoreFloat4(&newWorld, qNew);
-            newWorld.Normalize();
-            applyWorldRotationToBone(jointIndex, newWorld);
-        };
-
-    for (int i = 0; i < safeIterations; ++i)
-    {
-        solveJoint(lowerIndex);
-        solveJoint(upperIndex);
-
-        m_model->updateTransform(worldBase);
-        const Vector3 endPos = matrixTranslation(bones[endIndex].worldTransform);
-        if ((endPos - targetWorld).LengthSquared() <= 0.0004f)
-        {
-            break;
-        }
-    }
+    m_ozzRuntime.solveTwoBoneIK(*m_model, upperIndex, lowerIndex, endIndex,
+        targetWorld, pole, getModelWorldMatrix(), weight);
 }
 
 void AnimationComponent::applyIK()
@@ -842,7 +1077,7 @@ void AnimationComponent::applyIK()
             goal.smoothedTargetWorld = goal.smoothedTargetWorld
                 + (goal.targetWorld - goal.smoothedTargetWorld) * alpha;
 
-            solveTwoBoneIKCCD(upperIndex, lowerIndex, endIndex,
+            solveTwoBoneIK(upperIndex, lowerIndex, endIndex,
                 goal.smoothedTargetWorld,
                 std::clamp(goal.weight, 0.0f, 1.0f),
                 kIkDefaultIterations,
@@ -865,6 +1100,7 @@ void AnimationComponent::applyIK()
         HumanBodyBone::RightUpperArm,
         HumanBodyBone::RightLowerArm,
         HumanBodyBone::RightHand);
+
 }
 
 void AnimationComponent::play(int animationIndex, bool loop, float speed)
@@ -903,6 +1139,8 @@ void AnimationComponent::addAnimation(const char* filename)
     if (!fbx) return;
 
     fbx->addAnimation(filename);
+    m_ozzRuntime.initialize(m_model->getResource()->getModelData());
+    m_stateMachine.initialize(m_model);
     m_animatorGraphDirty = true;
 }
 
@@ -1221,83 +1459,15 @@ bool AnimationComponent::applyPose(const std::vector<Model::Bone>& pose, bool ap
 void AnimationComponent::evaluateAnimation(int animIndex, float time,
     std::vector<Model::Bone>& bones) const
 {
-    const auto& animations = m_model->getResource()->getModelData().animations;
-    if (animIndex < 0 || animIndex >= static_cast<int>(animations.size())) return;
-
-    const auto& anim = animations[animIndex];
-    const auto& keyframes = anim.keyframes;
-    if (keyframes.empty()) return;
-
-    if (keyframes.size() == 1)
-    {
-        const auto& keys = keyframes[0].nodeKeys;
-        size_t count = std::min(bones.size(), keys.size());
-        for (size_t i = 0; i < count; ++i)
-        {
-            bones[i].scale = keys[i].scale;
-            bones[i].rotate = keys[i].rotate;
-            bones[i].translate = keys[i].translate;
-        }
-        return;
-    }
-
-    float clampedTime = std::clamp(time, 0.0f, anim.secondsLength);
-
-    // 現在時間が含まれる区間を探す
-    size_t frame0 = keyframes.size() - 2;
-    size_t frame1 = keyframes.size() - 1;
-    float  t = 1.0f;
-
-    for (size_t i = 0; i < keyframes.size() - 1; ++i)
-    {
-        if (clampedTime <= keyframes[i + 1].seconds)
-        {
-            frame0 = i;
-            frame1 = i + 1;
-            float span = keyframes[frame1].seconds - keyframes[frame0].seconds;
-            t = (span > 0.0f) ? (clampedTime - keyframes[frame0].seconds) / span : 0.0f;
-            break;
-        }
-    }
-
-    const auto& keys0 = keyframes[frame0].nodeKeys;
-    const auto& keys1 = keyframes[frame1].nodeKeys;
-    size_t count = std::min({ bones.size(), keys0.size(), keys1.size() });
-
-    for (size_t i = 0; i < count; ++i)
-    {
-        XMVECTOR s0 = XMLoadFloat3(&keys0[i].scale);
-        XMVECTOR s1 = XMLoadFloat3(&keys1[i].scale);
-        XMVECTOR r0 = XMLoadFloat4(&keys0[i].rotate);
-        XMVECTOR r1 = XMLoadFloat4(&keys1[i].rotate);
-        XMVECTOR t0 = XMLoadFloat3(&keys0[i].translate);
-        XMVECTOR t1 = XMLoadFloat3(&keys1[i].translate);
-
-        XMStoreFloat3(&bones[i].scale, XMVectorLerp(s0, s1, t));
-        XMStoreFloat4(&bones[i].rotate, XMQuaternionSlerp(r0, r1, t));
-        XMStoreFloat3(&bones[i].translate, XMVectorLerp(t0, t1, t));
-    }
+    m_ozzRuntime.sample(animIndex, time, bones);
 }
 
 void AnimationComponent::blendBones(const std::vector<Model::Bone>& a,
     const std::vector<Model::Bone>& b,
     float t,
-    std::vector<Model::Bone>& out)
+    std::vector<Model::Bone>& out) const
 {
-    size_t count = std::min({ a.size(), b.size(), out.size() });
-    for (size_t i = 0; i < count; ++i)
-    {
-        XMVECTOR sA = XMLoadFloat3(&a[i].scale);
-        XMVECTOR sB = XMLoadFloat3(&b[i].scale);
-        XMVECTOR rA = XMLoadFloat4(&a[i].rotate);
-        XMVECTOR rB = XMLoadFloat4(&b[i].rotate);
-        XMVECTOR tA = XMLoadFloat3(&a[i].translate);
-        XMVECTOR tB = XMLoadFloat3(&b[i].translate);
-
-        XMStoreFloat3(&out[i].scale, XMVectorLerp(sA, sB, t));
-        XMStoreFloat4(&out[i].rotate, XMQuaternionSlerp(rA, rB, t));
-        XMStoreFloat3(&out[i].translate, XMVectorLerp(tA, tB, t));
-    }
+    m_ozzRuntime.blend(a, b, t, out);
 }
 
 float AnimationComponent::getSamplingTime(int animIndex) const
@@ -1396,6 +1566,13 @@ void AnimationComponent::rebuildRetargetMap()
 
     if (!m_model || !m_retargetModel)
     {
+        m_retargetMapDirty = false;
+        return;
+    }
+
+    if (!m_retargetOzzRuntime.initialize(m_retargetModel->getResource()->getModelData()))
+    {
+        LOG_ERROR("[AnimationComponent] Failed to initialize target ozz-animation runtime.");
         m_retargetMapDirty = false;
         return;
     }
@@ -1642,6 +1819,7 @@ void AnimationComponent::applyRetargetFromCurrentPose()
         targetBones[i].rotate = targetResBones[i].rotate;
         targetBones[i].translate = targetResBones[i].translate;
     }
+    const std::vector<Model::Bone> targetBindPose = targetBones;
 
     for (size_t slot = 0; slot < HumanoidRig::BoneCount; ++slot)
     {
@@ -1695,6 +1873,9 @@ void AnimationComponent::applyRetargetFromCurrentPose()
         }
         dst.translate = dstBind.translate + delta * tScale;
     }
+
+    std::vector<Model::Bone> retargetedPose = targetBones;
+    m_retargetOzzRuntime.blend(targetBindPose, retargetedPose, 1.0f, targetBones);
 
     if (m_retargetTargetObject)
     {
@@ -1902,6 +2083,52 @@ void AnimationComponent::inspectGUI()
         {
             ImGui::TextDisabled("Retarget target model not found");
         }
+    }
+
+    ImGui::Separator();
+    if (ImGui::TreeNodeEx("LookAt (ozz Aim IK)", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        bool lookAtEnabled = m_lookAt.enabled;
+        if (ImGui::Checkbox("Enable LookAt", &lookAtEnabled))
+        {
+            setLookAtEnabled(lookAtEnabled);
+        }
+
+        bool debugMouseTarget = m_lookAt.debugMouseTarget;
+        if (ImGui::Checkbox("Follow Scene Mouse", &debugMouseTarget))
+        {
+            m_lookAt.debugMouseTarget = debugMouseTarget;
+            m_lookAt.hasSmoothedTarget = false;
+            if (debugMouseTarget)
+            {
+                m_lookAt.enabled = true;
+            }
+        }
+
+        if (!m_lookAt.debugMouseTarget &&
+            ImGui::DragFloat3("LookAt Target", &m_lookAt.targetWorld.x, 0.02f))
+        {
+            m_lookAt.hasTarget = true;
+            m_lookAt.hasSmoothedTarget = false;
+        }
+
+        ImGui::SliderFloat("LookAt Weight", &m_lookAt.weight, 0.0f, 1.0f, "%.2f");
+        ImGui::SliderFloat("LookAt Follow", &m_lookAt.followSharpness, 0.0f, 30.0f, "%.1f");
+        ImGui::SliderFloat("LookAt Joint Max Angle", &m_lookAt.maxCorrectionDegrees, 1.0f, 120.0f, "%.0f deg");
+        if (m_lookAt.debugMouseTarget)
+        {
+            ImGui::SliderFloat("Mouse Target Distance", &m_lookAt.debugTargetDistance, 0.5f, 30.0f, "%.1f");
+            ImGui::Text("Mouse Target: %.2f  %.2f  %.2f",
+                m_lookAt.targetWorld.x, m_lookAt.targetWorld.y, m_lookAt.targetWorld.z);
+        }
+
+        if (m_lookAt.enabled)
+        {
+            ImGui::TextColored(
+                m_lookAt.reached ? ImVec4(0.3f, 1.0f, 0.4f, 1.0f) : ImVec4(1.0f, 0.6f, 0.2f, 1.0f),
+                m_lookAt.reached ? "Aim target reached" : "Aim target constrained");
+        }
+        ImGui::TreePop();
     }
 
     ImGui::Separator();

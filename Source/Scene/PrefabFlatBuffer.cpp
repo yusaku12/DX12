@@ -183,6 +183,10 @@ namespace
             signature += (payload && payload->state_machine_enabled()) ? "1" : "0";
             signature += "|spd=";
             signature += payload ? std::to_string(payload->speed()) : "0";
+            signature += "|look=";
+            signature += (payload && payload->look_at_enabled()) ? "1" : "0";
+            signature += "|mouseLook=";
+            signature += (payload && payload->debug_mouse_look_at_enabled()) ? "1" : "0";
             break;
         }
         default:

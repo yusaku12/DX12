@@ -9,6 +9,10 @@ namespace
 void AnimationStateMachine::initialize(Model* model)
 {
     m_model = model;
+    if (m_model && !m_ozzRuntime.initialize(m_model->getResource()->getModelData()))
+    {
+        LOG_ERROR("[AnimStateMachine] Failed to initialize ozz-animation runtime.");
+    }
 
     // デフォルトレイヤーが無ければ追加
     if (m_layers.empty())
@@ -544,62 +548,7 @@ void AnimationStateMachine::executeTransition(AnimationState* destState, float f
 
 void AnimationStateMachine::evaluateAnimation(int animIndex, float time, std::vector<Model::Bone>& bones) const
 {
-    const auto& animations = m_model->getResource()->getModelData().animations;
-    if (animIndex < 0 || animIndex >= static_cast<int>(animations.size())) return;
-
-    const auto& anim = animations[animIndex];
-    const auto& keyframes = anim.keyframes;
-    if (keyframes.empty()) return;
-
-    if (keyframes.size() == 1)
-    {
-        const auto& keys = keyframes[0].nodeKeys;
-        size_t count = std::min(bones.size(), keys.size());
-        for (size_t i = 0; i < count; ++i)
-        {
-            bones[i].scale = keys[i].scale;
-            bones[i].rotate = keys[i].rotate;
-            bones[i].translate = keys[i].translate;
-        }
-        return;
-    }
-
-    float clampedTime = std::clamp(time, 0.0f, anim.secondsLength);
-
-    //! 現在時間が含まれる区間を探す
-    size_t frame0 = keyframes.size() - 2;
-    size_t frame1 = keyframes.size() - 1;
-    float  t = 1.0f;
-
-    for (size_t i = 0; i < keyframes.size() - 1; ++i)
-    {
-        if (clampedTime <= keyframes[i + 1].seconds)
-        {
-            frame0 = i;
-            frame1 = i + 1;
-            float span = keyframes[frame1].seconds - keyframes[frame0].seconds;
-            t = (span > 0.0f) ? (clampedTime - keyframes[frame0].seconds) / span : 0.0f;
-            break;
-        }
-    }
-
-    const auto& keys0 = keyframes[frame0].nodeKeys;
-    const auto& keys1 = keyframes[frame1].nodeKeys;
-    size_t count = std::min({ bones.size(), keys0.size(), keys1.size() });
-
-    for (size_t i = 0; i < count; ++i)
-    {
-        XMVECTOR s0 = XMLoadFloat3(&keys0[i].scale);
-        XMVECTOR s1 = XMLoadFloat3(&keys1[i].scale);
-        XMVECTOR r0 = XMLoadFloat4(&keys0[i].rotate);
-        XMVECTOR r1 = XMLoadFloat4(&keys1[i].rotate);
-        XMVECTOR p0 = XMLoadFloat3(&keys0[i].translate);
-        XMVECTOR p1 = XMLoadFloat3(&keys1[i].translate);
-
-        XMStoreFloat3(&bones[i].scale, XMVectorLerp(s0, s1, t));
-        XMStoreFloat4(&bones[i].rotate, XMQuaternionSlerp(r0, r1, t));
-        XMStoreFloat3(&bones[i].translate, XMVectorLerp(p0, p1, t));
-    }
+    m_ozzRuntime.sample(animIndex, time, bones);
 }
 
 void AnimationStateMachine::evaluateStatePose(const AnimationState& state,
@@ -904,22 +853,9 @@ void AnimationStateMachine::evaluateStatePose(const AnimationState& state,
 void AnimationStateMachine::blendBones(const std::vector<Model::Bone>& a,
     const std::vector<Model::Bone>& b,
     float t,
-    std::vector<Model::Bone>& out)
+    std::vector<Model::Bone>& out) const
 {
-    size_t count = std::min({ a.size(), b.size(), out.size() });
-    for (size_t i = 0; i < count; ++i)
-    {
-        XMVECTOR sA = XMLoadFloat3(&a[i].scale);
-        XMVECTOR sB = XMLoadFloat3(&b[i].scale);
-        XMVECTOR rA = XMLoadFloat4(&a[i].rotate);
-        XMVECTOR rB = XMLoadFloat4(&b[i].rotate);
-        XMVECTOR tA = XMLoadFloat3(&a[i].translate);
-        XMVECTOR tB = XMLoadFloat3(&b[i].translate);
-
-        XMStoreFloat3(&out[i].scale, XMVectorLerp(sA, sB, t));
-        XMStoreFloat4(&out[i].rotate, XMQuaternionSlerp(rA, rB, t));
-        XMStoreFloat3(&out[i].translate, XMVectorLerp(tA, tB, t));
-    }
+    m_ozzRuntime.blend(a, b, t, out);
 }
 
 void AnimationStateMachine::blendBonesWithMask(const std::vector<Model::Bone>& src,
@@ -931,69 +867,11 @@ void AnimationStateMachine::blendBonesWithMask(const std::vector<Model::Bone>& s
     bool additiveAffectTranslation,
     std::vector<Model::Bone>& out)
 {
-    const auto* bindBones = (m_model && m_model->getResource())
-        ? &m_model->getResource()->getModelData().bones
-        : nullptr;
-
-    for (int idx : mask)
-    {
-        if (idx < 0 || idx >= static_cast<int>(out.size())) continue;
-        if (idx >= static_cast<int>(layer.size())) continue;
-
-        XMVECTOR sS = XMLoadFloat3(&src[idx].scale);
-        XMVECTOR sL = XMLoadFloat3(&layer[idx].scale);
-        XMVECTOR rS = XMLoadFloat4(&src[idx].rotate);
-        XMVECTOR rL = XMLoadFloat4(&layer[idx].rotate);
-        XMVECTOR tS = XMLoadFloat3(&src[idx].translate);
-        XMVECTOR tL = XMLoadFloat3(&layer[idx].translate);
-
-        if (mode == LayerBlendMode::Override)
-        {
-            XMStoreFloat3(&out[idx].scale, XMVectorLerp(sS, sL, weight));
-            XMVECTOR q = XMQuaternionNormalize(XMQuaternionSlerp(rS, rL, weight));
-            XMStoreFloat4(&out[idx].rotate, q);
-            XMStoreFloat3(&out[idx].translate, XMVectorLerp(tS, tL, weight));
-        }
-        else // Additive
-        {
-            // Additive は bind pose 基準の差分を適用する
-            XMVECTOR identityR = XMQuaternionIdentity();
-            XMVECTOR identityT = XMVectorZero();
-            XMVECTOR identityS = XMVectorSet(1, 1, 1, 0);
-
-            XMVECTOR sRef = identityS;
-            XMVECTOR rRef = identityR;
-            XMVECTOR tRef = identityT;
-
-            if (bindBones && idx < static_cast<int>(bindBones->size()))
-            {
-                sRef = XMLoadFloat3(&(*bindBones)[idx].scale);
-                rRef = XMQuaternionNormalize(XMLoadFloat4(&(*bindBones)[idx].rotate));
-                tRef = XMLoadFloat3(&(*bindBones)[idx].translate);
-            }
-
-            const XMVECTOR minScale = XMVectorReplicate(0.0001f);
-            const XMVECTOR safeRefS = XMVectorMax(sRef, minScale);
-
-            XMVECTOR deltaS = XMVectorDivide(sL, safeRefS);
-            XMVECTOR deltaR = XMQuaternionMultiply(XMQuaternionInverse(rRef), rL);
-            deltaR = XMQuaternionNormalize(deltaR);
-            XMVECTOR deltaT = XMVectorSubtract(tL, tRef);
-
-            XMVECTOR addS = additiveAffectScale
-                ? XMVectorLerp(identityS, deltaS, weight)
-                : identityS;
-            XMVECTOR addR = XMQuaternionNormalize(XMQuaternionSlerp(identityR, deltaR, weight));
-            XMVECTOR addT = additiveAffectTranslation
-                ? XMVectorLerp(identityT, deltaT, weight)
-                : identityT;
-
-            XMStoreFloat3(&out[idx].scale, XMVectorMultiply(sS, addS));
-            XMVECTOR qOut = XMQuaternionNormalize(XMQuaternionMultiply(rS, addR));
-            XMStoreFloat4(&out[idx].rotate, qOut);
-            XMStoreFloat3(&out[idx].translate, XMVectorAdd(tS, addT));
-        }
-    }
+    m_ozzRuntime.blendLayer(src, layer, weight, mask,
+        mode == LayerBlendMode::Additive,
+        additiveAffectScale,
+        additiveAffectTranslation,
+        out);
 }
 
 float AnimationStateMachine::getAnimationLength(int animIndex) const
