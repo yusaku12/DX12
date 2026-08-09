@@ -458,6 +458,54 @@ namespace
         std::vector<TestCase> tests;
 
         tests.push_back({
+            "Unit.Model.LocalAABB",
+            TestCategory::Unit,
+            [](TestContext& ctx)
+            {
+                auto resource = DX_MAKE_SHARED(ModelResource);
+                auto& modelData = resource->getModelData();
+
+                ModelResource::Bone root{};
+                root.parentIndex = -1;
+                root.scale = Vector3::One;
+                root.rotate = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+                root.translate = Vector3(2.0f, 0.0f, 0.0f);
+                modelData.bones.push_back(root);
+
+                ModelResource::Bone child{};
+                child.parentIndex = 0;
+                child.scale = Vector3::One;
+                child.rotate = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+                child.translate = Vector3(0.0f, 3.0f, 0.0f);
+                modelData.bones.push_back(child);
+
+                ModelResource::Mesh rootMesh{};
+                rootMesh.nodeIndex = 0;
+                rootMesh.vertices.resize(1);
+                rootMesh.boundsMin = { -1.0f, -2.0f, -3.0f };
+                rootMesh.boundsMax = { 1.0f, 2.0f, 3.0f };
+                modelData.meshes.push_back(rootMesh);
+
+                ModelResource::Mesh childMesh{};
+                childMesh.nodeIndex = 1;
+                childMesh.vertices.resize(1);
+                childMesh.boundsMin = { 0.0f, 0.0f, 0.0f };
+                childMesh.boundsMax = { 2.0f, 2.0f, 2.0f };
+                modelData.meshes.push_back(childMesh);
+
+                Model model(resource);
+                Vector3 center{};
+                Vector3 extents{};
+                ctx.expect(model.getLocalAABB(center, extents), "Expected model local AABB");
+                ctx.expectNear(center.x, 2.5f, 0.0001f, "Unexpected model AABB center X");
+                ctx.expectNear(center.y, 1.5f, 0.0001f, "Unexpected model AABB center Y");
+                ctx.expectNear(center.z, 0.0f, 0.0001f, "Unexpected model AABB center Z");
+                ctx.expectNear(extents.x, 1.5f, 0.0001f, "Unexpected model AABB extent X");
+                ctx.expectNear(extents.y, 3.5f, 0.0001f, "Unexpected model AABB extent Y");
+                ctx.expectNear(extents.z, 3.0f, 0.0001f, "Unexpected model AABB extent Z");
+            } });
+
+        tests.push_back({
             "Unit.AnimationStateMachine.TriggerTransition",
             TestCategory::Unit,
             [](TestContext& ctx)

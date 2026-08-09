@@ -167,59 +167,24 @@ void FbxRenderComponent::inspectGUI()
 
 bool FbxRenderComponent::getWorldAABB(Vector3& outCenter, Vector3& outExtents) const
 {
-    if (!m_model) return false;
-
-    Vector3 worldMin(std::numeric_limits<float>::max());
-    Vector3 worldMax(std::numeric_limits<float>::lowest());
-
-    const auto& modelData = m_model->getResource()->getModelData();
-
-    // 早期リターン：メッシュが無ければ無効
-    if (modelData.meshes.empty()) return false;
-
-    // ヘルパー：1つのワールド空間点で min/max 更新
-    auto updateMinMax = [&](const Vector3& p)
-        {
-            worldMin = Vector3::Min(worldMin, p);
-            worldMax = Vector3::Max(worldMax, p);
-        };
-
-    for (const auto& mesh : modelData.meshes)
-    {
-        // メッシュローカルの最小/最大から 8 コーナーを作る
-        const Vector3 localMin(mesh.boundsMin.x, mesh.boundsMin.y, mesh.boundsMin.z);
-        const Vector3 localMax(mesh.boundsMax.x, mesh.boundsMax.y, mesh.boundsMax.z);
-
-        std::array<Vector3, 8> corners = {
-            Vector3(localMin.x, localMin.y, localMin.z),
-            Vector3(localMax.x, localMin.y, localMin.z),
-            Vector3(localMin.x, localMax.y, localMin.z),
-            Vector3(localMax.x, localMax.y, localMin.z),
-            Vector3(localMin.x, localMin.y, localMax.z),
-            Vector3(localMax.x, localMin.y, localMax.z),
-            Vector3(localMin.x, localMax.y, localMax.z),
-            Vector3(localMax.x, localMax.y, localMax.z)
-        };
-
-        // メッシュのルートノードの worldTransform で変換（スキニングの有無に関わらず）
-        const Matrix& nodeWorld = m_model->getBone().at(mesh.nodeIndex).worldTransform;
-        for (const auto& c : corners)
-        {
-            Vector3 w = Vector3::Transform(c, nodeWorld);
-            updateMinMax(w);
-        }
-    }
-
-    // 無効判定
-    if (worldMin.x > worldMax.x ||
-        worldMin.y > worldMax.y ||
-        worldMin.z > worldMax.z)
+    if (!m_model || !m_transform)
     {
         return false;
     }
 
-    outCenter = (worldMin + worldMax) * 0.5f;
-    outExtents = (worldMax - worldMin) * 0.5f;
+    Vector3 localCenter{};
+    Vector3 localExtents{};
+    if (!m_model->getLocalAABB(localCenter, localExtents))
+    {
+        return false;
+    }
+
+    const DirectX::BoundingBox localBox(localCenter, localExtents);
+    DirectX::BoundingBox worldBox;
+    localBox.Transform(worldBox, m_transform->getWorldMatrix());
+
+    outCenter = worldBox.Center;
+    outExtents = worldBox.Extents;
     return true;
 }
 
