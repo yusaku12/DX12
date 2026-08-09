@@ -1,0 +1,3 @@
+AMD FidelityFX SDK v2.3.0
+Commit: 60f4ea81909200d8542eca14dccb2628b763a9a3
+Source: https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK

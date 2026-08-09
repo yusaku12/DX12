@@ -58,6 +58,9 @@ public:
     //! 現在の書き込み先リソース
     ID3D12Resource* getCurrentWriteResource() const { return m_renderTargets[m_writeIndex].Get(); }
 
+    //! SRV インデックスに対応する入力リソース
+    ID3D12Resource* getResourceForSrv(UINT srvIndex) const;
+
     //! 初期化済み判定
     bool isInitialized() const { return m_initialized; }
 

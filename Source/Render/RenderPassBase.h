@@ -16,6 +16,7 @@ enum class RenderPassId : int
     RayTracing,
     Debug,
     PostEffect,
+    FidelityFXUpscale,
     Max
 };
 

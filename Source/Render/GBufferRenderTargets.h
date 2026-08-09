@@ -58,6 +58,12 @@ public:
         return m_srvBaseIndex + index;
     }
 
+    //! レンダーターゲットリソース取得
+    ID3D12Resource* getResource(UINT index) const
+    {
+        return index < RenderTargetCount ? m_renderTargets[index].Get() : nullptr;
+    }
+
 private:
 
     GBufferRenderTargets() = default;

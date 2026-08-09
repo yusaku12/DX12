@@ -8,6 +8,7 @@
 #include "Render/DeferredRenderer.h"
 #include "Render/GBufferRenderTargets.h"
 #include "Render/RayTracingRenderer.h"
+#include "Render/FidelityFXUpscaler.h"
 #include "Render/ShadowMapRenderer.h"
 #include "Input/InputManager.h"
 #include "GameObject/GameObjectRegistry.h"
@@ -58,6 +59,7 @@ void Window::initializeEngineSubsystems()
     RootSignatureManager::Instance().initialize();
     IBLManager::Instance().initialize();
     PostEffectRenderTargets::Instance().initialize();
+    FidelityFXUpscaler::Instance().initialize();
     DeferredRenderer::Instance().initialize();
     RayTracingRenderer::Instance().initialize();
     ShadowMapRenderer::Instance().initialize();
@@ -98,6 +100,7 @@ void Window::shutdownEngineSubsystems()
     UIFontManager::Instance().shutdown();
 
     // 2) ランタイム系（Scene に依存しうるものから順に停止）
+    FidelityFXUpscaler::Instance().shutdown();
     PhysicsWorld::Instance().shutdown();
     DebugPrimitive::Instance().shutdown();
     AudioManager::Instance().shutdown();
@@ -116,6 +119,9 @@ void Window::update()
 {
     // TimeManager更新
     TimeManager::Instance().update();
+
+    // FSR のジッターをカメラ定数更新より先に確定
+    FidelityFXUpscaler::Instance().beginFrame();
 
     // shaderManager更新
     ShaderManager::Instance().update();

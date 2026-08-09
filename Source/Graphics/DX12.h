@@ -172,6 +172,9 @@ public:
     //! 深度 SRV インデックス取得
     UINT getDepthSrvIndex() const { return m_depthSrvIndex; }
 
+    //! 深度リソース取得
+    ID3D12Resource* getDepthResource() const { return m_depthStencil.Get(); }
+
     //! フェンス取得
     ID3D12Fence* getFence() const { return m_fence.Get(); }
 

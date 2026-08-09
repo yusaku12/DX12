@@ -72,7 +72,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;.\External\ozz-animation\include;.\External\ozz-animation\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;.\External\ozz-animation\include;.\External\ozz-animation\src;.\External\FidelityFX-SDK\Kits\FidelityFX\api\include;.\External\FidelityFX-SDK\Kits\FidelityFX\upscalers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -82,8 +82,8 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <LinkIncremental>true</LinkIncremental>
-      <AdditionalLibraryDirectories>.\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug;.\External\FBX SDK\2020.3.9\lib\x64\debug;.\External\Physx\DebugLib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d12.lib;dxguid.lib;xaudio2.lib;libfbxsdk-mt.lib;libxml2-mt.lib;zlib-mt.lib;LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Debug;.\External\FBX SDK\2020.3.9\lib\x64\debug;.\External\Physx\DebugLib;.\External\FidelityFX-SDK\Kits\FidelityFX\signedbin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>amd_fidelityfx_loader_dx12.lib;d3d12.lib;dxguid.lib;xaudio2.lib;libfbxsdk-mt.lib;libxml2-mt.lib;zlib-mt.lib;LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
@@ -104,7 +104,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;.\External\ozz-animation\include;.\External\ozz-animation\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\External\imgui;.\Source;.\External\spdlog\include;.\External\tracy\public;.\External\taskflow;.\External\recastnavigation\Detour\Include;.\External\recastnavigation\Recast\Include;.\External\FBX SDK\2020.3.9\include;.\External\DirectXTex-main\DirectXTex;.\External\DirectXTex-main\Common;.\External\magic_enum;.\External\Physx;.\External\flatbuffers\include;.\External\freetype\include;.\External\msdfgen;.\External\ozz-animation\include;.\External\ozz-animation\src;.\External\FidelityFX-SDK\Kits\FidelityFX\api\include;.\External\FidelityFX-SDK\Kits\FidelityFX\upscalers\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <ExceptionHandling>false</ExceptionHandling>
       <AdditionalOptions>/Zc:__cplusplus /utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -114,8 +114,8 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <AdditionalLibraryDirectories>.\External.\FBX SDK.\2020.3.9.\lib.\x64.\release;.\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Release;.\External\Physx\ReleaseLib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d12.lib;dxguid.lib;xaudio2.lib;libfbxsdk-mt.lib;libxml2-mt.lib;zlib-mt.lib;LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\External.\FBX SDK.\2020.3.9.\lib.\x64.\release;.\External\DirectXTex-main\DirectXTex\Bin\Desktop_2022_Win10\x64\Release;.\External\Physx\ReleaseLib;.\External\FidelityFX-SDK\Kits\FidelityFX\signedbin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>amd_fidelityfx_loader_dx12.lib;d3d12.lib;dxguid.lib;xaudio2.lib;libfbxsdk-mt.lib;libxml2-mt.lib;zlib-mt.lib;LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle2_static_64.lib;PVDRuntime_64.lib;SceneQuery_static_64.lib;SimulationController_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
@@ -144,6 +144,14 @@
     <ClCompile Include="Source\Test\*.cpp" />
     <ClCompile Include="Source\UI\*.cpp" />
   </ItemGroup>
+
+  <Target Name="CopyFidelityFXRuntime" AfterTargets="Build" Condition="'$(Platform)'=='x64'">
+    <ItemGroup>
+      <FidelityFXRuntime Include="$(ProjectDir)External\FidelityFX-SDK\Kits\FidelityFX\signedbin\amd_fidelityfx_loader_dx12.dll" />
+      <FidelityFXRuntime Include="$(ProjectDir)External\FidelityFX-SDK\Kits\FidelityFX\signedbin\amd_fidelityfx_upscaler_dx12.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FidelityFXRuntime)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
 
   <!-- ========== サードパーティ: ozz-animation (PCH なし) ========== -->
   <ItemGroup>

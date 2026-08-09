@@ -143,10 +143,10 @@ Microsoft::WRL::ComPtr<ID3D12PipelineState> PSOCreator::buildPSO(const PSOData& 
     gpipeline.PrimitiveTopologyType = data.topologyType;
     gpipeline.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
 
-    // DSV フォーマット（明示指定があれば使用、なければデフォルト D24_UNORM_S8_UINT）
+    // DSV フォーマット（明示指定があれば使用、なければメイン深度の D32_FLOAT）
     gpipeline.DSVFormat = (data.dsvFormat != DXGI_FORMAT_UNKNOWN)
         ? data.dsvFormat
-        : DXGI_FORMAT_D24_UNORM_S8_UINT;
+        : DXGI_FORMAT_D32_FLOAT;
 
     // レンダーターゲット設定
     if (data.depthOnly)

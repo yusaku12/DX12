@@ -1,4 +1,6 @@
 ﻿#include "pch.h"
+#include "PostEffect/TemporalAAEffect.h"
+#include "Render/FidelityFXUpscaler.h"
 #include "PostEffect/PostEffectManager.h"
 #include "PostEffect/PostEffectRenderTargets.h"
 #include "PostEffectComponent.h"
@@ -177,6 +179,11 @@ bool PostEffectComponent::executeChain(float volumeWeight)
         auto& entry = m_debug.effects[i];
 
         if (!effect->isEnabled()) continue;
+        if (FidelityFXUpscaler::Instance().isEnabled()
+            && dynamic_cast<TemporalAAEffect*>(effect.get()))
+        {
+            continue;
+        }
 
         entry.inputSrvIndex = rt.getCurrentInputSrvIndex();
 

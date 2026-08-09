@@ -103,6 +103,24 @@ D3D12_CPU_DESCRIPTOR_HANDLE PostEffectRenderTargets::getCurrentRTV() const
     return m_rtvHandles[m_writeIndex];
 }
 
+ID3D12Resource* PostEffectRenderTargets::getResourceForSrv(UINT srvIndex) const
+{
+    if (srvIndex == DX12::Instance().getSceneSrvIndex())
+    {
+        return DX12::Instance().getSceneRenderTarget();
+    }
+
+    for (int i = 0; i < PING_PONG_COUNT; ++i)
+    {
+        if (srvIndex == m_srvIndices[i])
+        {
+            return m_renderTargets[i].Get();
+        }
+    }
+
+    return nullptr;
+}
+
 void PostEffectRenderTargets::transitionWriteToRenderTarget(ID3D12GraphicsCommandList* cmd)
 {
     if (m_states[m_writeIndex] != D3D12_RESOURCE_STATE_RENDER_TARGET)

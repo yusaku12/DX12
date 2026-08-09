@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Graphics/DX12.h"
+#include "Render/FidelityFXUpscaler.h"
 #include "System/TimeManager.h"
 #include "DynamicResolutionManager.h"
 
@@ -44,6 +45,8 @@ void DynamicResolutionManager::update()
 
 void DynamicResolutionManager::renderDebugContents()
 {
+    FidelityFXUpscaler::Instance().renderDebugContents();
+
     ImGui::SeparatorText("Dynamic Resolution");
 
     if (ImGui::Checkbox("Enable Dynamic Resolution", &m_enabled) && !m_enabled)

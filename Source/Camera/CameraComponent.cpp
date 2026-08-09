@@ -2,6 +2,7 @@
 #include "Camera/CameraManager.h"
 #include "CameraComponent.h"
 #include "Component\TransformComponent.h"
+#include "Render/FidelityFXUpscaler.h"
 
 void CameraComponent::awake()
 {
@@ -126,7 +127,11 @@ Matrix CameraComponent::getProjection() const
 {
     float aspect = static_cast<float>(DX12::Instance().getScreenWidth())
         / static_cast<float>(DX12::Instance().getScreenHeight());
-    return Matrix::CreatePerspectiveFieldOfView(m_fov, aspect, m_nearZ, m_farZ);
+    Matrix projection = Matrix::CreatePerspectiveFieldOfView(m_fov, aspect, m_nearZ, m_farZ);
+    const Vector2 jitter = FidelityFXUpscaler::Instance().getJitter();
+    projection._31 += 2.0f * jitter.x / static_cast<float>(DX12::Instance().getScreenWidth());
+    projection._32 -= 2.0f * jitter.y / static_cast<float>(DX12::Instance().getScreenHeight());
+    return projection;
 }
 
 Vector3 CameraComponent::getPosition() const

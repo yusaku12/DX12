@@ -28,7 +28,7 @@ public:
         //! 深度専用パス（カラー RT なし、シャドウマップ用）
         bool depthOnly = false;
 
-        //! DSV フォーマット（UNKNOWN の場合は D24_UNORM_S8_UINT）
+        //! DSV フォーマット（UNKNOWN の場合は D32_FLOAT）
         DXGI_FORMAT dsvFormat = DXGI_FORMAT_UNKNOWN;
 
         // ハッシュ値計算（inputLayoutは除外：enumの組み合わせで十分識別可能）

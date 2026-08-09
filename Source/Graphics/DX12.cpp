@@ -294,13 +294,13 @@ void DX12::initialize()
         desc.Height = m_height;
         desc.DepthOrArraySize = 1;
         desc.MipLevels = 1;
-        desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+        desc.Format = DXGI_FORMAT_R32_TYPELESS;
         desc.SampleDesc.Count = 1;
         desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
         D3D12_CLEAR_VALUE clearValue = {};
-        clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        clearValue.Format = DXGI_FORMAT_D32_FLOAT;
         clearValue.DepthStencil.Depth = 1.0f;
         clearValue.DepthStencil.Stencil = 0;
 
@@ -317,7 +317,7 @@ void DX12::initialize()
         LOG_HR(hr, "Failed to Create DepthStencil");
 
         D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-        dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
         dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
         dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 
@@ -332,7 +332,7 @@ void DX12::initialize()
             m_depthSrvIndex = DescriptorHeapManager::Instance().allocateRange();
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = 1;
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -371,7 +371,7 @@ void DX12::screenClear(RenderPath renderPath)
 
         cmd->ClearDepthStencilView(
             m_dsvHandle,
-            D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            D3D12_CLEAR_FLAG_DEPTH,
             1.0f,
             0,
             0,
@@ -393,7 +393,7 @@ void DX12::screenClear(RenderPath renderPath)
     // 深度ステンシルクリア
     m_activeGraphicsCommandList->ClearDepthStencilView(
         m_dsvHandle,
-        D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+        D3D12_CLEAR_FLAG_DEPTH,
         1.0f,
         0,
         0,
@@ -791,13 +791,13 @@ void DX12::recreateRenderResources(DXGI_FORMAT sceneFormat)
         depthDesc.Height = static_cast<UINT>(m_height);
         depthDesc.DepthOrArraySize = 1;
         depthDesc.MipLevels = 1;
-        depthDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+        depthDesc.Format = DXGI_FORMAT_R32_TYPELESS;
         depthDesc.SampleDesc.Count = 1;
         depthDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         depthDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
         D3D12_CLEAR_VALUE clearValue = {};
-        clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        clearValue.Format = DXGI_FORMAT_D32_FLOAT;
         clearValue.DepthStencil.Depth = 1.0f;
         clearValue.DepthStencil.Stencil = 0;
 
@@ -813,7 +813,7 @@ void DX12::recreateRenderResources(DXGI_FORMAT sceneFormat)
         LOG_HR(hr, "Depth recreate failed");
 
         D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-        dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+        dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
         dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
         dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
         m_device->CreateDepthStencilView(m_depthStencil.Get(), &dsvDesc, m_dsvHandle);
@@ -824,7 +824,7 @@ void DX12::recreateRenderResources(DXGI_FORMAT sceneFormat)
         }
 
         D3D12_SHADER_RESOURCE_VIEW_DESC depthSrvDesc = {};
-        depthSrvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        depthSrvDesc.Format = DXGI_FORMAT_R32_FLOAT;
         depthSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         depthSrvDesc.Texture2D.MipLevels = 1;
         depthSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

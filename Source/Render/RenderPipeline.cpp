@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Render/FidelityFXUpscaler.h"
 #include "Render/RenderPipeline.h"
 #include "Render/RenderManager.h"
 #include "Render/GBufferRenderTargets.h"
@@ -29,7 +30,7 @@ namespace
 
         cmd->ClearDepthStencilView(
             dx12.getDSVHandle(),
-            D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            D3D12_CLEAR_FLAG_DEPTH,
             1.0f,
             0,
             0,
@@ -284,6 +285,27 @@ namespace
                 enableOptionalEffects);
         }
     };
+
+    class FidelityFXUpscalePass : public RenderPassBase
+    {
+    public:
+        RenderPassId getId() const override { return RenderPassId::FidelityFXUpscale; }
+        const char* getName() const override { return "FidelityFX Upscale"; }
+        int getPriority() const override { return 10; }
+        RenderPassStage getStage() const override { return RenderPassStage::PostEffect; }
+
+        bool isEnabled(const RenderPassContext&) const override
+        {
+            return FidelityFXUpscaler::Instance().isEnabled();
+        }
+
+        void execute(RenderPassContext& context) override
+        {
+            context.finalSrvIndex = FidelityFXUpscaler::Instance().execute(
+                DX12::Instance().getGraphicsCommandList(),
+                context.finalSrvIndex);
+        }
+    };
 }
 
 void RenderPipeline::initialize()
@@ -297,6 +319,7 @@ void RenderPipeline::initialize()
     registerPass(DXMem::makeUnique<RayTracingPass>(), { RenderPassId::HiZPyramid });
     registerPass(DXMem::makeUnique<DebugPass>(), { RenderPassId::RayTracing });
     registerPass(DXMem::makeUnique<PostEffectPass>());
+    registerPass(DXMem::makeUnique<FidelityFXUpscalePass>(), { RenderPassId::PostEffect });
 }
 
 RenderPassBase* RenderPipeline::registerPass(std::unique_ptr<RenderPassBase> pass, std::vector<RenderPassId> dependencies)
