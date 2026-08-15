@@ -226,12 +226,15 @@ private:
     //! IK 解決を適用する
     void applyIK();
 
+    //! IK チェーンとターゲットをデバッグ描画
+    void drawIKDebug();
+
     //! ozz 2 ボーン IK を適用
-    void solveTwoBoneIK(int upperIndex, int lowerIndex, int endIndex,
+    bool solveTwoBoneIK(int upperIndex, int lowerIndex, int endIndex,
         const Vector3& targetWorld,
         float weight,
-        int iterationCount,
-        float maxStepDegrees);
+        Vector3* inOutPoleWorld,
+        bool* reached);
 
     //! モデルの基準ワールド行列を取得
     Matrix getModelWorldMatrix() const;
@@ -339,17 +342,20 @@ private:
         bool enabled = false;
         bool hasTarget = false;
         bool hasSmoothedTarget = false;
+        bool solved = false;
+        bool reached = false;
         float weight = 1.0f;
         float followSharpness = 14.0f;
-        float maxStepDegrees = 20.0f;
         Vector3 targetWorld = Vector3::Zero;
         Vector3 smoothedTargetWorld = Vector3::Zero;
+        Vector3 poleWorld = Vector3::Zero;
     };
 
     IKGoal m_leftFootIK;
     IKGoal m_rightFootIK;
     IKGoal m_leftArmIK;
     IKGoal m_rightArmIK;
+    bool m_debugIK = false;
 
     //! 空文字列（参照戻り用）
     static inline const std::string s_emptyString;

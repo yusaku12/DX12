@@ -139,6 +139,11 @@ void DebugPrimitive::drawGrid(const Vector3& center, float width, float depth, f
     }
 }
 
+void DebugPrimitive::drawLine(const Vector3& start, const Vector3& end, const Vector4& color)
+{
+    m_lineRequests.push_back({ start, end, color });
+}
+
 void DebugPrimitive::render()
 {
     bool hasAnything = !m_sphereRequests.empty()

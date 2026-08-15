@@ -297,6 +297,20 @@ namespace
         head.parentIndex = 0;
         head.translate = Vector3(0.0f, 1.0f, 0.0f);
         modelData.bones.push_back(head);
+
+        return resource;
+    }
+
+    std::shared_ptr<ModelResource> createTwoBoneIKResource()
+    {
+        auto resource = createAimIKResource();
+        auto& modelData = resource->getModelData();
+
+        ModelResource::Bone hand = modelData.bones.front();
+        hand.name = "Hand";
+        hand.parentIndex = 1;
+        hand.translate = Vector3(1.0f, 0.0f, 0.0f);
+        modelData.bones.push_back(hand);
         return resource;
     }
 
@@ -590,6 +604,38 @@ namespace
                 ctx.expect(!runtime.solveAimIK(model,
                     { 1 }, {}, {}, {}, target, Vector3::Up, Matrix::Identity, 1.0f, 1.0f),
                     "ozz Aim IK accepted mismatched chain inputs");
+            }
+        });
+
+        tests.push_back({
+            "Unit.OzzAnimation.TwoBoneIK",
+            TestCategory::Unit,
+            [](TestContext& ctx)
+            {
+                auto resource = createTwoBoneIKResource();
+                Model model(resource);
+                model.updateTransform(Matrix::Identity);
+
+                OzzAnimationRuntime runtime;
+                ctx.expect(runtime.initialize(resource->getModelData()), "Failed to initialize ozz two bone runtime");
+
+                const Vector3 target(0.5f, 1.5f, 0.0f);
+                const float initialDistance = Vector3::Distance(
+                    model.getBone()[2].worldTransform.Translation(), target);
+                bool reached = false;
+                const bool solved = runtime.solveTwoBoneIK(model,
+                    0, 1, 2, target, Vector3::Up, Matrix::Identity, 1.0f, &reached);
+                ctx.expect(solved, "ozz Two Bone IK solve failed");
+                ctx.expect(reached, "ozz Two Bone IK did not report a reachable target");
+
+                model.updateTransform(Matrix::Identity);
+                const float solvedDistance = Vector3::Distance(
+                    model.getBone()[2].worldTransform.Translation(), target);
+                ctx.expect(solvedDistance < initialDistance,
+                    "ozz Two Bone IK did not move the end joint toward the target");
+                ctx.expect(!runtime.solveTwoBoneIK(model,
+                    -1, 1, 2, target, Vector3::Up, Matrix::Identity, 1.0f),
+                    "ozz Two Bone IK accepted an invalid joint index");
             }
         });
 

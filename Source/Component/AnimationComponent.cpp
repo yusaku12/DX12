@@ -20,7 +20,6 @@ using namespace DirectX;
 namespace
 {
     constexpr float kAxisEpsilon = 1e-6f;
-    constexpr int kIkDefaultIterations = 8;
 
     Vector3 safeNormalize(const Vector3& v, const Vector3& fallback)
     {
@@ -411,6 +410,8 @@ void AnimationComponent::lateUpdate()
     if (!m_model) return;
     if (m_lookAtChainDirty) rebuildLookAtChain();
 
+    drawIKDebug();
+
     auto& bones = m_model->getMutableBone();
     const bool hasCachedPose = m_hasLookAtAppliedPose &&
         m_lookAtBaseRotations.size() == m_lookAtChain.size() &&
@@ -573,6 +574,7 @@ void AnimationComponent::setFootIKEnabled(bool left, bool enabled)
     goal.enabled = enabled;
     goal.hasTarget = false;
     goal.hasSmoothedTarget = false;
+    goal.poleWorld = Vector3::Zero;
 }
 
 void AnimationComponent::setFootIKTarget(bool left, const Vector3& worldTarget, float weight)
@@ -595,6 +597,7 @@ void AnimationComponent::setArmIKEnabled(bool left, bool enabled)
     goal.enabled = enabled;
     goal.hasTarget = false;
     goal.hasSmoothedTarget = false;
+    goal.poleWorld = Vector3::Zero;
 }
 
 void AnimationComponent::setArmIKTarget(bool left, const Vector3& worldTarget, float weight)
@@ -985,34 +988,55 @@ std::vector<int> AnimationComponent::collectHumanoidBoneMask(bool upperBody) con
     return mask;
 }
 
-void AnimationComponent::solveTwoBoneIK(int upperIndex, int lowerIndex, int endIndex,
+bool AnimationComponent::solveTwoBoneIK(int upperIndex, int lowerIndex, int endIndex,
     const Vector3& targetWorld,
     float weight,
-    int iterationCount,
-    float maxStepDegrees)
+    Vector3* inOutPoleWorld,
+    bool* reached)
 {
-    (void)iterationCount;
-    (void)maxStepDegrees;
-    if (!m_model || weight <= 0.0f) return;
+    if (reached) *reached = false;
+    if (!m_model || weight <= 0.0f) return false;
 
     m_model->updateTransform(getModelWorldMatrix());
     const auto& bones = m_model->getBone();
     if (upperIndex < 0 || lowerIndex < 0 || endIndex < 0 ||
-        endIndex >= static_cast<int>(bones.size())) return;
+        upperIndex >= static_cast<int>(bones.size()) ||
+        lowerIndex >= static_cast<int>(bones.size()) ||
+        endIndex >= static_cast<int>(bones.size())) return false;
 
-    Vector3 pole = Vector3::Forward;
-    if (lowerIndex < static_cast<int>(bones.size()))
+    const Vector3 upper = matrixTranslation(bones[upperIndex].worldTransform);
+    const Vector3 lower = matrixTranslation(bones[lowerIndex].worldTransform);
+    const Vector3 end = matrixTranslation(bones[endIndex].worldTransform);
+    Vector3 pole = lower - upper;
+    const Vector3 chain = end - upper;
+    const Vector3 fallbackPole = safeNormalize(
+        Vector3::TransformNormal(Vector3::Up, getModelWorldMatrix()), Vector3::Up);
+    if (chain.LengthSquared() > kAxisEpsilon)
     {
-        const Vector3 upper = matrixTranslation(bones[upperIndex].worldTransform);
-        const Vector3 lower = matrixTranslation(bones[lowerIndex].worldTransform);
-        const Vector3 end = matrixTranslation(bones[endIndex].worldTransform);
-        pole = (lower - upper).Cross(end - lower);
-        if (pole.LengthSquared() <= kAxisEpsilon) pole = Vector3::Forward;
-        pole.Normalize();
+        const Vector3 chainDirection = safeNormalize(chain, Vector3::Forward);
+        pole -= chainDirection * pole.Dot(chainDirection);
+    }
+    pole = safeNormalize(pole, fallbackPole);
+
+    if (inOutPoleWorld)
+    {
+        if (inOutPoleWorld->LengthSquared() > kAxisEpsilon)
+        {
+            const Vector3 previous = safeNormalize(*inOutPoleWorld, pole);
+            if (previous.Dot(pole) < 0.0f)
+            {
+                pole = -pole;
+            }
+
+            const float dt = std::max(TimeManager::Instance().getDeltaTime(), 0.0f);
+            const float blend = 1.0f - std::exp(-18.0f * dt);
+            pole = safeNormalize(previous + (pole - previous) * blend, pole);
+        }
+        *inOutPoleWorld = pole;
     }
 
-    m_ozzRuntime.solveTwoBoneIK(*m_model, upperIndex, lowerIndex, endIndex,
-        targetWorld, pole, getModelWorldMatrix(), weight);
+    return m_ozzRuntime.solveTwoBoneIK(*m_model, upperIndex, lowerIndex, endIndex,
+        targetWorld, pole, getModelWorldMatrix(), weight, reached);
 }
 
 void AnimationComponent::applyIK()
@@ -1047,7 +1071,11 @@ void AnimationComponent::applyIK()
         HumanBodyBone lower,
         HumanBodyBone end)
         {
-            if (!goal.enabled || goal.weight <= 0.0f) return;
+            if (!goal.enabled) return;
+
+            goal.solved = false;
+            goal.reached = false;
+            if (goal.weight <= 0.0f) return;
 
             const int upperIndex = getMapped(upper);
             const int lowerIndex = getMapped(lower);
@@ -1077,11 +1105,11 @@ void AnimationComponent::applyIK()
             goal.smoothedTargetWorld = goal.smoothedTargetWorld
                 + (goal.targetWorld - goal.smoothedTargetWorld) * alpha;
 
-            solveTwoBoneIK(upperIndex, lowerIndex, endIndex,
+            goal.solved = solveTwoBoneIK(upperIndex, lowerIndex, endIndex,
                 goal.smoothedTargetWorld,
                 std::clamp(goal.weight, 0.0f, 1.0f),
-                kIkDefaultIterations,
-                goal.maxStepDegrees);
+                &goal.poleWorld,
+                &goal.reached);
         };
 
     solveIfEnabled(m_leftFootIK,
@@ -1101,6 +1129,65 @@ void AnimationComponent::applyIK()
         HumanBodyBone::RightLowerArm,
         HumanBodyBone::RightHand);
 
+}
+
+void AnimationComponent::drawIKDebug()
+{
+    if (!m_debugIK || !m_model) return;
+
+    if (m_selfHumanoidMapDirty) rebuildSelfHumanoidMap();
+    m_model->updateTransform(getModelWorldMatrix());
+    const auto& bones = m_model->getBone();
+    auto& debug = DebugPrimitive::Instance();
+
+    auto drawGoal = [&](const IKGoal& goal, HumanBodyBone upper, HumanBodyBone lower, HumanBodyBone end)
+        {
+            if (!goal.enabled) return;
+
+            auto getMapped = [&](HumanBodyBone bone)
+                {
+                    const size_t index = static_cast<size_t>(bone);
+                    return index < m_selfHumanToBone.size() ? m_selfHumanToBone[index] : -1;
+                };
+            const int upperIndex = getMapped(upper);
+            const int lowerIndex = getMapped(lower);
+            const int endIndex = getMapped(end);
+            if (upperIndex < 0 || lowerIndex < 0 || endIndex < 0 ||
+                upperIndex >= static_cast<int>(bones.size()) ||
+                lowerIndex >= static_cast<int>(bones.size()) ||
+                endIndex >= static_cast<int>(bones.size())) return;
+
+            const Vector3 upperPosition = matrixTranslation(bones[upperIndex].worldTransform);
+            const Vector3 lowerPosition = matrixTranslation(bones[lowerIndex].worldTransform);
+            const Vector3 endPosition = matrixTranslation(bones[endIndex].worldTransform);
+            Vector3 poleDirection = lowerPosition - upperPosition;
+            const Vector3 chainDirection = safeNormalize(endPosition - upperPosition, Vector3::Forward);
+            poleDirection -= chainDirection * poleDirection.Dot(chainDirection);
+            poleDirection = safeNormalize(poleDirection, Vector3::Forward);
+            if (goal.poleWorld.LengthSquared() > kAxisEpsilon)
+            {
+                poleDirection = safeNormalize(goal.poleWorld, poleDirection);
+            }
+            const Vector4 chainColor = goal.solved && goal.reached
+                ? Vector4(0.2f, 1.0f, 0.3f, 1.0f)
+                : Vector4(1.0f, 0.35f, 0.15f, 1.0f);
+
+            debug.drawLine(upperPosition, lowerPosition, chainColor);
+            debug.drawLine(lowerPosition, endPosition, chainColor);
+            debug.drawLine(endPosition, goal.smoothedTargetWorld, Vector4(1.0f, 0.85f, 0.1f, 1.0f));
+            debug.drawLine(upperPosition, upperPosition + poleDirection * 0.5f,
+                Vector4(0.2f, 0.7f, 1.0f, 1.0f));
+            debug.drawSphere(Matrix::CreateTranslation(goal.targetWorld), 0.06f,
+                Vector4(1.0f, 0.2f, 0.8f, 1.0f));
+            debug.drawSphere(Matrix::CreateTranslation(goal.smoothedTargetWorld), 0.08f, chainColor);
+            debug.drawSphere(Matrix::CreateTranslation(lowerPosition), 0.035f,
+                Vector4(0.2f, 0.7f, 1.0f, 1.0f));
+        };
+
+    drawGoal(m_leftFootIK, HumanBodyBone::LeftUpperLeg, HumanBodyBone::LeftLowerLeg, HumanBodyBone::LeftFoot);
+    drawGoal(m_rightFootIK, HumanBodyBone::RightUpperLeg, HumanBodyBone::RightLowerLeg, HumanBodyBone::RightFoot);
+    drawGoal(m_leftArmIK, HumanBodyBone::LeftUpperArm, HumanBodyBone::LeftLowerArm, HumanBodyBone::LeftHand);
+    drawGoal(m_rightArmIK, HumanBodyBone::RightUpperArm, HumanBodyBone::RightLowerArm, HumanBodyBone::RightHand);
 }
 
 void AnimationComponent::play(int animationIndex, bool loop, float speed)
@@ -2134,12 +2221,16 @@ void AnimationComponent::inspectGUI()
     ImGui::Separator();
     if (ImGui::TreeNodeEx("IK (Foot / Arm)", ImGuiTreeNodeFlags_DefaultOpen))
     {
+        ImGui::Checkbox("Debug Draw IK", &m_debugIK);
+        ImGui::TextDisabled("Green: reached  Orange: constrained/failed  Blue: pole  Pink: raw target");
+
         bool leftFootPrev = m_leftFootIK.enabled;
         ImGui::Checkbox("Left Foot IK", &m_leftFootIK.enabled);
         if (leftFootPrev != m_leftFootIK.enabled)
         {
             m_leftFootIK.hasTarget = false;
             m_leftFootIK.hasSmoothedTarget = false;
+            m_leftFootIK.poleWorld = Vector3::Zero;
         }
         ImGui::SliderFloat("Left Foot IK Weight", &m_leftFootIK.weight, 0.0f, 1.0f, "%.2f");
         if (ImGui::DragFloat3("Left Foot Target", &m_leftFootIK.targetWorld.x, 0.01f))
@@ -2147,7 +2238,6 @@ void AnimationComponent::inspectGUI()
             m_leftFootIK.hasTarget = true;
         }
         ImGui::SliderFloat("Left Foot Follow", &m_leftFootIK.followSharpness, 1.0f, 30.0f, "%.1f");
-        ImGui::SliderFloat("Left Foot MaxStep", &m_leftFootIK.maxStepDegrees, 2.0f, 45.0f, "%.1f deg");
 
         bool rightFootPrev = m_rightFootIK.enabled;
         ImGui::Checkbox("Right Foot IK", &m_rightFootIK.enabled);
@@ -2155,6 +2245,7 @@ void AnimationComponent::inspectGUI()
         {
             m_rightFootIK.hasTarget = false;
             m_rightFootIK.hasSmoothedTarget = false;
+            m_rightFootIK.poleWorld = Vector3::Zero;
         }
         ImGui::SliderFloat("Right Foot IK Weight", &m_rightFootIK.weight, 0.0f, 1.0f, "%.2f");
         if (ImGui::DragFloat3("Right Foot Target", &m_rightFootIK.targetWorld.x, 0.01f))
@@ -2162,7 +2253,6 @@ void AnimationComponent::inspectGUI()
             m_rightFootIK.hasTarget = true;
         }
         ImGui::SliderFloat("Right Foot Follow", &m_rightFootIK.followSharpness, 1.0f, 30.0f, "%.1f");
-        ImGui::SliderFloat("Right Foot MaxStep", &m_rightFootIK.maxStepDegrees, 2.0f, 45.0f, "%.1f deg");
 
         ImGui::Separator();
         bool leftArmPrev = m_leftArmIK.enabled;
@@ -2171,6 +2261,7 @@ void AnimationComponent::inspectGUI()
         {
             m_leftArmIK.hasTarget = false;
             m_leftArmIK.hasSmoothedTarget = false;
+            m_leftArmIK.poleWorld = Vector3::Zero;
         }
         ImGui::SliderFloat("Left Arm IK Weight", &m_leftArmIK.weight, 0.0f, 1.0f, "%.2f");
         if (ImGui::DragFloat3("Left Hand Target", &m_leftArmIK.targetWorld.x, 0.01f))
@@ -2178,7 +2269,6 @@ void AnimationComponent::inspectGUI()
             m_leftArmIK.hasTarget = true;
         }
         ImGui::SliderFloat("Left Arm Follow", &m_leftArmIK.followSharpness, 1.0f, 30.0f, "%.1f");
-        ImGui::SliderFloat("Left Arm MaxStep", &m_leftArmIK.maxStepDegrees, 2.0f, 45.0f, "%.1f deg");
 
         bool rightArmPrev = m_rightArmIK.enabled;
         ImGui::Checkbox("Right Arm IK", &m_rightArmIK.enabled);
@@ -2186,6 +2276,7 @@ void AnimationComponent::inspectGUI()
         {
             m_rightArmIK.hasTarget = false;
             m_rightArmIK.hasSmoothedTarget = false;
+            m_rightArmIK.poleWorld = Vector3::Zero;
         }
         ImGui::SliderFloat("Right Arm IK Weight", &m_rightArmIK.weight, 0.0f, 1.0f, "%.2f");
         if (ImGui::DragFloat3("Right Hand Target", &m_rightArmIK.targetWorld.x, 0.01f))
@@ -2193,7 +2284,6 @@ void AnimationComponent::inspectGUI()
             m_rightArmIK.hasTarget = true;
         }
         ImGui::SliderFloat("Right Arm Follow", &m_rightArmIK.followSharpness, 1.0f, 30.0f, "%.1f");
-        ImGui::SliderFloat("Right Arm MaxStep", &m_rightArmIK.maxStepDegrees, 2.0f, 45.0f, "%.1f deg");
 
         ImGui::TreePop();
     }

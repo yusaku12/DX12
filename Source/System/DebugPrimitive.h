@@ -54,6 +54,9 @@ public:
     //! グリッド描画（XZ平面）
     void drawGrid(const Vector3& center, float width, float depth, float step = 1.0f, const Vector4& color = { 0.5f, 0.5f, 0.5f, 1.0f });
 
+    //! 線分描画
+    void drawLine(const Vector3& start, const Vector3& end, const Vector4& color = { 0, 1, 0, 1 });
+
 private:
 
     DebugPrimitive() = default;

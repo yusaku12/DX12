@@ -406,7 +406,8 @@ bool OzzAnimationRuntime::solveTwoBoneIK(Model& model,
     const Vector3& targetWorld,
     const Vector3& poleVectorWorld,
     const Matrix& modelWorld,
-    float weight) const
+    float weight,
+    bool* reached) const
 {
     if (!isReady() || upperIndex < 0 || lowerIndex < 0 || endIndex < 0) return false;
     if (upperIndex >= static_cast<int>(m_impl->engineToOzz.size()) ||
@@ -446,6 +447,7 @@ bool OzzAnimationRuntime::solveTwoBoneIK(Model& model,
     ozz::math::SimdQuaternion lowerCorrection;
     job.start_joint_correction = &upperCorrection;
     job.mid_joint_correction = &lowerCorrection;
+    job.reached = reached;
     if (!job.Run()) return false;
 
     auto applyCorrection = [&](int ozzIndex, const ozz::math::SimdQuaternion& correction)

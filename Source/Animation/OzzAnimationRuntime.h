@@ -42,7 +42,8 @@ public:
         const Vector3& targetWorld,
         const Vector3& poleVectorWorld,
         const Matrix& modelWorld,
-        float weight) const;
+        float weight,
+        bool* reached = nullptr) const;
 
     //! ozz IKAimJob で親から子へ連なるジョイントをターゲットへ向ける
     bool solveAimIK(Model& model,
